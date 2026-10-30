@@ -28,7 +28,7 @@ def main():
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
-    parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue'], default='baseline')
+    parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction'], default='baseline')
     args = parser.parse_args()
     if args.paid_core and args.browser:
         parser.error('--paid-core and mocked --browser acceptance must run separately')
@@ -36,6 +36,8 @@ def main():
         parser.error('--browser-mode requires --browser')
     if args.coordination_scenario != 'baseline' and args.paid_core not in ('coordination', 'coordination-text'):
         parser.error('--coordination-scenario requires a paid Coordination journey')
+    if args.coordination_scenario == 'interaction' and args.paid_core != 'coordination':
+        parser.error('--coordination-scenario interaction requires the Live Coordination journey')
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
     provider_props = {}

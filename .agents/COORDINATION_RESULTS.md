@@ -1,5 +1,97 @@
 # Coordination Agent implementation and evidence
 
+## Recorded-interaction follow-up on main (2026-10-30)
+
+Scope: consolidate the local repository, reproduce the owner's 29 October
+Cockpit interaction, improve explicit sensor-task acceptance and diagnostic
+evidence, and measure/reduce database demand. The user explicitly changed this
+work's branch to `main`; no deployment integration is part of this change.
+
+The local device now has one registered checkout at
+`C:/Data/VSCodeWorkSpace/prometheus`, on main. Ten linked worktrees were removed
+after verified recovery snapshots of their files, staged/unstaged binary patches
+and a verified repository bundle. Three had uncommitted work, including an old
+unfinished merge and capacity experiments. Recovery data is outside the checkout
+in `C:/Data/VSCodeWorkSpace/prometheus-cleanup-20261030`. Four fully merged local
+branches were removed. The distinct agents, feature/speedup and features/designer
+branches and all remote branches remain. An empty former active directory was
+still held by the editor/session during cleanup; it is no longer a worktree.
+
+The surviving production history confirmed fresh scissors reaching the backend,
+native denial of sensing, a joke before acceptance, rejection of "Yes, let's
+start now" followed by false arming speech, and a final captured joke whose
+playback was never acknowledged. User return archived that delivery as uncertain
+before its deadline. MySQL quota exhaustion was separately confirmed after the
+terminal failure. The first agent's history and exact invalid model output were
+not available; the precise original playback failure remains unresolved.
+
+Changes:
+
+- Unchanged ON_CUE proposals accept narrowly recognized explicit start commands
+  without model inference. Readiness/preparation validation and zero-action
+  arming remain. Dialogue content and ambiguous or compound requests still use
+  existing interpretation. The natural return phrase also follows deterministic
+  lifecycle control. Fresh-sign guidance names supplied evidence without claiming
+  direct access to camera images or guessing when evidence is missing.
+- Rejected updates retain the existing failure marker and add content-free
+  category/operation/phase under the same activity operation. Playback gate
+  transitions expose bounded cue/segment correlation and why evidence is pending.
+  Playback thresholds, deadlines, ownership and interruption rules are unchanged.
+- Automatic camera emissions back off repeated HTTP 429/server failures from
+  2.5 to 60 seconds. Success clears the delay; old-scope replies cannot poison a
+  new connection. Only fresh observations are retried. Healthy sensing and per-
+  event durability are preserved, with local presence/Stop handling independent.
+- New Coordination graphs share identical stateless action/decision nodes across
+  phases through the existing many-to-many relationships. Existing saved graphs
+  are not rewritten. All state transitions remain explicit.
+- One reusable interaction fixture drives the persisted regression and a prepared
+  real-provider journey. The latter includes persona, capability and recognition
+  questions before negotiating the one-joke task, then Reflection and return.
+
+Database evidence (disposable local MySQL, scripted providers):
+
+| Synthetic mixed minute | Before | After |
+| --- | ---: | ---: |
+| MySQL Questions | 2,065 | 1,993 |
+| Projected Questions/hour | 123,900 | 119,580 |
+| 36,000/hour quota headroom | not met | not met |
+
+This is a 3.5% reduction, not a quota fix. The workload includes 12 social
+batches, 12 face and 24 hand samples, 60 polls, 12 context/lease/history refreshes,
+four user and eight native segments, and 72 individually durable receipts.
+Prior receipt/batch/storage/polling reductions remain present and their focused
+regressions are included. Ordinary observation processing remains the dominant
+cost. The test reports capacity failure separately from its 2,000-question
+regression ceiling; it does not silently reduce sensing or cache authorization.
+The fixed quota remains insufficient for this sustained workload. Production
+capacity and further persistence changes need their own measured follow-up.
+
+Verification: the focused Coordination, query, storage, activity and context
+suites passed 138 cases before the final activity-export regression was added;
+the final focused rerun and browser results are recorded below. The initial new
+load test had an omitted API argument and a Mockito restubbing error; both were
+corrected before baseline measurement. Baseline artifacts:
+`target/gptlive-acceptance-64d8f4b130`; full journey plus query-shape baseline:
+`target/gptlive-acceptance-3acb43f32c`; first change verification:
+`target/gptlive-acceptance-04d6fb2d59`; focused regression:
+`target/gptlive-acceptance-9d669bebc1`. Live Node checks pass 74 tests; runner
+isolation checks pass seven. Syntax and whitespace checks pass.
+
+Final boundary rerun: five activity tests and the measured query regression pass;
+two enabled real-app Cockpit browser cases pass, including delayed playback and
+durable Live conversation. Artifacts: `target/gptlive-acceptance-49676e21ce`.
+There are 139 distinct passing Java cases across the focused runs. All runners
+removed their disposable schema/account and owned application process. The named
+browser case mentioning feature-off speech ran in enabled mode only; this does
+not claim a feature-disabled browser rerun.
+
+No paid provider trial, physical microphone/camera acceptance, production load
+test, migration, commit, push or deployment has been performed in this follow-up.
+Native speech is still guided rather than acoustically gated. Neither the new
+diagnostics nor offline tests prove the earlier preview/false-confirmation problem
+or missing physical playback acknowledgement is eliminated. Create a fresh
+instance to receive the smaller persisted graph.
+
 Date: 2026-10-27. Work starts on `main` at `56a3f05`; no commit, integration or
 deployment is part of this milestone.
 

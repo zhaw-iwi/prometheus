@@ -45,15 +45,94 @@ class CoordinationDeliveryIntegrationTest {
         var scope = new Scope(code, id, owner); assertEquals("FINISHING", CoordinationMemory.stage(memory(scope))); return scope;
     }
     void hear(Scope scope, boolean complete) {
+        hear(scope, complete, "final-contribution", "The class is invited to the lab.");
+    }
+    void hear(Scope scope, boolean complete, String segment, String words) {
         Instant started = Instant.parse(memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString()).plusNanos(1);
-        when(gateway.infer(any())).thenAnswer(call -> {
+        doAnswer(call -> {
             var request = (InferenceRequest) call.getArgument(0);
             var input = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
             var result = new JsonObject(); for (String key : List.of("responseId", "revision", "segmentId")) result.add(key, input.get(key));
             result.addProperty("verdict", "MATCH"); return result.toString();
-        });
-        assertTrue(recording.record(scope.id(), scope.owner(), "final-contribution", "The class is invited to the lab.",
+        }).when(gateway).infer(any());
+        assertTrue(recording.record(scope.id(), scope.owner(), segment, words,
                 List.of(), SpeechProvenance.Association.NONE, complete, started).isPresent());
+    }
+    @Test void scissorsConversationReachesReflectionOnlyAfterOneCapturedAndPlayedContribution() throws Exception {
+        JsonObject fixture;
+        try (var input = getClass().getResourceAsStream("/coordination/scissors-interaction.json")) {
+            fixture = JsonParser.parseReader(new java.io.InputStreamReader(java.util.Objects.requireNonNull(input), java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+        String code = UUID.randomUUID().toString().substring(0, 5); var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(CoordinationAgent.KEY));
+        UUID id = demo.createAgent(code, CoordinationAgent.KEY).getID(), session = UUID.randomUUID();
+        var snapshot = contexts.claim(code, id, session).orElseThrow();
+        var scope = new Scope(code, id, new ExternalSpeech(session, snapshot.epoch()));
+        var words = fixture.getAsJsonObject("turns");
+        try {
+            assertTrue(snapshot.instructions().contains("Valerian"));
+            assertTrue(snapshot.instructions().contains("Laureline"));
+            for (String name : List.of("persona", "capabilities")) {
+                interactionTurn(scope, words.get(name).getAsString(), "KEEP", JsonNull.INSTANCE);
+                assertEquals("CONVERSATION", CoordinationMemory.stage(memory(scope)));
+            }
+            sign(scope, Instant.now());
+            interactionTurn(scope, words.get("sense").getAsString(), "KEEP", JsonNull.INSTANCE);
+            var evidence = contexts.refresh(id, scope.owner()).orElseThrow().context().items().stream()
+                    .filter(item -> Event.TYPE_HAND_SIGN.equals(item.type())).findFirst().orElseThrow();
+            assertTrue(evidence.text().contains("scissor"));
+            assertFalse(evidence.sourceIds().isEmpty()); assertTrue(evidence.expiresAt().isAfter(Instant.now()));
+            interactionTurn(scope, words.get("proposal").getAsString(), "PROPOSE", fixture.get("agreement"));
+            assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+            assertFalse(memory(scope).containsKey(CoordinationMemory.AGREEMENT));
+            var proposal = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();
+            interactionTurn(scope, words.get("accept").getAsString(), "START", JsonNull.INSTANCE);
+            assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+            assertEquals(proposal, memory(scope).get(CoordinationMemory.AGREEMENT));
+            assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+            hear(scope, true, "interaction-arming", "The task is active. Show a fresh scissor sign for one joke.");
+            awaitCaptured(scope);
+            // The real three-second cue cooldown is part of the contract; do not replace it with a storage edit.
+            Instant after = Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString());
+            long delay = java.time.Duration.between(Instant.now(), after).toMillis();
+            if (delay >= 0) Thread.sleep(delay + 20);
+            doReturn("{\"speech\":\"Why did the robot bring scissors? To cut through the small talk.\"}").when(gateway).infer(any());
+            sign(scope, Instant.now());
+            assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
+            assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+            hear(scope, true, "interaction-joke", "Why did the robot bring scissors? To cut through the small talk."); awaitCaptured(scope);
+            var cue = contexts.refresh(id, scope.owner()).orElseThrow().context().activity().playbackCue();
+            assertNotNull(cue.segmentId());
+            assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
+            assertTrue(contexts.playbackSettled(code, id, scope.owner(), cue.id(), cue.segmentId()));
+            assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+            interactionTurn(scope, words.get("acknowledge").getAsString(), "REFLECT", JsonNull.INSTANCE);
+            assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+            assertEquals(words.get("acknowledge").getAsString(), memory(scope).get(CoordinationMemory.REVIEW).getAsJsonObject().get("userReport").getAsString());
+            sign(scope, Instant.now()); assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+            long historySize = agents.findById(id).orElseThrow().getEventHistory().toList().size();
+            interactionTurn(scope, words.get("back").getAsString(), "RETURN_TO_CONVERSATION", JsonNull.INSTANCE);
+            assertEquals("CONVERSATION", CoordinationMemory.stage(memory(scope)));
+            var archived = memory(scope).get(CoordinationMemory.OUTCOMES).getAsJsonArray().get(0).getAsJsonObject();
+            assertEquals("1", archived.get("actions").getAsString());
+            assertEquals("PLAYBACK_CONFIRMED", archived.getAsJsonObject("delivery").get("status").getAsString());
+            assertTrue(agents.findById(id).orElseThrow().getEventHistory().toList().size() > historySize);
+        } finally { ownership.release(id, session); }
+    }
+    void interactionTurn(Scope scope, String text, String operation, JsonElement agreement) {
+        var reply = new JsonObject(); reply.addProperty("operation", operation); reply.add("agreement", agreement);
+        reply.add("reply", JsonParser.parseString("{\"speech\":\"Use the confirmed current facts.\"}"));
+        doReturn(reply.toString()).when(gateway).infer(any());
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, text), OutputProfile.FULL_PLAN).orElseThrow();
+    }
+    void sign(Scope scope, Instant observed) {
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_HAND_SIGN, "camera", Event.KIND_OBSERVATION,
+                "{\"sign\":\"scissor\",\"confidence\":0.93,\"ts\":\"" + observed + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
+    }
+    void awaitCaptured(Scope scope) throws Exception {
+        long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+        while (!"CAPTURED".equals(TaskResponse.status(memory(scope))) && System.nanoTime() < deadline) Thread.sleep(20);
+        assertEquals("CAPTURED", TaskResponse.status(memory(scope)));
     }
     @Test void finishingReloadsAndOnlyScopedAssociatedPlaybackCompletesIt() throws Exception {
         var scope = start();

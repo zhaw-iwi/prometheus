@@ -1903,6 +1903,27 @@ prototype-oriented.
 
 ### Coordination Agent
 
+The recorded scissors interaction has a repeatable acceptance script in
+`tests/gptlive/README.md` ("Recorded scissors interaction"). For an unchanged
+ON_CUE sensor proposal, explicit commands such as "Yes, let's start now" and
+"Run it" arm it without another model inference. The proposal must still be
+complete and its preparation checks satisfied. Arming performs zero actions;
+a fresh subsequent cue authorizes the agreed contribution. Dialogue contributions,
+ambiguous assent and changes to terms retain their existing interpretation rules.
+
+Telemetry reports rejected Coordination updates with their validation category,
+operation and phase, without recording the rejected model output. Browser
+`playback_gate` entries correlate cue/segment identity with capture, voice,
+quiet, interruption, expiry and playability evidence. These diagnostics explain
+missing acknowledgement; they do not establish physical audibility.
+
+Automatic camera delivery backs off HTTP 429 and server errors, starting at
+2.5 seconds and increasing to at most 60 seconds. The camera remains running;
+recovery sends fresh readings rather than replaying failed observations. A
+successful sensor response clears the delay. The activity log reports the pause;
+manual requests and local presence/Stop handling remain available. Healthy
+sensing cadence, thresholds, timestamps and database durability are unchanged.
+
 Assign `core.coordination` to an access code, create **Valerian Core - Coordination
 Agent**, and connect through the existing cockpit. This is a new definition; both
 Generic variants remain available and saved graphs are not migrated. Text,

@@ -129,12 +129,21 @@ public class CoordinationAgent implements AgentDefinition {
         var routing = new TaskState("Coordination routing", new CoordinationPolicy(storage, VOICE), false);
         for (var entry : states.entrySet()) routing.addTransition(new Transition(new CoordinationDecision(storage, entry.getKey()), entry.getValue()));
         routing.addTransition(new Transition(states.get("CONVERSATION")));
+        // These stateless operations share this agent's storage in every phase. Reuse
+        // their persisted nodes rather than loading nine copies of the same operation.
+        var delivery = new CoordinationDeliveryAction(storage);
+        var update = new CoordinationUpdateAction(storage, CONFIGURE);
+        var preparation = new CoordinationPreparationAction(storage);
+        var presence = new SocialSpaceResponseAction(storage, GenericMultimodalBehaviour.behaviourInstructions(VOICE));
+        var deliveryDecision = new CoordinationDecision(storage, "DELIVERY");
+        var utteranceDecision = new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE);
+        var preparationDecision = new CoordinationDecision(storage, "OBSERVE_PREPARATION");
+        var presenceDecision = new SocialSpacePresenceDecision(storage);
         for (var state : states.values()) {
-            state.addTransition(new Transition(new CoordinationDecision(storage, "DELIVERY"), new CoordinationDeliveryAction(storage), routing));
-            state.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE), new CoordinationUpdateAction(storage, CONFIGURE), routing));
-            state.addTransition(new Transition(new CoordinationDecision(storage, "OBSERVE_PREPARATION"), new CoordinationPreparationAction(storage), routing));
-            state.addTransition(new Transition(new SocialSpacePresenceDecision(storage), new SocialSpaceResponseAction(storage,
-                    GenericMultimodalBehaviour.behaviourInstructions(VOICE)), routing));
+            state.addTransition(new Transition(deliveryDecision, delivery, routing));
+            state.addTransition(new Transition(utteranceDecision, update, routing));
+            state.addTransition(new Transition(preparationDecision, preparation, routing));
+            state.addTransition(new Transition(presenceDecision, presence, routing));
         }
         states.get("EXECUTION").addTransition(new Transition(new TaskDecision(storage, "CUE"),
                 new CoordinationCueAction(storage, GenericMultimodalBehaviour.behaviourInstructions(VOICE)), routing));

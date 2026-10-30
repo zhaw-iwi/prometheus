@@ -1,5 +1,55 @@
 # GPT-Live acceptance
 
+## Recorded scissors interaction
+
+The shared fixture `src/test/resources/coordination/scissors-interaction.json`
+captures the intended 2026-10-29 Cockpit journey: persona, capabilities, grounded
+scissor recognition, a one-joke proposal, explicit acceptance, one fresh cue,
+confirmed delivery, Reflection, positive feedback and return to Conversation.
+It contains synthetic task content rather than private conversation history.
+
+Run the persisted journey and the mixed-workload query regression offline:
+
+```powershell
+python tests/gptlive/run_acceptance.py --java-tests CoordinationDeliveryIntegrationTest,CoordinationAcceptanceUnitTest,QueryVolumeIntegrationTest
+npm.cmd run test:live:unit
+```
+
+The database runner always uses a disposable local schema. The journey uses real
+runtime, persistence, selected observation context and response/playback fences
+with a scripted inference provider. It does not measure native spoken compliance.
+`target/coordination-query-report.json` reports MySQL Questions including transaction
+commands, by path, and separately reports whether projected quota headroom is met.
+Its regression ceiling is not a production capacity guarantee. The synthetic
+minute excludes real provider/capture workers, SSE reconnections and scheduled
+ticks; measure those before making a production capacity decision.
+
+For an explicitly paid real-provider trial, the existing isolated runner now
+supports this full journey with synthetic visitor audio and sensor inputs:
+
+```powershell
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordination --coordination-scenario interaction
+```
+
+It checks persisted terms, zero actions on acceptance, one action on the fresh
+cue, matching captured speech plus real browser playback settling, Reflection and
+the archived delivery on return. It never acknowledges playback from captions
+alone. Inspect its retained captions for accurate persona/capabilities and absence
+of premature task content; lexical assertions are not a complete semantic judge.
+The real-provider scenario is prepared but has not been run for this follow-up.
+
+For physical acceptance, use the Heroku-served Cockpit after an authorized deploy,
+create a fresh Coordination instance, start Live and enable hand observations.
+Use the fixture's seven user turns in order. Show scissors for the perception
+question, then lower the hand during proposal/acceptance. Expect an answer naming
+the fresh sign, no sample joke during setup and no task action on acceptance.
+After arming, show a fresh sign once. Expect one joke, then Reflection only after
+its delivery acknowledgement. Say "Okay. That worked", verify the report remains
+separate from playback evidence, and return to Conversation with history intact.
+Export telemetry and note the served build, client visibility and audio device.
+Repeat with an early user interruption as a separate uncertainty case; never
+treat a replay or an unconfirmed delivery as a successful completion.
+
 Run `npm ci` to install the locked test dependencies, including the exact Bootstrap
 5.3.3 and Bootstrap Icons 1.11.3 versions used by the cockpit. The acceptance
 fixtures serve those UI assets locally through Playwright routing; application

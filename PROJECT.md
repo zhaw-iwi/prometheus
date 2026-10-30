@@ -75,6 +75,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Recorded Coordination interaction (2026-10-30, directly on main at the owner's
+  request): consolidated this device to one registered checkout, preserving local
+  work in a verified recovery archive. Added the persona/capability/scissors/
+  one-joke/Reflection/return regression and a prepared real-provider journey.
+  Explicit sensor-task acceptance avoids unnecessary inference; rejection and
+  playback diagnostics explain failed boundaries; camera delivery backs off
+  backend errors. Shared Coordination graph nodes reduced the measured synthetic
+  minute from 2,065 to 1,993 MySQL Questions (3.5%). The current 36,000/hour quota
+  remains insufficient for that sustained workload. Automated evidence and
+  unrun provider/physical checks are in `.agents/COORDINATION_RESULTS.md`.
+
 - Coordination refinement (2026-10-29): CR-01 through CR-09 are implemented with
   shared automated acceptance passed. The lifecycle now supports authoritative state
   queries, history-preserving return/restart, clear acceptance and protected

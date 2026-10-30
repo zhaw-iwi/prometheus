@@ -160,6 +160,13 @@ public class AgentActivityService {
                 record(null, "coordination", "applied", null, details);
             }
         }
+        @Override public void rejected(String category, String operation, String phase) {
+            synchronized (AgentActivityService.this) {
+                if (!current() || safe(category) == null || safe(operation) == null || safe(phase) == null) return;
+                visible = true;
+                record(null, "coordination", "rejected", null, Map.of("category", category, "operation", operation, "phase", phase));
+            }
+        }
         @Override public void event(UUID event) { synchronized (AgentActivityService.this) {
             if (!current()) return; this.event = event;
             if (visible) record(null, "behaviour", "prepared", null, Map.of());

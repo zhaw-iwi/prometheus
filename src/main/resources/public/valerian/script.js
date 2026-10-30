@@ -2029,6 +2029,8 @@ async function acknowledgeEvent(request, options = {}) {
     return null;
   }
   const profile = options.profile ? `?profile=${encodeURIComponent(options.profile)}` : "";
+  const sensorScope = { agentId: state.agentId, code: state.accessCode };
+  const sensor = request.type?.startsWith("obs.") && request.type !== "obs.user_utterance";
   const externalSpeech = liveVoice.ui?.active;
   try {
     const response = await timedScopedFetch(options.traceId, demoAgentPath(`/acknowledge${profile}`), {
@@ -2036,6 +2038,7 @@ async function acknowledgeEvent(request, options = {}) {
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify(request),
     });
+    if (sensor) sensorBackendResult(response.status, sensorScope);
     if (!response.ok) {
       appendLog("ack", `${request.type} failed: ${response.status}`);
       return null;
@@ -4496,6 +4499,7 @@ function socialEmptyState(text, testId) {
 async function maybeEmitSocial(social, tracked) {
   if (!document.getElementById("sensor_emit_enabled").checked || !social) return;
   const urgent = liveVoice.ui?.observePresence?.(social.humanCount) || false;
+  if (!sensorBackendReady()) return;
   if (!urgent && !passesSensorEmitInterval("social")) {
     return;
   }
@@ -4508,12 +4512,29 @@ async function maybeEmitSocial(social, tracked) {
 }
 
 async function emitCameraObservation(kind, operation) {
+  if (!sensorBackendReady()) return;
   if (!liveVoice.ui?.presenceArmed) return operation();
   camera.pendingEmissions ||= new Set();
   if (camera.pendingEmissions.has(kind)) return;
   camera.pendingEmissions.add(kind);
   void Promise.resolve().then(operation).catch(error => appendLog(kind, error.message))
     .finally(() => camera.pendingEmissions.delete(kind));
+}
+
+function sensorBackendReady() {
+  const retry = camera.backendRetry;
+  return !retry || retry.agentId !== state.agentId || retry.code !== state.accessCode || Date.now() >= retry.after;
+}
+
+function sensorBackendResult(status, scope) {
+  if (scope.agentId !== state.agentId || scope.code !== state.accessCode) return;
+  if (status >= 200 && status < 300) { camera.backendRetry = null; return; }
+  if (!(status === 429 || status >= 500)) return;
+  const previous = camera.backendRetry;
+  const failures = previous?.agentId === scope.agentId && previous?.code === scope.code ? previous.failures + 1 : 1;
+  const delay = Math.min(60000, 2500 * 2 ** Math.min(failures - 1, 5));
+  camera.backendRetry = { ...scope, failures, after: Date.now() + delay };
+  appendLog("camera", `Sensor delivery paused after a backend error; retrying fresh readings in ${delay / 1000} seconds.`);
 }
 
 async function submitSocialSample(kind) {
@@ -4593,9 +4614,12 @@ async function acknowledgeObservationBatch(requests, options) {
     const response = await scopedFetch(demoAgentPath("/observations"), {
       method: "POST", headers: { "Content-Type": "application/json; charset=utf-8" }, body: JSON.stringify(requests),
     });
+    if (!response.ok) sensorBackendResult(response.status, { agentId, code });
     if (!response.ok) throw new Error(`observations failed: ${response.status}`);
     const results = await response.json();
     if (state.agentId !== agentId || state.accessCode !== code) return [];
+    const failed = results.find(result => result?.status === 429 || result?.status >= 500);
+    sensorBackendResult(failed?.status ?? 200, { agentId, code });
     return requests.map((request, index) => {
       const result = results[index], data = result?.response;
       if (result?.status !== 200 || !data) { appendLog("ack", `${request.type} failed: ${result?.status}`); return null; }
@@ -5655,6 +5679,7 @@ function resetCockpitColumns() {
 }
 
 function resetSensingState() {
+  camera.backendRetry = null;
   resetEmotionReport();
   renderSocialMetrics(null, []);
   setText("hand_sign_value", "-");

@@ -10,6 +10,23 @@ import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.logging.*;
 
 class AgentActivityServiceUnitTest {
+    @Test void rejectionKeepsItsOperationAndSafeCategoryWithoutPublishingInvalidValues() {
+        var service = new AgentActivityService(mock(AgentMonitorBroadcaster.class)); var id = UUID.randomUUID();
+        try {
+            service.call(id, "turn", true, () -> {
+                ActivityTrace.rejected("reply_shape", "START", "READY");
+                ActivityTrace.rejected("private response text", "START", "READY");
+                ActivityTrace.failed("coordination_update_invalid"); return null;
+            });
+            var entries = service.snapshot(id).recent();
+            var rejected = entries.stream().filter(e -> e.stage().equals("coordination")).toList();
+            assertEquals(1, rejected.size()); assertEquals("rejected", rejected.getFirst().outcome());
+            assertEquals("reply_shape", rejected.getFirst().details().get("category"));
+            assertEquals(rejected.getFirst().operationId(), entries.getLast().operationId());
+            assertEquals("failed", entries.getLast().outcome());
+            assertFalse(new com.google.gson.Gson().toJson(entries).contains("private"));
+        } finally { service.close(); }
+    }
     @Test void coordinationMetadataIsAllowlistedAndKeepsOperationCorrelation() {
         var service = new AgentActivityService(mock(AgentMonitorBroadcaster.class)); var id = UUID.randomUUID();
         try {
