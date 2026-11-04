@@ -911,6 +911,15 @@ distinguish `future_timestamp`, `expired_observation` and
 explaining future-dated evidence. Timing estimates do not prove camera accuracy
 or physical delivery.
 
+Calibration accepts round trips up to one second, times requests out after two
+seconds, refreshes after four minutes and expires after five. Capture estimates
+use a conservative server-time bound with a one-millisecond rounding margin and
+100 ppm drift allowance. Excessive round trip, expiry or a wall/monotonic clock
+discontinuity prevents emission until calibration recovers. These explicit bounds
+do not guarantee arbitrary device clock stability. No pending sensor queue is
+replayed after recovery. For the scissors retest, follow `.reng/HUMAN_TEST.md`;
+deployment and physical hearing remain separate acceptance steps.
+
 External clients usually use the scoped demo API. It keeps agent instances
 behind an access code and mirrors what the Valerian cockpit does. Trusted
 backend tools can use the global agent endpoints shown later.

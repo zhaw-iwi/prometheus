@@ -1,5 +1,32 @@
 # GPT-Live acceptance
 
+## Observation timing
+
+The sanitized `coordination/observation-timing.json` test resource characterizes
+the November 4 future-dated scissors failure. `CoordinationObservationTimingUnitTest`
+uses fixed clocks for zero-action acceptance, old/future cue rejection, one action
+and Live playback gating. Run it without a database:
+
+```powershell
+.\mvnw.cmd -q -Dtest=ObservationTimingUnitTest,CoordinationObservationTimingUnitTest,RuntimeClockControllerWebMvcTest test
+node --test tests/js/live/observation-clock.test.mjs tests/js/live/observation-lifecycle.test.mjs
+```
+
+For persistence/reload and Chromium wall offsets of plus/minus one minute:
+
+```powershell
+python tests/gptlive/run_acceptance.py --java-tests CoordinationAgentIntegrationTest,CoordinationDeliveryIntegrationTest,RuntimeClockControllerWebMvcTest --browser --browser-mode enabled --browser-grep 'observation clock|camera hand report|Coordination finishing'
+```
+
+Supply `--database-properties` for an ignored local administrative configuration
+when the default is absent. The runner rejects remote MySQL hosts and removes its
+random schema/account. The offset journeys use the real clock endpoint and actual
+Cockpit hand callback/export, with synthetic detector results and mocked agent
+ingress. They are intentionally skipped by the static-only runner. Persistence
+and final delivery are verified separately with scripted providers. See
+`.agents/OBSERVATION_TIMING_RESULTS.md` for actual commands/results and
+`.reng/HUMAN_TEST.md` for the remaining physical test.
+
 ## State graph viewer
 
 For browser-only graph, visual and popup/lifecycle checks, serve only static

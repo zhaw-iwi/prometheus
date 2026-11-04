@@ -116,6 +116,7 @@ function mount() {
     const turns = turnTimings.snapshot();
     const live = liveDiagnostics.snapshot();
     const activity = interactionActivity.snapshot();
+    const observation = globalThis.PrometheusObservationTiming?.diagnostics();
     const activityOpen = activityRoot.querySelector("details")?.open ?? true;
     activityRoot.replaceChildren();
     if (activity.journals.length || activity.markers.length) {
@@ -138,7 +139,9 @@ function mount() {
       activityRoot.append(section);
     }
     count.textContent = turns.length ? `${turns.length} turn${turns.length === 1 ? "" : "s"} retained · latest 20 shown` : "No ordinary turns recorded yet. Backend and Live records appear below when available.";
-    buttons.forEach(button => { button.disabled = !turns.length && (button.dataset.timingExport === "csv" || !live.sessions.length && !activity.journals.length && !activity.markers.length); });
+    if (observation?.recent.length) count.textContent += ` Sensor timing: ${observation.current.status}.`;
+    buttons.forEach(button => { button.disabled = !turns.length && (button.dataset.timingExport === "csv"
+      || !live.sessions.length && !activity.journals.length && !activity.markers.length && !observation?.recent.length); });
     const open = new Set([...list.querySelectorAll("details[open]")].map(node => node.dataset.traceId));
     list.replaceChildren();
     if (live.sessions.length) {
@@ -181,6 +184,7 @@ function mount() {
   turnTimings.subscribe(schedule);
   liveDiagnostics.subscribe(schedule);
   interactionActivity.subscribe(schedule);
+  window.addEventListener("prometheus-observation-timing", schedule);
   root.querySelector("[data-timing-clear]").addEventListener("click", () => {
     turnTimings.clear(); liveDiagnostics.clear(); interactionActivity.clear();
     globalThis.PrometheusObservationTiming?.clearDiagnostics();

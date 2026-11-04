@@ -117,6 +117,7 @@ for (const theme of ["light", "dark"]) for (const mobile of [false, true]) {
 
 async function setup(context, scenario = {}) {
   Object.assign(scenario, { requests: [], history: [], ledger: [], ...scenario });
+  await context.route("**/runtime/clock", route => route.fulfill(json({ serverTimeMs: Date.now() })));
   await context.route("**/demo/**", async route => {
     const request = route.request(), path = new URL(request.url()).pathname, method = request.method(); scenario.requests.push({ path, method });
     if (path === "/demo/session") return route.fulfill(json({ accessCode: "LIVE1", agentTypes: [], agents: scenario.agents || [AGENT] }));
@@ -189,6 +190,8 @@ async function screenshot(page, info, name) {
 
 test("stable camera readings refresh through the cockpit while Live is active", async ({ page, context }) => {
   await setup(context);
+  const start = new Date("2026-09-28T10:00:00Z");
+  await page.clock.install({ time: start });
   const observations = [];
   await context.route("**/demo/agents/*/acknowledge", async route => {
     observations.push(route.request().postDataJSON());
@@ -197,22 +200,25 @@ test("stable camera readings refresh through the cockpit while Live is active", 
   await open(page);
   await page.getByTestId("gptlive-start").click();
   await expect(page.getByTestId("gptlive-status")).toHaveText("Active");
-  const start = new Date("2026-09-28T10:00:00Z");
-  await page.clock.setFixedTime(start);
+  await expect(page.locator("#observation_clock_status")).toHaveText("Sensor timing ready");
+  // Cadence advances both wall and monotonic time; changing only Date is a clock discontinuity.
+  await page.clock.pauseAt(new Date(start.getTime() + 60000));
   const sense = () => page.evaluate(async () => {
     document.getElementById("sensor_emit_enabled").checked = true;
     await maybeEmitEmotion({ emotion: "neutral", confidence: .99, valence: 0, arousal: .2,
       expressions: { neutral: .99 } }, .99);
   });
   await sense(); expect(observations).toHaveLength(1);
-  await page.clock.setFixedTime(new Date(start.getTime() + 3000));
+  await page.clock.runFor(3000);
   await sense(); expect(observations).toHaveLength(1);
-  await page.clock.setFixedTime(new Date(start.getTime() + 5000));
+  await page.clock.runFor(2000);
   await sense(); expect(observations).toHaveLength(2);
-  expect(Date.parse(JSON.parse(observations[1].payload).ts) - Date.parse(JSON.parse(observations[0].payload).ts)).toBe(5000);
+  const elapsed = Date.parse(JSON.parse(observations[1].payload).ts) - Date.parse(JSON.parse(observations[0].payload).ts);
+  expect(elapsed).toBeGreaterThanOrEqual(4999); expect(elapsed).toBeLessThanOrEqual(5000);
+  await page.clock.resume();
   await page.getByTestId("gptlive-stop").click();
   await expect(page.getByTestId("gptlive-start")).toBeEnabled();
-  await page.clock.setFixedTime(new Date(start.getTime() + 30000));
+  await page.clock.runFor(25000);
   await sense(); expect(observations).toHaveLength(2);
 });
 

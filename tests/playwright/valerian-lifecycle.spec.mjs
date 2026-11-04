@@ -122,6 +122,7 @@ test("camera hand report separates visible detection from acknowledged framework
   await page.getByTestId("connect-agent").click();
   await expect(page.getByTestId("agent-connection-state")).toContainText(`Connected to ${AGENT_ID}`);
   await page.keyboard.press("Escape");
+  await expect(page.locator("#observation_clock_status")).toHaveText("Sensor timing ready");
   await page.getByTestId("sensor-emit-enabled").check();
 
   // Feed the real detector callback while keeping media/model downloads offline.
@@ -150,6 +151,65 @@ test("camera hand report separates visible detection from acknowledged framework
   await expect(page.getByTestId("hand-sign-status")).toHaveText("Not sent: enable Emit camera observations");
   expect(observations).toHaveLength(1);
 });
+
+for (const lead of [60_000, -60_000]) {
+  test(`observation clock preserves scissors capture with browser wall offset ${lead} ms`, async ({ page, context }) => {
+    test.skip(!process.env.PROMETHEUS_LIVE_EXPECT_ENABLED, "Requires the runtime clock in disposable app acceptance");
+    await installLifecycleApiMocks(context, { created: true, history: [] }, true);
+    const observations = [];
+    await context.route(`**/demo/agents/${AGENT_ID}/acknowledge`, route => {
+      observations.push({ event: route.request().postDataJSON(), received: Date.now() });
+      return route.fulfill(json({ active: true, responseEvent: null }));
+    });
+    await page.addInitScript(offset => {
+      const NativeDate = Date;
+      globalThis.Date = class extends NativeDate {
+        constructor(...args) { super(...(args.length ? args : [NativeDate.now() + offset])); }
+        static now() { return NativeDate.now() + offset; }
+      };
+    }, lead);
+    // The real no-store server endpoint remains unmocked; browser time alone is wrong.
+    await page.goto(`/valerian/?agentId=${AGENT_ID}`);
+    await enterAccessCode(page);
+    await expect(page.getByTestId("agent-connection-state")).toContainText(`Connected to ${AGENT_ID}`);
+    await expect(page.locator("#observation_clock_status")).toHaveText("Sensor timing ready");
+    await page.getByTestId("sensor-emit-enabled").check();
+    const beforeCapture = Date.now();
+    await page.evaluate(async () => {
+      camera.video = { readyState: HTMLMediaElement.HAVE_CURRENT_DATA, currentTime: 0 };
+      camera.handRecognizer = { recognizeForVideo: () => ({
+        gestures: [[{ categoryName: "Victory", score: .899 }]],
+        landmarks: [Array.from({ length: 21 }, (_, i) => ({ x: .4 + i / 100, y: .5 }))],
+      }) };
+      for (let i = 0; i < 3; i++) { camera.video.currentTime += .35; await detectHandSign(); }
+    });
+    await expect.poll(() => observations.length).toBe(1);
+    const payload = JSON.parse(observations[0].event.payload);
+    expect(payload).toMatchObject({ sign: "scissor", confidence: .899, source: "valerian.hand.camera" });
+    const captured = Date.parse(payload.ts);
+    expect(captured).toBeLessThanOrEqual(observations[0].received);
+    expect(captured).toBeGreaterThan(beforeCapture - 1500);
+    expect(Math.abs(await page.evaluate(() => Date.now()) - captured)).toBeGreaterThan(50_000);
+    await page.evaluate(() => { globalThis.oldObservationCapture = PrometheusObservationTiming.capture(); });
+
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("connect-agent").click();
+    await expect(page.locator("#observation_clock_status")).toHaveText("Connect to synchronize sensor timing");
+    await page.getByTestId("connect-agent").click();
+    await expect(page.locator("#observation_clock_status")).toHaveText("Sensor timing ready");
+    expect(await page.evaluate(() => PrometheusObservationTiming.accepts(oldObservationCapture))).toBe(false);
+    await page.locator("#interaction_timing_tab").click();
+    const pending = page.waitForEvent("download");
+    await page.locator('[data-timing-export="json"]').click();
+    const download = await pending, stream = await download.createReadStream(), chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+    const timing = JSON.parse(Buffer.concat(chunks).toString()).observationTiming;
+    expect(timing.current.status).toBe("ready");
+    expect(Math.abs(timing.current.offsetMs + lead)).toBeLessThan(1500);
+    expect(timing.recent.some(row => row.reason === "disconnected")).toBe(true);
+    expect(timing.recent.length).toBeLessThanOrEqual(32);
+  });
+}
 
 for (const theme of ["light", "dark"]) {
   test(`weather preview and current/forecast submission work in ${theme} mode`, async ({ page, context }, testInfo) => {
@@ -265,7 +325,8 @@ async function assertColumnsEmpty(page) {
   await expect(page.getByTestId("behaviour-chip-speech")).not.toHaveClass(/is-active/);
 }
 
-async function installLifecycleApiMocks(context, scenario) {
+async function installLifecycleApiMocks(context, scenario, realClock = false) {
+  if (!realClock) await context.route("**/runtime/clock", route => route.fulfill(json({ serverTimeMs: Date.now() })));
   await context.route("**/demo/**", async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;

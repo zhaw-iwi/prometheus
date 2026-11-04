@@ -5,6 +5,9 @@ each milestone before continuing. Halt for unforeseen material decisions.
 The branch starts clean at 6d44a58. Deployment and physical acceptance are
 separate from this shared implementation; no production test writes are needed.
 
+Status: OT-01 through OT-06 completed with automated evidence in
+OBSERVATION_TIMING_RESULTS.md. Deployment and physical acceptance remain open.
+
 ## Contract
 
 The November 4 scissors trial persisted valid hand observations approximately

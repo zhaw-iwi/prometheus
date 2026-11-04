@@ -3,7 +3,8 @@ import { ObservationClock } from "./clock.js";
 /** One connection owns calibration, periodic refresh and capture generations. */
 export class ObservationTiming {
   constructor({ clock = new ObservationClock(), visible = () => !document.hidden,
-    schedule = setTimeout, cancel = clearTimeout, changed = () => {} } = {}) {
+    schedule = globalThis.setTimeout.bind(globalThis), cancel = globalThis.clearTimeout.bind(globalThis),
+    changed = () => {} } = {}) {
     Object.assign(this, { clock, visible, schedule, cancel, changed });
     this.running = false; this.timer = null; this.generation = 0;
     this.clearDiagnostics();

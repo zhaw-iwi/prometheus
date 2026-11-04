@@ -4,7 +4,8 @@ export const CLOCK_LIMITS = Object.freeze({ maxRoundTripMs: 1000, timeoutMs: 200
 /** Capture on a conservative server-time bound; never derive age from the local wall clock. */
 export class ObservationClock {
   constructor({ fetch: request = globalThis.fetch.bind(globalThis), monotonic = () => performance.now(),
-    wall = () => Date.now(), schedule = setTimeout, cancel = clearTimeout } = {}) {
+    wall = () => Date.now(), schedule = globalThis.setTimeout.bind(globalThis),
+    cancel = globalThis.clearTimeout.bind(globalThis) } = {}) {
     Object.assign(this, { request, monotonic, wall, schedule, cancel });
     this.epoch = 0; this.calibration = null; this.pending = null; this.reason = "clock_unavailable";
     this.lastFailure = null;
