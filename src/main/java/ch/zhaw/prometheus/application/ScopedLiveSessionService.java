@@ -177,7 +177,8 @@ public class ScopedLiveSessionService {
             long revision = lease.transcriptRevision.get();
             return new UpdatesView(lease.status(), revision,
                     revision == transcriptRevision ? null : ingress.history(agentId, handle),
-                    lease.context.activity() == null ? null : lease.context.activity().playbackCue());
+                    lease.bridge != null ? lease.bridge.playbackCue()
+                            : lease.context.activity() == null ? null : lease.context.activity().playbackCue());
         }).or(() -> closedStatus(code, agentId, handle).map(status -> new UpdatesView(status, -1, null)));
     }
 

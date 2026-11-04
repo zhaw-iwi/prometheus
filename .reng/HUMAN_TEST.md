@@ -17,6 +17,9 @@ record of a passed test.
   After connecting, wait for **Sensor timing ready** beside the camera emission
   controls. If timing is unavailable, export telemetry before attempting the cue;
   camera detection alone does not mean observations are being sent.
+- For the Finishing retest, use a deployment containing the late-playback-cue
+  repair and hard-refresh the Cockpit. Its browser observer retains the short
+  response's playback evidence while the matching cue/association is delayed.
 - Start the camera. Enable **Emit camera observations**, **Face emotion**,
   **Social context**, and **Hand sign**. Leave thresholds and intervals unchanged.
 - Start **GPT-Live**. Keep the sensor reports and Diagnostics state accessible.
@@ -73,6 +76,12 @@ restamp or replay an earlier sign to make it fresh: lower the hand, let the armi
 response finish, and show a new sign. Record whether exactly one joke was heard
 and whether Reflection followed its complete playback. Automated tests simulate
 delivery and cannot supply this physical acceptance evidence.
+
+For a Finishing failure, retain the `playback_gate` cue/segment entries:
+`awaiting_segment_evidence` means matching local caption receipts are missing;
+`voice_unobserved` means no matching audio was observed; `overlapping_segment_evidence`
+means the observation cannot be attributed cleanly. A later `playback_deadline`
+is the backend timeout, not proof that asking for Reflection caused the failure.
 
 Finally, stop GPT-Live and the camera. **Database quota headroom remains
 unresolved**, so this first run should be bounded; avoid leaving sensing running

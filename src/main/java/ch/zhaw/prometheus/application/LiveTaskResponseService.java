@@ -89,7 +89,13 @@ public class LiveTaskResponseService {
                 }).findFirst().ifPresent(e -> prepare(agent, owner, e, candidate.started())));
             else if (!captured) recover(agent, owner, "response_association_uncertain");
             agents.saveAndFlush(agent);
-            AfterCommit.run(() -> { events.publishEvent(new AgentCommitted(id, owner.epoch())); monitor.publish(agent); });
+            var activity = policy instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external ? external.liveActivityContext() : null;
+            boolean playbackReady = captured && activity != null && activity.playbackCue() != null;
+            AfterCommit.run(() -> {
+                events.publishEvent(new AgentCommitted(id, owner.epoch()));
+                if (playbackReady) events.publishEvent(new ExternalSpeechRecordingService.PlaybackReady(id, owner));
+                monitor.publish(agent);
+            });
             return captured ? "response_captured" : pending ? "response_unrelated" : "response_uncertain";
         }));
     }

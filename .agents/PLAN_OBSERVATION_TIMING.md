@@ -6,7 +6,9 @@ The branch starts clean at 6d44a58. Deployment and physical acceptance are
 separate from this shared implementation; no production test writes are needed.
 
 Status: OT-01 through OT-06 completed with automated evidence in
-OBSERVATION_TIMING_RESULTS.md. Deployment and physical acceptance remain open.
+OBSERVATION_TIMING_RESULTS.md. Authorized agents merge `b7ce3a2` is deployed as
+Heroku v161; health/clock/assets passed readiness checks. Physical acceptance
+remains open.
 
 ## Contract
 

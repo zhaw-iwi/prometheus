@@ -1,5 +1,100 @@
 # Coordination Agent implementation and evidence
 
+## Late playback cue deployment integration (2026-11-04)
+
+The owner authorized main-to-agents promotion and its Heroku deployment push.
+Merged main `3dc1912` onto agents `b7ce3a2` in the existing clean agents worktree.
+Runtime and test changes merged cleanly; two documentation conflicts were
+resolved by retaining both historical deployment records and the new repair
+evidence. Deployment catalog/persona/embodiment code, production configuration
+and the existing `deployment.yml` workflow are unchanged.
+
+Merged-tree verification passed **96 Java tests**, covering the Live bridge and
+scoped session, Coordination capture/delivery and persistence, refresh deadlines,
+core RPS and Gala preparation/round/delivery consumers. The isolated acceptance
+artifact `3846a90411` also passed both selected browser journeys: delayed-cue
+automatic Reflection through the actual observer and ordinary Live/RPS. All
+**178 Node tests** passed across Live/performance/Speech/transcription/graph;
+packaging and whitespace checks passed. Logs are in ignored
+`target/playback-release-node.log` and `target/playback-release-package.log`.
+The runner removed its disposable local schema/account and stopped its owned
+application and MySQL processes. No paid provider calls or production test writes
+were made. Heroku's pre-push baseline is successful release v161; release and
+served-asset verification follow the push. Physical acceptance remains pending.
+
+## Late playback cue repair on main (2026-11-04)
+
+The owner's post-OT trial accepted the scissors cue and produced exactly one
+joke. The browser's playback observer began sampling after that short response
+had finished, then reported `voice_unobserved`. Associated speech was captured,
+but no playback acknowledgement was sent. Persisted state remained Finishing
+after the explicit Reflection request and became Uncertain on the 60-second
+`playback_deadline`. Returning to Conversation succeeded. The native claim to be
+in Reflection was inaccurate; it did not change backend state. Private telemetry,
+read-only production evidence and the initial synthetic reproduction remain in
+ignored `target/coordination-finishing-20261104`, outside version control.
+
+The authorized focused repair keeps final authority with the existing state
+machine. It changes no persisted schema, cue/acknowledgement wire shape, task
+budget, capture deadline or delivery deadline:
+
+- `LiveContextBridgeService` exposes fresh playback cues before provider append
+  acknowledgement; `ScopedLiveSessionService` uses that control snapshot without
+  adding database reads to browser polls. Provider-acknowledged context revisions
+  retain their original meaning. Successful asynchronous response association
+  wakes the existing urgent refresh path only when a playback cue is present.
+- `LivePlaybackObserver` samples from output-track attachment, retaining bounded
+  content-free timing rather than audio or words. The gate joins the confirmed
+  segment's existing receipt IDs with native caption observations and playable
+  speech/quiet evidence. Short speech before the first cue and association delayed
+  beyond ten seconds can finish within the original deadline. Empty polls do not
+  erase evidence. Sampling also occurs in ordinary Live sessions, but only a
+  server-approved cue can cause an acknowledgement.
+- Missing or unrelated receipts, overlapping prior speech, interruptions, output
+  unplayability, sampling gaps, stalled media, replacement and Stop cannot
+  establish completion. Native caption deduplication precedes evidence handling,
+  preventing duplicate delivery from reviving interrupted evidence. Retention is
+  bounded to 65 seconds/1,400 samples, 1,024 receipts and 64 segment mappings.
+- The browser acceptance journey now obtains its playback POST through the actual
+  observer and LiveClient callback. It delays real update responses until eleven
+  seconds after synthetic short speech; the real backend must persist Reflection.
+  HTTP, capture, response association, storage and monitor SSE remain real.
+
+Verification and remaining limits:
+
+- All 177 shared Node tests passed across Live, performance, speech, transcription
+  and state graph suites (`target/playback-node-final.log`). Twelve playback tests
+  cover the late cue, delayed association, unrelated/overlapping speech, missing
+  receipts, invalidation, bounded retention and production observer lifecycle;
+  the LiveClient regression covers duplicate-caption fencing.
+- Initial isolated run `368fb52f5d` passed 56 focused Java cases and the new
+  browser finishing journey. A broader rerun exposed a test-fixture issue:
+  Spring's thread-local application event recorder missed the existing worker's
+  notification. The regression now verifies the real bridge listener across
+  threads instead; that check passed on the final run.
+- Final disposable run `07ecf3da98` passed **94 Java tests** across
+  `LiveContextDeliveryUnitTest,ScopedLiveSessionServiceUnitTest,CoordinationDeliveryUnitTest,CoordinationDeliveryIntegrationTest,LiveAgentContextRefreshUnitTest,CoreRpsRoundUnitTest,QueryVolumeIntegrationTest,ScopedLiveSessionControllerWebMvcTest,ValerianClientStaticResourceContractTest`.
+  Its enabled browser run passed the delayed-cue Reflection journey and ordinary
+  Live/RPS journey; the disabled run passed legacy Text/speech and intentionally
+  skipped the enabled-only Coordination case: **three browser passes, one skip**.
+  Command: `python tests/gptlive/run_acceptance.py --database-properties <local-admin-properties> --java-tests <selection> --browser --browser-mode both --live-only --browser-grep 'Coordination reaches Reflection|real scoped cockpit'`.
+  The owned application/MySQL processes stopped and disposable schemas/accounts
+  were removed. The real-provider journey adapter was updated for receipt/ledger
+  evidence and syntax-checked, but was not run against a paid provider.
+- `mvnw.cmd -q -DskipTests package` passed (`target/playback-package.log`),
+  as did JavaScript syntax and Git whitespace checks.
+- No paid provider calls or production test writes were performed. The runner
+  uses disposable loopback MySQL schemas/accounts and scripted providers; local
+  database setup is in ignored `target/coordination-mysql/admin.properties`.
+- Physical audibility and real caption/audio transport skew remain manual gates.
+  Matching uses a conservative local overlap window (250 ms before the first
+  caption through one second after the last); ambiguous/missing evidence remains
+  unconfirmed. Provider wording can still make inaccurate state claims. The
+  application does not force Reflection or replay an uncertain response.
+- The repair is complete on main under the owner's milestone commit/push
+  authorization. Deployment and the next `.reng/HUMAN_TEST.md` trial have not
+  been performed for this repair.
+
 ## Deployment integration of the recorded-interaction follow-up (2026-10-30)
 
 Published main `43bd0729` is merged into `agents` at the owner's request,

@@ -82,6 +82,19 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Coordination late-playback-cue repair (2026-11-04): the post-OT physical trial
+  accepted the scissors cue and produced one joke, but missed playback confirmation
+  because the cue arrived after the short response. The focused repair on main
+  retains bounded caption-receipt-linked audio observations across late cues and
+  association, exposes fresh cues before provider append acknowledgement, and
+  urgently refreshes an asynchronously confirmed response. Ownership, deadlines,
+  interruption and explicit state-machine completion remain authoritative.
+  Verification passed 94 Java, 177 Node and three browser cases plus packaging;
+  the enabled-only browser case was intentionally skipped in feature-off mode.
+  Evidence is in `.agents/COORDINATION_RESULTS.md`.
+  Deployment and a new physical trial remain pending; `.reng/HUMAN_TEST.md` is
+  the operator handoff.
+
 - Observation timing OT-01 through OT-06 (2026-11-04) are complete: calibrated
   capture timestamps, lifecycle invalidation, shared evidence reasons and bounded
   telemetry repair the browser/server clock mismatch without widening tolerances.
@@ -89,8 +102,9 @@ and regulation diagnostics remain future work.
   runs, including offset clocks, persistence/expiry and Text/Live task boundaries.
   Sequential OT-01–06 work and per-milestone commit/push are authorized.
   Verification and remaining work: `.agents/OBSERVATION_TIMING_RESULTS.md`;
-  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. Deployment and physical scissors/audio
-  acceptance remain open; the human retest procedure is `.reng/HUMAN_TEST.md`.
+  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. Authorized agents merge `b7ce3a2`
+  deployed as Heroku v161; workflow, health, clock and served assets passed checks.
+  Physical scissors/audio acceptance remains open: `.reng/HUMAN_TEST.md`.
 
 - State graph viewer (2026-11-04): GV-01 through GV-03 are authorized on main with
   per-milestone commits/pushes and are complete. Saved directed graphs, transition

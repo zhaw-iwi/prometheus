@@ -6,6 +6,16 @@ import { MicrophoneLease } from "../../../src/main/resources/public/transcriptio
 import { OutputLease } from "../../../src/main/resources/public/speech/playback.js";
 
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+test('duplicate native captions cannot revive old playback evidence or interrupt a newer response', async () => {
+  const f = fixture(); await f.start(); const receipts = []; let interrupts = 0;
+  f.client.current.playback.caption = id => receipts.push(id);
+  f.client.current.playback.interrupt = () => interrupts++;
+  const output = {type: 'session.output_transcript.delta', event_id: 'output-one', delta: 'A response.'};
+  const input = {type: 'session.input_transcript.delta', event_id: 'input-one', delta: 'Stop.'};
+  f.emit(output); f.emit(input); f.emit(output); f.emit(input);
+  assert.deepEqual(receipts, ['output-one']); assert.equal(interrupts, 1);
+  await f.client.stop();
+});
 test("provider receives the completed ICE offer; Stop also cancels gathering before creating a session", async () => {
   for (const stop of [false, true]) {
     const f = fixture(), waiting = deferred(); let changed;

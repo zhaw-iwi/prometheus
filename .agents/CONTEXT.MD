@@ -89,7 +89,9 @@ PROMETHEUS currently provides:
   protected revision terms, clear acceptance, bounded hesitant-speech capture and
   revision/owner-bound response authority. New Live instances finish only after
   associated speech and scoped playback confirmation; uncertain delivery never
-  automatically replays work. Bounded content-free journals explain transitions;
+  automatically replays work. The browser retains bounded receipt-linked playback
+  observations across delayed cues/association; fresh control cues precede provider
+  append acknowledgements. Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
   admission and task controls. Both Generic variants remain available. See README
   and `.agents/COORDINATION_RESULTS.md` for the bounded contract and verification;

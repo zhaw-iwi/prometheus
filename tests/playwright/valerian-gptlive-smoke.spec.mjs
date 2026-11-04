@@ -2,14 +2,14 @@ import { test, expect } from "./fixtures/offline-ui-assets.mjs";
 
 // This suite must run only via tests/gptlive/run_acceptance.py. No PROMETHEUS HTTP or SSE mocks.
 const enabled = process.env.PROMETHEUS_LIVE_EXPECT_ENABLED !== "false";
-test("Coordination finishing persists until a delayed scoped playback acknowledgement", async ({ page, context, request }) => {
+test("Coordination reaches Reflection through observed short speech before a delayed playback cue", async ({ page, context, request }) => {
   test.skip(!enabled || !process.env.PROMETHEUS_ADMIN_TOKEN, "Use the enabled isolated acceptance runner.");
   const headers = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
   const code = Math.random().toString(36).slice(2, 7).toUpperCase();
   const access = await (await request.post('/admin/access-codes', {headers, data:{code, enabled:true}})).json();
   await request.put(`/admin/access-codes/${access.id}/agent-types`, {headers, data:{agentTypeKeys:['core.coordination']}});
   const scoped = {'X-Prometheus-Access-Code':code};
-  await hardware(context); await page.goto('/valerian/');
+  await hardware(context, true); await page.goto('/valerian/');
   await page.getByTestId('access-code-input').fill(code); await page.getByTestId('submit-access-code').click();
   await page.locator('#open_diagnostics').click(); await page.getByTestId('agent-type-select').selectOption('core.coordination');
   const creation = page.waitForResponse(r => r.url().endsWith('/demo/agents') && r.request().method() === 'POST');
@@ -21,6 +21,7 @@ test("Coordination finishing persists until a delayed scoped playback acknowledg
     const opening = page.waitForResponse(r => r.url().endsWith('/live/sessions') && r.status() === 201);
     await page.getByTestId('gptlive-start').click(); const session = await (await opening).json();
     await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
+    await page.waitForFunction(() => window.__smokeUpdateHeld);
     expect((await request.post(path + '/acknowledge', {headers:scoped, data:{type:'obs.user_utterance', actor:'user', kind:'observation',
       payload:'Start one fixture observation contribution now'}})).ok()).toBe(true);
     let cue;
@@ -29,11 +30,20 @@ test("Coordination finishing persists until a delayed scoped playback acknowledg
       return !!cue?.segmentId;
     }).toBe(true);
     await expect(page.getByTestId('activity-label')).toHaveText('Finishing the response');
-    await page.waitForTimeout(1000); // Deliberately hold acknowledgement after capture.
+    const provider = await (await request.get('/__live-fixture/latest')).json();
+    const caption = provider.captions.map(JSON.parse).find(value => value.delta === 'First fixture observation.');
+    expect(caption).toBeTruthy();
+    // Exercise the production analyser/gate and LiveClient callback. Only media is
+    // synthetic; every application request, ledger, transition and SSE remains real.
+    await page.evaluate(caption => {window.__smokeReceive(caption); window.__smokeVoiced = true;}, caption);
+    await page.waitForTimeout(600);
+    await page.evaluate(() => {window.__smokeVoiced = false;});
+    await page.waitForTimeout(11000); // Both cue and association arrive after the old ten-second voice limit.
     await expect(page.getByTestId('activity-label')).toHaveText('Finishing the response');
-    const acknowledgement = await request.post(`${path}/live/sessions/${session.handle}/playback-cues/${cue.id}`,
-      {headers:scoped, data:{segmentId:cue.segmentId}});
-    expect(await acknowledgement.json()).toBe(true);
+    const acknowledgement = page.waitForResponse(r => r.url().endsWith(`/playback-cues/${cue.id}`) && r.request().method() === 'POST');
+    await page.evaluate(() => window.__smokeReleaseUpdates());
+    const result = await acknowledgement;
+    expect(await result.json()).toBe(true);
     await expect(page.getByTestId('activity-label')).toHaveText('Reflecting on the task');
     await expect.poll(() => page.evaluate(() => window.PrometheusActivity.snapshot().journals.at(-1)?.recent.some(
       e => e.stage === 'coordination' && e.details.beforePhase === 'READY' && e.details.phase === 'FINISHING'
@@ -338,25 +348,49 @@ test("Social Space opt-in reception uses real scopes and fresh encounters", asyn
   } finally { await request.delete(path, { headers: scoped }); }
 });
 
-async function hardware(context) {
-  await context.addInitScript(() => {
+async function hardware(context, playback = false) {
+  await context.addInitScript(playback => {
     window.__smokeCaptures = 0;
     Object.defineProperty(HTMLMediaElement.prototype, "srcObject", { configurable: true, get() { return this.__stream || null; }, set(value) { this.__stream = value; } });
     HTMLMediaElement.prototype.play = async function () {}; HTMLMediaElement.prototype.pause = function () {};
     HTMLMediaElement.prototype.setSinkId = async function () {};
-    class Track extends EventTarget { constructor() { super(); this.kind = "audio"; this.enabled = true; } stop() {} getSettings() { return { echoCancellation: true }; } }
+    class Track extends EventTarget { constructor() { super(); this.kind = "audio"; this.enabled = true; this.readyState = 'live'; this.muted = false; } stop() {} getSettings() { return { echoCancellation: true }; } }
+    if (playback) {
+      const fetch = window.fetch.bind(window); let release;
+      const held = new Promise(resolve => {release = resolve;});
+      window.__smokeReleaseUpdates = () => {window.__smokeHoldUpdates = false; release();};
+      window.__smokeHoldUpdates = true;
+      window.fetch = async (...args) => {
+        const response = await fetch(...args);
+        if (String(args[0]).includes('/updates?') && window.__smokeHoldUpdates) {window.__smokeUpdateHeld = true; await held;}
+        return response;
+      };
+      Object.defineProperty(HTMLMediaElement.prototype, 'currentTime', {configurable: true, get() {return performance.now() / 1000;}});
+      Object.defineProperty(HTMLMediaElement.prototype, 'readyState', {configurable: true, get() {return 4;}});
+      Object.defineProperty(HTMLMediaElement.prototype, 'paused', {configurable: true, get() {return this.__paused ?? true;}});
+      HTMLMediaElement.prototype.play = async function () {this.__paused = false;};
+      HTMLMediaElement.prototype.pause = function () {this.__paused = true;};
+      const connection = () => ({connect() {}, disconnect() {}});
+      window.AudioContext = class {
+        state = 'running';
+        createMediaStreamSource() {return connection();}
+        createGain() {return {...connection(), gain: {value: 0}};}
+        createAnalyser() {return {...connection(), getFloatTimeDomainData(samples) {samples.fill(window.__smokeVoiced ? .1 : 0);}};}
+        async resume() {} async close() {}
+      };
+    }
     Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: {
       async getUserMedia() { window.__smokeCaptures++; const track = new Track(); return { getAudioTracks: () => [track], getTracks: () => [track] }; },
       async enumerateDevices() { return []; }, addEventListener() {}, removeEventListener() {}, getSupportedConstraints() { return {}; },
     } });
     window.RTCPeerConnection = class {
       constructor() { this.iceGatheringState = "complete"; }
-      createDataChannel() { return this.channel = { close() {} }; } addTrack() {} getSenders() { return []; }
+      createDataChannel() { this.channel = { close() {} }; window.__smokeReceive = event => this.channel.onmessage?.({data: JSON.stringify(event)}); return this.channel; } addTrack() {} getSenders() { return []; }
       async createOffer() { return { type: "offer", sdp: "v=0 synthetic-offer" }; } async setLocalDescription(value) { this.localDescription = value; }
-      async setRemoteDescription() { this.channel.onmessage?.({ data: '{"type":"session.started"}' }); this.ontrack?.({ streams: [{}], track: new Track() }); }
+      async setRemoteDescription() { const track = new Track(); this.channel.onmessage?.({ data: '{"type":"session.started"}' }); this.ontrack?.({ streams: [{getAudioTracks: () => [track]}], track }); }
       async getStats() { return new Map([["private-device", { type: "inbound-rtp", kind: "audio", timestamp: performance.now(),
         packetsLost: 2, concealedSamples: 960, jitter: .01, trackIdentifier: "private-device" }]]); }
       close() {}
     };
-  });
+  }, playback);
 }

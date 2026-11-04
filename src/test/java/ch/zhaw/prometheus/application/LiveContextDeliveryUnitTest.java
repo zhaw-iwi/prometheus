@@ -13,6 +13,28 @@ import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 class LiveContextDeliveryUnitTest {
     static final UUID AGENT = UUID.randomUUID(), EPOCH = UUID.randomUUID();
+    @Test void playbackCueIsVisibleBeforeProviderAcknowledgementAndRemovedOnClose() throws Exception {
+        var contexts = mock(LiveAgentContextService.class);
+        var initial = snapshot("r0", "Old guidance"); var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        var cue = new ch.zhaw.prometheus.model.policy.LivePlaybackCue(UUID.randomUUID(), "captured", Instant.now().plusSeconds(60));
+        var current = new LiveContextSnapshot(AGENT, EPOCH, "r1", Instant.now(), List.of("state"), "New guidance",
+                List.of(), 0, Map.of("state", "New guidance"),
+                new ch.zhaw.prometheus.model.policy.LiveActivityContext("Finishing", null, cue.expiresAt(), cue));
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(current, List.of())));
+        var sending = new CountDownLatch(1); var release = new CountDownLatch(1); var applied = new AtomicInteger();
+        var bridge = new LiveContextBridgeService(contexts, Clock.systemUTC());
+        var session = bridge.open(initial, owner, command -> {
+            sending.countDown();
+            try { if (!release.await(3, TimeUnit.SECONDS)) throw new IllegalStateException("Test ACK timeout"); }
+            catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new IllegalStateException(e); }
+        }, value -> applied.incrementAndGet(), value -> fail(value));
+        try {
+            session.ready(); assertTrue(sending.await(3, TimeUnit.SECONDS));
+            assertEquals(cue, session.playbackCue()); assertEquals(0, applied.get());
+            release.countDown(); await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            session.close(); assertNull(session.playbackCue());
+        } finally { release.countDown(); bridge.shutdown(); }
+    }
     static LiveContextSnapshot snapshot(String revision, String instructions, LiveContextSnapshot.Item... items) {
         return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0, java.util.Map.of("state", instructions));
     }

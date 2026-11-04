@@ -119,11 +119,14 @@ export class LiveClient {
         if (this.current !== run) return;
         try {
           const event = JSON.parse(data);
-          if (event.type === 'session.input_transcript.delta') run.playback.interrupt();
           if (event.type === "session.input_transcript.delta" || event.type === "session.output_transcript.delta")
             this.diagnostic(run, { phase: "caption_received", receiptId: event.event_id, direction: event.type === "session.output_transcript.delta" ? "output" : "input", providerStartMs: event.start_ms, providerEndMs: event.end_ms });
           if (event.type === "session.started") started();
-          if (run.captions.receive(event)) this.onCaptions(run.captions.snapshot());
+          if (run.captions.receive(event)) {
+            if (event.type === 'session.input_transcript.delta') run.playback.interrupt();
+            if (event.type === 'session.output_transcript.delta') run.playback.caption(event.event_id);
+            this.onCaptions(run.captions.snapshot());
+          }
           if (event.type === "session.closed") void this.stop("Voice session ended.", "Disconnected", "provider_session_closed");
           if (event.type === "error") void this.stop("The voice provider reported an error.", "Error", "provider_error");
         } catch (_) { void this.stop("Invalid or excessive voice captions.", "Error", "invalid_provider_event"); }
@@ -157,7 +160,7 @@ export class LiveClient {
     try {
       const update = await this.api(run, `sessions/${run.handle}/updates?transcriptRevision=${run.transcriptRevision ?? -1}`); this.check(run);
       const status = update.status;
-      run.playback.update(update.playbackCue || null);
+      run.playback.update(update.playbackCue || null, update.transcripts);
       this.diagnostic(run, { phase: "status", status });
       if (status.state !== "attached") {
         const error = new Error("Backend voice connection lost. Reconnect when ready.");

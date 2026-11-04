@@ -159,9 +159,9 @@ schemas/accounts remained before stopping the owned loopback MySQL instance.
 OT-01 through OT-06 are complete. Each milestone was committed and pushed to main
 under the user's sequential authorization.
 
-Remaining acceptance: deploy the endpoint and assets together, then perform the
-bounded human scissors run. No Heroku deployment, branch promotion, production
-test writes or physical audio/device test was performed. Real-provider wording,
+At OT-06 completion, deployment and the bounded human scissors run remained open.
+No Heroku deployment, branch promotion, production test writes or physical
+audio/device test was performed within those implementation milestones. Real-provider wording,
 camera recognition accuracy, other browsers/devices and the existing database
 quota constraint remain outside this automated evidence. Rejected task updates
 and the existing Stop/graph discrepancy are unchanged separate issues.
@@ -186,3 +186,31 @@ Packaging and whitespace checks passed. No production test writes or paid
 provider calls were required. The push triggers the existing deployment workflow;
 workflow completion, Heroku release readiness and served clock/assets must be
 verified afterward. Physical acceptance remains the user's next bounded run.
+
+## Authorized deployment and readiness (2026-11-04)
+
+The owner then authorized merging into agents and triggering redeployment.
+Merge `b7ce3a2` integrates main `335e3d3` onto agents `fd89437` without conflicts,
+preserving the deployment catalog, embodiment controls, configuration and workflow.
+Merged-tree checks passed 148 pure Java tests (clock/freshness, Coordination
+delivery, Live projection, static contracts and Gala sensing/tasks/hand/reception),
+173 Node tests and three browser journeys (connection lifecycle, actual hand
+emission and stable Live camera refresh). Packaging and whitespace checks passed.
+The integration record is also included in the agents merge.
+
+GitHub [deployment run 41841418570](https://github.com/zhaw-iwi/prometheus/actions/runs/41841418570)
+succeeded for that exact merge. Heroku release **v161**, created at
+2026-11-04 13:49:25 UTC, succeeded; `web.1` was up at 13:50:02 UTC.
+Read-only HTTP checks at approximately 13:50 UTC verified:
+
+- `/actuator/health`: HTTP 200, `UP`;
+- `/runtime/clock`: HTTP 200, current integer `serverTimeMs`, `Cache-Control: no-store`;
+- seven deployed assets exactly matched the agents checkout after newline
+  normalization: Cockpit index/script, the three observation timing modules and
+  performance panel/activity modules.
+
+The deployed Cockpit is ready for `.reng/HUMAN_TEST.md`: hard-refresh the page,
+create a new Coordination Agent with Cockpit embodiment, connect and wait for
+**Sensor timing ready**. The physical scissors/audio trial remains unverified.
+No production task/test writes or paid provider calls were used for these release
+checks. Local HTTP evidence is in ignored `target/observation-release-evidence.json`.
