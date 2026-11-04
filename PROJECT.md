@@ -75,6 +75,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- State graph viewer (2026-11-04): GV-01 through GV-03 are authorized on main with
+  per-milestone commits/pushes. Work extends the existing scoped model inspection
+  and cockpit-owned popup/monitor lifecycle. Plan: `.agents/PLAN_STATE_GRAPH.md`;
+  verification and status: `.agents/STATE_GRAPH_RESULTS.md`.
+
 - Recorded Coordination interaction (2026-10-30, directly on main at the owner's
   request): consolidated this device to one registered checkout, preserving local
   work in a verified recovery archive. Added the persona/capability/scissors/
@@ -9563,3 +9568,13 @@ graphs and transcripts are retained. Provider asides, physical audio/camera/robo
 quality and the original three capture-gap causes remain outside the automated
 acceptance claim. The owner authorized per-milestone commits/pushes and final
 main-to-agents deployment, with separate integration/release verification.
+
+## State graph inspection GV-01 (2026-11-04)
+
+The scoped state-graph endpoint describes persisted nodes, edges, nested regions,
+initial state and ordered guard/action metadata without running the machine or
+exposing prompts. State/monitor snapshots include active UUIDs for unambiguous
+highlighting. Fifteen focused Java/local MySQL tests passed, including reload,
+scope isolation, cycles/shared nodes and unchanged query-volume limits. The loaded
+monitor adds no queries. The synthetic workload remains above the database quota;
+this feature does not claim a capacity fix. Evidence: STATE_GRAPH_RESULTS.md.

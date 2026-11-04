@@ -194,6 +194,11 @@ public class ScopedDemoService {
         return this.agentService.getAgentStates(agentId);
     }
 
+    public Optional<ch.zhaw.prometheus.model.StateGraph> getAgentGraph(String accessCodeValue, UUID agentId) {
+        if (!this.hasVisibleAgent(accessCodeValue, agentId)) return Optional.empty();
+        return this.agentService.getAgentGraph(agentId);
+    }
+
     public Optional<List<StorageEntryView>> getAgentStorage(String accessCodeValue, UUID agentId) {
         if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
             return Optional.empty();

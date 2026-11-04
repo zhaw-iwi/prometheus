@@ -83,6 +83,16 @@ Disconnecting or switching agents clears the previous state. Logout, navigation
 or closing the original cockpit also closes its state popup. Refresh the cockpit
 after deployment to load the new controls.
 
+The access-code-scoped `GET /demo/agents/{agentId}/state-graph` describes a saved
+machine (`schemaVersion: 1`): initial state ID, nodes, directed edges, nested
+regions and active-state IDs. Edges have source/target IDs, one-based priority,
+and ordered condition/action descriptions. All conditions must hold; an empty
+condition list is unconditional. States evaluate outgoing transitions in order.
+These are definitions, not live eligibility results. Shared transitions have a
+distinct edge ID per source, and shared inner states may belong to several regions.
+Existing `/state` and monitor snapshots additionally carry `activeStateIds`.
+Graph inspection exposes no prompts or storage and performs no model calls.
+
 The cockpit is organised into three columns: sensing, verbal interaction by
 text or speech, and behaviour. Each column can be maximised or opened in a
 separate window when an experiment needs more screen space.

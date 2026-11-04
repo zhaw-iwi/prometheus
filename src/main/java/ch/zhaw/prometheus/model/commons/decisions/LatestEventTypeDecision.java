@@ -35,4 +35,6 @@ public class LatestEventTypeDecision extends Decision {
     public String toString() {
         return "LatestEventTypeDecision(" + this.eventType + ")";
     }
+
+    @Override public String inspectionLabel() { return "Latest event is " + this.eventType; }
 }

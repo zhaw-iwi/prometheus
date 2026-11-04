@@ -143,6 +143,16 @@ public class ScopedDemoController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    @GetMapping("/demo/agents/{agentId}/state-graph")
+    public ResponseEntity<ch.zhaw.prometheus.model.StateGraph> graph(
+            @RequestHeader(value = ACCESS_CODE_HEADER, required = false) String headerAccessCode,
+            @RequestParam(value = "accessCode", required = false) String queryAccessCode,
+            @PathVariable @NonNull UUID agentId) {
+        return this.demoService.getAgentGraph(accessCode(headerAccessCode, queryAccessCode), agentId)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
     @GetMapping("/demo/agents/{agentId}/storage")
     public ResponseEntity<List<StorageEntryView>> storage(
             @RequestHeader(value = ACCESS_CODE_HEADER, required = false) String headerAccessCode,

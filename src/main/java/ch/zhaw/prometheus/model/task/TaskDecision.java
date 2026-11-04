@@ -11,6 +11,9 @@ import jakarta.persistence.Entity;
 /** Pure, local task routing: unmatched sensor frames and ticks never request inference. */
 @Entity
 public class TaskDecision extends Decision {
+    @Override public String inspectionLabel() {
+        return "CUE".equals(taskCondition) ? "Fresh task cue satisfies the agreed rules" : "Task phase is " + taskCondition;
+    }
     private String taskCondition;
     protected TaskDecision() {}
     public TaskDecision(Storage storage, String condition) {

@@ -19,6 +19,9 @@ import jakarta.persistence.ManyToOne;
 @Entity
 public abstract class Decision extends PersistedNode {
 
+    /** Safe static inspection label. Never include policy prompts or runtime storage. */
+    public String inspectionLabel() { return getClass().getSimpleName(); }
+
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private Policy policy;
 

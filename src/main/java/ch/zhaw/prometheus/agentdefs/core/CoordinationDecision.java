@@ -10,6 +10,13 @@ import jakarta.persistence.Entity;
 /** Local routing; unknown or unmatched observations never invoke the planner. */
 @Entity
 public class CoordinationDecision extends Decision {
+    @Override public String inspectionLabel() {
+        return switch (coordinationCondition) {
+            case "DELIVERY" -> "Delivery update matches the pending contribution";
+            case "OBSERVE_PREPARATION" -> "Preparation is awaiting a supported observation";
+            default -> "Coordination stage is " + coordinationCondition;
+        };
+    }
     private String coordinationCondition;
     protected CoordinationDecision() {}
     public CoordinationDecision(Storage storage, String condition) {
