@@ -75,12 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Observation timing OT-03 (2026-11-04): calibrated capture timestamps wired
-  through Cockpit sensing and connection/visibility lifecycle. All 88 Live Node
-  and 15 focused Java checks pass; weather/source TTLs remain unchanged.
+- Observation timing OT-04 (2026-11-04): calibrated sensing now has shared age
+  classification, specific rejection reasons and bounded calibration telemetry.
+  Passed 41 focused Java and 118 Node checks; legacy tolerances/TTLs remain.
   Sequential OT-01–06 work and per-milestone commit/push are authorized.
   Verification and remaining work: `.agents/OBSERVATION_TIMING_RESULTS.md`;
-  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. Shared diagnostics follow in OT-04.
+  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. Coordination acceptance follows.
 
 - State graph viewer (2026-11-04): GV-01 through GV-03 are authorized on main with
   per-milestone commits/pushes and are complete. Saved directed graphs, transition

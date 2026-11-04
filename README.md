@@ -902,6 +902,15 @@ remain available. Reconnection and returning from a hidden tab require new timin
 Deploy the clock endpoint and browser assets together. Existing sensor TTLs,
 weather provider times, saved history and external client payloads are unchanged.
 
+Telemetry JSON includes `observationTiming`: current calibration quality and up
+to 32 calibration/lifecycle records, preserving the first and latest halves with
+a dropped count. Values are content-free; negative offsets are valid. Clearing
+Telemetry clears this journal without changing calibration. Task cue reasons
+distinguish `future_timestamp`, `expired_observation` and
+`missing_observation_time`. Live retains its existing freshness labels while
+explaining future-dated evidence. Timing estimates do not prove camera accuracy
+or physical delivery.
+
 External clients usually use the scoped demo API. It keeps agent instances
 behind an access code and mirrors what the Valerian cockpit does. Trusted
 backend tools can use the global agent endpoints shown later.

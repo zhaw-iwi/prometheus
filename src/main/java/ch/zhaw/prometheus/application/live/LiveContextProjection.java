@@ -64,12 +64,18 @@ public class LiveContextProjection {
                     && (observed == null || observed.isAfter(now) || !observed.isAfter(latestTimes.get(event.getType())))) continue;
             if (!dialogue && observed != null && !observed.isAfter(now)) latestTimes.put(event.getType(), observed);
             Instant expiry = !dialogue && observed != null ? observed.plusSeconds(ch.zhaw.prometheus.model.event.ObservationEvidence.ttl(event.getType())) : null;
-            String freshness = dialogue ? "history" : observed == null || observed.isAfter(now) ? "unknown"
-                    : !now.isBefore(expiry) ? "expired" : "fresh";
+            var assessment = ObservationEvidence.assess(observed, now, ObservationEvidence.ttl(event.getType()), 0);
+            String freshness = dialogue ? "history" : switch (assessment) {
+                case FRESH -> "fresh";
+                case EXPIRED -> "expired";
+                case FUTURE, UNKNOWN -> "unknown";
+            };
             if (Event.TYPE_FACE_EMOTION.equals(event.getType()) && freshness.equals("fresh")
                     && !ch.zhaw.prometheus.model.event.ObservationEvidence.usableFace(JsonParser.parseString(event.getPayload()).getAsJsonObject(), 0))
                 freshness = "unknown";
-            String text = freshness.equals("expired") ? "Current value unknown; previous observation expired."
+            String text = !dialogue && assessment == ObservationEvidence.Freshness.FUTURE
+                    ? "Current value unknown; observation timestamp is ahead of server time."
+                    : freshness.equals("expired") ? "Current value unknown; previous observation expired."
                     : freshness.equals("unknown") ? "Current value unknown; missing/invalid source age or unreliable detection."
                     : assembler.toPromptMessage(event).getContent();
             if (text.isBlank()) continue;

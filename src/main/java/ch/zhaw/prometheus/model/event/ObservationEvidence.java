@@ -6,6 +6,12 @@ import com.google.gson.*;
 
 /** Source ages shared by speech context and task consumers; caller chooses allowed clock skew. */
 public final class ObservationEvidence {
+    public enum Freshness {
+        FRESH("fresh"), EXPIRED("expired_observation"), FUTURE("future_timestamp"), UNKNOWN("missing_observation_time");
+        private final String reason;
+        Freshness(String reason) { this.reason = reason; }
+        public String reason() { return reason; }
+    }
     private ObservationEvidence() {}
     private static final Map<String, Long> TTL = Map.of(
             Event.TYPE_FACE_EMOTION, 15L, Event.TYPE_HUMAN_PRESENCE, 15L, Event.TYPE_SOCIAL_GROUPING, 15L,
@@ -24,7 +30,12 @@ public final class ObservationEvidence {
         } catch (RuntimeException invalid) { return null; }
     }
     public static boolean fresh(Instant observed, Instant now, long ttl, long skewSeconds) {
-        return observed != null && !observed.isAfter(now.plusSeconds(skewSeconds)) && now.isBefore(observed.plusSeconds(ttl));
+        return assess(observed, now, ttl, skewSeconds) == Freshness.FRESH;
+    }
+    public static Freshness assess(Instant observed, Instant now, long ttl, long skewSeconds) {
+        if (observed == null) return Freshness.UNKNOWN;
+        if (observed.isAfter(now.plusSeconds(skewSeconds))) return Freshness.FUTURE;
+        return now.isBefore(observed.plusSeconds(ttl)) ? Freshness.FRESH : Freshness.EXPIRED;
     }
     /** Optional legacy presence/detection fields may be absent; explicit absence/poor detection is not an expression. */
     public static boolean usableFace(JsonObject data, double minimumExpressionConfidence) {

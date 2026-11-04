@@ -48,3 +48,20 @@ Java run exposed the expected changed helper-signature assertion and a pre-exist
 `States` label assertion left behind by the state-graph work. Updated that test
 to the existing `State names` UI; no graph behavior changed. The corrected run
 passed. No database/provider or physical trial in this milestone.
+
+## OT-04: evidence and diagnostics
+
+ObservationEvidence now classifies fresh/expired/future/unknown source age.
+Tasks and Live reuse that classification with their existing two-second/zero
+legacy future allowances, preserving TTL and source selection. Task diagnostics
+distinguish future, expired and missing timestamps; Live explains future evidence
+without showing its unusable value. Telemetry exports a content-free clock journal
+bounded to 32 first/latest records with explicit loss and defensive copies.
+
+Passed 41 Java tests across ObservationTimingUnitTest, GenericMultimodalTaskUnitTest,
+LiveContextProjectionUnitTest and AgentActivityServiceUnitTest. Passed 118 Node
+tests across Live and performance suites. New tests cover consumer agreement on
+calibrated timestamps, exact expiry, reason propagation, privacy and journal
+bounds/clear. An initial Node expectation contained an encoding-corrupted dash
+from the editing shell; corrected the fixture and reran successfully. No database,
+model call, physical test or TTL/tolerance widening was needed.

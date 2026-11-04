@@ -181,13 +181,17 @@ function mount() {
   turnTimings.subscribe(schedule);
   liveDiagnostics.subscribe(schedule);
   interactionActivity.subscribe(schedule);
-  root.querySelector("[data-timing-clear]").addEventListener("click", () => { turnTimings.clear(); liveDiagnostics.clear(); interactionActivity.clear(); });
+  root.querySelector("[data-timing-clear]").addEventListener("click", () => {
+    turnTimings.clear(); liveDiagnostics.clear(); interactionActivity.clear();
+    globalThis.PrometheusObservationTiming?.clearDiagnostics();
+  });
   buttons.forEach(button => button.addEventListener("click", () => {
     const turns = turnTimings.snapshot();
     const csv = button.dataset.timingExport === "csv";
     const content = csv ? timingCsv(turns) : JSON.stringify({ ...timingExport(turns, {
       userAgent: navigator.userAgent, timeOrigin: performance.timeOrigin,
-    }), live: liveDiagnostics.snapshot(), activity: interactionActivity.snapshot() }, null, 2);
+    }), live: liveDiagnostics.snapshot(), activity: interactionActivity.snapshot(),
+      observationTiming: globalThis.PrometheusObservationTiming?.diagnostics() ?? null }, null, 2);
     const url = URL.createObjectURL(new Blob([content], { type: csv ? "text/csv;charset=utf-8" : "application/json" }));
     const link = element("a");
     link.href = url;

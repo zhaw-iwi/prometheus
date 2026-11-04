@@ -28,7 +28,9 @@ public class TaskDecision extends Decision {
         TaskMemory.trace(storage);
         if (!TaskMemory.active(storage) || !storage.containsKey(TaskMemory.SPEC) || history.isEmpty()) return waitFor("task_inactive", null);
         var events = history.toList(); var latest = events.getLast();
-        if (!Event.KIND_OBSERVATION.equals(latest.getKind()) || !TaskMemory.fresh(latest, now)) return waitFor("stale_or_missing_observation", latest.getId());
+        if (!Event.KIND_OBSERVATION.equals(latest.getKind())) return waitFor("stale_or_missing_observation", latest.getId());
+        var freshness = TaskMemory.freshness(latest, now);
+        if (freshness != ObservationEvidence.Freshness.FRESH) return waitFor(freshness.reason(), latest.getId());
         var spec = TaskSpec.parse(storage.get(TaskMemory.SPEC));
         Instant after = Instant.parse(TaskMemory.text(storage, TaskMemory.AFTER, Instant.EPOCH.toString()));
         if (now.isBefore(after) || !TaskMemory.observed(latest).isAfter(after)) return waitFor("cooldown", latest.getId());

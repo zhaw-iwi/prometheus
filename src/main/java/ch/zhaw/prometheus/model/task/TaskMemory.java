@@ -107,8 +107,11 @@ public final class TaskMemory {
         return ch.zhaw.prometheus.model.event.ObservationEvidence.observed(event);
     }
     public static boolean fresh(Event event, Instant now) {
+        return freshness(event, now) == ch.zhaw.prometheus.model.event.ObservationEvidence.Freshness.FRESH;
+    }
+    public static ch.zhaw.prometheus.model.event.ObservationEvidence.Freshness freshness(Event event, Instant now) {
         // Browser clocks can lead the server slightly; never extend the source TTL.
-        return ch.zhaw.prometheus.model.event.ObservationEvidence.fresh(observed(event), now,
+        return ch.zhaw.prometheus.model.event.ObservationEvidence.assess(observed(event), now,
                 ch.zhaw.prometheus.model.event.ObservationEvidence.ttl(event.getType()), 2);
     }
     /** Keep recent dialogue and one fresh reading of each type; old sensor values never masquerade as current. */

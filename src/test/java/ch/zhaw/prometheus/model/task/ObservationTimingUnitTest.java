@@ -6,6 +6,9 @@ import java.time.Instant;
 import com.google.gson.*;
 import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.model.event.*;
+import ch.zhaw.prometheus.model.Storage;
+import ch.zhaw.prometheus.logging.ActivityTrace;
+import static org.mockito.Mockito.*;
 
 class ObservationTimingUnitTest {
     static JsonObject fixture() throws Exception {
@@ -38,5 +41,21 @@ class ObservationTimingUnitTest {
         assertFalse(ObservationEvidence.fresh(now.plusSeconds(2).plusNanos(1), now, 15, 2));
         assertFalse(ObservationEvidence.fresh(null, now, 15, 2));
         assertFalse(ObservationEvidence.fresh(now.plusNanos(1), now, 15, 0));
+    }
+    @Test void taskDiagnosticsDistinguishFutureExpiredAndMissingTimeBeforeAnyInference() {
+        Instant now = Instant.parse("2026-11-04T12:17:19Z");
+        for (var entry : java.util.Map.of("future_timestamp", now.plusMillis(2640).toString(),
+                "expired_observation", now.minusSeconds(15).toString(), "missing_observation_time", "invalid").entrySet()) {
+            var storage = new Storage(); storage.put(TaskMemory.PHASE, new JsonPrimitive("RUNNING"));
+            storage.put(TaskMemory.SPEC, new JsonObject());
+            var history = new EventHistory();
+            var event = history.appendEvent(Event.observation(Event.TYPE_HAND_SIGN, "user",
+                    "{\"sign\":\"scissor\",\"confidence\":0.9,\"ts\":\"" + entry.getValue() + "\"}"));
+            var sink = mock(ActivityTrace.Sink.class);
+            try (var trace = ActivityTrace.attach(sink)) {
+                assertTrue(TaskDecision.matching(storage, history, null, now).isEmpty());
+            }
+            verify(sink).cue(entry.getKey(), event.getId());
+        }
     }
 }

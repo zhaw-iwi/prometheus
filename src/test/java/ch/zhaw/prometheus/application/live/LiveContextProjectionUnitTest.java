@@ -205,6 +205,23 @@ class LiveContextProjectionUnitTest {
                 .map(LiveContextDelivery.Command::content).reduce("", String::concat);
         assertTrue(expired.contains("expired")); assertFalse(expired.contains("\"sign\":\"paper\""));
     }
+    @Test void calibratedCameraTimeIsUsableByTasksAndLiveWithoutExtendingItsLifetime() {
+        var agent = new MultimodalBehaviour().createAgent();
+        var captured = NOW.minusMillis(200);
+        var event = append(agent, Event.TYPE_HAND_SIGN, "{\"sign\":\"scissor\",\"confidence\":0.899}", captured, leaf(agent).getName());
+        assertTrue(ch.zhaw.prometheus.model.task.TaskMemory.fresh(event, NOW));
+        var item = projection(NOW).project(agent).items().stream().filter(i -> i.type().equals(Event.TYPE_HAND_SIGN)).findFirst().orElseThrow();
+        assertEquals("fresh", item.freshness()); assertEquals(captured, item.observedAt());
+        assertEquals(captured.plusSeconds(15), item.expiresAt());
+        assertFalse(ch.zhaw.prometheus.model.task.TaskMemory.fresh(event, captured.plusSeconds(15)));
+        assertEquals("expired", projection(captured.plusSeconds(15)).project(agent).items().getFirst().freshness());
+        var futureAgent = new MultimodalBehaviour().createAgent();
+        var future = append(futureAgent, Event.TYPE_HAND_SIGN, "{\"sign\":\"scissor\",\"confidence\":0.899}", NOW.plusMillis(2640), leaf(futureAgent).getName());
+        assertFalse(ch.zhaw.prometheus.model.task.TaskMemory.fresh(future, NOW));
+        var unavailable = projection(NOW).project(futureAgent).items().getFirst();
+        assertEquals("unknown", unavailable.freshness()); assertTrue(unavailable.text().contains("ahead of server time"));
+        assertFalse(unavailable.text().contains("scissor"));
+    }
     @Test void supportsOnlyDeclaredCapabilityAndKnownPolicies() {
         var adapter = new LiveVoicePolicyAdapter();
         for (Agent agent : List.of(new MultimodalBehaviour().createAgent(), new RockScissorPaper().createAgent(),
