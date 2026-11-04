@@ -65,3 +65,23 @@ calibrated timestamps, exact expiry, reason propagation, privacy and journal
 bounds/clear. An initial Node expectation contained an encoding-corrupted dash
 from the editing shell; corrected the fixture and reran successfully. No database,
 model call, physical test or TTL/tolerance widening was needed.
+
+## OT-05: Coordination boundaries
+
+Added a fixed-clock journey using the sanitized scissors fixture and existing
+Coordination runtime helpers. Both Text and Live start with zero actions, reject
+a pre-acceptance capture delivered later and the original future timestamp,
+then execute one correctly dated scissors contribution. Duplicate and later cues
+cannot repeat the exhausted action. Live additionally rejects cues before arming
+speech association and waits for associated final speech plus the matching playback
+acknowledgement before reflection. Text still publishes the canonical spoken plan.
+No production control behavior was changed.
+
+Passed 45 pure Java tests across CoordinationObservationTimingUnitTest,
+CoordinationAgentUnitTest, CoordinationAcceptanceUnitTest,
+CoordinationDeliveryUnitTest, CoordinationCaptureUnitTest and
+CoordinationVoiceUnitTest. Reran the two new cases after adding a duplicate cue
+while finishing; both passed. Clocks and inference are deterministic; response
+association verdicts/playback acknowledgements are simulated. This verifies control
+boundaries, not physical audibility or real-provider wording. Database and browser
+journeys follow in OT-06.

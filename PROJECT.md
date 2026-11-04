@@ -75,12 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Observation timing OT-04 (2026-11-04): calibrated sensing now has shared age
+- Observation timing OT-05 (2026-11-04): calibrated sensing has shared age
   classification, specific rejection reasons and bounded calibration telemetry.
-  Passed 41 focused Java and 118 Node checks; legacy tolerances/TTLs remain.
+  Passed 45 Coordination Java checks, including fixed-clock one-joke Text/Live
+  journeys, pre-acceptance rejection, duplicate suppression and playback gating.
   Sequential OT-01–06 work and per-milestone commit/push are authorized.
   Verification and remaining work: `.agents/OBSERVATION_TIMING_RESULTS.md`;
-  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. Coordination acceptance follows.
+  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. Browser/database acceptance follows.
 
 - State graph viewer (2026-11-04): GV-01 through GV-03 are authorized on main with
   per-milestone commits/pushes and are complete. Saved directed graphs, transition
