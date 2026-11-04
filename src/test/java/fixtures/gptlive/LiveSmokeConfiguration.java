@@ -130,6 +130,7 @@ public class LiveSmokeConfiguration {
             var transcript = new JsonObject(); transcript.addProperty("type", "session." + prefix + "_transcript.delta");
             transcript.addProperty("event_id", receipt == null ? "fixture_receipt_" + sequence : receipt);
             transcript.addProperty("delta", text); transcript.addProperty("start_ms", offset); transcript.addProperty("end_ms", offset + 500);
+            call.captions.add(transcript.deepCopy());
             call.receive.accept(transcript);
             for (int i = 1; i <= 10; i++) {
                 int chunk = i;
@@ -149,6 +150,7 @@ public class LiveSmokeConfiguration {
             public Request request;
             public volatile String activity = "";
             public final List<JsonObject> sent = new CopyOnWriteArrayList<>();
+            public final List<JsonObject> captions = new CopyOnWriteArrayList<>();
             final AtomicInteger sequence = new AtomicInteger();
         }
     }
@@ -186,6 +188,7 @@ public class LiveSmokeConfiguration {
             var call = provider.latest == null ? null : provider.calls.get(provider.latest);
             return Map.of("providerId", provider.latest == null ? "" : provider.latest, "ttsCalls", provider.tts.get(),
                 "commands", call == null ? List.of() : call.sent.stream().map(JsonObject::toString).toList(),
+                "captions", call == null ? List.of() : call.captions.stream().map(JsonObject::toString).toList(),
                 "instructions", call == null ? "" : call.request.instructions(),
                 "behaviourContext", provider.inferences.stream().filter(r -> r.purpose() == InferencePurpose.BEHAVIOUR)
                     .reduce((a, b) -> b).map(r -> r.messages().toString()).orElse(""),

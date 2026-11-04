@@ -1,5 +1,26 @@
 # GPT-Live acceptance
 
+## Late playback cue regression
+
+The short-response regression exercises the production playback observer with
+synthetic audio and native caption identities, holding back real updates until
+eleven seconds after playback. The browser must acknowledge the associated
+segment itself and the persisted Coordination task must enter Reflection.
+Application HTTP, transcript capture, semantic association and monitor SSE are real;
+provider/media boundaries are synthetic. No manual playback POST substitutes for
+the observer in this journey.
+
+```powershell
+node --test tests/js/live/playback-cue.test.mjs tests/js/live/client.test.mjs
+python tests/gptlive/run_acceptance.py --java-tests LiveContextDeliveryUnitTest,ScopedLiveSessionServiceUnitTest,CoordinationDeliveryIntegrationTest --browser --browser-mode enabled --live-only --browser-grep 'Coordination reaches Reflection'
+```
+
+Supply `--database-properties` with an ignored loopback MySQL administrative
+configuration if needed. Unit coverage includes late initial cues, delayed
+association, unrelated/overlapping speech, missing receipts, interruption,
+duplicate captions, muted/stalled output and stream replacement. Physical audibility
+and real caption/audio skew still require `.reng/HUMAN_TEST.md` after deployment.
+
 ## Observation timing
 
 The sanitized `coordination/observation-timing.json` test resource characterizes
@@ -15,7 +36,7 @@ node --test tests/js/live/observation-clock.test.mjs tests/js/live/observation-l
 For persistence/reload and Chromium wall offsets of plus/minus one minute:
 
 ```powershell
-python tests/gptlive/run_acceptance.py --java-tests CoordinationAgentIntegrationTest,CoordinationDeliveryIntegrationTest,RuntimeClockControllerWebMvcTest --browser --browser-mode enabled --browser-grep 'observation clock|camera hand report|Coordination finishing'
+python tests/gptlive/run_acceptance.py --java-tests CoordinationAgentIntegrationTest,CoordinationDeliveryIntegrationTest,RuntimeClockControllerWebMvcTest --browser --browser-mode enabled --browser-grep 'observation clock|camera hand report|Coordination reaches Reflection'
 ```
 
 Supply `--database-properties` for an ignored local administrative configuration

@@ -75,6 +75,19 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Coordination late-playback-cue repair (2026-11-04): the post-OT physical trial
+  accepted the scissors cue and produced one joke, but missed playback confirmation
+  because the cue arrived after the short response. The focused repair on main
+  retains bounded caption-receipt-linked audio observations across late cues and
+  association, exposes fresh cues before provider append acknowledgement, and
+  urgently refreshes an asynchronously confirmed response. Ownership, deadlines,
+  interruption and explicit state-machine completion remain authoritative.
+  Verification passed 94 Java, 177 Node and three browser cases plus packaging;
+  the enabled-only browser case was intentionally skipped in feature-off mode.
+  Evidence is in `.agents/COORDINATION_RESULTS.md`.
+  Deployment and a new physical trial remain pending; `.reng/HUMAN_TEST.md` is
+  the operator handoff.
+
 - Observation timing OT-01 through OT-06 (2026-11-04) are complete: calibrated
   capture timestamps, lifecycle invalidation, shared evidence reasons and bounded
   telemetry repair the browser/server clock mismatch without widening tolerances.

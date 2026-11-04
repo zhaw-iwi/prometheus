@@ -101,6 +101,19 @@ class ScopedLiveSessionServiceUnitTest {
         assertThrows(DemoAccessDeniedException.class, () -> service.updates("ABCDE", agent, session.handle(), 2));
         assertThrows(IllegalArgumentException.class, () -> service.updates("ABCDE", agent, session.handle(), -2));
     }
+    @Test void updatesExposeFreshPlaybackControlWithoutWaitingForProviderAppliedContext() {
+        var bridge = mock(LiveContextBridgeService.class); var context = mock(LiveContextBridgeService.Session.class);
+        when(bridge.open(any(), any(), any(), any(), any())).thenReturn(context);
+        service.configureBridge(bridge); var session = start();
+        var cue = new ch.zhaw.prometheus.model.policy.LivePlaybackCue(UUID.randomUUID(), "speech", clock.instant().plusSeconds(60));
+        when(context.playbackCue()).thenReturn(cue);
+        assertEquals(cue, service.updates("ABCDE", agent, session.handle(), 0).orElseThrow().playbackCue());
+        when(context.playbackCue()).thenReturn(null);
+        assertNull(service.updates("ABCDE", agent, session.handle(), 0).orElseThrow().playbackCue());
+        verify(ingress, never()).history(any(), any());
+        when(demo.hasVisibleAgent("ABCDE", agent)).thenThrow(new DemoAccessDeniedException());
+        assertThrows(DemoAccessDeniedException.class, () -> service.updates("ABCDE", agent, session.handle(), 0));
+    }
     @Test void scopeAndFeatureGateRunBeforeProviderAndOnlyOneSessionOwnsAgent() {
         properties.setEnabled(false);
         assertThrows(LiveSessionUnavailableException.class, this::start); assertEquals(0, gateway.created);

@@ -443,6 +443,7 @@ try {
     const player = document.createElement('audio'); player.autoplay = true; document.body.append(player);
     window.player = player;
     const LivePlaybackObserver = connectionOnly ? null : (await import('/live/playback-cue.js')).LivePlaybackObserver;
+    const captions = new (await import('/live/captions.js')).LiveCaptions();
     window.playback = LivePlaybackObserver && new LivePlaybackObserver(player, async cue => {
       const response = await fetch(`${agentPath}/live/sessions/${window.liveHandle}/playback-cues/${cue.id}`, {
         method: 'POST', headers: {'Content-Type': 'application/json', 'X-Prometheus-Access-Code': code},
@@ -457,8 +458,8 @@ try {
         const at = performance.now(), gapMs = playback.gate.last === null ? null : at - playback.gate.last;
         const rms = playback.samples ? Math.sqrt(playback.samples.reduce((s, v) => s + v * v, 0) / playback.samples.length) : null;
         sample(value);
-        playbackSamples.push({at, gapMs, rms, ...value, cue: playback.gate.cue?.id, voice: playback.gate.voice,
-          quiet: playback.gate.quiet, progressAt: playback.gate.progressAt});
+        playbackSamples.push({at, gapMs, rms, ...value, cue: playback.gate.cue?.id,
+          retainedSamples: playback.gate.frames.length, retainedReceipts: playback.gate.receipts.size, progressAt: playback.gate.progressAt});
         if (playbackSamples.length > 1400) playbackSamples.shift();
       };
     }
@@ -468,14 +469,20 @@ try {
         if (busy) return; busy = true;
         try {
           const response = await fetch(`${agentPath}/live/sessions/${handle}/updates`, {headers: {'X-Prometheus-Access-Code': code}});
-          if (response.ok) {const update = await response.json(); playback?.update(update.playbackCue);}
+          if (response.ok) {
+            const update = await response.json(); playback?.update(update.playbackCue, update.transcripts);
+            captions.reconcile(update.transcripts);
+          }
         } finally {busy = false;}
       }, 1000);
     };
     pc.ontrack = event => {player.srcObject = event.streams[0]; playback?.stream(player.srcObject); player.play().catch(() => {});};
     window.dc = pc.createDataChannel('oai-events'); dc.onmessage = event => {
       const message = JSON.parse(event.data);
-      if (message.type === 'session.input_transcript.delta') playback?.interrupt();
+      if (captions.receive(message)) {
+        if (message.type === 'session.input_transcript.delta') playback?.interrupt();
+        if (message.type === 'session.output_transcript.delta') playback?.caption(message.event_id);
+      }
       if (!message.type.includes('audio.')) mark(message.type, message.type === 'session.started' ? {} : message);
     };
     await pc.setLocalDescription(await pc.createOffer());
@@ -695,7 +702,7 @@ finally {
   if (page) report.finalPlayback = await page.evaluate(() => {
     const p = window.playback, g = p?.gate, a = p?.audio || window.player;
     return {connection: window.pc?.connectionState, channel: window.dc?.readyState,
-      cue: g?.cue, last: g?.last, voice: g?.voice, quiet: g?.quiet, received: g?.received,
+      cue: g?.cue, last: g?.last, retainedSamples: g?.frames.length, retainedReceipts: g?.receipts.size, received: g?.received,
       done: g ? [...g.done] : [], mediaTime: a?.currentTime, paused: a?.paused, muted: a?.muted,
       context: p?.context?.state, hidden: document.hidden};
   }).catch(() => null);

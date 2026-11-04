@@ -29,6 +29,7 @@ class CoordinationDeliveryIntegrationTest {
     @Autowired ExternalSpeechRecordingService recording;
     @Autowired ExternalSpeechOwnership ownership;
     @Autowired AgentActivityService activity;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean LiveContextBridgeService bridge;
     @MockitoBean LanguageModelGateway gateway;
     record Scope(String code, UUID id, ExternalSpeech owner) {}
     Storage memory(Scope scope) { return ((TaskPolicy) agents.findById(scope.id()).orElseThrow().getCurrentState().ownPolicy()).storage(); }
@@ -155,6 +156,8 @@ class CoordinationDeliveryIntegrationTest {
             long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
             while (!"CAPTURED".equals(TaskResponse.status(memory(scope))) && System.nanoTime() < deadline) Thread.sleep(20);
             assertEquals("CAPTURED", TaskResponse.status(memory(scope))); assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
+            verify(bridge, timeout(3000)).playbackReady(argThat(event ->
+                    event.agentId().equals(scope.id()) && event.owner().equals(scope.owner())));
             assertFalse(contexts.playbackSettled(scope.code(), scope.id(), new ExternalSpeech(UUID.randomUUID(), scope.owner().epoch()), pending.id(), "final-contribution"));
             assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), pending.id(), "different-segment"));
             assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), pending.id(), "final-contribution"));

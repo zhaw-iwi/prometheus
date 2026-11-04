@@ -87,6 +87,7 @@ public class LiveContextBridgeService {
         private final ArrayDeque<Trace> traces = new ArrayDeque<>();
         private volatile boolean ready;
         private volatile String state = "starting", revision;
+        private volatile ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue;
         private volatile long nextRefreshAt = Long.MAX_VALUE, nextCommitReadAt;
         private long dropped;
         Session(LiveContextSnapshot initial, ExternalSpeech owner, Consumer<Command> send,
@@ -95,7 +96,10 @@ public class LiveContextBridgeService {
             currentOccasion.set(new OccasionIdentity(initial.activity() == null || initial.activity().continuation() == null
                     ? null : initial.activity().continuation().id()));
             revision = initial.revision(); this.send = send; this.applied = applied; this.failure = failure;
+            playbackCue = initial.activity() == null ? null : initial.activity().playbackCue();
         }
+        /** Current control evidence, independent of provider append acknowledgements. */
+        public ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue() { return closed.get() ? null : playbackCue; }
         public void ready() { delivery.ready(); ready = true; state = "ready"; request(); }
         public void receive(JsonObject event) {
             if (closed.get() || !event.has("type") || !"session.delegation.created".equals(event.get("type").getAsString())) return;
@@ -161,6 +165,7 @@ public class LiveContextBridgeService {
                 var priorOccasion = currentOccasion.get();
                 var fresh = contexts.refresh(agent, owner).orElseThrow(() -> new IllegalStateException("Obsolete context owner"));
                 var activity = fresh.context().activity();
+                playbackCue = activity == null ? null : activity.playbackCue();
                 // A newer post-commit notification must win over the snapshot being read.
                 currentOccasion.compareAndSet(priorOccasion, new OccasionIdentity(activity == null || activity.continuation() == null
                         ? null : activity.continuation().id()));

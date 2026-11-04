@@ -1470,20 +1470,34 @@ The cockpit polls once per second using
 The response contains `status`, `transcriptRevision`, `transcripts`, and optional
 `playbackCue`. A policy may opt in to execution after captured speech and local
 playback settling: the cue has `id`, nullable `segmentId` (pending capture), and
-`expiresAt`. The shared Live client observes received audio without rerouting it;
-after matching capture and continuous playable audio followed by quiet, it sends
+`expiresAt`. The shared Live client begins observing the received track on attachment,
+without rerouting or recording audio. It retains at most 65 seconds of content-free
+sample/receipt timing, 1,024 caption identities and 64 complete segment mappings.
+The confirmed segment's existing ledger `receiptIds` bind local captions to the
+observed speech and subsequent 500 ms quiet period. A late cue or semantic
+association can use that retained evidence within the original delivery deadline;
+unrelated session speech cannot substitute for the matching segment. Caption/audio
+overlap is conservative (250 ms before the first caption to one second after the
+last); missing receipts or ambiguous overlapping speech leave delivery unconfirmed.
+After matching capture and continuous playable audio followed by quiet, it sends
 one `POST .../live/sessions/{handle}/playback-cues/{id}` with `{ "segmentId": "..." }`.
 The backend rechecks access, session/epoch, presence, expiry and the current cue
 under the turn lock. Policies consume it once through ordinary state actions.
 Interrupted, muted, stalled or unobserved audio cannot establish completion;
 applications must provide bounded recovery. This is no hardware audibility or
-physical motion guarantee. Normal agents have no cue and no audio observer.
+physical motion guarantee. Sessions without a cue retain only bounded local
+observations and never send a playback acknowledgement. Stop, stream replacement,
+input interruption, hidden/muted output, sampling gaps and stalled media invalidate
+the corresponding evidence; duplicate captions cannot restore it.
 Output-audio deltas use PCM coverage; they do not require provider timing fields.
 Keep an expired cue in activity data until runtime evaluation cancels it. Live
 refresh evaluates expired cues through the ordinary tick path even when scheduled
 ticks are disabled, while retaining session ownership and task-work checks.
-Accepted speech cues trigger one urgent context refresh; ordinary commits retain
-their five-second coalescing window. Send the
+Accepted speech cues, including asynchronous task-response association, trigger an
+urgent context refresh. Fresh playback control is available to browser polls before
+provider appends are acknowledged; acknowledged provider context revisions remain
+separate. Existing serialized refresh scheduling and ordinary five-second commit
+coalescing remain, with no added database reads on a browser poll. Send the
 returned revision on the next poll: unchanged ledgers return null transcripts and
 need only one scalar authorization query, with no agent/history entity load.
 Durable ledger commits increment the session revision; a concurrent commit is
