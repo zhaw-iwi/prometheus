@@ -1412,6 +1412,41 @@ for Playwright. The exact integrated test commands are in the results record.
 
 ## Connecting External Clients
 
+`GET /runtime/clock` returns `{ "serverTimeMs": <UTC epoch milliseconds> }`
+with `Cache-Control: no-store`. It exposes current time only, without agent
+permissions, database access or provider calls. Browser observation calibration
+uses a measured monotonic round trip; this response is not an observation and
+must not replace the capture time of an existing sample. The timing contract and
+incremental rollout are in `.agents/PLAN_OBSERVATION_TIMING.md` and
+`.agents/OBSERVATION_TIMING_RESULTS.md`.
+
+Valerian calibrates camera and manual hand/face/social timestamps when connected.
+An observation keeps the timestamp captured before detector work or asynchronous
+submission; social batches share one time. Calibration refreshes in the background
+without database queries. The sensing panel reports unavailable timing and blocks
+emission until synchronization succeeds; detection and local departure/Stop logic
+remain available. Reconnection and returning from a hidden tab require new timing.
+Deploy the clock endpoint and browser assets together. Existing sensor TTLs,
+weather provider times, saved history and external client payloads are unchanged.
+
+Telemetry JSON includes `observationTiming`: current calibration quality and up
+to 32 calibration/lifecycle records, preserving the first and latest halves with
+a dropped count. Values are content-free; negative offsets are valid. Clearing
+Telemetry clears this journal without changing calibration. Task cue reasons
+distinguish `future_timestamp`, `expired_observation` and
+`missing_observation_time`. Live retains its existing freshness labels while
+explaining future-dated evidence. Timing estimates do not prove camera accuracy
+or physical delivery.
+
+Calibration accepts round trips up to one second, times requests out after two
+seconds, refreshes after four minutes and expires after five. Capture estimates
+use a conservative server-time bound with a one-millisecond rounding margin and
+100 ppm drift allowance. Excessive round trip, expiry or a wall/monotonic clock
+discontinuity prevents emission until calibration recovers. These explicit bounds
+do not guarantee arbitrary device clock stability. No pending sensor queue is
+replayed after recovery. For the scissors retest, follow `.reng/HUMAN_TEST.md`;
+deployment and physical hearing remain separate acceptance steps.
+
 External clients usually use the scoped demo API. It keeps agent instances
 behind an access code and mirrors what the Valerian cockpit does. Trusted
 backend tools can use the global agent endpoints shown later.

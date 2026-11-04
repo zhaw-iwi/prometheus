@@ -135,3 +135,16 @@ test("task capture transitions are bounded, deduplicated and exported without ag
   assert.equal(a.snapshot().taskStates.at(-1).responseCaptured, true);
   a.clear(); assert.equal(a.snapshot().taskStates.length, 0);
 });
+
+
+test("sensor freshness reasons explain missing time, future time and expiry", () => {
+  const a = new InteractionActivity({now: () => 0}); a.scope("agent"); let revision = 0;
+  for (const [reason, label] of Object.entries({future_timestamp: "Waiting for synchronized sensor timing",
+    expired_observation: "Waiting for a fresh cue — observation expired",
+    missing_observation_time: "Waiting for an observation with valid timing"})) {
+    a.accept({version: 1, agentId: "agent", epoch: "epoch", revision: ++revision, serverMs: 0,
+      active: [], recent: [], cue: {reason, serverMs: 0}});
+    assert.equal(a.view().label, label); assert.equal(a.view().busy, false);
+    assert.equal(a.snapshot().journals[0].cue.reason, reason);
+  }
+});

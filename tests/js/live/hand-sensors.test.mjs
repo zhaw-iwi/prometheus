@@ -34,15 +34,19 @@ function fixture() {
       return { ok: context.httpStatus === 200, status: context.httpStatus,
         async json() { return { active: true, responseEvent: null }; } };
     },
-    httpStatus: 200,
+    httpStatus: 200, timingAvailable: true, timingEpoch: 1,
   });
+  context.PrometheusObservationTiming = {
+    capture: () => context.timingAvailable ? {ts: new Date(now - 2640).toISOString(), epoch: context.timingEpoch} : null,
+    accepts: capture => context.timingAvailable && capture?.epoch === context.timingEpoch,
+  };
   for (const name of ["camera", "CANNED_GESTURE_TO_SIGN", "SIGNS"]) {
     vm.runInContext(new RegExp(`^const ${name} = \\{[\\s\\S]*?^\\};`, "m").exec(source)[0], context);
   }
   for (const name of ["ACCESS_CODE_HEADER", "REQUIRED_STABLE_GESTURE_FRAMES"]) {
     vm.runInContext(new RegExp(`^const ${name} = .*;`, "m").exec(source)[0], context);
   }
-  for (const name of ["detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
+  for (const name of ["captureObservationTime", "usableObservationTime", "detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
     "submitHandSign", "acknowledgeEvent", "timedScopedFetch", "scopedFetch", "demoAgentPath", "sensorBackendResult",
     "setHandSignStatus", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate",
     "renderBehaviourPlan", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState"]) {
@@ -110,7 +114,7 @@ test("camera rock, scissor and paper reach the scoped framework as timestamped o
     assert.equal(payload.detectionMode, "client_camera");
     assert.equal(payload.confidence, .9);
     assert.equal(payload.stabilityFrames, 3);
-    assert.equal(Date.parse(payload.ts), f.context.Date.now());
+    assert.equal(Date.parse(payload.ts), f.context.Date.now() - 2640);
   }
   assert.equal(f.requests.length, 3);
 });
@@ -250,4 +254,18 @@ test("an old hand acknowledgement cannot restore cooldown after a new capture wi
   assert.equal(f.requests.length, 2);
   await f.frame();
   assert.equal(f.requests.length, 2, "ordinary cooldown still applies after the fresh send");
+});
+
+
+test("hand capture time survives delayed submission and unavailable or old-scope timing blocks sending", async () => {
+  const f = fixture(), captured = f.context.captureObservationTime();
+  f.advance(4000);
+  await f.context.submitHandSign("scissor", {observed: captured});
+  assert.equal(payload(f.requests[0]).ts, captured.ts);
+  f.context.timingEpoch++;
+  assert.equal(await f.context.submitHandSign("scissor", {observed: captured}), false);
+  f.context.timingAvailable = false;
+  await f.frame(); await f.frame(); await f.frame();
+  assert.equal(f.requests.length, 1);
+  assert.match(f.status(), /timing unavailable/);
 });

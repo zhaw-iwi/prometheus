@@ -310,7 +310,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(index.contains("data-testid=\"diagnostics-state-list\""));
         assertTrue(index.contains("data-testid=\"storage-list\""));
         assertTrue(index.contains("Current State"));
-        assertTrue(index.contains("States"));
+        assertTrue(index.contains("State names"));
         assertTrue(index.contains("Storage"));
 
         assertTrue(script.contains("activityEntries: []"));
@@ -619,7 +619,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("source: \"valerian.hand.manual\""));
         assertTrue(script.contains("detectionMode: \"manual\""));
         assertTrue(script.contains("schemaVersion: 1"));
-        assertTrue(script.contains("function socialContextPayload(social, tracked, source)"));
+        assertTrue(script.contains("function socialContextPayload(social, tracked, source, observed)"));
         assertTrue(script.contains("function socialContextPerson(person)"));
         assertTrue(script.contains("function socialContextSignature(payload)"));
         assertTrue(script.contains("currentProfileSupportsObservation(\"obs.social.context\")"));

@@ -58,6 +58,44 @@ class CoordinationAgentIntegrationTest {
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
     }
+    @Test void rawAndCalibratedObservationsRetainTheirSourceAgesAfterReload() throws Exception {
+        JsonObject fixture;
+        try (var input = getClass().getResourceAsStream("/coordination/observation-timing.json")) {
+            fixture = JsonParser.parseReader(new java.io.InputStreamReader(Objects.requireNonNull(input),
+                    java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+        var rawScope = create(); var calibratedScope = create();
+        Instant captured = Instant.now().minusMillis(100);
+        var original = fixture.getAsJsonObject("observation").deepCopy();
+        original.addProperty("ts", captured.plusMillis(fixture.get("browserClockLeadMs").getAsLong()).toString());
+        var calibrated = original.deepCopy(); calibrated.addProperty("ts", captured.toString());
+        for (var trial : Map.of(rawScope, original, calibratedScope, calibrated).entrySet())
+            demo.acknowledge(trial.getKey().code(), trial.getKey().id(), new EventRequest(Event.TYPE_HAND_SIGN, "camera",
+                    Event.KIND_OBSERVATION, trial.getValue().toString()), OutputProfile.FULL_PLAN).orElseThrow();
+        // Repository methods open separate transactions: these are reloaded events, not managed originals.
+        var raw = agents.findById(rawScope.id()).orElseThrow().getEventHistory().toList().stream()
+                .filter(e -> Event.TYPE_HAND_SIGN.equals(e.getType())).findFirst().orElseThrow();
+        var reloaded = agents.findById(calibratedScope.id()).orElseThrow();
+        var corrected = reloaded.getEventHistory().toList().stream()
+                .filter(e -> Event.TYPE_HAND_SIGN.equals(e.getType())).findFirst().orElseThrow();
+        assertEquals(original.toString(), raw.getPayload());
+        assertEquals(calibrated.toString(), corrected.getPayload());
+        assertNotNull(corrected.getId());
+        assertFalse(TaskMemory.fresh(raw, captured.plusMillis(26)));
+        assertTrue(TaskMemory.fresh(corrected, captured.plusMillis(26)));
+        for (int ageSeconds : List.of(0, 15)) {
+            var projection = new ch.zhaw.prometheus.application.live.LiveContextProjection(
+                    new ch.zhaw.prometheus.model.policy.PromptMessageAssembler(),
+                    new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter(),
+                    java.time.Clock.fixed(captured.plusSeconds(ageSeconds), java.time.ZoneOffset.UTC));
+            var item = projection.project(reloaded).items().stream().filter(i -> Event.TYPE_HAND_SIGN.equals(i.type())).findFirst().orElseThrow();
+            assertEquals(captured, item.observedAt());
+            assertEquals(captured.plusSeconds(15), item.expiresAt());
+            assertEquals(ageSeconds == 0 ? "fresh" : "expired", item.freshness());
+            assertEquals(List.of(corrected.getId()), item.sourceIds());
+            assertEquals(ageSeconds == 0, TaskMemory.fresh(corrected, captured.plusSeconds(ageSeconds)));
+        }
+    }
     @Test void scopedDialogueAgreementReloadsPausesOnLiveCloseAndResetsWithoutLosingPersona() {
         assertTrue(registry.findByKey(CoordinationAgent.KEY).isPresent());
         var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Please propose an invitation task");

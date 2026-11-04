@@ -12,6 +12,11 @@ record of a passed test.
   their older saved graphs.
 - Use one browser tab, keep it visible, and select your usual microphone and
   audio output.
+- Use a deployment containing both `/runtime/clock` and the updated Cockpit
+  assets. The observation-timing commits on main do not themselves deploy Heroku.
+  After connecting, wait for **Sensor timing ready** beside the camera emission
+  controls. If timing is unavailable, export telemetry before attempting the cue;
+  camera detection alone does not mean observations are being sent.
 - Start the camera. Enable **Emit camera observations**, **Face emotion**,
   **Social context**, and **Hand sign**. Leave thresholds and intervals unchanged.
 - Start **GPT-Live**. Keep the sensor reports and Diagnostics state accessible.
@@ -54,7 +59,20 @@ Keep brief notes of:
 - The first step that behaved unexpectedly, including any clarification or
   extra turns you needed.
 - What the sensor report and task state showed.
+- Whether **Sensor timing ready** was visible at step 8. Keep the exported
+  `observationTiming` section: offset, round trip, uncertainty, calibration age,
+  lifecycle reasons and any dropped-record count. A negative offset is valid
+  (browser time ahead of server time). Record any tab hiding/reconnection.
 - What you actually heard: telemetry excludes conversation text and audio.
+
+For a missed scissors cue, correlate the emitted sample with task activity:
+`future_timestamp` identifies unusable future evidence; `expired_observation`
+identifies an old capture; `missing_observation_time` identifies absent/invalid
+source time. A cooldown or awaiting-response reason is a different gate. Do not
+restamp or replay an earlier sign to make it fresh: lower the hand, let the arming
+response finish, and show a new sign. Record whether exactly one joke was heard
+and whether Reflection followed its complete playback. Automated tests simulate
+delivery and cannot supply this physical acceptance evidence.
 
 Finally, stop GPT-Live and the camera. **Database quota headroom remains
 unresolved**, so this first run should be bounded; avoid leaving sensing running
@@ -69,3 +87,4 @@ query rate or prove quota exhaustion.
 - [Shared interaction fixture](../src/test/resources/coordination/scissors-interaction.json)
 - [Coordination contract](../README.md#coordination-agent)
 - [Implementation and verification evidence](../.agents/COORDINATION_RESULTS.md)
+- [Observation timing repair and verification](../.agents/OBSERVATION_TIMING_RESULTS.md)

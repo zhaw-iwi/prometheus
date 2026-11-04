@@ -1496,6 +1496,9 @@
                           data-testid="sensor-emit-enabled">
                         <label class="form-check-label" for="sensor_emit_enabled">Emit camera observations</label>
                       </div>
+                      <div id="observation_clock_status" class="small text-body-secondary mb-2" role="status">
+                        Connect to synchronize sensor timing
+                      </div>
                       <div class="form-check form-switch" data-profile-observations="obs.emotion.face">
                         <input id="sensor_emotion_enabled" class="form-check-input" type="checkbox"
                           data-testid="sensor-emotion-enabled">
@@ -2702,6 +2705,7 @@
   <script type="module" src="/speech/browser-global.js"></script>
   <link rel="stylesheet" href="/performance/activity.css">
   <script type="module" src="/performance/panel.js"></script>
+  <script type="module" src="/observation/browser-global.js"></script>
   <link rel="stylesheet" href="/valerian/state-view.css">
   <script src="/valerian/state-view.js"></script>
   <link rel="stylesheet" href="/valerian/state-graph.css">

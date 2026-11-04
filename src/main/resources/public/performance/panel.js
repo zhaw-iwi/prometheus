@@ -116,6 +116,7 @@ function mount() {
     const turns = turnTimings.snapshot();
     const live = liveDiagnostics.snapshot();
     const activity = interactionActivity.snapshot();
+    const observation = globalThis.PrometheusObservationTiming?.diagnostics();
     const activityOpen = activityRoot.querySelector("details")?.open ?? true;
     activityRoot.replaceChildren();
     if (activity.journals.length || activity.markers.length) {
@@ -138,7 +139,9 @@ function mount() {
       activityRoot.append(section);
     }
     count.textContent = turns.length ? `${turns.length} turn${turns.length === 1 ? "" : "s"} retained · latest 20 shown` : "No ordinary turns recorded yet. Backend and Live records appear below when available.";
-    buttons.forEach(button => { button.disabled = !turns.length && (button.dataset.timingExport === "csv" || !live.sessions.length && !activity.journals.length && !activity.markers.length); });
+    if (observation?.recent.length) count.textContent += ` Sensor timing: ${observation.current.status}.`;
+    buttons.forEach(button => { button.disabled = !turns.length && (button.dataset.timingExport === "csv"
+      || !live.sessions.length && !activity.journals.length && !activity.markers.length && !observation?.recent.length); });
     const open = new Set([...list.querySelectorAll("details[open]")].map(node => node.dataset.traceId));
     list.replaceChildren();
     if (live.sessions.length) {
@@ -181,13 +184,18 @@ function mount() {
   turnTimings.subscribe(schedule);
   liveDiagnostics.subscribe(schedule);
   interactionActivity.subscribe(schedule);
-  root.querySelector("[data-timing-clear]").addEventListener("click", () => { turnTimings.clear(); liveDiagnostics.clear(); interactionActivity.clear(); });
+  window.addEventListener("prometheus-observation-timing", schedule);
+  root.querySelector("[data-timing-clear]").addEventListener("click", () => {
+    turnTimings.clear(); liveDiagnostics.clear(); interactionActivity.clear();
+    globalThis.PrometheusObservationTiming?.clearDiagnostics();
+  });
   buttons.forEach(button => button.addEventListener("click", () => {
     const turns = turnTimings.snapshot();
     const csv = button.dataset.timingExport === "csv";
     const content = csv ? timingCsv(turns) : JSON.stringify({ ...timingExport(turns, {
       userAgent: navigator.userAgent, timeOrigin: performance.timeOrigin,
-    }), live: liveDiagnostics.snapshot(), activity: interactionActivity.snapshot() }, null, 2);
+    }), live: liveDiagnostics.snapshot(), activity: interactionActivity.snapshot(),
+      observationTiming: globalThis.PrometheusObservationTiming?.diagnostics() ?? null }, null, 2);
     const url = URL.createObjectURL(new Blob([content], { type: csv ? "text/csv;charset=utf-8" : "application/json" }));
     const link = element("a");
     link.href = url;

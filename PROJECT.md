@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Observation timing OT-01 through OT-06 (2026-11-04) are complete: calibrated
+  capture timestamps, lifecycle invalidation, shared evidence reasons and bounded
+  telemetry repair the browser/server clock mismatch without widening tolerances.
+  Final verification passed 81 Java, 172 Node and 30 browser checks across focused
+  runs, including offset clocks, persistence/expiry and Text/Live task boundaries.
+  Sequential OT-01–06 work and per-milestone commit/push are authorized.
+  Verification and remaining work: `.agents/OBSERVATION_TIMING_RESULTS.md`;
+  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. Deployment and physical scissors/audio
+  acceptance remain open; the human retest procedure is `.reng/HUMAN_TEST.md`.
+
 - State graph viewer (2026-11-04): GV-01 through GV-03 are authorized on main with
   per-milestone commits/pushes and are complete. Saved directed graphs, transition
   details, nested/shared states and live active IDs now extend the cockpit-owned
