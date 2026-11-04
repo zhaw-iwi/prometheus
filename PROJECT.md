@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Observation timing OT-01 (2026-11-04): bounded server-clock calibration and
+  capture-time contract defined; two sanitized scissors/freshness tests pass.
+  Sequential OT-01–06 work and per-milestone commit/push are authorized.
+  Verification and remaining work: `.agents/OBSERVATION_TIMING_RESULTS.md`;
+  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. No runtime repair claimed yet.
+
 - State graph viewer (2026-11-04): GV-01 through GV-03 are authorized on main with
   per-milestone commits/pushes and are complete. Saved directed graphs, transition
   details, nested/shared states and live active IDs now extend the cockpit-owned

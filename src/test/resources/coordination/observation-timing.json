@@ -1,0 +1,10 @@
+{
+  "serverCaptureTime": "2026-11-04T12:17:19.400Z",
+  "serverReceiptTime": "2026-11-04T12:17:19.426Z",
+  "browserSourceTime": "2026-11-04T12:17:22.068Z",
+  "browserClockLeadMs": 2668,
+  "acceptedAt": "2026-11-04T12:16:48.865Z",
+  "armedAfter": "2026-11-04T12:16:54.958Z",
+  "rule": { "eventType": "obs.hand.sign", "field": "sign", "operator": "eq", "value": "scissor", "action": "Tell one short dry joke", "effect": "ACT", "minConfidence": 0.8, "samples": 1, "cooldownSeconds": 3 },
+  "observation": { "source": "valerian.hand.camera", "sign": "scissor", "confidence": 0.899, "ts": "2026-11-04T12:17:22.068Z" }
+}
