@@ -15,11 +15,11 @@ function fixture({ live = true, interval = 2500 } = {}) {
     },
     camera: {}, liveVoice: { ui: { active: live } }, LIVE_SENSOR_REFRESH_MS: 5000,
     state: { agentId: "agent", accessCode: "code" },
-    enabled: true,
+    enabled: true, timingAvailable: true, timingEpoch: 1,
     document: { getElementById(id) { return { checked: context.enabled,
       value: id === "face_confidence_threshold" ? "0.55" : String(interval) }; } },
     currentProfileSupportsObservation: () => true,
-    setEmotionEmitStatus() {}, appendLog() {},
+    setEmotionEmitStatus() {}, setSocialContextStatusText() {}, appendLog() {},
     setActiveStatus() {}, renderLatestEvent() {}, handleResponseEvent() {},
     demoAgentPath: path => path,
     async acknowledgeEvent(event) { events.push(event); return !failures.has(event.type); },
@@ -30,7 +30,11 @@ function fixture({ live = true, interval = 2500 } = {}) {
         ? { status: 500, response: null } : { status: 200, response: { active: true } }); } };
     },
   });
-  for (const name of ["maybeEmitEmotion", "armedFaceCue", "emotionPayload", "compressExpressions", "liveSensorRefreshDue",
+  context.PrometheusObservationTiming = {
+    capture: () => context.timingAvailable ? {ts: new Date(now - 2640).toISOString(), epoch: context.timingEpoch} : null,
+    accepts: capture => context.timingAvailable && capture?.epoch === context.timingEpoch,
+  };
+  for (const name of ["captureObservationTime", "usableObservationTime", "detectEmotion", "deriveEmotion", "maybeEmitEmotion", "armedFaceCue", "emotionPayload", "compressExpressions", "liveSensorRefreshDue",
     "passesSensorEmitInterval", "markSensorEmitted", "maybeEmitSocial", "submitSocialPayloads", "acknowledgeObservationBatch", "sensorBackendReady", "sensorBackendResult", "emitCameraObservation",
     "socialContextPayload", "socialContextPerson", "socialContextSignature", "normalizeAttentionSignal",
     "normalizeAttentionState", "normalizeMovementState", "asUnitNumber", "clamp", "round", "average"]) {
@@ -215,4 +219,42 @@ test("monitor snapshots replace detail reads, with fallback before readiness and
   await context.refreshAgentDetailsIfNeeded(); assert.equal(reads.length, 6);
   context.state.monitorSource.handlers.snapshot({ data: "invalid" });
   await context.refreshAgentDetailsIfNeeded(); assert.equal(reads.length, 8);
+});
+
+
+test("face and related social observations retain capture time across delay and share one batch timestamp", async () => {
+  const f = fixture(), captured = f.context.captureObservationTime();
+  f.advance(4000);
+  await f.context.maybeEmitEmotion(f.context.face, .99, captured);
+  await f.context.maybeEmitSocial(f.context.social, f.context.people, captured);
+  assert.equal(f.events.length, 4);
+  assert.deepEqual(f.events.map(e => JSON.parse(e.payload).ts), Array(4).fill(captured.ts));
+  assert.equal(f.context.camera.lastPresenceEmitAt, f.context.Date.now());
+});
+test("unavailable timing blocks transport while local presence and later fresh recovery remain usable", async () => {
+  const f = fixture(); let presence = 0;
+  f.context.liveVoice.ui.observePresence = () => {presence++; return true;};
+  f.context.timingAvailable = false; await f.sense();
+  assert.equal(f.events.length, 0); assert.equal(presence, 1);
+  const old = {ts: new Date(0).toISOString(), epoch: f.context.timingEpoch};
+  f.context.timingEpoch++; f.context.timingAvailable = true;
+  await f.context.maybeEmitEmotion(f.context.face, .99, old);
+  assert.equal(f.events.length, 0); await f.sense(); assert.equal(f.events.length, 4);
+});
+
+
+test("asynchronous detector work cannot restamp a frame or cross a connection generation", async () => {
+  for (const switchScope of [false, true]) {
+    const f = fixture(); let release;
+    f.context.window = {faceapi: {TinyFaceDetectorOptions: class {}, detectSingleFace: () => ({
+      withFaceExpressions: () => new Promise(resolve => {release = resolve;})})}};
+    f.context.drawFaceBox = () => {}; f.context.renderEmotionMetrics = () => {};
+    const captureTime = f.context.captureObservationTime().ts;
+    const pending = f.context.detectEmotion(); f.advance(3000);
+    if (switchScope) f.context.timingEpoch++;
+    release({expressions: {neutral: .99}, detection: {score: .99, box: {}}});
+    await pending;
+    assert.equal(f.events.length, switchScope ? 0 : 1);
+    if (!switchScope) assert.equal(JSON.parse(f.events[0].payload).ts, captureTime);
+  }
 });

@@ -28,3 +28,23 @@ and three Java tests (`mvnw.cmd -q
 uses fixed clocks and standalone MVC; no database/provider access. Tests include
 asymmetric delay, positive/negative wall offsets, every validity boundary,
 timeout despite ignored abort, bad responses and superseded requests.
+
+## OT-03: capture and lifecycle
+
+The Cockpit starts/stops calibration with its agent connection and invalidates
+timing while hidden. Periodic refresh/retry is bounded and sends no database
+queries. Detector input is timestamped before asynchronous inference; a reading
+from an obsolete connection cannot be emitted. Hand/face/social manual paths
+share the same helper. Social batches share a capture time while their local
+cadence uses local elapsed wall time, not calibrated payload dates. Weather is
+unchanged. Unavailable timing is visible beside emission controls and prevents
+sending; local presence handling remains active.
+
+Passed all 88 Live Node tests (`node --test tests/js/live/*.test.mjs`), syntax
+checking and 15 Java checks (`ValerianClientStaticResourceContractTest` and
+`RuntimeClockControllerWebMvcTest`). Added delayed-detector, delayed-submit,
+batch, disconnect/visibility, expiry/recovery and stale-request tests. The first
+Java run exposed the expected changed helper-signature assertion and a pre-existing
+`States` label assertion left behind by the state-graph work. Updated that test
+to the existing `State names` UI; no graph behavior changed. The corrected run
+passed. No database/provider or physical trial in this milestone.

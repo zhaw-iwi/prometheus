@@ -893,6 +893,15 @@ must not replace the capture time of an existing sample. The timing contract and
 incremental rollout are in `.agents/PLAN_OBSERVATION_TIMING.md` and
 `.agents/OBSERVATION_TIMING_RESULTS.md`.
 
+Valerian calibrates camera and manual hand/face/social timestamps when connected.
+An observation keeps the timestamp captured before detector work or asynchronous
+submission; social batches share one time. Calibration refreshes in the background
+without database queries. The sensing panel reports unavailable timing and blocks
+emission until synchronization succeeds; detection and local departure/Stop logic
+remain available. Reconnection and returning from a hidden tab require new timing.
+Deploy the clock endpoint and browser assets together. Existing sensor TTLs,
+weather provider times, saved history and external client payloads are unchanged.
+
 External clients usually use the scoped demo API. It keeps agent instances
 behind an access code and mirrors what the Valerian cockpit does. Trusted
 backend tools can use the global agent endpoints shown later.

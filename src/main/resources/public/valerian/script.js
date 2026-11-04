@@ -1084,6 +1084,7 @@ async function selectAgent(agentId, options = {}) {
 }
 
 async function connectToAgent(agentId) {
+  globalThis.PrometheusObservationTiming?.stop();
   const selectedAgentId = typeof agentId === "string" ? agentId.trim() : "";
   if (!selectedAgentId) {
     await disconnectAgent({ preserveInput: false, silent: true });
@@ -1117,6 +1118,8 @@ async function connectToAgent(agentId) {
     return;
   }
   await ensureLiveTranscriptionUi();
+  if (state.agentId !== selectedAgentId) return;
+  void globalThis.PrometheusObservationTiming?.start();
   await ensureSpeechPlaybackCoordinator();
   await configureGptLive();
   await loadEventHistory();
@@ -1160,6 +1163,7 @@ async function loadAgentInfo() {
 }
 
 async function disconnectAgent(options = {}) {
+  globalThis.PrometheusObservationTiming?.stop();
   await liveVoice.ui?.invalidate("Agent disconnected.");
   if (state.transcriptionListening) {
     await stopTranscription();
@@ -3534,7 +3538,21 @@ async function runCameraLoop() {
   camera.loopTimer = setTimeout(runCameraLoop, CAMERA_PERIOD_MS);
 }
 
+function captureObservationTime() {
+  return globalThis.PrometheusObservationTiming?.capture() ?? null;
+}
+
+function usableObservationTime(capture, kind) {
+  if (globalThis.PrometheusObservationTiming?.accepts(capture)) return true;
+  const message = "Not sent: sensor timing unavailable";
+  if (kind === "hand") setHandSignStatus(message, "idle");
+  if (kind === "emotion") setEmotionEmitStatus(message, "idle");
+  if (kind === "social") setSocialContextStatusText(message, "idle");
+  return false;
+}
+
 async function detectEmotion() {
+  const observed = captureObservationTime();
   let detection = null;
   try {
     detection = await window.faceapi
@@ -3555,10 +3573,11 @@ async function detectEmotion() {
   const faceScore = detection.detection.score;
   drawFaceBox(detection.detection.box, emotion, faceScore);
   renderEmotionMetrics(emotion, faceScore);
-  await emitCameraObservation("emotion", () => maybeEmitEmotion(emotion, faceScore));
+  await emitCameraObservation("emotion", () => maybeEmitEmotion(emotion, faceScore, observed));
 }
 
 async function detectSocial() {
+  const observed = captureObservationTime();
   let rawDetections = [];
   try {
     rawDetections = await camera.socialDetector.detect(camera.video);
@@ -3579,7 +3598,7 @@ async function detectSocial() {
     drawSocialStatus("No people", "idle");
   }
   renderSocialMetrics(social, tracked);
-  await maybeEmitSocial(social, tracked);
+  await maybeEmitSocial(social, tracked, observed);
 }
 
 async function detectHandSign() {
@@ -3587,6 +3606,7 @@ async function detectHandSign() {
     camera.video.currentTime === camera.lastGestureVideoTime) {
     return;
   }
+  const observed = captureObservationTime();
   const result = camera.handRecognizer.recognizeForVideo(camera.video, performance.now());
   const candidate = selectCameraGesture(result);
   updateCameraStability(candidate);
@@ -3606,7 +3626,7 @@ async function detectHandSign() {
     setText("hand_sign_value", "-");
     resetHandSignReport("No sign");
   }
-  await maybeEmitCameraSign(candidate);
+  await maybeEmitCameraSign(candidate, observed);
   camera.lastGestureVideoTime = camera.video.currentTime;
 }
 
@@ -3630,7 +3650,7 @@ function deriveEmotion(expressions) {
   };
 }
 
-async function maybeEmitEmotion(emotion, faceScore) {
+async function maybeEmitEmotion(emotion, faceScore, observed = captureObservationTime()) {
   if (!document.getElementById("sensor_emit_enabled").checked || !emotion) {
     setEmotionEmitStatus("Live only", "idle");
     return;
@@ -3652,13 +3672,14 @@ async function maybeEmitEmotion(emotion, faceScore) {
     setEmotionEmitStatus("Stable", "idle");
     return;
   }
+  if (!usableObservationTime(observed, "emotion")) return;
   camera.lastEmotionAttemptAt = Date.now();
   const agentId = state.agentId;
   const ok = await acknowledgeEvent({
     type: "obs.emotion.face",
     actor: "user",
     kind: "observation",
-    payload: JSON.stringify(emotionPayload(emotion, "visual.facial", faceScore)),
+    payload: JSON.stringify(emotionPayload(emotion, "visual.facial", faceScore, {}, observed)),
   }, { renderResponse: true });
   if (ok && state.agentId === agentId) {
     markSensorEmitted("emotion");
@@ -3695,6 +3716,8 @@ function armedFaceCue(emotion) {
 }
 
 async function submitEmotionSample(label) {
+  const observed = captureObservationTime();
+  if (!usableObservationTime(observed, "emotion")) return false;
   const spec = MANUAL_EMOTIONS[label];
   if (!spec) {
     appendLog("emotion", "unknown manual emotion.");
@@ -3713,7 +3736,7 @@ async function submitEmotionSample(label) {
     type: "obs.emotion.face",
     actor: "user",
     kind: "observation",
-    payload: JSON.stringify(emotionPayload(emotion, "visual.facial.manual", 1, { detectionMode: "manual" })),
+    payload: JSON.stringify(emotionPayload(emotion, "visual.facial.manual", 1, { detectionMode: "manual" }, observed)),
   }, { renderResponse: true });
   if (data) {
     camera.lastEmotion = emotion;
@@ -3810,7 +3833,7 @@ function setEmotionEmitStatus(text, mode = "idle") {
   el.className = `status-pill is-${mode || "idle"}`;
 }
 
-function emotionPayload(emotion, source, faceScore, extra = {}) {
+function emotionPayload(emotion, source, faceScore, extra = {}, observed) {
   return {
     source,
     emotion: emotion.emotion,
@@ -3820,7 +3843,7 @@ function emotionPayload(emotion, source, faceScore, extra = {}) {
     faceDetectionConfidence: round(Number(faceScore || 0), 3),
     facePresent: true,
     expressions: compressExpressions(emotion.expressions),
-    ts: new Date().toISOString(),
+    ts: observed.ts,
     ...extra,
   };
 }
@@ -4539,7 +4562,7 @@ function socialEmptyState(text, testId) {
   return el;
 }
 
-async function maybeEmitSocial(social, tracked) {
+async function maybeEmitSocial(social, tracked, observed = captureObservationTime()) {
   if (!document.getElementById("sensor_emit_enabled").checked || !social) return;
   const urgent = liveVoice.ui?.observePresence?.(social.humanCount) || false;
   if (!sensorBackendReady()) return;
@@ -4549,9 +4572,9 @@ async function maybeEmitSocial(social, tracked) {
   if (liveVoice.ui?.presenceArmed) {
     if (camera.receptionSocialPending) return;
     camera.receptionSocialPending = true;
-    void submitSocialPayloads(social, tracked, "visual.social", urgent)
+    void submitSocialPayloads(social, tracked, "visual.social", urgent, observed)
       .finally(() => { camera.receptionSocialPending = false; });
-  } else await submitSocialPayloads(social, tracked, "visual.social");
+  } else await submitSocialPayloads(social, tracked, "visual.social", false, observed);
 }
 
 async function emitCameraObservation(kind, operation) {
@@ -4587,7 +4610,9 @@ async function submitSocialSample(kind) {
   await submitManualSocialDetails();
 }
 
-async function submitSocialPayloads(social, tracked, source, urgent = false) {
+async function submitSocialPayloads(social, tracked, source, urgent = false, observed = captureObservationTime()) {
+  if (!usableObservationTime(observed, "social")) return;
+  const attemptedAt = Date.now();
   const presenceRevision = liveVoice.ui?.presenceRevision;
   const people = Array.isArray(tracked) ? tracked : [];
   const groups = Array.isArray(social.groups) ? social.groups : [];
@@ -4597,7 +4622,7 @@ async function submitSocialPayloads(social, tracked, source, urgent = false) {
     trackedCount: people.length,
     trackedIds: people.map((p) => p.id),
     avgDetectionConfidence: round(average(people.map((p) => p.score || 1)), 3),
-    ts: new Date().toISOString(),
+    ts: observed.ts,
   };
   const groupingPayload = {
     source,
@@ -4607,10 +4632,10 @@ async function submitSocialPayloads(social, tracked, source, urgent = false) {
     largestGroupSize: social.largestGroupSize,
     groupSizes: groups.map((g) => g.members.length),
     groups: groups.map((g) => ({ memberIds: g.members })),
-    ts: new Date().toISOString(),
+    ts: observed.ts,
   };
   const socialContextSupported = currentProfileSupportsObservation("obs.social.context");
-  const contextPayload = socialContextPayload(social, people, source);
+  const contextPayload = socialContextPayload(social, people, source, observed);
   const presenceSignature = `${presencePayload.humanCount}|${presencePayload.trackedCount}`;
   const groupingSignature = `${groupingPayload.groupCount}|${groupingPayload.singletonCount}|${groupingPayload.largestGroupSize}|${groupingPayload.groupSizes.join(",")}`;
   const contextSignature = socialContextSignature(contextPayload);
@@ -4628,17 +4653,17 @@ async function submitSocialPayloads(social, tracked, source, urgent = false) {
   if (emitPresence) sample.push({ type: "obs.human.presence", payload: presencePayload, renderResponse: false,
     accepted: () => {
       camera.lastPresenceSignature = presenceSignature;
-      camera.lastPresenceEmitAt = Date.parse(presencePayload.ts);
+      camera.lastPresenceEmitAt = attemptedAt;
     } });
   if (emitGrouping) sample.push({ type: "obs.social.grouping", payload: groupingPayload, renderResponse: !emitContext,
     accepted: () => {
       camera.lastGroupingSignature = groupingSignature;
-      camera.lastGroupingEmitAt = Date.parse(groupingPayload.ts);
+      camera.lastGroupingEmitAt = attemptedAt;
     } });
   if (emitContext) sample.push({ type: "obs.social.context", payload: contextPayload, renderResponse: true,
     accepted: () => {
       camera.lastSocialContextSignature = contextSignature;
-      camera.lastSocialContextEmitAt = Date.parse(contextPayload.ts);
+      camera.lastSocialContextEmitAt = attemptedAt;
     } });
   const results = await acknowledgeObservationBatch(sample.map(item => ({
     type: item.type, actor: "user", kind: "observation", payload: JSON.stringify(item.payload),
@@ -4674,7 +4699,7 @@ async function acknowledgeObservationBatch(requests, options) {
   } catch (error) { appendLog("ack", error.message); return []; }
 }
 
-function socialContextPayload(social, tracked, source) {
+function socialContextPayload(social, tracked, source, observed) {
   const groups = Array.isArray(social.groups) ? social.groups : [];
   const people = Array.isArray(tracked) ? tracked : [];
   return {
@@ -4690,7 +4715,7 @@ function socialContextPayload(social, tracked, source) {
       return { memberIds: members, size: members.length };
     }),
     people: people.map(socialContextPerson),
-    ts: new Date().toISOString(),
+    ts: observed.ts,
   };
 }
 
@@ -4778,7 +4803,7 @@ function updateCameraStability(candidate) {
   }
 }
 
-async function maybeEmitCameraSign(candidate) {
+async function maybeEmitCameraSign(candidate, observed = captureObservationTime()) {
   if (!candidate) {
     return;
   }
@@ -4805,6 +4830,7 @@ async function maybeEmitCameraSign(candidate) {
   }
   const emissionRevision = camera.handEmissionRevision || 0;
   const ok = await submitHandSign(candidate.sign, {
+    observed,
     source: "valerian.hand.camera",
     detectionMode: "client_camera",
     confidence: round(candidate.confidence, 3),
@@ -4827,6 +4853,8 @@ async function maybeEmitCameraSign(candidate) {
 }
 
 async function submitHandSign(sign, options = {}) {
+  const observed = Object.hasOwn(options, "observed") ? options.observed : captureObservationTime();
+  if (!usableObservationTime(observed, "hand")) return false;
   const normalized = normalizeSign(sign);
   if (!normalized) {
     appendLog("hand", "unknown hand sign.");
@@ -4851,7 +4879,7 @@ async function submitHandSign(sign, options = {}) {
     sign: normalized,
     confidence: typeof options.confidence === "number" ? options.confidence : 1.0,
     detectionMode: options.detectionMode || "manual",
-    ts: new Date().toISOString(),
+    ts: observed.ts,
   };
   if (captureId) payload.captureId = captureId;
   if (options.cannedGesture) {
@@ -5934,6 +5962,7 @@ function setCameraStatus(text, mode) {
 }
 
 function cleanupAll() {
+  globalThis.PrometheusObservationTiming?.stop();
   state.isPageUnloading = true;
   stateView.dock();
   void liveVoice.ui?.stop("Page closed.");
