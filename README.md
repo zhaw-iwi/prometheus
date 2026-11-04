@@ -98,6 +98,9 @@ useful on narrow screens. **State names** remains available if graph loading fai
 Positions stay fixed as the current state changes. Inspection is read-only:
 it does not execute transitions or claim their guards currently hold. Large,
 dense machines may need zooming and selection to follow individual routes.
+The graph loads once per connection or explicit reset; monitor updates only
+change highlighting. Loading does not delay chat connection. A failed or timed
+out graph request leaves the state-name list available; reconnect to retry.
 
 The access-code-scoped `GET /demo/agents/{agentId}/state-graph` describes a saved
 machine (`schemaVersion: 1`): initial state ID, nodes, directed edges, nested

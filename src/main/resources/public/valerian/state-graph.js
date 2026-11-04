@@ -49,11 +49,11 @@
       }
     const hub =
       nodes.length > 4
-        ? nodes.find((n) => neighbours.get(n.id).size === nodes.length - 1)
+        ? nodes.find((n) => n.kind !== "final" && neighbours.get(n.id).size === nodes.length - 1)
         : null;
     const ring = nodes.filter((n) => n !== hub),
       positions = new Map();
-    const rx = Math.max(180, ring.length * 42),
+    const rx = Math.max(hub ? 280 : 180, ring.length * 42),
       ry = Math.max(120, ring.length * 31);
     const cx = rx + 165,
       cy = ry + 100;
@@ -333,12 +333,13 @@
       for (const el of root.querySelectorAll("[data-node-id]")) {
         const id = el.dataset.nodeId,
           n = graph.nodes.find((n) => n.id === id);
-        el.classList.toggle("is-current", current.has(id));
+        const isCurrent = el.classList.contains("graph-list-node") ? active.includes(id) : current.has(id);
+        el.classList.toggle("is-current", isCurrent);
         el.classList.toggle(
           "is-selected",
           selected?.kind === "node" && selected.id === id,
         );
-        el.setAttribute("aria-current", String(current.has(id)));
+        el.setAttribute("aria-current", String(isCurrent));
         el.classList.toggle(
           "is-search-match",
           !!query && n.name.toLowerCase().includes(query),
@@ -587,6 +588,7 @@
     });
     canvas.addEventListener("pointerup", () => (drag = null));
     canvas.addEventListener("pointercancel", () => (drag = null));
+    canvas.addEventListener("lostpointercapture", () => (drag = null));
     canvas.addEventListener("keydown", (e) => {
       if (e.target !== canvas || !camera) return;
       const step = {

@@ -1,3 +1,35 @@
+PROMETHEUS state graph handoff for Alex
+Updated: 2026-11-04
+
+GV-01 through GV-03 are complete on main, with a commit/push per milestone.
+GV-01: 82e6bb0; GV-02: 3fb1a96; GV-03 is the commit containing this handoff.
+
+Diagnostics > State machine now shows a directed graph of the saved machine:
+stable current/initial/final nodes, transition priorities/conditions/actions,
+parallel-route groups, nested expansion and shared membership, zoom/pan/fit/
+current controls and searchable list. The same view floats, docks or moves to
+the cockpit-owned popup. The API is access-code scoped and does not expose
+prompts or execute guards/actions. Monitor IDs update highlighting without
+additional graph reads or streams. Scope changes, slow/failed loads and reset
+are covered. State names remain available if the graph cannot load.
+
+Verified: 15 Java/local-MySQL tests, 4 JavaScript tests, 18 static browser cases,
+6 reviewed Chromium/Windows visual baselines, persisted HTTP/SSE browser journeys
+with Live enabled and disabled, and Maven packaging. Exact commands, artifacts,
+earlier failed attempts and boundaries: .agents/STATE_GRAPH_RESULTS.md.
+
+Next: review the changes and authorize main-to-agents promotion when ready for
+Heroku. This feature has not been deployed. After deployment, refresh the cockpit,
+connect an instance, open Diagnostics > State machine, pop it out, inspect a
+route and watch highlighting follow interaction/reset. Graph arrows describe
+definitions; they do not report live guard eligibility or transition history.
+Dense graphs may need zoom/selection/list inspection. Other browsers/OS visual
+rendering and physical devices remain unverified. The known database quota
+capacity constraint remains unchanged. No paid provider calls or production
+test writes were needed. There is no unfinished implementation milestone.
+
+Previous Coordination handoff (archived; deployment IDs below are historical)
+-------------------------------------------------------------------------
 PROMETHEUS Coordination handoff for Alex
 Updated: 2026-10-29
 

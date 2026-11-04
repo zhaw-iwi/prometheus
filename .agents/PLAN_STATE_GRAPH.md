@@ -21,4 +21,5 @@ guards, actions or inference, expose prompts/storage, or add recurring DB reads.
    Gate: disposable-MySQL browser journey, neighboring browser regression, package
    and whitespace checks. No paid providers or production test writes are needed.
 
-Evidence and limitations: STATE_GRAPH_RESULTS.md.
+GV-01, GV-02 and GV-03 are complete. Evidence and limitations:
+STATE_GRAPH_RESULTS.md. Operator continuation: `handoff alex.txt` (2026-11-04).

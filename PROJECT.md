@@ -76,8 +76,10 @@ and regulation diagnostics remain future work.
 ### Current milestone state
 
 - State graph viewer (2026-11-04): GV-01 through GV-03 are authorized on main with
-  per-milestone commits/pushes. Work extends the existing scoped model inspection
-  and cockpit-owned popup/monitor lifecycle. Plan: `.agents/PLAN_STATE_GRAPH.md`;
+  per-milestone commits/pushes and are complete. Saved directed graphs, transition
+  details, nested/shared states and live active IDs now extend the cockpit-owned
+  popup/monitor lifecycle. Local database, browser/visual and packaging gates pass.
+  Deployment is pending a separate authorized promotion. Plan: `.agents/PLAN_STATE_GRAPH.md`;
   verification and status: `.agents/STATE_GRAPH_RESULTS.md`.
 
 - Recorded Coordination interaction (2026-10-30, directly on main at the owner's
@@ -9589,3 +9591,15 @@ and nine browser cases passed, including six reviewed screenshot baselines and
 existing popup/floating behavior. Dense graphs may require zoom/selection to trace
 crossing routes. Real persisted/SSE acceptance follows in GV-03; details and exact
 commands are in `.agents/STATE_GRAPH_RESULTS.md`.
+
+## State graph integration GV-03 (2026-11-04)
+
+Graph loads no longer block chat connection, pending requests are cancelled on
+scope changes, timeout/failure keeps a visible state-name fallback, and reset
+rehydrates the graph. Newer monitor snapshots win over late graph responses.
+Real-agent review corrected overlap around small routing hubs. Four JavaScript
+tests, eighteen static browser cases/six visual baselines, real local HTTP/SSE
+journeys in both Live modes and packaging passed. The graph adds no polling or
+extra streams; transitions/popup reuse the initial graph fetch and reset reloads
+once. Artifacts, failed attempts and limits: `.agents/STATE_GRAPH_RESULTS.md`.
+The operator handoff is updated. No production deployment was requested here.

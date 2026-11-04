@@ -266,6 +266,7 @@ const HAND_CONNECTIONS = [
 
 const stateView = window.PrometheusStateView.create();
 let stateGraphVersion = 0;
+let stateGraphRequest = null;
 
 window.addEventListener("load", init);
 window.addEventListener("beforeunload", cleanupAll);
@@ -1121,7 +1122,7 @@ async function connectToAgent(agentId) {
   await loadEventHistory();
   await loadStorage();
   await loadAgentState();
-  await loadAgentGraph();
+  void loadAgentGraph();
   setControlsEnabled(true);
   updateConnectionButton();
   connectBehaviourStream();
@@ -1528,17 +1529,29 @@ async function loadAgentState() {
 }
 
 async function loadAgentGraph() {
-  const agentId=state.agentId, code=state.accessCode, version=++stateGraphVersion;
+  const agentId = state.agentId, code = state.accessCode, version = ++stateGraphVersion;
+  stateGraphRequest?.abort();
   if (!agentId) return;
+  const request = new AbortController();
+  stateGraphRequest = request;
+  const timeout = setTimeout(() => request.abort(), 15000);
+  stateView.graphStatus.textContent = "Loading state graph…";
   try {
-    const response=await scopedFetch(demoAgentPath("/state-graph"));
+    const response = await scopedFetch(demoAgentPath("/state-graph"), { signal: request.signal });
     if (!response.ok) throw new Error("State graph unavailable");
-    const graph=await response.json();
-    if (version!==stateGraphVersion || state.agentId!==agentId || state.accessCode!==code) return;
+    const graph = await response.json();
+    if (version !== stateGraphVersion || state.agentId !== agentId || state.accessCode !== code) return;
     stateView.graph.setGraph(graph, state.activeStateIds ?? graph.activeStateIds);
     stateView.list.closest("details").open = false;
+    stateView.graphStatus.textContent = "";
   } catch (_) {
-    if (version===stateGraphVersion) appendLog("app", "State graph unavailable; the state-name list is still available.");
+    if (version === stateGraphVersion) {
+      stateView.graphStatus.textContent = "State graph unavailable. State names remain available; reconnect to retry.";
+      stateView.list.closest("details").open = true;
+    }
+  } finally {
+    clearTimeout(timeout);
+    if (stateGraphRequest === request) stateGraphRequest = null;
   }
 }
 
@@ -1577,8 +1590,11 @@ function applyStateSnapshot(data) {
 
 function resetStateView() {
   ++stateGraphVersion;
-  state.activeStateIds=null;
+  stateGraphRequest?.abort();
+  stateGraphRequest = null;
+  state.activeStateIds = null;
   stateView.graph.clear();
+  stateView.graphStatus.textContent = "";
   stateView.list.closest("details").open = true;
   state.currentState = null;
   state.innerState = null;
@@ -1981,6 +1997,7 @@ async function resetAgent() {
     await loadAgentState();
     await loadStorage();
     appendLog("app", "agent reset.");
+    void loadAgentGraph();
     connectBehaviourStream(); connectMonitorStream();
   } catch (error) {
     appendLog("app", "reset failed: " + error.message);

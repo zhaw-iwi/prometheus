@@ -46,3 +46,50 @@ Visual checks caught and fixed overlapping route badges, self-loop placement
 and hidden list rows overridden by CSS. Arbitrary dense graphs can still have
 crossing arrows; selecting states/routes, zooming and the complete details/list
 are intentional inspection aids. GV-03 adds real persisted/SSE acceptance.
+
+## GV-03 (2026-11-04, complete)
+
+Graph hydration no longer delays connection, is aborted on scope change and has
+a 15-second timeout with a visible state-name fallback. Newer monitor IDs take
+precedence over a late graph snapshot. Cockpit reset explicitly reloads the graph.
+The popup retains one cockpit-owned monitor connection and the same interactive
+DOM. Inspection does not add polling or read the full graph on monitor updates.
+
+Final verification:
+
+- `npm.cmd run test:state-graph:unit`: 4/4 passed. Real-agent visual review exposed
+  overlapping neighbours around a small central node; minimum hub spacing and a
+  non-overlap regression now protect this. Final states are not chosen as hubs.
+- `python tests/playwright/run_static.py tests/playwright/valerian-state-view.spec.mjs
+  tests/playwright/valerian-state-graph.spec.mjs tests/playwright/valerian-lifecycle.spec.mjs
+  --grep-invert 'persisted transition'`: 18/18 passed, including six unchanged
+  screenshot baselines, popup/theme/search/zoom, agent switch, disconnect/reconnect,
+  stale streams/responses, late snapshots and graph-failure fallback.
+- `python tests/gptlive/run_acceptance.py --database-properties
+  target/coordination-mysql/admin.properties --java-tests none --browser
+  --browser-mode both --live-only --browser-grep 'state view tracks a persisted transition'`:
+  artifact `1225ff0efa`, 1/1 passed with Live enabled and 1/1 disabled. Uses real
+  local MySQL, scoped HTTP and SSE with scripted providers. Asserts persisted
+  active IDs, stable positions, manual RPS capture/result, reset, popup/docking,
+  one graph read during transitions/popup and a second only on cockpit reset.
+  No additional state/detail reads during the monitored journey; one monitor
+  connection before explicit reset. The real popup screenshot was reviewed.
+- `mvnw.cmd -q -DskipTests package`: exit 0; log `target/state-graph-package.log`.
+  Syntax and `git diff --check` checks passed. GV-01's 15 Java/MySQL tests and
+  unchanged query-volume measurement remain the backend evidence.
+
+Earlier real-browser runs `909d20260c` and `4eec60d50b` stopped at test UI
+navigation: the enlarged floating panel covered Send, then Reset was in an
+inactive drawer tab. The journey now uses the normal Enter-to-send path and
+selects the Agent tab before reset. Their disposable resources were cleaned.
+The initial mocked lifecycle run similarly needed to close the drawer before
+clicking logout; the corrected case and final suite passed.
+
+No production database writes or paid provider calls were made for these
+milestones. Disposable app/schema/accounts were removed; zero remaining test
+schemas/accounts were verified before stopping the owned local MySQL server. Browser acceptance is
+Chromium on Windows; other browser/OS rendering and physical devices are not
+verified. Dense crossing routes still use selection/zoom/list inspection, and
+arrows describe saved definitions rather than executed history or live guard
+results. The existing database quota constraint is unchanged. No deployment is
+included in this release; review/authorized main-to-agents promotion is next.

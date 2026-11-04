@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures/offline-ui-assets.mjs";
+import { small } from "./fixtures/state-graphs.mjs";
 
 const ids = ["71717171-7171-4171-8171-717171717171", "72727272-7272-4272-8272-727272727272"];
 const snapshot = { stateName: "Reception", innerNames: [], states: ["Reception", "Routing", "Rock-scissor-paper", "Guess the person", "Co-created task"] };
@@ -8,7 +9,7 @@ async function openDiagnostics(page) {
   await page.getByTestId("diagnostics-drawer-tab").click();
 }
 
-async function setup(page, context, theme = "light") {
+async function setup(page, context, theme = "light", options = {}) {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.addInitScript(theme => {
@@ -34,7 +35,8 @@ async function setup(page, context, theme = "light") {
     else if (path.endsWith("/transcription/capabilities")) data = { schemaVersion: 1, sessionType: "transcription",
       model: "gpt-live-transcribe", capabilities: { assistantOutput: false, inputTranscription: true }, settings: [] };
     else if (path.endsWith("/info")) data = agents.find(a => path.includes(a.id));
-    else if (path.endsWith("/state")) data = { name: path.includes(ids[1]) ? "Second agent" : "Reception", innerNames: [] };
+    else if (path.endsWith("/state-graph") && options.graph) return options.graph(route);
+    else if (path.endsWith("/state")) data = { name: path.includes(ids[1]) ? "Second agent" : "Reception", innerNames: [], activeStateIds: options.graph ? ["conversation"] : [] };
     else if (path.endsWith("/states")) data = path.includes(ids[1]) ? ["Second agent"] : snapshot.states;
     else if (path.endsWith("/eventhistory") || path.endsWith("/storage")) data = [];
     else return route.fulfill({ status: 404, body: "" });
@@ -183,6 +185,12 @@ test("state view tracks a persisted transition through real local HTTP and monit
   const creation = await request.post("/demo/agents", { headers, data: { agentDefinitionKey: "core.rock_scissor_paper" } });
   expect(creation.status()).toBe(201);
   const agent = await creation.json();
+  const graphReads = [], streams = [];
+  page.on("request", r => {
+    const path = new URL(r.url()).pathname;
+    if (path.endsWith("/state-graph")) graphReads.push(path);
+    if (path.includes("/monitor/")) streams.push(path);
+  });
   try {
     await page.goto(`/valerian/?agentId=${agent.id}`);
     await page.getByTestId("access-code-input").fill(code);
@@ -190,26 +198,36 @@ test("state view tracks a persisted transition through real local HTTP and monit
     await page.waitForFunction(() => state.monitorReady);
     const initial = await page.getByTestId("diagnostics-current-state").textContent();
     await openDiagnostics(page);
+    const graph = await (await request.get(`/demo/agents/${agent.id}/state-graph`, { headers })).json();
+    await expect(page.locator(".graph-node")).toHaveCount(graph.nodes.length);
+    const positions = await page.locator("svg .graph-node").evaluateAll(nodes => nodes.map(n => n.getAttribute("transform")));
     await page.getByRole("button", { name: "Float state view", exact: true }).click();
     const detailReads = [];
     page.on("request", r => { if (/\/(state|states)$/.test(new URL(r.url()).pathname)) detailReads.push(r.url()); });
     await page.getByTestId("text-input").fill("I am ready to start a round");
-    await page.getByTestId("send-text").click();
+    // The floating graph can overlap the Send button; the normal keyboard path stays available.
+    await page.getByTestId("text-input").press("Enter");
     await expect(page.getByTestId("diagnostics-current-state")).not.toHaveText(initial);
     const persisted = await (await request.get(`/demo/agents/${agent.id}/state`, { headers })).json();
     const current = persisted.innerNames?.at(-1) || persisted.innerName || persisted.name;
     await expect(page.getByTestId("diagnostics-current-state")).toHaveText(current);
+    for (const id of persisted.activeStateIds) await expect(page.locator(`svg [data-node-id="${id}"]`)).toHaveClass(/is-current/);
+    expect(await page.locator("svg .graph-node").evaluateAll(nodes => nodes.map(n => n.getAttribute("transform")))).toEqual(positions);
     await expect(page.locator("#diagnostics_state_list li").filter({ hasText: current })).toContainText("current");
     const pending = page.waitForEvent("popup");
     await page.getByRole("button", { name: "Open state view in separate window" }).click();
     const popup = await pending;
     await expect(popup.getByTestId("diagnostics-current-state")).toHaveText(current);
     await expect(popup.locator("#state_view")).toBeVisible();
+    await expect(popup.locator(".graph-node")).toHaveCount(graph.nodes.length);
+    await popup.getByRole("button", { name: "Zoom in", exact: true }).click();
     await popup.evaluate(() => document.fonts.ready);
     await popup.screenshot({ path: info.outputPath("real-db-transition-popup.png") });
     // Exercise the actual manual-sensor emitter, including its round capture ID.
     await page.evaluate(() => submitHandSign("rock"));
     await expect(popup.getByTestId("diagnostics-current-state")).toContainText("Round Result");
+    const resultState = await (await request.get(`/demo/agents/${agent.id}/state`, { headers })).json();
+    for (const id of resultState.activeStateIds) await expect(popup.locator(`svg [data-node-id="${id}"]`)).toHaveClass(/is-current/);
     const stored = Object.fromEntries((await (await request.get(`/demo/agents/${agent.id}/storage`, { headers })).json())
       .map(entry => [entry.key, JSON.parse(entry.value)]));
     expect(stored["core.rps.round"].phase).toBe("RESULT");
@@ -219,12 +237,107 @@ test("state view tracks a persisted transition through real local HTTP and monit
     // Reset produces another committed monitor snapshot while the nodes live in the popup.
     expect((await request.delete(`/demo/agents/${agent.id}/reset`, { headers })).ok()).toBe(true);
     await expect(popup.getByTestId("diagnostics-current-state")).toHaveText(initial);
+    expect(graphReads).toHaveLength(1);
+    expect(streams).toHaveLength(1);
     expect(detailReads).toEqual([]);
     await popup.getByRole("button", { name: "Dock state view", exact: true }).click();
     await expect.poll(() => popup.isClosed()).toBe(true);
     await expect(page.getByTestId("diagnostics-current-state")).toHaveText(initial);
+    // The cockpit reset clears all panels, so it must explicitly rehydrate the graph.
+    await page.getByTestId("agent-drawer-tab").click();
+    page.once("dialog", dialog => dialog.accept());
+    await page.locator("#reset_agent").click();
+    await expect.poll(() => graphReads.length).toBe(2);
+    await expect(page.locator(".graph-node")).toHaveCount(graph.nodes.length);
+    await expect(page.locator(`svg [data-node-id="${graph.initialStateId}"]`)).toHaveClass(/is-current/);
   } finally {
     await page.goto("about:blank");
     expect((await request.delete(`/demo/agents/${agent.id}`, { headers })).status()).toBe(204);
   }
+});
+
+test("state graph popup keeps one connection, rejects stale streams and reloads on agent switch", async ({ page, context }) => {
+  const reads = [];
+  const errors = await setup(page, context, "light", { graph: route => {
+    reads.push(route.request().url());
+    const graph = structuredClone(small);
+    if (route.request().url().includes(ids[1])) graph.nodes[0].name = "Second graph";
+    return route.fulfill({ contentType: "application/json", body: JSON.stringify(graph) });
+  } });
+  await expect(page.locator(".graph-node")).toHaveCount(3);
+  const pending = page.waitForEvent("popup");
+  await page.getByRole("button", { name: "Open state view in separate window" }).click();
+  const popup = await pending;
+  await expect(popup.locator(".graph-node.is-current")).toHaveAttribute("data-node-id", "conversation");
+  await page.evaluate(() => { window.__oldMonitor = window.__stateStreams.find(s => s.url.includes("/monitor/")); window.__oldMonitor.onerror(); });
+  await expect.poll(() => page.evaluate(() => window.__stateStreams.filter(s => s.url.includes("/monitor/") && s.readyState === 1).length)).toBe(1);
+  await emit(page, { ...snapshot, activeStateIds: ["execute"] });
+  await expect(popup.locator(".graph-node.is-current")).toHaveAttribute("data-node-id", "execute");
+  await page.evaluate(() => window.__oldMonitor.dispatchEvent(new MessageEvent("snapshot", { data: JSON.stringify({activeStateIds:["finish"]}) })));
+  await expect(popup.locator(".graph-node.is-current")).toHaveAttribute("data-node-id", "execute");
+  expect(reads).toHaveLength(1);
+  await page.evaluate(() => setTheme("dark"));
+  await expect(popup.locator("html")).toHaveAttribute("data-theme", "dark");
+  await popup.getByRole("button", { name: "List", exact: true }).click();
+  await expect(popup.locator(".graph-list-node:visible")).toHaveCount(3);
+  await popup.getByRole("button", { name: "Graph", exact: true }).click();
+  await popup.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await page.locator("#open_diagnostics").click();
+  await page.getByTestId("agent-select").selectOption(ids[1]);
+  await expect(popup.locator("#state_graph")).toBeHidden();
+  await page.getByTestId("connect-agent").click();
+  await expect(popup.getByRole("button", { name: "State: Second graph", exact: true })).toBeVisible();
+  expect(reads).toHaveLength(2);
+  await page.getByTestId("connect-agent").click();
+  await expect(popup.locator("#state_graph")).toBeHidden();
+  await page.getByTestId("connect-agent").click();
+  await expect(popup.locator(".graph-node")).toHaveCount(3);
+  expect(reads).toHaveLength(3);
+  expect(await page.evaluate(() => window.__stateStreams.filter(s => s.readyState === 1).length)).toBe(2);
+  await page.locator("#diagnostics_drawer .btn-close").click();
+  await page.getByTestId("clear-access-code").click();
+  await expect.poll(() => popup.isClosed()).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test("state graph slow response does not block connection or restore a disconnected graph", async ({ page, context }) => {
+  let release, started, finished;
+  const pending = new Promise(resolve => { release = resolve; });
+  const requested = new Promise(resolve => { started = resolve; });
+  const completed = new Promise(resolve => { finished = resolve; });
+  await setup(page, context, "light", { graph: async route => {
+    started(); await pending;
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(small) }).catch(() => {});
+    finished();
+  } });
+  await requested;
+  await expect(page.getByTestId("send-text")).toBeEnabled();
+  expect(await page.evaluate(() => window.__stateStreams.length)).toBe(2);
+  await expect(page.locator("#state_graph_status")).toHaveText("Loading state graph…");
+  await page.getByTestId("agent-drawer-tab").click();
+  await page.getByTestId("connect-agent").click();
+  release();
+  await completed;
+  await expect(page.locator("#state_graph_status")).toBeEmpty();
+  await expect(page.locator("#state_graph")).toBeHidden();
+  await expect(page.locator(".graph-node")).toHaveCount(0);
+});
+
+test("state graph late initial snapshot preserves newer monitor state", async ({ page, context }) => {
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  await setup(page, context, "light", { graph: async route => {
+    await pending;
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(small) });
+  } });
+  await emit(page, { ...snapshot, activeStateIds: ["finish"] });
+  release();
+  await expect(page.locator(".graph-node.is-current")).toHaveAttribute("data-node-id", "finish");
+});
+
+test("state graph failure keeps the state-name fallback visible", async ({ page, context }) => {
+  await setup(page, context);
+  await expect(page.locator("#state_graph_status")).toContainText("State graph unavailable");
+  await expect(page.getByTestId("diagnostics-state-list")).toBeVisible();
+  await expect(page.getByTestId("diagnostics-current-state")).toHaveText("Reception");
 });

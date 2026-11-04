@@ -1,5 +1,31 @@
 # GPT-Live acceptance
 
+## State graph viewer
+
+For browser-only graph, visual and popup/lifecycle checks, serve only static
+assets (no configured application database or provider access):
+
+```powershell
+npm.cmd run test:state-graph:unit
+python tests/playwright/run_static.py tests/playwright/valerian-state-graph.spec.mjs tests/playwright/valerian-state-view.spec.mjs tests/playwright/valerian-lifecycle.spec.mjs --grep-invert 'persisted transition'
+```
+
+Six reviewed Chromium/Windows screenshot baselines live beside the graph spec.
+Regenerate them only for intentional visual changes, using `--update-snapshots`
+on the static runner, and inspect the images before accepting them. Other
+platforms require separately reviewed baselines.
+
+For persisted graph IDs, real HTTP/monitor SSE, popup and reset acceptance:
+
+```powershell
+python tests/gptlive/run_acceptance.py --java-tests StateGraphUnitTest,StateGraphIntegrationTest --browser --browser-mode both --live-only --browser-grep 'state view tracks a persisted transition'
+```
+
+Use `--database-properties` with an ignored local administrative properties file
+if needed. This journey creates disposable agents with scripted providers and
+checks graph request counts; no live OpenAI call is required. See
+`.agents/STATE_GRAPH_RESULTS.md` for the exact verification performed.
+
 ## Recorded scissors interaction
 
 The shared fixture `src/test/resources/coordination/scissors-interaction.json`

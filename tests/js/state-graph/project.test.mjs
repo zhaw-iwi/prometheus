@@ -9,6 +9,16 @@ import {
 
 const { project, layout, route } = globalThis.PrometheusStateGraph;
 
+test("small routing hubs leave space between the centre and surrounding states", () => {
+  const nodes = Array.from({length: 5}, (_, i) => ({id: String(i), kind: "state"}));
+  const groups = nodes.slice(1).map(n => ({source: "0", target: n.id}));
+  const positions = [...layout(nodes, groups).positions.values()];
+  for (let i = 0; i < positions.length; i++) for (let j = i + 1; j < positions.length; j++) {
+    const a = positions[i], b = positions[j];
+    assert.ok(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
+  }
+});
+
 test("parallel routes retain every transition and its priority; routing hub is central", () => {
   const view = project(coordination);
   assert.equal(view.nodes.length, 10);

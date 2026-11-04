@@ -206,6 +206,7 @@ window.PrometheusStateView = {
       current: panel.querySelector("#diagnostics_current_state"),
       list: panel.querySelector("#diagnostics_state_list"),
       graph: window.PrometheusStateGraph.create(panel.querySelector("#state_graph")),
+      graphStatus: panel.querySelector("#state_graph_status"),
       dock,
     };
   },
