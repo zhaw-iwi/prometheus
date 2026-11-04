@@ -82,8 +82,9 @@ and regulation diagnostics remain future work.
   runs, including offset clocks, persistence/expiry and Text/Live task boundaries.
   Sequential OT-01–06 work and per-milestone commit/push are authorized.
   Verification and remaining work: `.agents/OBSERVATION_TIMING_RESULTS.md`;
-  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. Deployment and physical scissors/audio
-  acceptance remain open; the human retest procedure is `.reng/HUMAN_TEST.md`.
+  scope: `.agents/PLAN_OBSERVATION_TIMING.md`. Authorized agents merge `b7ce3a2`
+  deployed as Heroku v161; workflow, health, clock and served assets passed checks.
+  Physical scissors/audio acceptance remains open: `.reng/HUMAN_TEST.md`.
 
 - State graph viewer (2026-11-04): GV-01 through GV-03 are authorized on main with
   per-milestone commits/pushes and are complete. Saved directed graphs, transition
