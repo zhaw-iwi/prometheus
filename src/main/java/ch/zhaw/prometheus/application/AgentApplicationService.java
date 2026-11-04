@@ -260,11 +260,16 @@ public class AgentApplicationService {
             innerName = outerState.getInnerCurrent().getName();
             innerNames = outerState.getInnerCurrentChain();
         }
-        return Optional.of(new AgentStateInfoView(stateName, innerName, innerNames));
+        return Optional.of(new AgentStateInfoView(stateName, innerName, innerNames)
+                .withActiveStateIds(ch.zhaw.prometheus.model.StateGraph.activeIds(currentState)));
     }
 
     public Optional<List<String>> getAgentStates(UUID agentID) {
         return this.findAgent(agentID).map(Agent::listStates);
+    }
+
+    public Optional<ch.zhaw.prometheus.model.StateGraph> getAgentGraph(UUID agentID) {
+        return this.findAgent(agentID).map(ch.zhaw.prometheus.model.StateGraph::of);
     }
 
     public Optional<List<StorageEntryView>> getAgentStorage(UUID agentID) {

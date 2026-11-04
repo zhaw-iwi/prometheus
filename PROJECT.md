@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- State graph viewer (2026-11-04): GV-01 through GV-03 are authorized on main with
+  per-milestone commits/pushes and are complete. Saved directed graphs, transition
+  details, nested/shared states and live active IDs now extend the cockpit-owned
+  popup/monitor lifecycle. Local database, browser/visual and packaging gates pass.
+  Authorized deployment integration pins main `6d44a58`, excluding concurrent
+  Coordination work. The merged agents tree passed 74 Java/database tests, 4 JS
+  tests, 18 static browser cases, HTTP/SSE journeys in both Live modes and packaging.
+  Its push triggers the existing Heroku workflow. Plan: `.agents/PLAN_STATE_GRAPH.md`;
+  verification and status: `.agents/STATE_GRAPH_RESULTS.md`.
+
 - Recorded-interaction deployment integration (2026-10-30): main `43bd0729`
   is merged into agents, preserving the deployment catalog, Gala journeys and
   embodiments. The merged checkout passed 174 Java/local MySQL, 75 Live JavaScript,
@@ -11660,3 +11670,36 @@ graphs and transcripts are retained. Provider asides, physical audio/camera/robo
 quality and the original three capture-gap causes remain outside the automated
 acceptance claim. The owner authorized per-milestone commits/pushes and final
 main-to-agents deployment, with separate integration/release verification.
+
+## State graph inspection GV-01 (2026-11-04)
+
+The scoped state-graph endpoint describes persisted nodes, edges, nested regions,
+initial state and ordered guard/action metadata without running the machine or
+exposing prompts. State/monitor snapshots include active UUIDs for unambiguous
+highlighting. Fifteen focused Java/local MySQL tests passed, including reload,
+scope isolation, cycles/shared nodes and unchanged query-volume limits. The loaded
+monitor adds no queries. The synthetic workload remains above the database quota;
+this feature does not claim a capacity fix. Evidence: STATE_GRAPH_RESULTS.md.
+
+## Interactive state graph GV-02 (2026-11-04)
+
+The detachable state view renders the saved graph using local SVG: stable layout,
+directional arrows, parallel-route grouping, nested expansion/shared membership,
+current/initial/final markers, transition inspection, zoom/pan and searchable list.
+No runtime dependency or additional stream was introduced. Three JavaScript tests
+and nine browser cases passed, including six reviewed screenshot baselines and
+existing popup/floating behavior. Dense graphs may require zoom/selection to trace
+crossing routes. Real persisted/SSE acceptance follows in GV-03; details and exact
+commands are in `.agents/STATE_GRAPH_RESULTS.md`.
+
+## State graph integration GV-03 (2026-11-04)
+
+Graph loads no longer block chat connection, pending requests are cancelled on
+scope changes, timeout/failure keeps a visible state-name fallback, and reset
+rehydrates the graph. Newer monitor snapshots win over late graph responses.
+Real-agent review corrected overlap around small routing hubs. Four JavaScript
+tests, eighteen static browser cases/six visual baselines, real local HTTP/SSE
+journeys in both Live modes and packaging passed. The graph adds no polling or
+extra streams; transitions/popup reuse the initial graph fetch and reset reloads
+once. Artifacts, failed attempts and limits: `.agents/STATE_GRAPH_RESULTS.md`.
+The operator handoff is updated. No production deployment was requested here.

@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.UUID;
 
 public class AgentMonitorSnapshotView {
+    private List<UUID> activeStateIds = List.of();
+    public List<UUID> getActiveStateIds() { return activeStateIds; }
+    public AgentMonitorSnapshotView withActiveStateIds(List<UUID> ids) { activeStateIds = List.copyOf(ids); return this; }
     private UUID agentId;
     private String name;
     private String description;

@@ -330,6 +330,8 @@ public class Agent {
         return this.reachableStates().stream().map(State::getName).distinct().toList();
     }
 
+    State initialState() { return this.initialState; }
+
     /** Read-only graph inspection, including inactive states; no transitions or policies execute. */
     public List<Action> reachableActions() {
         return reachableStates().stream().flatMap(state -> state.getTransitions().stream())

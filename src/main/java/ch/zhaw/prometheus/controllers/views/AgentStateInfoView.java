@@ -1,6 +1,9 @@
 package ch.zhaw.prometheus.controllers.views;
 
 public class AgentStateInfoView {
+    private java.util.List<java.util.UUID> activeStateIds = java.util.List.of();
+    public java.util.List<java.util.UUID> getActiveStateIds() { return activeStateIds; }
+    public AgentStateInfoView withActiveStateIds(java.util.List<java.util.UUID> ids) { activeStateIds = java.util.List.copyOf(ids); return this; }
     private String name;
     private String innerName;
     private java.util.List<String> innerNames;

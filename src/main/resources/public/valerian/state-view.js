@@ -95,7 +95,7 @@ window.PrometheusStateView = {
 
     function popOut() {
       if (popup && !popup.closed) { popup.focus(); return; }
-      const opened = window.open("/valerian/state-view-window.html", "_blank", "popup,width=440,height=520");
+      const opened = window.open("/valerian/state-view-window.html", "_blank", "popup,width=1060,height=900");
       if (!opened) {
         status.textContent = "Window blocked. Allow popups for this site, then try again.";
         return;
@@ -205,6 +205,8 @@ window.PrometheusStateView = {
     return {
       current: panel.querySelector("#diagnostics_current_state"),
       list: panel.querySelector("#diagnostics_state_list"),
+      graph: window.PrometheusStateGraph.create(panel.querySelector("#state_graph")),
+      graphStatus: panel.querySelector("#state_graph_status"),
       dock,
     };
   },

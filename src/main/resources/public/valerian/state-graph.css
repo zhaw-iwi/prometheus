@@ -1,0 +1,217 @@
+.state-graph {
+  --graph-node: #f5fafb;
+  --graph-line: #647b83;
+  --graph-current: #1264ac;
+  --graph-current-fill: #e1f0ff;
+}
+.state-graph[hidden],
+.state-graph [hidden] {
+  display: none !important;
+}
+[data-theme="dark"] .state-graph {
+  --graph-node: #203139;
+  --graph-line: #a6bcc3;
+  --graph-current: #80c7ff;
+  --graph-current-fill: #173d5b;
+}
+.graph-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+.graph-button,
+.graph-search {
+  border: 1px solid var(--demo-line, #abbac0);
+  border-radius: 6px;
+  background: var(--demo-panel, #fff);
+  color: var(--ink, #172f37);
+  padding: 0.35rem 0.6rem;
+  font: inherit;
+  font-size: 0.8rem;
+}
+.graph-button:hover,
+.graph-button[aria-pressed="true"] {
+  background: var(--graph-current-fill);
+  border-color: var(--graph-current);
+}
+.graph-button:focus-visible,
+.graph-search:focus-visible {
+  outline: 2px solid var(--graph-current);
+  outline-offset: 2px;
+}
+.graph-search {
+  flex: 1;
+  min-width: 140px;
+}
+.graph-summary,
+.graph-legend {
+  font-size: 0.78rem;
+  margin: 0.4rem 0;
+}
+.machine-graph {
+  width: 100%;
+  height: 600px;
+  display: block;
+  border: 1px solid var(--demo-line, #abbac0);
+  border-radius: 9px;
+  background: var(--demo-panel, #fff);
+  touch-action: none;
+  cursor: grab;
+}
+.machine-graph:active {
+  cursor: grabbing;
+}
+.machine-graph text {
+  font-family: system-ui, sans-serif;
+  text-anchor: middle;
+  fill: var(--ink, #172f37);
+  pointer-events: none;
+}
+.graph-node {
+  cursor: pointer;
+}
+.graph-node > rect {
+  fill: var(--graph-node);
+  stroke: var(--graph-line);
+  stroke-width: 1.7;
+}
+.graph-node text {
+  font-size: 15px;
+  font-weight: 600;
+}
+.graph-node .graph-inner-border {
+  fill: none;
+  stroke-width: 1;
+}
+.graph-node .graph-current-label,
+.graph-node .graph-initial-label {
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+.graph-node.is-current > rect {
+  fill: var(--graph-current-fill);
+  stroke: var(--graph-current);
+  stroke-width: 3;
+}
+.graph-node.is-current .graph-inner-border {
+  fill: none;
+}
+.graph-node .graph-current-label {
+  fill: var(--graph-current);
+}
+.graph-node.is-selected > rect,
+.graph-node:focus > rect,
+.graph-node.is-search-match > rect {
+  stroke: #ba6c18;
+  stroke-width: 3;
+}
+.graph-node:focus,
+.graph-edge:focus {
+  outline: none;
+}
+.graph-edge {
+  cursor: pointer;
+}
+.graph-edge-line {
+  fill: none;
+  stroke: var(--graph-line);
+  stroke-width: 1.6;
+}
+.graph-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+}
+.graph-edge-pill {
+  fill: var(--demo-panel, #fff);
+  stroke: var(--graph-line);
+  stroke-width: 1;
+}
+.graph-edge text {
+  font-size: 11px;
+}
+.graph-edge.is-single .graph-edge-pill,
+.graph-edge.is-single text {
+  visibility: hidden;
+}
+.graph-edge.is-single:is(.is-selected, :focus, :hover) .graph-edge-pill,
+.graph-edge.is-single:is(.is-selected, :focus, :hover) text {
+  visibility: visible;
+}
+.graph-edge.is-selected .graph-edge-line,
+.graph-edge:focus .graph-edge-line {
+  stroke: #ba6c18;
+  stroke-width: 3;
+}
+.graph-edge.is-muted {
+  opacity: 0.22;
+}
+.graph-containment path {
+  fill: none;
+  stroke: var(--graph-line);
+  stroke-dasharray: 5 4;
+}
+.graph-containment text {
+  font-size: 11px;
+}
+.graph-state-list {
+  max-height: 440px;
+  overflow: auto;
+}
+.graph-list-node {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0.3rem 0;
+  overflow-wrap: anywhere;
+}
+.graph-list-node.is-current {
+  border-left: 5px solid var(--graph-current);
+  background: var(--graph-current-fill);
+}
+.graph-details {
+  margin-top: 0.7rem;
+  padding: 0.7rem;
+  border: 1px solid var(--demo-line, #abbac0);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  max-height: 250px;
+  overflow: auto;
+}
+.graph-details p {
+  margin: 0.3rem 0 0.6rem;
+}
+.graph-details h6 {
+  font-size: .95rem;
+  margin: 0 0 .5rem;
+}
+.graph-details ol {
+  margin: 0.2rem 0 0.7rem;
+  padding-left: 1.3rem;
+}
+.graph-details .graph-button {
+  margin: 0.25rem;
+}
+.graph-edge-title {
+  display: block;
+  margin-top: 0.6rem;
+}
+.state-view[data-state-mode="floating"] {
+  width: 800px;
+}
+.state-view-window .machine-graph,
+.state-view.is-maximized .machine-graph {
+  height: clamp(300px, calc(100dvh - 340px), 700px);
+}
+@media (max-width: 600px) {
+  .machine-graph {
+    height: 340px;
+  }
+  .graph-toolbar {
+    gap: 0.25rem;
+  }
+  .graph-button {
+    padding: 0.3rem 0.45rem;
+  }
+}

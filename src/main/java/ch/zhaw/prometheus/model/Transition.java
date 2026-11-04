@@ -67,6 +67,8 @@ public class Transition {
         return this.subsequentState;
     }
 
+    public UUID getId() { return this.id; }
+
     public List<Decision> getDecisions() {
         return List.copyOf(this.decisions);
     }

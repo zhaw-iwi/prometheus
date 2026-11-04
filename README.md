@@ -70,7 +70,7 @@ connect to it, and reset or delete it when needed. The drawer's diagnostics tab
 shows runtime events and agent state.
 
 In **Diagnostics → State machine**, **Float state view** moves the current-state
-label and state list over the cockpit. Drag its title bar, or focus the title and
+label and directed state graph over the cockpit. Drag its title bar, or focus the title and
 use arrow keys, to move it. **Maximise / Restore** expands it within the tab;
 **Open state view in separate window** places it in a browser popup, where the
 normal window controls handle movement and maximisation. Popup permission may
@@ -82,6 +82,35 @@ including nested current states, without another agent session or data stream.
 Disconnecting or switching agents clears the previous state. Logout, navigation
 or closing the original cockpit also closes its state popup. Refresh the cockpit
 after deployment to load the new controls.
+
+States are nodes and defined transitions are arrows. Blue marks the current
+state (including active inner states); the initial state is labelled, and final
+states have a double border. Select a state to inspect its outgoing routes or
+expand/collapse its inner machine. Shared inner states remain visible. Dashed
+arrows mark inner entry, not transitions. Select an arrow to see its conditions,
+actions and priority; `×N` groups parallel routes without losing their details.
+Single-route priorities appear on selection, hover or keyboard focus.
+
+Use **Zoom in/out**, **Fit graph**, **Current**, background dragging, or keyboard
+arrows and `+`/`-`/Home with the graph focused. **Find a state** highlights matches;
+Enter centres the first match. **List** provides searchable state buttons, also
+useful on narrow screens. **State names** remains available if graph loading fails.
+Positions stay fixed as the current state changes. Inspection is read-only:
+it does not execute transitions or claim their guards currently hold. Large,
+dense machines may need zooming and selection to follow individual routes.
+The graph loads once per connection or explicit reset; monitor updates only
+change highlighting. Loading does not delay chat connection. A failed or timed
+out graph request leaves the state-name list available; reconnect to retry.
+
+The access-code-scoped `GET /demo/agents/{agentId}/state-graph` describes a saved
+machine (`schemaVersion: 1`): initial state ID, nodes, directed edges, nested
+regions and active-state IDs. Edges have source/target IDs, one-based priority,
+and ordered condition/action descriptions. All conditions must hold; an empty
+condition list is unconditional. States evaluate outgoing transitions in order.
+These are definitions, not live eligibility results. Shared transitions have a
+distinct edge ID per source, and shared inner states may belong to several regions.
+Existing `/state` and monitor snapshots additionally carry `activeStateIds`.
+Graph inspection exposes no prompts or storage and performs no model calls.
 
 When creating an instance, select its embodiment: **Cockpit — Valerian** or
 **Robot — Gigi**. The choice is persisted with the agent, shown in the agent

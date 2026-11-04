@@ -145,6 +145,8 @@ public class OuterState extends State {
         return this.innerCurrent;
     }
 
+    State innerInitialState() { return this.innerInitial; }
+
     public List<String> getInnerCurrentChain() {
         List<String> chain = new java.util.ArrayList<>();
         State current = this.innerCurrent;

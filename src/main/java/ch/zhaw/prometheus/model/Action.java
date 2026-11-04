@@ -26,6 +26,9 @@ import jakarta.persistence.ManyToOne;
 
 @Entity
 public abstract class Action extends PersistedNode {
+
+    /** Safe static inspection label; does not execute this action. */
+    public String inspectionLabel() { return getClass().getSimpleName(); }
     public enum ExecutionMode { BACKGROUND, BLOCKING }
     @Enumerated(EnumType.STRING)
     private ExecutionMode executionMode;
