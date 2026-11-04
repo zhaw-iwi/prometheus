@@ -81,8 +81,12 @@ and regulation diagnostics remain future work.
   Cockpit shows proposed/saved requirements beside Hand send conf. Numeric payload
   validation, freshness and task lifecycle gates remain enforced. Passed 80 Java,
   179 Node and three focused browser cases, plus packaging and whitespace checks.
-  Evidence and trial diagnosis: `.agents/COORDINATION_RESULTS.md`. Deployment and
-  physical acceptance of this change remain pending; use `.reng/HUMAN_TEST.md`.
+  Evidence and trial diagnosis: `.agents/COORDINATION_RESULTS.md`. Authorized
+  agents merge `3e77683` deployed as Heroku v163; merged verification passed
+  135 Java, 180 Node and three browser cases plus packaging. Health, sensor clock
+  and served assets passed release checks. GitHub's run API still reported queued
+  during an Actions incident; workflow completion is unconfirmed. Physical
+  acceptance remains pending; use `.reng/HUMAN_TEST.md`.
 
 - Coordination late-playback-cue repair (2026-11-04): the post-OT physical trial
   accepted the scissors cue and produced one joke, but missed playback confirmation
