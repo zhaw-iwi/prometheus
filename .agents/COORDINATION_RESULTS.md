@@ -1,5 +1,36 @@
 # Coordination Agent implementation and evidence
 
+## Late playback cue release (2026-11-04)
+
+At the owner's request, main `3dc1912` was merged into agents `b7ce3a2` and
+pushed as **`bbc6597`**. Runtime changes merged cleanly; two documentation
+conflicts retained both historical integration records and the new evidence.
+The deployment catalog, persona/embodiment code, production configuration and
+existing Heroku workflow were preserved.
+
+The merged tree passed **96 Java tests**, **178 Node tests**, **two browser
+journeys**, and packaging/whitespace checks. Java coverage includes Coordination
+capture/delivery and persistence, scoped sessions, context/refresh handling and
+Gala preparation/round/delivery consumers. Browser coverage includes automatic
+Reflection after the delayed cue through the actual observer, plus ordinary
+Live/RPS. The isolated run `3846a90411` removed its disposable local database
+schema/account and stopped its owned application/MySQL processes.
+
+[Deployment run 41856100332](https://github.com/zhaw-iwi/prometheus/actions/runs/41856100332)
+succeeded for that exact merge. Heroku **v162**, created at
+2026-11-04 15:18:16 UTC, succeeded. At approximately 15:19 UTC, read-only checks
+verified `/actuator/health` HTTP 200/UP, `/runtime/clock` HTTP 200 with current
+server time and `Cache-Control: no-store`, and exact served-file matches after
+newline normalization for `live/client.js`, `live/playback-cue.js` and the
+Cockpit index. Evidence: ignored `target/playback-release-http-evidence.json`.
+Pre-push release was v161. No production task/test writes or paid provider calls
+were used for release verification.
+
+The deployment is ready for `.reng/HUMAN_TEST.md`. Hard-refresh the Cockpit,
+create a fresh Coordination Agent with Cockpit embodiment, wait for Sensor timing
+ready, then run the bounded scissors/joke trial. Physical completion and native
+spoken state accuracy remain manual acceptance gates.
+
 ## Late playback cue repair on main (2026-11-04)
 
 The owner's post-OT trial accepted the scissors cue and produced exactly one

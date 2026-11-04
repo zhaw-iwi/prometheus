@@ -85,8 +85,9 @@ and regulation diagnostics remain future work.
   Verification passed 94 Java, 177 Node and three browser cases plus packaging;
   the enabled-only browser case was intentionally skipped in feature-off mode.
   Evidence is in `.agents/COORDINATION_RESULTS.md`.
-  Deployment and a new physical trial remain pending; `.reng/HUMAN_TEST.md` is
-  the operator handoff.
+  Authorized agents merge `bbc6597` deployed successfully as Heroku v162;
+  workflow, health, clock and served playback/Cockpit asset checks passed.
+  A new physical trial remains pending; `.reng/HUMAN_TEST.md` is the operator handoff.
 
 - Observation timing OT-01 through OT-06 (2026-11-04) are complete: calibrated
   capture timestamps, lifecycle invalidation, shared evidence reasons and bounded
