@@ -139,7 +139,9 @@ PROMETHEUS currently provides:
   switch, failed connection, disconnect, logout, or re-entry;
 - a detachable Diagnostics state view: a movable/maximisable floating panel or
   cockpit-owned popup reuses the existing state rendering and monitor stream,
-  follows connection changes and returns to Diagnostics when dismissed;
+  follows connection changes and returns to Diagnostics when dismissed. Its
+  read-only SVG graph exposes saved routes, ordered rule/action descriptions,
+  nested/shared regions, active IDs, zoom and a searchable list;
 - browser-side facial emotion, social context, hand-sign, and manual weather
   sensing through Valerian;
 - deterministic social-situation-change derivation;

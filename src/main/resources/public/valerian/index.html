@@ -2662,9 +2662,11 @@
                   <div id="diagnostics_current_state" class="diagnostics-current-state fw-bold"
                     data-testid="diagnostics-current-state" aria-live="polite">Unknown</div>
                 </div>
-                <div class="metric-label">States</div>
+                <div id="state_graph" class="state-graph" data-testid="state-graph" hidden></div>
+                <details class="state-legacy-list" open><summary>State names</summary>
                 <ul id="diagnostics_state_list" class="list-group list-group-flush state-list"
                   data-testid="diagnostics-state-list"></ul>
+                </details>
               </div>
               <div class="state-view-status" data-state-status role="status"></div>
             </section>
@@ -2691,6 +2693,8 @@
   <script type="module" src="/performance/panel.js"></script>
   <link rel="stylesheet" href="/valerian/state-view.css">
   <script src="/valerian/state-view.js"></script>
+  <link rel="stylesheet" href="/valerian/state-graph.css">
+  <script src="/valerian/state-graph.js"></script>
   <script src="script.js"></script>
 </body>
 

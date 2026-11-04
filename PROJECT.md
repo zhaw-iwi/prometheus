@@ -9578,3 +9578,14 @@ highlighting. Fifteen focused Java/local MySQL tests passed, including reload,
 scope isolation, cycles/shared nodes and unchanged query-volume limits. The loaded
 monitor adds no queries. The synthetic workload remains above the database quota;
 this feature does not claim a capacity fix. Evidence: STATE_GRAPH_RESULTS.md.
+
+## Interactive state graph GV-02 (2026-11-04)
+
+The detachable state view renders the saved graph using local SVG: stable layout,
+directional arrows, parallel-route grouping, nested expansion/shared membership,
+current/initial/final markers, transition inspection, zoom/pan and searchable list.
+No runtime dependency or additional stream was introduced. Three JavaScript tests
+and nine browser cases passed, including six reviewed screenshot baselines and
+existing popup/floating behavior. Dense graphs may require zoom/selection to trace
+crossing routes. Real persisted/SSE acceptance follows in GV-03; details and exact
+commands are in `.agents/STATE_GRAPH_RESULTS.md`.

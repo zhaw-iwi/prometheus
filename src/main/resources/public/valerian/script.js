@@ -265,6 +265,7 @@ const HAND_CONNECTIONS = [
 ];
 
 const stateView = window.PrometheusStateView.create();
+let stateGraphVersion = 0;
 
 window.addEventListener("load", init);
 window.addEventListener("beforeunload", cleanupAll);
@@ -1120,6 +1121,7 @@ async function connectToAgent(agentId) {
   await loadEventHistory();
   await loadStorage();
   await loadAgentState();
+  await loadAgentGraph();
   setControlsEnabled(true);
   updateConnectionButton();
   connectBehaviourStream();
@@ -1517,10 +1519,26 @@ async function loadAgentState() {
       innerName: stateInfo && stateInfo.innerName,
       innerNames: Array.isArray(stateInfo && stateInfo.innerNames) ? stateInfo.innerNames : [],
       states: Array.isArray(states) ? states : [],
+      activeStateIds: stateInfo?.activeStateIds,
     });
   } catch (error) {
     appendLog("app", "state load failed: " + error.message);
     resetStateView();
+  }
+}
+
+async function loadAgentGraph() {
+  const agentId=state.agentId, code=state.accessCode, version=++stateGraphVersion;
+  if (!agentId) return;
+  try {
+    const response=await scopedFetch(demoAgentPath("/state-graph"));
+    if (!response.ok) throw new Error("State graph unavailable");
+    const graph=await response.json();
+    if (version!==stateGraphVersion || state.agentId!==agentId || state.accessCode!==code) return;
+    stateView.graph.setGraph(graph, state.activeStateIds ?? graph.activeStateIds);
+    stateView.list.closest("details").open = false;
+  } catch (_) {
+    if (version===stateGraphVersion) appendLog("app", "State graph unavailable; the state-name list is still available.");
   }
 }
 
@@ -1543,6 +1561,10 @@ function applyStateSnapshot(data) {
   if (!data) {
     return;
   }
+  if (Array.isArray(data.activeStateIds)) {
+    state.activeStateIds=data.activeStateIds;
+    stateView.graph.setActive(data.activeStateIds);
+  }
   const hasStateInfo = data.stateName || data.name || data.innerName || Array.isArray(data.innerNames);
   if (hasStateInfo) {
     updateCurrentState(data.stateName || data.name || null, data.innerName || null, data.innerNames || []);
@@ -1554,6 +1576,10 @@ function applyStateSnapshot(data) {
 }
 
 function resetStateView() {
+  ++stateGraphVersion;
+  state.activeStateIds=null;
+  stateView.graph.clear();
+  stateView.list.closest("details").open = true;
   state.currentState = null;
   state.innerState = null;
   state.innerChain = [];
