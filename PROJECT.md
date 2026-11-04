@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Client-owned hand confidence (2026-11-04): new Coordination preparation/reaction
+  rules and Generic hand proposals default to no additional server confidence
+  floor. Saved and explicitly requested thresholds retain their meaning; the
+  Cockpit shows proposed/saved requirements beside Hand send conf. Numeric payload
+  validation, freshness and task lifecycle gates remain enforced. Passed 80 Java,
+  179 Node and three focused browser cases, plus packaging and whitespace checks.
+  Evidence and trial diagnosis: `.agents/COORDINATION_RESULTS.md`. Deployment and
+  physical acceptance of this change remain pending; use `.reng/HUMAN_TEST.md`.
+
 - Coordination late-playback-cue repair (2026-11-04): the post-OT physical trial
   accepted the scissors cue and produced one joke, but missed playback confirmation
   because the cue arrived after the short response. The focused repair on main
@@ -87,7 +96,8 @@ and regulation diagnostics remain future work.
   Evidence is in `.agents/COORDINATION_RESULTS.md`.
   Authorized agents merge `bbc6597` deployed successfully as Heroku v162;
   workflow, health, clock and served playback/Cockpit asset checks passed.
-  A new physical trial remains pending; `.reng/HUMAN_TEST.md` is the operator handoff.
+  The subsequent owner-reported trial worked and recorded automatic Reflection;
+  the client-confidence follow-up above covers the remaining threshold mismatch.
 
 - Observation timing OT-01 through OT-06 (2026-11-04) are complete: calibrated
   capture timestamps, lifecycle invalidation, shared evidence reasons and bounded

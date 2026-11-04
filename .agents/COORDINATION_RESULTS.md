@@ -1,5 +1,63 @@
 # Coordination Agent implementation and evidence
 
+## Client-owned hand confidence (2026-11-04)
+
+The owner's `prometheus-telemetry-2026-11-04T15-40-36-109Z.json` trial was reported
+as successful. Read-only persisted evidence confirmed automatic Reflection after
+one action and playback confirmation, followed by return to Conversation. The
+agreement still required hand confidence 0.8: five execution samples at 0.757,
+0.768, 0.788, 0.773 and 0.782 were rejected; 0.823 matched. The Cockpit's 0.65
+send threshold was therefore behaving as configured. Sanitized local analysis
+is under ignored `target/coordination-confidence-20261104/`. The export also
+contains an older observer marker, so hard-refresh for the next physical trial;
+the telemetry alone cannot establish which assets remained loaded.
+
+The approved change is implemented on main:
+
+- New Coordination hand checks/rules and Generic task proposals use
+  `minConfidence: 0`, meaning no second confidence floor. Client confidence and
+  frame stability remain adjustable. Positive minima require an explicit task
+  request and should be explained in the proposal.
+- Shared runtime extraction guidance reaches saved configurators without
+  rewriting their persisted prompts. Existing drafts/agreements, acceptance,
+  restart/resume and unrelated revisions preserve their thresholds. Generic
+  built-in prompt fingerprints and the task JSON schema remain unchanged.
+- Both preparation and execution still validate numeric finite hand confidence
+  in `[0,1]`, freshness and matching conditions. Missing/malformed/out-of-range
+  scores cannot become evidence when the minimum is zero. State, response
+  capture, sample count, cooldown and action budget checks remain in place.
+- Sensing Configuration shows positive preparation/execution minima from the
+  proposed/saved task using existing monitor storage. Proposal replacement,
+  activation and disconnect update/reset the note. The client threshold is not
+  silently changed. Face defaults and scored RPS rules are unchanged.
+
+Verification:
+
+- **80 Java tests, nine suites**, zero failures/errors/skips, using the disposable
+  loopback MySQL runner (`target/gptlive-acceptance-38cf2ac3ed/java.log`). Selection:
+  `TaskHandConfidenceUnitTest,TaskFirstActionUnitTest,GenericMultimodalTaskUnitTest,TaskLifecycleUnitTest,CoordinationAgentUnitTest,CoordinationRevisionUnitTest,CoordinationObservationTimingUnitTest,CoordinationAgentIntegrationTest,GenericPolicyUpgradeIntegrationTest`.
+  Tests cover 0.757 hand cues, explicit 0.8 rejection, malformed scores, stale/wrong
+  cues, zero-action arming, one-action completion, saved prompt guidance and
+  persisted preparation/revision thresholds. Owned MySQL stopped and the
+  disposable schema/account were removed.
+- **179 Node tests** passed across live, performance, speech, transcription and
+  state-graph suites (`target/hand-confidence-node-regression.log`), including
+  real camera emission at 0.65 versus 0.8, cooldown and confidence-note selection.
+- **Three browser cases** passed using `tests/playwright/run_static.py` with
+  `valerian-lifecycle.spec.mjs`: ordinary connection lifecycle, camera report,
+  and confidence-note monitor/activation/disconnect. The note test initially
+  tried to inspect the collapsed Configuration panel; after opening it in the
+  test, the focused rerun passed (`target/hand-confidence-browser-final.log`).
+- `mvnw.cmd -q -DskipTests package` and `git diff --check` passed. Packaging log:
+  `target/hand-confidence-package.log`.
+
+No paid provider calls or production writes were used for this implementation.
+Provider interpretation of explicit tuning remains an extraction responsibility;
+mocked tests verify supplied guidance and deterministic enforcement, not arbitrary
+spoken-language understanding. Deployment and physical camera/Live acceptance of
+the confidence change remain pending. `.reng/HUMAN_TEST.md` describes the retest.
+Existing 0.8 agreements require an explicit revision or a new proposal.
+
 ## Late playback cue release (2026-11-04)
 
 At the owner's request, main `3dc1912` was merged into agents `b7ce3a2` and

@@ -71,6 +71,7 @@ public class CoordinationUpdateAction extends Action {
                 });
             } else {
                 String prompt = getPolicy().describe() + "\n" + CoordinationMemory.facts(storage)
+                        + TaskSpec.HAND_CONFIDENCE_GUIDANCE
                         + "\nPrevious accepted agreement (data): " + (storage.containsKey(CoordinationMemory.AGREEMENT) ? storage.get(CoordinationMemory.AGREEMENT) : "none")
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
                         + "\nLatest user reflection (their report, not a measured outcome): " + (storage.containsKey(CoordinationMemory.REVIEW) ? storage.get(CoordinationMemory.REVIEW) : "none")

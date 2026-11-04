@@ -1659,6 +1659,7 @@ function setStorageEntries(entries) {
   }
   state.storageSnapshot = snapshot;
   state.storage = nextEntries;
+  renderHandConfidencePolicy();
   renderStorageList();
 }
 
@@ -1668,7 +1669,33 @@ function resetStorageList() {
   globalThis.PrometheusActivity?.taskStatus(null);
   state.openStorageKeys = new Set();
   state.storageSnapshot = null;
+  renderHandConfidencePolicy();
   renderStorageList();
+}
+
+function renderHandConfidencePolicy() {
+  const note = document.getElementById("hand_confidence_policy");
+  if (!note) return;
+  note.textContent = "Client filters hand confidence and stability. Task rules still apply.";
+  try {
+    const read = key => JSON.parse((state.storage || []).find(entry => entry.key === key)?.value || "null");
+    const agreement = read("coordination.draft");
+    const draft = agreement?.reactions || read("task.draft");
+    const spec = agreement ? agreement.reactions : draft || read("task.spec");
+    const requirements = [
+      ...(agreement?.checks || []).map(rule => ({ ...rule, use: "preparation" })),
+      ...(spec?.rules || []).map(rule => ({ ...rule, use: "execution" })),
+    ].filter(rule => rule.eventType === "obs.hand.sign");
+    if (!requirements.length) return;
+    const label = agreement || draft ? "Proposed task" : "Saved task";
+    const overrides = requirements.filter(rule => rule.minConfidence > 0)
+      .map(rule => `${String(rule.value).slice(0, 32)} ≥ ${Number(rule.minConfidence).toFixed(2)} (${rule.use})`);
+    note.textContent = overrides.length
+      ? `${label} adds hand minimum: ${overrides.join("; ")}. Client filtering also applies.`
+      : `${label} uses client hand confidence; no additional minimum. Task rules still apply.`;
+  } catch (_) {
+    note.textContent = "Client filters hand confidence and stability. Task confidence unavailable.";
+  }
 }
 
 function renderStorageList() {

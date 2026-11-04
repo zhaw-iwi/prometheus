@@ -8,6 +8,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import com.google.gson.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import ch.zhaw.prometheus.agentdefs.AgentCreationContext;
 import ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter;
 import ch.zhaw.prometheus.model.*;
@@ -142,6 +144,50 @@ class CoordinationAgentUnitTest {
         assertEquals(2, storage().get(CoordinationMemory.ACCEPTED_EVIDENCE).getAsJsonObject().size());
         assertEquals("EXECUTION", CoordinationMemory.stage(storage()));
         assertNull(sign("rock", 1, now.minusSeconds(1), text));
+    }
+
+    @ParameterizedTest
+    @ValueSource(doubles = {0, .8})
+    void preparationAndExecutionUseClientConfidenceUnlessTheAgreementAddsAMinimum(double minimum) {
+        var proposal = sensor(true);
+        proposal.getAsJsonArray("checks").remove(1);
+        proposal.getAsJsonArray("checks").get(0).getAsJsonObject().addProperty("minConfidence", minimum);
+        var task = proposal.getAsJsonObject("reactions");
+        task.addProperty("maxActions", 1); task.getAsJsonArray("rules").remove(1);
+        task.getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("minConfidence", minimum);
+        propose(proposal, text);
+        storage().put(CoordinationMemory.PREPARED_AFTER, new JsonPrimitive(Instant.now().minusSeconds(1).toString()));
+        sign("rock", .757, Instant.now(), text);
+        assertEquals(minimum == 0 ? "READY" : "PREPARATION", CoordinationMemory.stage(storage()));
+        if (minimum > 0) sign("rock", .823, Instant.now(), text);
+        assertFalse(storage().containsKey(TaskMemory.SPEC));
+        start(text);
+        assertEquals(0, storage().get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals(minimum, TaskSpec.parse(storage().get(TaskMemory.SPEC)).rules().getFirst().minConfidence());
+        openCueWindow(); clearInvocations(gateway);
+        when(gateway.infer(any())).thenReturn("{\"speech\":\"Welcome to the lab.\"}");
+        var reply = sign("rock", .757, Instant.now(), text);
+        if (minimum > 0) {
+            assertNull(reply); verifyNoInteractions(gateway);
+            reply = sign("rock", .823, Instant.now(), text);
+        }
+        assertNotNull(reply); assertEquals(1, storage().get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals("REFLECTION", CoordinationMemory.stage(storage()));
+        assertNull(sign("rock", 1, Instant.now(), text));
+        verify(gateway, times(1)).infer(any());
+    }
+
+    @Test void savedConfiguratorReceivesCurrentHandDefaultsWithoutRewritingItsPromptOrAgreement() {
+        String savedPrompt = "Use minConfidence 0.8 for positive hand/face recognition.";
+        var action = new CoordinationUpdateAction(storage(), savedPrompt);
+        var events = new EventHistory(); events.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Propose a new hand task"));
+        when(gateway.infer(any())).thenReturn(update("KEEP", null, "Let us discuss it."));
+        action.execute(events, text);
+        var request = org.mockito.ArgumentCaptor.forClass(InferenceRequest.class);
+        verify(gateway).infer(request.capture());
+        assertTrue(request.getValue().messages().stream().anyMatch(m -> m.getContent().contains(TaskSpec.HAND_CONFIDENCE_GUIDANCE)));
+        assertEquals(savedPrompt, action.getPolicy().describe());
+        assertFalse(storage().containsKey(CoordinationMemory.AGREEMENT));
     }
 
     @Test void sensorExecutionRetainsPauseResumeCompletionAndRevisionIsolation() {

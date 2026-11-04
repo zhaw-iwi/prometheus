@@ -110,6 +110,7 @@ public class TaskUpdateAction extends Action {
             return;
         }
         String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage)
+                + TaskSpec.HAND_CONFIDENCE_GUIDANCE
                 + inferenceGuidance(runtime)
                 + "\nSupported trigger fields: " + TaskSpec.FIELDS + CompactBehaviourPlan.instructions(true)
                 + (DecorativeGestures.enabled(storage) ? DecorativeGestures.guidance(storage, now) : "");

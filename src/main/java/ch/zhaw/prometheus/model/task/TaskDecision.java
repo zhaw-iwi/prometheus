@@ -131,6 +131,14 @@ public class TaskDecision extends Decision {
     private static boolean matches(TaskSpec.Rule rule, Event event, String[] reason) {
         try {
             var object = JsonParser.parseString(event.getPayload()).getAsJsonObject();
+            // A client-selected threshold removes a second quality floor, never payload validation.
+            if (Event.TYPE_HAND_SIGN.equals(event.getType())) {
+                var score = object.get("confidence");
+                if (score == null || !score.isJsonPrimitive() || !score.getAsJsonPrimitive().isNumber()
+                        || !Double.isFinite(score.getAsDouble()) || score.getAsDouble() < 0 || score.getAsDouble() > 1) {
+                    reason[0] = "invalid_observation"; return false;
+                }
+            }
             if (object.has("facePresent") && !object.get("facePresent").getAsBoolean() && !rule.field().equals("facePresent")) { reason[0] = "face_missing"; return false; }
             double confidence = object.has("confidence") ? object.get("confidence").getAsDouble()
                     : object.has("avgDetectionConfidence") ? object.get("avgDetectionConfidence").getAsDouble() : 0;

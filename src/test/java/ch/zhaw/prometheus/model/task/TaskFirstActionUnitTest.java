@@ -22,7 +22,7 @@ class TaskFirstActionUnitTest {
     private static final String SPEC = """
             {"goal":"Say hello on paper","maxActions":1,"sessionBound":true,"firstAction":"ON_CUE","rules":[
             {"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"paper","action":"Say hello",
-             "effect":"ACT","minConfidence":0.8,"samples":1,"cooldownSeconds":3}]}
+             "effect":"ACT","minConfidence":0,"samples":1,"cooldownSeconds":3}]}
             """;
     private final LanguageModelGateway gateway = mock(LanguageModelGateway.class);
     private final Agent agent = new GenericMultimodalBehaviour().createAgent();
@@ -30,7 +30,7 @@ class TaskFirstActionUnitTest {
     private Storage storage() { return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage(); }
     private Event say(String text) { return agent.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, "user", text), runtime); }
     private Event hand(String sign, Instant time) { return agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, "sensor",
-            "{\"sign\":\"" + sign + "\",\"confidence\":0.99,\"ts\":\"" + time + "\"}"), runtime); }
+            "{\"sign\":\"" + sign + "\",\"confidence\":0.757,\"ts\":\"" + time + "\"}"), runtime); }
 
     @Test void legacyJsonKeepsImmediateMeaningWhileFutureTimingRoundTripsAndRejectsUnknownModes() {
         var raw = JsonParser.parseString(SPEC).getAsJsonObject(); raw.remove("firstAction");
@@ -54,6 +54,9 @@ class TaskFirstActionUnitTest {
         activate.getAsJsonObject("reply").add("motion", JsonParser.parseString("{\"handSign\":\"rock\"}"));
         when(gateway.infer(any())).thenReturn(activate.toString());
         var reply = BehaviourPlan.fromJson(say("Activate our future reaction").getPayload());
+        var request = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+        verify(gateway).infer(request.capture());
+        assertTrue(request.getValue().messages().stream().anyMatch(m -> m.getContent().contains(TaskSpec.HAND_CONFIDENCE_GUIDANCE)));
         assertFalse(reply.getSpeech().contains("PREMATURE")); assertNull(reply.getMotion());
         assertEquals(0, storage().get(TaskMemory.ACTIONS).getAsInt());
         assertEquals("RUNNING", TaskMemory.phase(storage()));
