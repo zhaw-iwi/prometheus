@@ -885,6 +885,14 @@ for Playwright. The exact integrated test commands are in the results record.
 
 ## Connecting External Clients
 
+`GET /runtime/clock` returns `{ "serverTimeMs": <UTC epoch milliseconds> }`
+with `Cache-Control: no-store`. It exposes current time only, without agent
+permissions, database access or provider calls. Browser observation calibration
+uses a measured monotonic round trip; this response is not an observation and
+must not replace the capture time of an existing sample. The timing contract and
+incremental rollout are in `.agents/PLAN_OBSERVATION_TIMING.md` and
+`.agents/OBSERVATION_TIMING_RESULTS.md`.
+
 External clients usually use the scoped demo API. It keeps agent instances
 behind an access code and mirrors what the Valerian cockpit does. Trusted
 backend tools can use the global agent endpoints shown later.
