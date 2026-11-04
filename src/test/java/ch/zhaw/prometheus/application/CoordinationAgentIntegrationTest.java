@@ -124,19 +124,23 @@ class CoordinationAgentIntegrationTest {
         assertEquals("CONVERSATION", CoordinationMemory.stage(memory(scope))); assertFalse(memory(scope).containsKey(CoordinationMemory.AGREEMENT));
         assertTrue(agents.findById(scope.id()).orElseThrow().getCurrentState().getTotalPolicy().contains("Laureline"));
     }
-    @Test void preparationEvidencePersistsAndARevisedDraftRequiresFreshEvidence() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(doubles = {0, .8})
+    void preparationEvidencePersistsAndARevisedDraftRequiresFreshEvidence(double minimum) {
         var scope = create();
         var proposal = JsonParser.parseString(AGREEMENT).getAsJsonObject();
         proposal.getAsJsonArray("checks").add(JsonParser.parseString("""
                 {"eventType":"obs.hand.sign", "field":"sign", "operator":"eq", "value":"rock", "minConfidence":0.8}
                 """));
+        proposal.getAsJsonArray("checks").get(0).getAsJsonObject().addProperty("minConfidence", minimum);
         turn(scope, "PROPOSE", proposal.toString(), "First check that you can recognise rock, then help with the invitation");
         turn(scope, "START", "null", "I have shown it; start now"); assertFalse(memory(scope).containsKey(CoordinationMemory.AGREEMENT));
         demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_HAND_SIGN, "camera", Event.KIND_OBSERVATION,
-                "{\"sign\":\"rock\",\"confidence\":0.9,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN);
+                "{\"sign\":\"rock\",\"confidence\":" + (minimum == 0 ? .757 : .9) + ",\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN);
         assertEquals("READY", CoordinationMemory.stage(memory(scope))); assertEquals(1, CoordinationMemory.evidence(memory(scope)).size());
         proposal.addProperty("agentRole", "Clarify references and edit the supplied details");
         turn(scope, "PROPOSE", proposal.toString(), "Revise the proposal to clarify references");
+        assertEquals(proposal, memory(scope).get(CoordinationMemory.DRAFT));
         assertEquals("PREPARATION", CoordinationMemory.stage(memory(scope))); assertEquals(0, CoordinationMemory.evidence(memory(scope)).size());
     }
     @Test void returnAndRestartReloadWithHistoryAndEarlierOutcomesPreserved() {

@@ -6,6 +6,18 @@ import ch.zhaw.prometheus.model.event.Event;
 
 /** A bounded executable configuration, never Java code or a replacement system prompt. */
 public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean sessionBound, FirstAction firstAction) {
+    /** Runtime guidance also applies to saved configurators without rewriting their prompts or agreements. */
+    public static final String HAND_CONFIDENCE_GUIDANCE = """
+
+            Hand confidence policy for new obs.hand.sign rules and preparation checks:
+            use minConfidence 0 by default: the client owns recognition confidence and frame stability.
+            This supersedes any earlier default hand threshold. Use a positive minConfidence only when
+            the user explicitly requests an additional task minimum; explain that minimum in the proposal.
+            Do not copy the client's current threshold into the task or ask for technical tuning to fill this field.
+            Preserve every existing draft/accepted threshold during acceptance, restart, resume or unrelated edits;
+            change it only when the user requests that change. Other sensor confidence rules are unchanged.
+            Freshness, matching signs, task state, sample count, cooldown and action budget remain backend checks.
+            """;
     public enum FirstAction { IMMEDIATE, ON_CUE }
     public TaskSpec(String goal, int maxActions, List<Rule> rules, boolean sessionBound) {
         this(goal, maxActions, rules, sessionBound, FirstAction.IMMEDIATE);

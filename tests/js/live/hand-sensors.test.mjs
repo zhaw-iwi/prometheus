@@ -49,7 +49,7 @@ function fixture() {
   for (const name of ["captureObservationTime", "usableObservationTime", "detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
     "submitHandSign", "acknowledgeEvent", "timedScopedFetch", "scopedFetch", "demoAgentPath", "sensorBackendResult",
     "setHandSignStatus", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate",
-    "renderBehaviourPlan", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState"]) {
+    "renderBehaviourPlan", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState", "renderHandConfidencePolicy"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
     assert.ok(match, name);
     const rest = source.slice(match.index), end = /^}/m.exec(rest);
@@ -211,6 +211,39 @@ test("browser confidence gates emission and never claims game acceptance", async
   assert.equal(f.requests.length, 1);
   assert.equal(JSON.parse(JSON.parse(f.requests[0].body).payload).confidence, .65);
   assert.match(f.status(), /^Emitted /); assert.doesNotMatch(f.status(), /accepted|ready|won|winner/i);
+});
+
+test("client tuning alone decides whether a stable .757 scissors observation is sent", async () => {
+  const f = fixture(); f.element("hand_confidence_threshold").value = "0.8";
+  for (let frame = 0; frame < 3; frame++) await f.frame("Victory", .757);
+  assert.equal(f.requests.length, 0);
+  f.element("hand_confidence_threshold").value = "0.65";
+  await f.frame("Victory", .757);
+  assert.equal(f.requests.length, 1);
+  assert.equal(payload(f.requests[0]).sign, "scissor");
+  assert.equal(payload(f.requests[0]).confidence, .757);
+  await f.frame("Victory", .757);
+  assert.equal(f.requests.length, 1, "ordinary client cooldown still applies");
+});
+
+test("confidence note distinguishes proposal checks, execution overrides and client defaults", () => {
+  const f = fixture();
+  const rule = minimum => ({ eventType: "obs.hand.sign", value: "scissor", minConfidence: minimum });
+  const show = entries => {
+    f.context.state.storage = Object.entries(entries).map(([key, value]) => ({key, value: JSON.stringify(value)}));
+    f.context.renderHandConfidencePolicy(); return f.element("hand_confidence_policy").textContent;
+  };
+  assert.match(show({"task.spec": {rules: [rule(.8)]}}), /Saved task adds hand minimum: scissor ≥ 0.80 \(execution\)/);
+  assert.match(show({"task.spec": {rules: [rule(.8)]}, "coordination.draft": {checks: [rule(.9)], reactions: {rules: [rule(0)]}}}),
+    /Proposed task adds hand minimum: scissor ≥ 0.90 \(preparation\)/);
+  assert.match(show({"coordination.draft": {checks: [rule(0)], reactions: {rules: [rule(0)]}}}), /no additional minimum/);
+  assert.match(show({"task.draft": {rules: [rule(0)]}, "task.spec": {rules: [rule(.8)]}}), /Proposed task uses client/);
+  assert.doesNotMatch(show({"coordination.agreement": {reactions: {rules: [rule(.8)]}}}), /0.80/,
+    "an archived agreement in Conversation must not appear active");
+  assert.doesNotMatch(show({}), /0.80|0.90|Proposed|Saved/);
+  f.context.state.storage = [{key: "task.spec", value: "broken"}];
+  f.context.renderHandConfidencePolicy();
+  assert.match(f.element("hand_confidence_policy").textContent, /unavailable/);
 });
 
 test("confirmed hand delivery stays visible during cooldown and held signs are resent", async () => {

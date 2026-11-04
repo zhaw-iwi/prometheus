@@ -91,7 +91,8 @@ public class CoordinationAgent implements AgentDefinition {
             If the action asks for current perception, store an instruction to use fresh supplied observations AT EXECUTION.
             Never turn that into a prewritten estimate or invent an example expression (such as neutral or attentive)
             in the agreement. Future sensor readings are unknown during proposal. Keep any user-specified exact joke separate.
-            Unless the user requests tuning, use minConfidence 0.8 for positive hand/face recognition,
+            Unless the user requests tuning, use minConfidence 0 for hand recognition (including preparation checks),
+            relying on the client's confidence/stability filter, and 0.8 for positive face recognition;
             samples 1 and cooldownSeconds 3. Do not ask technical tuning questions merely to fill these fields.
             A dialogueLimit unused by a sensor task may be 4; do not ask the user about that unused value.
             ACT requests the agreed response; WAIT suspends reactions until an ACT cue; COMPLETE ends without another action.
@@ -108,7 +109,7 @@ public class CoordinationAgent implements AgentDefinition {
             2. A one-time joke/response on rock is an ACT rule with maxActions=1 and firstAction=ON_CUE.
                The backend ends after that ACT. COMPLETE never performs the rule's action, so it cannot tell a joke.
                Example rule: {"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"rock",
-               "action":"Tell one short dry joke","effect":"ACT","minConfidence":0.8,"samples":1,"cooldownSeconds":3}.
+               "action":"Tell one short dry joke","effect":"ACT","minConfidence":0,"samples":1,"cooldownSeconds":3}.
             """;
     @Override public String key() { return KEY; }
     @Override public String languageCode() { return LANGUAGE_ENGLISH; }

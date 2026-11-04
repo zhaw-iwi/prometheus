@@ -22,6 +22,12 @@ record of a passed test.
   response's playback evidence while the matching cue/association is delayed.
 - Start the camera. Enable **Emit camera observations**, **Face emotion**,
   **Social context**, and **Hand sign**. Leave thresholds and intervals unchanged.
+- For the hand-confidence retest, deploy the client-confidence change first and
+  hard-refresh. Under **Sensing → Configuration**, keep **Hand send conf** at
+  **0.65**. After step 6, the note should say the proposed task uses client hand
+  confidence with **no additional minimum**. Existing saved 0.8 agreements keep
+  that requirement; use a new proposal for this test. Record any unexpected
+  preparation or execution minimum shown by the note.
 - Start **GPT-Live**. Keep the sensor reports and Diagnostics state accessible.
 - Note the agent name, start time and timezone, served build if shown, and audio
   device. Allow each response to finish before speaking again.
@@ -69,6 +75,11 @@ Keep brief notes of:
 - What you actually heard: telemetry excludes conversation text and audio.
 
 For a missed scissors cue, correlate the emitted sample with task activity:
+`low_confidence` means the saved task still requires a higher score; compare the
+confidence note with **Hand send conf** and the actual emitted score. In a new
+default hand task, an emitted score between 0.65 and 0.8 should be eligible when
+the remaining task gates are satisfied. Do not change thresholds mid-run to hide
+a mismatch; export it first.
 `future_timestamp` identifies unusable future evidence; `expired_observation`
 identifies an old capture; `missing_observation_time` identifies absent/invalid
 source time. A cooldown or awaiting-response reason is a different gate. Do not

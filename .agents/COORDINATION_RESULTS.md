@@ -1,5 +1,115 @@
 # Coordination Agent implementation and evidence
 
+## Hand-confidence deployment integration (2026-11-04)
+
+The owner authorized committing/pushing main and merging it into agents for
+Heroku. Main was already clean and published at `0231ccb`; it was merged onto
+agents `bbc6597` in the existing worktree. Runtime changes merged cleanly. The
+single audit-log conflict retained both records. Deployment-specific catalog,
+persona/embodiment code, production configuration and workflow are unchanged.
+
+The merged tree passed **135 Java tests in 12 suites**, zero failures/errors/skips,
+including the nine shared confidence suites plus `GalaDinnerTaskUnitTest`,
+`GalaDinnerRpsPreparationUnitTest` and `CoreRpsRoundUnitTest`. Isolated acceptance
+artifact: `target/gptlive-acceptance-7cae1862b6/java.log`. The runner removed its
+disposable loopback schema/account and stopped its owned MySQL process.
+All **180 Node tests**, **three browser cases**, packaging and whitespace checks
+passed. Logs: `target/hand-confidence-release-node.log`,
+`target/hand-confidence-release-browser.log` and
+`target/hand-confidence-release-package.log` in the agents worktree.
+No paid provider calls or production test writes were made. Heroku's pre-push
+baseline is successful release **v162**; deployment and served-asset verification
+follow the push. Physical acceptance remains a separate human test.
+
+## Client-owned hand confidence (2026-11-04)
+
+The owner's `prometheus-telemetry-2026-11-04T15-40-36-109Z.json` trial was reported
+as successful. Read-only persisted evidence confirmed automatic Reflection after
+one action and playback confirmation, followed by return to Conversation. The
+agreement still required hand confidence 0.8: five execution samples at 0.757,
+0.768, 0.788, 0.773 and 0.782 were rejected; 0.823 matched. The Cockpit's 0.65
+send threshold was therefore behaving as configured. Sanitized local analysis
+is under ignored `target/coordination-confidence-20261104/`. The export also
+contains an older observer marker, so hard-refresh for the next physical trial;
+the telemetry alone cannot establish which assets remained loaded.
+
+The approved change is implemented on main:
+
+- New Coordination hand checks/rules and Generic task proposals use
+  `minConfidence: 0`, meaning no second confidence floor. Client confidence and
+  frame stability remain adjustable. Positive minima require an explicit task
+  request and should be explained in the proposal.
+- Shared runtime extraction guidance reaches saved configurators without
+  rewriting their persisted prompts. Existing drafts/agreements, acceptance,
+  restart/resume and unrelated revisions preserve their thresholds. Generic
+  built-in prompt fingerprints and the task JSON schema remain unchanged.
+- Both preparation and execution still validate numeric finite hand confidence
+  in `[0,1]`, freshness and matching conditions. Missing/malformed/out-of-range
+  scores cannot become evidence when the minimum is zero. State, response
+  capture, sample count, cooldown and action budget checks remain in place.
+- Sensing Configuration shows positive preparation/execution minima from the
+  proposed/saved task using existing monitor storage. Proposal replacement,
+  activation and disconnect update/reset the note. The client threshold is not
+  silently changed. Face defaults and scored RPS rules are unchanged.
+
+Verification:
+
+- **80 Java tests, nine suites**, zero failures/errors/skips, using the disposable
+  loopback MySQL runner (`target/gptlive-acceptance-38cf2ac3ed/java.log`). Selection:
+  `TaskHandConfidenceUnitTest,TaskFirstActionUnitTest,GenericMultimodalTaskUnitTest,TaskLifecycleUnitTest,CoordinationAgentUnitTest,CoordinationRevisionUnitTest,CoordinationObservationTimingUnitTest,CoordinationAgentIntegrationTest,GenericPolicyUpgradeIntegrationTest`.
+  Tests cover 0.757 hand cues, explicit 0.8 rejection, malformed scores, stale/wrong
+  cues, zero-action arming, one-action completion, saved prompt guidance and
+  persisted preparation/revision thresholds. Owned MySQL stopped and the
+  disposable schema/account were removed.
+- **179 Node tests** passed across live, performance, speech, transcription and
+  state-graph suites (`target/hand-confidence-node-regression.log`), including
+  real camera emission at 0.65 versus 0.8, cooldown and confidence-note selection.
+- **Three browser cases** passed using `tests/playwright/run_static.py` with
+  `valerian-lifecycle.spec.mjs`: ordinary connection lifecycle, camera report,
+  and confidence-note monitor/activation/disconnect. The note test initially
+  tried to inspect the collapsed Configuration panel; after opening it in the
+  test, the focused rerun passed (`target/hand-confidence-browser-final.log`).
+- `mvnw.cmd -q -DskipTests package` and `git diff --check` passed. Packaging log:
+  `target/hand-confidence-package.log`.
+
+No paid provider calls or production writes were used for this implementation.
+Provider interpretation of explicit tuning remains an extraction responsibility;
+mocked tests verify supplied guidance and deterministic enforcement, not arbitrary
+spoken-language understanding. Deployment and physical camera/Live acceptance of
+the confidence change remain pending. `.reng/HUMAN_TEST.md` describes the retest.
+Existing 0.8 agreements require an explicit revision or a new proposal.
+
+## Late playback cue release (2026-11-04)
+
+At the owner's request, main `3dc1912` was merged into agents `b7ce3a2` and
+pushed as **`bbc6597`**. Runtime changes merged cleanly; two documentation
+conflicts retained both historical integration records and the new evidence.
+The deployment catalog, persona/embodiment code, production configuration and
+existing Heroku workflow were preserved.
+
+The merged tree passed **96 Java tests**, **178 Node tests**, **two browser
+journeys**, and packaging/whitespace checks. Java coverage includes Coordination
+capture/delivery and persistence, scoped sessions, context/refresh handling and
+Gala preparation/round/delivery consumers. Browser coverage includes automatic
+Reflection after the delayed cue through the actual observer, plus ordinary
+Live/RPS. The isolated run `3846a90411` removed its disposable local database
+schema/account and stopped its owned application/MySQL processes.
+
+[Deployment run 41856100332](https://github.com/zhaw-iwi/prometheus/actions/runs/41856100332)
+succeeded for that exact merge. Heroku **v162**, created at
+2026-11-04 15:18:16 UTC, succeeded. At approximately 15:19 UTC, read-only checks
+verified `/actuator/health` HTTP 200/UP, `/runtime/clock` HTTP 200 with current
+server time and `Cache-Control: no-store`, and exact served-file matches after
+newline normalization for `live/client.js`, `live/playback-cue.js` and the
+Cockpit index. Evidence: ignored `target/playback-release-http-evidence.json`.
+Pre-push release was v161. No production task/test writes or paid provider calls
+were used for release verification.
+
+The deployment is ready for `.reng/HUMAN_TEST.md`. Hard-refresh the Cockpit,
+create a fresh Coordination Agent with Cockpit embodiment, wait for Sensor timing
+ready, then run the bounded scissors/joke trial. Physical completion and native
+spoken state accuracy remain manual acceptance gates.
+
 ## Late playback cue deployment integration (2026-11-04)
 
 The owner authorized main-to-agents promotion and its Heroku deployment push.

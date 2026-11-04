@@ -190,6 +190,13 @@ hand confidence threshold (default 0.65) and three consecutive detections of the
 same sign. The Hand Sign Report shows the blocking reason, **Stabilizing**, or
 **Emitted** with the last successful acknowledgement time; **Emit failed** means
 the request did not succeed. A held eligible sign is sent again after 2.5 seconds.
+New Coordination and Generic hand tasks rely on that client confidence/stability
+filter by default (`minConfidence: 0` means no additional task minimum). A positive
+minimum is reserved for an explicitly requested task requirement. **Sensing →
+Configuration**, beneath **Hand send conf**, shows additional preparation/execution
+minimums from the proposed or saved task; changing the client setting does not
+rewrite those terms. Existing saved thresholds remain effective until explicitly
+revised. Scored activities such as RPS retain their own recognition requirements.
 Live and Generic task perception expire hand readings after 15 seconds without
 a fresh observation. The telemetry export omits sensor payloads; check the
 diagnostic activity log for `ack obs.hand.sign` when tracing camera ingress.
@@ -2690,6 +2697,10 @@ the agent invites acceptance; the demonstration itself performs no task action.
 Evidence records a past recognition, not enduring sensor availability, identity
 or physical success. A revised proposal or a new Live conversation clears pending
 preparation evidence. Accepted tasks retain their existing execution lifecycle.
+Hand demonstrations use the same client-owned confidence default as hand reaction
+rules. Positive face-recognition defaults are unchanged. Runtime configuration
+guidance applies to new proposals even on saved configurators, without rewriting
+their persisted prompts, drafts or accepted agreements.
 
 Pause/resume preserves the agreement and budget. Stop ends the task. Completion
 by an agreed cue, a user completion report, cancellation and an exhausted budget
@@ -2766,6 +2777,11 @@ comparisons, one to three distinct matching samples, confidence thresholds,
 three to sixty seconds cooldown and one to fifty actions including the initial
 action. The planner explains the agreed limits. All supported observations can
 inform answers; executable trigger fields are restricted by `TaskSpec.FIELDS`.
+For new hand rules, `minConfidence: 0` delegates recognition quality to the client;
+an explicitly requested positive value adds a task-specific floor. Hand payloads
+still require a finite numeric `confidence` in `[0,1]`. Missing/malformed scores,
+stale observations, wrong signs and cues outside the task's state, response,
+sample, cooldown or action-budget boundaries cannot authorize an action.
 Rules use `effect: ACT|WAIT|COMPLETE`: ACT performs a step, WAIT silently waits
 for another matching action condition, and COMPLETE ends the task permanently.
 An observed empty scene uses confidence zero because average detected-person

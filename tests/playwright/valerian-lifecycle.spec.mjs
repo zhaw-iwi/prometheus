@@ -107,6 +107,33 @@ test("Valerian columns follow access, create, connect, disconnect, and logout li
   await expect(page.locator("#activity_log")).toHaveText("");
 });
 
+test("hand confidence requirements follow monitor proposals, activation and disconnect", async ({ page, context }) => {
+  await installLifecycleApiMocks(context, { created: true, history: [] });
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`);
+  await enterAccessCode(page);
+  await expect(page.getByTestId("agent-connection-state")).toContainText(`Connected to ${AGENT_ID}`);
+  const note = page.getByTestId("hand-confidence-policy");
+  await page.locator('[data-bs-target="#sensor_config"]').click();
+  await expect(note).toBeVisible();
+  await expect(page.getByTestId("hand-confidence-threshold")).toHaveValue("0.65");
+  const snapshot = (key, minimum) => page.evaluate(({key, minimum}) => {
+    const rule = {eventType: "obs.hand.sign", value: "scissor", minConfidence: minimum};
+    const value = key === "coordination.draft" ? {checks: [rule], reactions: {rules: [rule]}} : {rules: [rule]};
+    applyMonitorSnapshot({storage: [{key, value: JSON.stringify(value)}]});
+  }, {key, minimum});
+  await snapshot("coordination.draft", .8);
+  await expect(note).toContainText("Proposed task adds hand minimum: scissor ≥ 0.80 (preparation)");
+  await expect(note).toContainText("0.80 (execution)");
+  await snapshot("coordination.draft", 0);
+  await expect(note).toContainText("Proposed task uses client hand confidence; no additional minimum");
+  await snapshot("task.spec", .8);
+  await expect(note).toContainText("Saved task adds hand minimum: scissor ≥ 0.80 (execution)");
+  await expect(page.getByTestId("hand-confidence-threshold")).toHaveValue("0.65");
+  await page.locator("#open_diagnostics").click();
+  await page.getByTestId("connect-agent").click();
+  await expect(note).toHaveText("Client filters hand confidence and stability. Task rules still apply.");
+});
+
 test("camera hand report separates visible detection from acknowledged framework delivery", async ({ page, context }) => {
   const scenario = { created: true, history: [] };
   await installLifecycleApiMocks(context, scenario);
