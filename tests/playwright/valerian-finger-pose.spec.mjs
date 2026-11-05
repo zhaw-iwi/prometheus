@@ -75,7 +75,6 @@ async function openSection(page, id) {
 
 async function start(page, result = twoHands) {
   await openSection(page, "sensor_toggles");
-  await page.getByTestId("hand-model-select").selectOption("mediapipe");
   await page.getByTestId("sensor-hand-enabled").check();
   await expect(page.getByTestId("hand-sign-status")).toHaveText("Model ready");
   await page.evaluate(result => { window.__poseResult = result; }, result);
@@ -84,12 +83,12 @@ async function start(page, result = twoHands) {
   await expect(page.getByTestId("hand-pose-report")).toBeVisible();
 }
 
-test("one MediaPipe option shows RPS and both hands together and publishes both scoped observations", async ({ page, context }, info) => {
+test("MediaPipe starts automatically and shows RPS and both hands with both scoped observations", async ({ page, context }, info) => {
   const { errors, requests } = await setup(page, context);
   await start(page);
   expect(await page.evaluate(() => window.__handOptions.numHands)).toBe(2);
   expect(await page.evaluate(() => window.__handCreates)).toBe(1);
-  await expect(page.getByTestId("hand-model-select").locator("option")).toHaveCount(1);
+  await expect(page.getByTestId("hand-model-select")).toHaveCount(0);
   const values = page.getByTestId("hand-pose-hands").locator("output");
   await expect(values).toHaveText(["0.200", "0.400", "0.600", "0.800", "1.000", "0.000", "0.000", "—", "—", "0.000"]);
   await expect(page.getByTestId("hand-pose-hands").locator("[data-finger-state]")).toHaveText([
@@ -98,7 +97,6 @@ test("one MediaPipe option shows RPS and both hands together and publishes both 
   await expect(page.locator("#hand_sign_report_details")).toBeVisible();
   await expect(page.getByTestId("hand-report-label")).toHaveText("Stein");
   await expect(page.getByTestId("hand-confidence-threshold")).toBeEnabled();
-  await expect(page.getByTestId("hand-model-select")).toBeDisabled();
   expect(requests).toHaveLength(0);
   await openSection(page, "sensor_toggles");
   await page.getByTestId("sensor-emit-enabled").check();
@@ -126,14 +124,12 @@ test("one MediaPipe option shows RPS and both hands together and publishes both 
   await page.evaluate(() => stopCamera());
   await expect(page.getByTestId("hand-pose-report")).toBeHidden();
   await expect(page.getByTestId("hand-sign-status")).toHaveText("Camera stopped");
-  await expect(page.getByTestId("hand-model-select")).toBeEnabled();
   expect(errors).toEqual([]);
 });
 
 test("combined MediaPipe selects the highest-confidence RPS sign from two hands for each capture", async ({ page, context }) => {
   const { errors, requests } = await setup(page, context);
   await openSection(page, "sensor_toggles");
-  await page.getByTestId("hand-model-select").selectOption("mediapipe");
   await page.getByTestId("sensor-hand-enabled").check();
   await expect(page.getByTestId("hand-sign-status")).toHaveText("Model ready");
   expect(await page.evaluate(() => window.__handOptions.numHands)).toBe(2);

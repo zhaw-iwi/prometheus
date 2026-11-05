@@ -1513,10 +1513,6 @@
                         <label class="form-check-label" for="sensor_hand_enabled">Hand sign</label>
                       </div>
                       <div class="mt-2" data-profile-observations="obs.hand.sign obs.hand.pose">
-                        <label class="form-label metric-label" for="hand_model_select">Hand detector</label>
-                        <select id="hand_model_select" class="form-select form-select-sm" data-testid="hand-model-select">
-                          <option value="mediapipe">MediaPipe — RPS and finger bend</option>
-                        </select>
                         <div class="small text-muted mt-1">MediaPipe reports RPS signs and each finger from 0 (straight) to 1 (fully bent), for up to two hands. Below 0.4 is straight, above 0.55 is bent; the middle range is neutral. Camera emission sends each reading to agents that support it. The confidence threshold applies only to named signs.</div>
                       </div>
                     </div>

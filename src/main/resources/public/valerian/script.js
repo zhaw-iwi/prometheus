@@ -423,7 +423,6 @@ function wireUi() {
   document.querySelectorAll("#sensor_emotion_enabled,#sensor_social_enabled,#sensor_hand_enabled").forEach((input) => {
     input.addEventListener("change", handleSensorModeChange);
   });
-  document.getElementById("hand_model_select").addEventListener("change", handleHandModelChange);
   document.getElementById("fetch_weather_current").addEventListener("click", fetchWeatherCurrent);
   document.getElementById("send_weather_current").addEventListener("click", sendWeatherCurrent);
   document.getElementById("send_weather_forecast").addEventListener("click", sendWeatherForecast);
@@ -3278,7 +3277,6 @@ function updateCameraOwnershipControls() {
       element.disabled = !enabled;
     }
   });
-  document.getElementById("hand_model_select").disabled = !enabled || state.cameraRunning || !!camera.handLoadPromise;
   const start = document.getElementById("start_camera");
   if (start) {
     start.disabled = !enabled || state.cameraRunning;
@@ -3486,26 +3484,12 @@ async function loadHandRecognizer() {
   camera.handRecognizer = null;
   camera.handPoseEstimator = null;
   const revision = ++camera.handModelRevision;
-  const model = document.getElementById("hand_model_select")?.value || "mediapipe";
-  camera.handLoadPromise = createHandRecognizer(model, revision).finally(() => {
+  camera.handLoadPromise = createHandRecognizer("mediapipe", revision).finally(() => {
     camera.handLoadPromise = null;
     updateCameraOwnershipControls();
   });
   updateCameraOwnershipControls();
   return camera.handLoadPromise;
-}
-
-async function handleHandModelChange() {
-  if (state.cameraRunning) return;
-  camera.handModelRevision += 1;
-  camera.handRecognizer?.close?.();
-  camera.handRecognizer = null;
-  camera.handDetectorReady = false;
-  camera.stableGestureKey = null;
-  camera.stableGestureCount = 0;
-  resetCameraEmissionGate();
-  resetHandSignReport(isSensorModeEnabled("hand") ? "Loading model" : "Detector off");
-  await ensureEnabledModels();
 }
 
 async function createHandRecognizer(model, revision) {

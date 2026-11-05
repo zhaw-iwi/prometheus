@@ -153,7 +153,7 @@ in Signals Sensed. On narrow screens it opens below the camera with scrollable
 report details. Expansion keeps the same camera session and live readings.
 
 Camera hand sensing publishes classified signs through `obs.hand.sign`.
-MediaPipe (the default) recognizes rock, scissor and paper and estimates finger bend
+MediaPipe recognizes rock, scissor and paper and estimates finger bend
 for up to two hands from a single GestureRecognizer inference. The live report shows
 the selected RPS sign alongside all per-finger readings, with separate delivery statuses.
 It reports the recognized RPS sign with the highest confidence, even when the
@@ -169,9 +169,8 @@ Live and Generic task perception expire hand readings after 15 seconds without
 a fresh observation. The telemetry export omits sensor payloads; check the
 diagnostic activity log for `ack obs.hand.sign` when tracing camera ingress.
 
-For combined RPS and hand geometry, choose **MediaPipe — RPS and finger bend**,
-enable **Hand sign**, then start the camera. There is no separate finger-only model
-to load or switch to. The Hand Sign Report shows five live numbers
+For combined RPS and hand geometry, enable **Hand sign**, then start the camera.
+MediaPipe loads automatically. The Hand Sign Report shows five live numbers
 and meters for each detected hand: **0 = straight**, **1 = fully bent**. The browser
 also classifies each rounded value before transmission: **below 0.4 = straight**,
 **above 0.55 = bent**, **0.4–0.55 inclusive = neutral**. The report shows these labels
