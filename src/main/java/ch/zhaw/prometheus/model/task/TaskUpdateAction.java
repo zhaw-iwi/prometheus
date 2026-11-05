@@ -111,7 +111,7 @@ public class TaskUpdateAction extends Action {
         }
         String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage)
                 + inferenceGuidance(runtime)
-                + "\nSupported trigger fields: " + TaskSpec.FIELDS + CompactBehaviourPlan.instructions(true)
+                + TaskSpec.triggerInstructions() + CompactBehaviourPlan.instructions(true)
                 + (DecorativeGestures.enabled(storage) ? DecorativeGestures.guidance(storage, now) : "");
         var request = new InferenceRequest(InferencePurpose.EXTRACTION,
                 TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT);

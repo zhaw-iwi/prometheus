@@ -45,7 +45,7 @@ public final class CoordinationMemory {
         if (!draft.complete()) return "The proposal is not complete yet. " + (draft.questions().isEmpty()
                 ? "We still need to agree the goal, roles and success criterion." : draft.questions().getFirst());
         return "Proposed task: " + draft.goal() + ". Before acceptance, we need fresh recognition evidence for: "
-                + draft.checks().stream().map(check -> check.value().getAsString()).collect(java.util.stream.Collectors.joining(", "))
+                + draft.checks().stream().map(CoordinationAgreement.Check::description).collect(java.util.stream.Collectors.joining(", "))
                 + ". The task is not active. I will ask to start after those checks are recognised.";
     }
     public static JsonObject evidence(Storage storage) {

@@ -2,12 +2,14 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { estimateHandPoses } from "../../../src/main/resources/public/valerian/hand/finger-pose.js";
+import { handResult } from "../../fixtures/hand-landmarks.mjs";
 
 const source = fs.readFileSync(new URL("../../../src/main/resources/public/valerian/script.js", import.meta.url), "utf8");
 
 // Exercise camera classification through the real acknowledgement/header code.
 // Only media, rendering and the HTTP response are simulated.
-function fixture() {
+function fixture({ poseSupported = false, signSupported = true } = {}) {
   let now = Date.parse("2026-10-20T08:00:00Z");
   const requests = [], elements = new Map();
   const element = id => {
@@ -25,6 +27,9 @@ function fixture() {
     setText(id, value) { element(id).textContent = value; },
     renderHandSignReport(sign, options) { context.setHandSignStatus(options.statusText, options.statusMode); },
     resetHandSignReport(status) { context.setHandSignStatus(status); },
+    renderHandPoseReport(payload, status = "Detected") { context.posePayload = payload; context.setHandPoseStatus(status); },
+    currentProfileSupportsObservation(type) { return type === "obs.hand.pose" ? context.poseSupported : context.signSupported; },
+    poseSupported, signSupported, estimateHandPoses, recognitions: 0,
     renderUserSign() {}, setActiveStatus() {}, renderLatestEvent() {}, appendLog() {}, handleResponseEvent() {},
     renderAgentSign() {}, resetBehaviourPanels() {}, renderNonVerbal() {}, renderMotionEnergyState() {},
     setBehaviourChannelActive() {}, behaviourSummary() { return "plan"; }, winnerLabel(value) { return value; },
@@ -44,16 +49,22 @@ function fixture() {
   }
   for (const name of ["detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
     "submitHandSign", "acknowledgeEvent", "timedScopedFetch", "scopedFetch", "demoAgentPath", "sensorBackendResult",
-    "setHandSignStatus", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate",
+    "setHandSignStatus", "setHandPoseStatus", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate", "handRecognizerLabel",
     "renderBehaviourPlan", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
     assert.ok(match, name);
     const rest = source.slice(match.index), end = /^}/m.exec(rest);
     vm.runInContext(rest.slice(0, end.index + 1), context);
   }
+  for (const name of ["maybeEmitHandPose", "passesSensorEmitInterval"]) {
+    const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
+    const rest = source.slice(match.index), end = /^}/m.exec(rest);
+    vm.runInContext(rest.slice(0, end.index + 1), context);
+  }
   vm.runInContext(`
     camera.video = { readyState: 2, currentTime: 0 };
-    camera.handRecognizer = { recognizeForVideo: () => result };
+    camera.handRecognizer = { recognizeForVideo: () => { recognitions++; return result; } };
+    camera.handPoseEstimator = estimateHandPoses;
     globalThis.camera = camera;
   `, context);
   let overlay = null;
@@ -62,6 +73,13 @@ function fixture() {
     advance(ms) { now += ms; },
     overlay: () => overlay,
     status: () => element("hand_sign_status").textContent,
+    poseStatus: () => element("hand_pose_status").textContent,
+    async poseFrame(result = handResult({ index: .5 })) {
+      context.camera.handModel = "mediapipe";
+      context.result = result;
+      context.camera.video.currentTime += .35;
+      await context.detectHandSign();
+    },
     async frame(gesture = "Open_Palm", confidence = .9) {
       context.result = { gestures: [[{ categoryName: gesture, score: confidence }]],
         landmarks: [[{ x: .5, y: .5 }]] };
@@ -70,6 +88,130 @@ function fixture() {
     },
   };
 }
+
+test("generic finger readings use their own timestamped scoped event and publish no named sign", async () => {
+  const f = fixture({ poseSupported: true });
+  f.element("emit_interval_ms").value = "2500";
+  await f.poseFrame(); await f.poseFrame(); assert.equal(f.requests.length, 0);
+  await f.poseFrame();
+  const request = f.requests[0], event = JSON.parse(request.body), data = JSON.parse(event.payload);
+  assert.equal(event.type, "obs.hand.pose"); assert.equal(event.actor, "user");
+  assert.equal(request.headers.get("X-Prometheus-Access-Code"), "code");
+  assert.equal(data.hands[0].fingers.index, .5); assert.equal(data.hands[0].fingers.thumb, 0);
+  assert.deepEqual(data.hands[0].fingerStates, {
+    thumb: "straight", index: "neutral", middle: "straight", ring: "straight", little: "straight",
+  });
+  assert.equal(data.hands[0].handedness, "right"); assert.equal(data.recognizer, "mediapipe");
+  assert.equal(data.sign, undefined); assert.equal(data.confidence, undefined); assert.equal(data.captureId, undefined);
+  assert.equal(Date.parse(data.ts), f.context.Date.now());
+  await f.poseFrame(); assert.equal(f.requests.length, 1, "continuous measurements obey the emission interval");
+  f.advance(2501);
+  const empty = { landmarks: [], worldLandmarks: [] };
+  await f.poseFrame(empty); await f.poseFrame(empty); await f.poseFrame(empty);
+  assert.equal(JSON.parse(JSON.parse(f.requests[1].body).payload).handCount, 0);
+});
+
+test("pose reporting works with emission off or unsupported profiles without sending observations", async () => {
+  const f = fixture({ poseSupported: true }); f.element("sensor_emit_enabled").checked = false;
+  await f.poseFrame(); await f.poseFrame(); await f.poseFrame();
+  assert.equal(f.context.posePayload.hands[0].fingers.index, .5); assert.equal(f.requests.length, 0);
+  f.element("sensor_emit_enabled").checked = true; f.context.poseSupported = false;
+  await f.poseFrame(); assert.equal(f.requests.length, 0); assert.match(f.poseStatus(), /does not support hand poses/);
+});
+
+test("camera reset fences delayed pose inference and acknowledgement", async () => {
+  const f = fixture({ poseSupported: true }); let release;
+  f.context.camera.handRecognizer.recognizeForVideo = () => new Promise(resolve => { release = resolve; });
+  const inference = f.poseFrame();
+  f.context.resetCameraEmissionGate(); f.context.setHandSignStatus("Camera stopped");
+  release(handResult()); await inference;
+  assert.equal(f.context.posePayload, undefined); assert.equal(f.requests.length, 0);
+  f.context.camera.handRecognizer.recognizeForVideo = () => f.context.result;
+  const original = f.context.fetch;
+  f.context.fetch = async (...args) => { await new Promise(resolve => { release = resolve; }); return original(...args); };
+  await f.poseFrame(); await f.poseFrame(); const sending = f.poseFrame();
+  await Promise.resolve();
+  f.context.resetCameraEmissionGate(); f.context.setHandSignStatus("New camera context");
+  release(); await sending;
+  assert.equal(f.status(), "New camera context"); assert.equal(f.context.camera.lastCameraEmitAt, 0);
+  assert.equal(f.context.camera.lastHandPoseEmitAt, 0);
+});
+
+test("one MediaPipe inference publishes independent sign and finger events with the same frame timestamp", async () => {
+  const f = fixture({ poseSupported: true }); f.element("emit_interval_ms").value = "2500";
+  const original = f.context.fetch;
+  f.context.fetch = (...args) => {
+    if (JSON.parse(args[1].body).type === "obs.hand.sign") f.advance(450);
+    return original(...args);
+  };
+  const result = handResult({ index: .8 });
+  result.gestures = [[{ categoryName: "Closed_Fist", score: .95 }]];
+  await f.poseFrame(result); await f.poseFrame(result); await f.poseFrame(result);
+  assert.equal(f.context.recognitions, 3);
+  assert.deepEqual(f.requests.map(request => JSON.parse(request.body).type), ["obs.hand.sign", "obs.hand.pose"]);
+  const [sign, pose] = f.requests.map(request => JSON.parse(JSON.parse(request.body).payload));
+  assert.equal(sign.sign, "rock"); assert.equal(sign.confidence, .95);
+  assert.equal(pose.hands[0].fingerStates.index, "bent"); assert.equal(pose.hands[0].fingers.index, .8);
+  assert.equal(sign.ts, pose.ts); assert.equal(sign.recognizer, pose.recognizer);
+  assert.match(f.status(), /^Emitted /); assert.match(f.poseStatus(), /^Emitted /);
+});
+
+test("finger cadence cannot consume a later RPS sign's cooldown, or be consumed by it", async () => {
+  const f = fixture({ poseSupported: true }); f.element("emit_interval_ms").value = "5000";
+  await f.poseFrame(); await f.poseFrame(); await f.poseFrame();
+  assert.equal(f.requests.length, 1);
+  const result = handResult(); result.gestures = [[{ categoryName: "Open_Palm", score: .9 }]];
+  await f.poseFrame(result); await f.poseFrame(result); await f.poseFrame(result);
+  assert.equal(f.requests.length, 2, "the preceding pose does not suppress a fresh sign");
+  f.advance(2500); await f.poseFrame(result);
+  assert.equal(f.requests.length, 3, "signs retain their 2.5-second cooldown");
+  f.advance(2500); await f.poseFrame(result);
+  const types = f.requests.map(request => JSON.parse(request.body).type);
+  assert.equal(types.filter(type => type === "obs.hand.pose").length, 2);
+  assert.equal(types.filter(type => type === "obs.hand.sign").length, 3);
+});
+
+test("pose-only agents receive finger data even for low-confidence RPS predictions", async () => {
+  const f = fixture({ poseSupported: true, signSupported: false });
+  const result = handResult({ index: .5 }); result.gestures = [[{ categoryName: "Open_Palm", score: .4 }]];
+  await f.poseFrame(result); await f.poseFrame(result); await f.poseFrame(result);
+  assert.equal(f.requests.length, 1); assert.equal(JSON.parse(f.requests[0].body).type, "obs.hand.pose");
+  assert.match(f.status(), /does not support named hand signs/); assert.match(f.poseStatus(), /^Emitted /);
+});
+
+test("a failed sign acknowledgement does not suppress finger delivery or claim RPS success", async () => {
+  const f = fixture({ poseSupported: true }), original = f.context.fetch;
+  f.context.fetch = (...args) => {
+    f.context.httpStatus = JSON.parse(args[1].body).type === "obs.hand.sign" ? 500 : 200;
+    return original(...args);
+  };
+  const result = handResult(); result.gestures = [[{ categoryName: "Open_Palm", score: .9 }]];
+  await f.poseFrame(result); await f.poseFrame(result); await f.poseFrame(result);
+  assert.equal(f.status(), "Emit failed"); assert.match(f.poseStatus(), /^Emitted /);
+  assert.equal(f.context.camera.lastCameraEmitAt, 0); assert.ok(f.context.camera.lastHandPoseEmitAt > 0);
+});
+
+test("a capture reset during a sign acknowledgement fences the companion pose from the old frame", async () => {
+  const f = fixture({ poseSupported: true }), original = f.context.fetch;
+  let release;
+  f.context.updateHandCapture({ awaitingUserSign: true, captureId: "old" });
+  f.context.fetch = async (...args) => {
+    await new Promise(resolve => { release = resolve; });
+    return original(...args);
+  };
+  const result = handResult(); result.gestures = [[{ categoryName: "Open_Palm", score: .9 }]];
+  await f.poseFrame(result); await f.poseFrame(result); const pending = f.poseFrame(result);
+  await Promise.resolve();
+  f.context.updateHandCapture({ awaitingUserSign: true, captureId: "new" });
+  release(); await pending;
+  assert.equal(f.requests.length, 1); assert.equal(JSON.parse(JSON.parse(f.requests[0].body).payload).captureId, "old");
+  assert.equal(f.context.camera.lastHandPoseEmitAt, 0);
+  f.context.fetch = original;
+  await f.poseFrame(result); await f.poseFrame(result); await f.poseFrame(result);
+  assert.equal(f.requests.length, 3);
+  assert.equal(JSON.parse(JSON.parse(f.requests[1].body).payload).captureId, "new");
+  assert.equal(JSON.parse(f.requests[2].body).type, "obs.hand.pose");
+});
 
 test("a new spoken countdown closes leftover capture so ordinary sensing cannot submit the old capture ID", async () => {
   const f = fixture();
@@ -130,6 +272,7 @@ test("a delayed request retains its original capture and cannot restore the new 
   f.context.renderBehaviourPlan(opening("old"));
   f.context.fetch = async (...args) => { await new Promise(resolve => { release = resolve; }); return original(...args); };
   await f.frame(); await f.frame(); const pending = f.frame();
+  await Promise.resolve(); // Async recognition completes before this test delays the HTTP acknowledgement.
   f.context.renderBehaviourPlan(opening("new"));
   f.context.setHandSignStatus("Waiting for new capture");
   release(); await pending;
@@ -187,6 +330,40 @@ test("low confidence and unstable signs explain why the framework has no reading
   assert.equal(f.requests.length, 0);
 });
 
+test("low-confidence frames cannot count toward a later confident sign", async () => {
+  const f = fixture();
+  await f.frame("Open_Palm", .4); await f.frame("Open_Palm", .4);
+  await f.frame("Open_Palm", .9);
+  assert.equal(f.context.camera.stableGestureCount, 1);
+  assert.equal(f.requests.length, 0);
+  await f.frame(); await f.frame();
+  assert.equal(f.requests.length, 1);
+});
+
+test("an inference finishing after capture reset cannot contribute stale frames or send a sign", async () => {
+  const f = fixture(); let finish;
+  f.context.camera.handRecognizer.recognizeForVideo = () => new Promise(resolve => { finish = resolve; });
+  const pending = f.frame();
+  f.context.updateHandCapture({ awaitingUserSign: true, captureId: "new" });
+  finish({ gestures: [[{ categoryName: "Open_Palm", score: .99 }]], landmarks: [] });
+  await pending;
+  assert.equal(f.context.camera.stableGestureCount, 0);
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.context.camera.handInferencePending, false);
+});
+
+test("cancelled old inference cannot overwrite a newly selected model's readiness or report", async () => {
+  const f = fixture(); let reject;
+  f.context.camera.handRecognizer.recognizeForVideo = () => new Promise((_, fail) => { reject = fail; });
+  const pending = f.frame();
+  f.context.resetCameraEmissionGate();
+  f.context.camera.handDetectorReady = true;
+  f.context.setHandSignStatus("New model ready");
+  reject(new Error("Old worker closed")); await pending;
+  assert.equal(f.status(), "New model ready");
+  assert.equal(f.context.camera.handDetectorReady, true);
+});
+
 test("browser confidence gates emission and never claims game acceptance", async () => {
   const f = fixture();
   for (let frame = 0; frame < 3; frame++) await f.frame("Open_Palm", .649);
@@ -229,6 +406,7 @@ test("an old hand acknowledgement cannot restore cooldown after a new capture wi
   f.context.fetch = async (...args) => { await new Promise(resolve => { release = resolve; }); return original(...args); };
   await f.frame(); await f.frame();
   const old = f.frame();
+  await Promise.resolve();
   f.context.resetCameraEmissionGate();
   release(); await old;
   assert.equal(f.context.camera.lastCameraEmitKey, null);

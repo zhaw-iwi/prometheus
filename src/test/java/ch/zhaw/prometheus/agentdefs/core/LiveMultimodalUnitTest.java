@@ -33,7 +33,7 @@ class LiveMultimodalUnitTest {
         var profile = created.agent().getInteractionProfile();
         assertEquals(Set.of(Event.TYPE_USER_UTTERANCE, Event.TYPE_FACE_EMOTION, Event.TYPE_HUMAN_PRESENCE,
                 Event.TYPE_SOCIAL_GROUPING, Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_SOCIAL_SITUATION_CHANGE,
-                Event.TYPE_HAND_SIGN, Event.TYPE_WEATHER_CURRENT, Event.TYPE_WEATHER_FORECAST), Set.copyOf(profile.getSupportedObservations()));
+                Event.TYPE_HAND_SIGN, Event.TYPE_HAND_POSE, Event.TYPE_WEATHER_CURRENT, Event.TYPE_WEATHER_FORECAST), Set.copyOf(profile.getSupportedObservations()));
         assertEquals(Set.of("speech", "nonVerbal.gesture", "nonVerbal.facialExpression", "nonVerbal.gaze",
                 "nonVerbal.motion", "motion.handSign", "display"), Set.copyOf(profile.getSupportedBehaviourModalities()));
         var voice = new LiveVoicePolicyAdapter();
@@ -74,7 +74,7 @@ class LiveMultimodalUnitTest {
         when(gateway.decide(any())).thenReturn(true);
         Agent agent = new LiveMultimodal().createAgent();
         for (String type : List.of(Event.TYPE_FACE_EMOTION, Event.TYPE_HUMAN_PRESENCE, Event.TYPE_SOCIAL_GROUPING,
-                Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_HAND_SIGN, Event.TYPE_WEATHER_CURRENT, Event.TYPE_WEATHER_FORECAST)) {
+                Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_HAND_SIGN, Event.TYPE_HAND_POSE, Event.TYPE_WEATHER_CURRENT, Event.TYPE_WEATHER_FORECAST)) {
             assertNull(agent.acknowledge(Event.observation(type, "sensor", "{}"), runtime));
         }
         assertNull(agent.tick(runtime)); verify(gateway, never()).infer(any());

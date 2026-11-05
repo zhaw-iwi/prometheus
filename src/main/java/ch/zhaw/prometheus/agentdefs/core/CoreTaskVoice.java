@@ -97,8 +97,7 @@ final class CoreTaskVoice {
         StringBuilder text = new StringBuilder(goal ? "Goal: " + task.goal() + ". " : "");
         text.append("Limit: ").append(task.maxActions()).append(" actions; first: ").append(task.firstAction())
             .append("; sessionBound: ").append(task.sessionBound()).append(". ");
-        for (var r : task.rules()) text.append("On ").append(r.eventType()).append('.').append(r.field()).append(' ')
-            .append(r.operator()).append(' ').append(r.value()).append("; confidence>=").append(r.minConfidence())
+        for (var r : task.rules()) text.append("On ").append(r.conditionDescription()).append("; confidence>=").append(r.minConfidence())
             .append("; samples=").append(r.samples()).append("; cooldown=").append(r.cooldownSeconds()).append("s: ")
             .append(r.effect()).append(' ').append(r.action()).append(". ");
         return text.toString();

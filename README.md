@@ -146,16 +146,161 @@ confirms acknowledgement; whether the agent responds depends on its current poli
 Hand and weather reports use the same dark-mode surfaces as the other reports;
 their background colour does not indicate whether sensing or sending is enabled.
 
-Camera hand sensing publishes classified rock, scissor or paper signs through
-`obs.hand.sign`; the blue landmark overlay only confirms local detection.
+In **Sensing → Signals Sensed → Hand Sign Report**, use **Expand hand sign report**
+to keep the live report beside the camera. Drag its title to move it or resize it
+from the bottom-right corner. **Restore hand sign report** or Escape puts it back
+in Signals Sensed. On narrow screens it opens below the camera with scrollable
+report details. Expansion keeps the same camera session and live readings.
+
+Camera hand sensing publishes classified signs through `obs.hand.sign`.
+MediaPipe (the default) recognizes rock, scissor and paper and estimates finger bend
+for up to two hands from a single GestureRecognizer inference. The live report shows
+the selected RPS sign alongside all per-finger readings, with separate delivery statuses.
+It reports the recognized RPS sign with the highest confidence, even when the
+hands show different signs. Equal confidence keeps the first result returned by
+MediaPipe. Stability checks apply to the selected sign, without tracking a
+particular hand across frames. The blue landmark overlay confirms local detection.
 Sending requires a connected agent, **Emit camera observations**, the configured
-hand confidence threshold (default 0.65) and three consecutive detections of the
+hand confidence threshold (default 0.65) and three consecutive confident detections of the
 same sign. The Hand Sign Report shows the blocking reason, **Stabilizing**, or
 **Emitted** with the last successful acknowledgement time; **Emit failed** means
 the request did not succeed. A held eligible sign is sent again after 2.5 seconds.
 Live and Generic task perception expire hand readings after 15 seconds without
 a fresh observation. The telemetry export omits sensor payloads; check the
 diagnostic activity log for `ack obs.hand.sign` when tracing camera ingress.
+
+For combined RPS and hand geometry, choose **MediaPipe — RPS and finger bend**,
+enable **Hand sign**, then start the camera. There is no separate finger-only model
+to load or switch to. The Hand Sign Report shows five live numbers
+and meters for each detected hand: **0 = straight**, **1 = fully bent**. The browser
+also classifies each rounded value before transmission: **below 0.4 = straight**,
+**above 0.55 = bent**, **0.4–0.55 inclusive = neutral**. The report shows these labels
+beside the values. A dash
+means unavailable (missing, off-frame, nonfinite or degenerate required landmarks),
+not straight. No named gesture needs to be recognized. Both hands are measured
+independently; their array order and estimated left/right labels are not persistent
+tracking IDs or person identity.
+
+The bend is a geometric heuristic from MediaPipe's 3D world landmarks: average
+joint direction change, normalized and capped at 90 degrees per joint. The four
+long fingers include the base, middle and distal joints; the thumb uses its two
+distal joints, avoiding treating opposition alone as closure. The scale is not a
+calibrated anatomical angle or a recognition-confidence score. Hand landmarks may
+infer hidden fingers and do not provide reliable finger-visibility flags; the
+report cannot certify that a finger was actually visible. See the
+[MediaPipe output reference](https://developers.google.com/edge/mediapipe/solutions/vision/gesture_recognizer/web_js).
+
+With **Emit camera observations** enabled, this option publishes `obs.hand.pose`
+through the normal scoped acknowledgement endpoint, alongside eligible `obs.hand.sign`
+events from the same inference. Both event types identify the recognizer as `mediapipe`
+and share the frame timestamp. Each is sent only if the connected profile declares it:
+RPS-only profiles still receive named signs, and pose-only profiles receive bend data.
+Their stability checks, successful-send clocks and statuses are independent; a pose
+acknowledgement cannot suppress a new RPS sign, or vice versa. Named signs retain
+their 2.5-second same-sign cooldown and RPS capture identity. Pose delivery waits
+for three consecutive
+frames with the same detected handedness/count and then uses the configured
+**Emit ms** interval. The bend values can change continuously; they do not have
+to settle on a named sign. An empty `hands` array reports no detected hands and
+clears the previous pose. The named-sign confidence threshold does not apply to
+these numeric estimates. The confidence control remains enabled for the accompanying
+RPS predictions. Finger readings continue when no RPS gesture is recognized.
+
+New Multimodal, Generic Multimodal, Social Space, Coordination and Live Multimodal instances
+declare `obs.hand.pose`. Existing saved profiles are not migrated: the report
+still works for hand-capable instances, but emission explains when their profile
+does not support pose observations. Create a new instance for delivery. Pose
+readings are available in ordinary prompt assembly, Generic perception answers
+and Live context, with a 15-second freshness window for Generic/Live. Generic,
+Social Space and Coordination tasks can react to finger states or explicit numeric bend conditions
+as described below. Finger-pose events do not enter the RPS move path. Camera
+images and raw landmarks remain local. A typical payload is:
+
+```json
+{
+  "schemaVersion": 1,
+  "source": "valerian.hand.camera",
+  "detectionMode": "client_camera",
+  "recognizer": "mediapipe",
+  "handCount": 1,
+  "hands": [{
+    "handedness": "right",
+    "handednessConfidence": 0.95,
+    "fingers": {"thumb": 0.1, "index": 0.75, "middle": null, "ring": 0.4, "little": 0.9},
+    "fingerStates": {"thumb": "straight", "index": "bent", "middle": null, "ring": "neutral", "little": "bent"}
+  }],
+  "inferenceMs": 12.3,
+  "ts": "2026-11-04T09:00:00Z"
+}
+```
+
+`handednessConfidence` describes left/right classification only. Unavailable
+fingers are JSON `null` in both maps; unavailable is never neutral. `fingerStates`
+is an additive field in schema version 1. Older numeric-only observations remain
+readable, with state labels unknown/unclassified. Historical `mediapipe-fingers`
+recognizer metadata is still displayed, though that separate dropdown option is
+gone. The backend consumes the client labels and does not invent labels for these
+older events. Other pose clients
+must supply the same labels and thresholds to use classified rules. The event
+intentionally has no `sign`, RPS `captureId`
+or fabricated finger-confidence value. Use `npm run test:hand:unit` and
+`tests/playwright/valerian-finger-pose.spec.mjs` for the focused regression checks;
+browser checks simulate camera/model outputs and do not validate webcam accuracy.
+
+Generic, Social Space and Coordination can configure a pose cue in ordinary
+language, for example: "Tell a short dry joke when index, ring and little are
+bent and middle is straight." These established state labels require no
+threshold-tuning questions.
+The executable task uses `firstAction: "ON_CUE"` and a single rule like:
+
+```json
+{
+  "eventType": "obs.hand.pose",
+  "handPose": {
+    "handedness": "any",
+    "all": [
+      {"finger": "index", "operator": "eq", "value": "bent"},
+      {"finger": "ring", "operator": "eq", "value": "bent"},
+      {"finger": "little", "operator": "eq", "value": "bent"},
+      {"finger": "middle", "operator": "eq", "value": "straight"}
+    ]
+  },
+  "action": "Tell one short dry joke",
+  "effect": "ACT",
+  "minConfidence": 0,
+  "samples": 1,
+  "cooldownSeconds": 3
+}
+```
+
+All comparisons must hold on **one hand in one observation**; readings from
+different hands or frames cannot be combined. `handedness` accepts `any`, `left`
+or `right`; `any` permits either single hand, including unknown handedness.
+`all` accepts 1–5 comparisons, one per named finger. State comparisons use `eq`
+with `straight`, `neutral` or `bent`. Explicit numeric requests still use `eq`,
+`lt` or `gt` with a number in 0–1; for example, "index above 0.5" uses
+`{"finger":"index","operator":"gt","value":0.5}`. Both forms can coexist in
+one rule. Existing numeric task terms are preserved, including their original
+thresholds. Unspecified fingers (the thumb here) are unrestricted.
+Compared fingers with null, missing or invalid numeric readings cannot match.
+State comparisons also require a recognized client label: missing labels are
+unknown, and `unknown` cannot be used as a task cue. Use
+`minConfidence: 0`; handedness confidence does not measure bend accuracy.
+Distinct task rules remain independent. Existing freshness, sample count,
+cooldown, action budget, pause and Live response-confirmation gates still apply.
+Holding the pattern may trigger another action after the cooldown; this does not
+require releasing and repeating the pose. Sample stability does not establish
+physical hand identity across frames. Classification does not change the emission
+interval or add between-frame transition rules or hand tracking.
+
+Coordination preparation checks may use `eventType`, `handPose` and
+`minConfidence` with the same semantics. A demonstration establishes readiness,
+not permission to perform the action; acceptance and a fresh subsequent cue are
+still required. The new rule guidance is appended at inference time for saved
+agents too. Saved agreements are unchanged: re-propose and accept an old task
+that incorrectly used `obs.hand.sign == middle_finger`. The `obs.hand.pose` event
+contains no named sign, and task setup must not substitute the accompanying
+`obs.hand.sign` event for bend comparisons.
 
 Agents can identify a hand-capture window with an opaque `display.captureId`
 (1-128 characters) alongside `awaitingUserSign: true`. The cockpit echoes it as
@@ -1006,7 +1151,8 @@ Supported observation event types in the current public contract:
 | `obs.human.presence` | `user` | JSON string with aggregate human/tracked counts and source. |
 | `obs.social.grouping` | `user` | JSON string with group count, singleton count, largest group size, groups, and source. |
 | `obs.social.context` | `user` | JSON string with `schemaVersion: 1`, aggregate group fields, and per-person movement/attention fields. |
-| `obs.hand.sign` | `user` | JSON string with `sign` as `rock`, `scissor`, or `paper`, plus confidence/source fields. |
+| `obs.hand.sign` | `user` | JSON string with an RPS `sign` (`rock`, `scissor`, `paper`), confidence, source and timestamp. Camera events may include `cannedGesture`, `stabilityFrames`, `recognizer`, `inferenceMs`, and active `captureId`. |
+| `obs.hand.pose` | `user` | JSON string with `schemaVersion: 1`, `handCount`, up to two `hands` with estimated `handedness`, optional `handednessConfidence`, numeric/null `fingers` (`thumb`, `index`, `middle`, `ring`, `little`) and optional `fingerStates` with those same keys (`straight`, `neutral`, `bent` or null), plus source, recognizer and `ts`. Bend is 0 straight to 1 fully bent; below 0.4 is straight, above 0.55 bent, the inclusive middle range neutral. Null is unavailable. See the hand-detector section for the full schema and limits. |
 | `obs.weather.current` | `system` | JSON string with location, condition, intensity, wind, temperature, precipitation, and timestamp. |
 | `obs.weather.forecast` | `system` | JSON string with location and `days[]` forecast entries. |
 
@@ -2037,13 +2183,16 @@ Two execution forms are supported:
   constraints and result quality still require human/provider acceptance testing.
 - **Sensor reactions:** reuse Generic's validated 1–4 rules, confidence/sample
   checks, cooldown, action limit, `ACT`/`WAIT`/`COMPLETE` effects and
-  `IMMEDIATE`/`ON_CUE` timing. Spoken Live actions retain response-capture gating;
+  `IMMEDIATE`/`ON_CUE` timing. Hand-pose rules can combine up to five
+  finger state or numeric comparisons on the same hand (see the hand-detector section).
+  Spoken Live actions retain response-capture gating;
   silent actions do not wait for captions. Instructions cannot enable sensors or
   alter microphone/turn settings.
 
 A proposal may additionally request up to three **recognition demonstrations**,
 each checking one supported sensor field using `eq`, `lt` or `gt` and a confidence
-threshold. For example, show rock and paper separately before agreeing to use them
+threshold, or one `handPose` condition group with confidence zero. For example,
+show rock and paper separately before agreeing to use them
 as commands. Only fresh observations after the proposal satisfy those checks;
 repeated evidence or “I showed them” cannot supply a missing demonstration.
 Progress is persisted and updated without model calls. When all checks are met,

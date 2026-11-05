@@ -72,7 +72,8 @@ public class CoordinationAgent implements AgentDefinition {
             dialogueLimit: 1..50 agreed agent contributions, including the initial contribution; use a small explicit bound.
             reactions: null for dialogue tasks, otherwise the executable sensor task below; its goal equals agreement.goal.
             checks: up to three optional recognition demonstrations, each exactly eventType, field, operator, value,
-            minConfidence. Use only supported sensor fields and eq/lt/gt with their actual value types.
+            minConfidence. Hand-pose checks instead have exactly eventType, handPose, minConfidence as described
+            in the runtime hand-pose extension. Use only supported sensor fields and eq/lt/gt with their actual value types.
             Checks require fresh observations after this proposal; each is recognised once.
             Do not ask whether to confirm recognition, say ready or wait for START:
             the backend always confirms completed checks and invites acceptance before execution. Optional wording
@@ -84,9 +85,10 @@ public class CoordinationAgent implements AgentDefinition {
             Keep the entire agreement below 3000 UTF-8 bytes. Do not remove a material constraint to fit; simplify with the user.
 
             A reactions task has goal, maxActions (1..50), sessionBound (true unless explicit autonomous continuation),
-            firstAction (IMMEDIATE or ON_CUE), rules (1..4). Each rule has exactly eventType, field, operator, value,
+            firstAction (IMMEDIATE or ON_CUE), rules (1..4). Each scalar rule has exactly eventType, field, operator, value,
             action (up to 300 characters), effect (ACT, WAIT or COMPLETE), minConfidence (0..1), samples (1..3),
-            cooldownSeconds (3..60). Rules compare one supported field with eq, lt or gt. Default to one sample.
+            cooldownSeconds (3..60). Scalar rules compare one supported field with eq, lt or gt. Hand-pose rules
+            use the runtime hand-pose extension to combine classified finger states or numeric comparisons. Default to one sample.
             value is already a JSON string, number or boolean. Never add schema/type metadata such as valueType to a rule.
             If the action asks for current perception, store an instruction to use fresh supplied observations AT EXECUTION.
             Never turn that into a prewritten estimate or invent an example expression (such as neutral or attentive)
@@ -97,7 +99,8 @@ public class CoordinationAgent implements AgentDefinition {
             ACT requests the agreed response; WAIT suspends reactions until an ACT cue; COMPLETE ends without another action.
             ON_CUE needs an ACT rule. To act once on a later cue, use ON_CUE with maxActions 1 and ACT.
             No positive detection confidence for an observed zero human count. Missing/stale data means unknown.
-            Preserve the agreed first-action timing. Distinct rules are independent, not compound conditions or arbitrary workflows.
+            Preserve the agreed first-action timing. Distinct rules are independent; combine finger conditions
+            inside one handPose rule. Arbitrary compound workflows are unsupported.
             Explain limits, cooldown, first action and whether Live loss pauses the task. Dialogue tasks always pause on Live loss.
             Task control cannot activate sensors, change turn settings, fetch weather, identify people, control devices,
             run arbitrary code or verify physical actions. Suggest a supported alternative for unsupported requests.

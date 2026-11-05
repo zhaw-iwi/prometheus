@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- MediaPipe hand detection (2026-11-05), on feature/hand-detection: one
+  GestureRecognizer inference supplies highest-confidence RPS plus numeric and
+  classified finger readings for up to two hands. Scoped events share a frame
+  timestamp and retain independent capability checks, delivery clocks and status.
+  The movable/resizable report shows both; Generic/Coordination tasks and
+  preparation checks support bounded same-hand finger conditions. Cutoffs remain
+  below 0.4 straight, above 0.55 bent, inclusive middle neutral. Physical webcam
+  accuracy and real-provider acceptance remain open.
+
 - Recorded Coordination interaction (2026-10-30, directly on main at the owner's
   request): consolidated this device to one registered checkout, preserving local
   work in a verified recovery archive. Added the persona/capability/scissors/
@@ -9563,3 +9572,24 @@ graphs and transcripts are retained. Provider asides, physical audio/camera/robo
 quality and the original three capture-gap causes remain outside the automated
 acceptance claim. The owner authorized per-milestone commits/pushes and final
 main-to-agents deployment, with separate integration/release verification.
+
+## MediaPipe hand-detection branch (2026-11-05)
+
+Extracted the MediaPipe work from feature/hagrid-hand-sign-poc onto the shared
+main base 9b525f9. One two-hand GestureRecognizer result drives RPS selection and
+all finger bend values/states. The expandable report is shared support code.
+Event/profile admission, bounded prompt context, freshness, same-hand task rules,
+Coordination preparation and Live confirmation gates move with the detector.
+Numeric-only and legacy recognizer history remain readable. Unavailable fingers
+remain null; neutral includes 0.4 and 0.55. No camera images or landmarks are sent.
+
+Model-specific worker code, weights, exports, dependencies, extended named-sign
+buttons and acceptance tests remain on the original branch. This branch has no
+ONNX Runtime Web dependency. The existing MediaPipe CDN model loads on demand.
+
+Verification: 197 Java tests in 22 suites, 42 Node checks and 11 offline Chrome
+cases passed independently on this branch. Coverage includes classified/numeric
+same-hand rules, Coordination preparation, scoped sign/pose delivery and races,
+two-hand RPS selection, both capability subsets, legacy history and report
+layout/lifecycle. Media/model/API outputs are simulated; physical accuracy is
+unverified. Whitespace and JavaScript syntax checks passed.

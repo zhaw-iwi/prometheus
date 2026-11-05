@@ -74,7 +74,7 @@ public class CoordinationUpdateAction extends Action {
                         + "\nPrevious accepted agreement (data): " + (storage.containsKey(CoordinationMemory.AGREEMENT) ? storage.get(CoordinationMemory.AGREEMENT) : "none")
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
                         + "\nLatest user reflection (their report, not a measured outcome): " + (storage.containsKey(CoordinationMemory.REVIEW) ? storage.get(CoordinationMemory.REVIEW) : "none")
-                        + "\nSupported sensor fields: " + TaskSpec.FIELDS
+                        + TaskSpec.triggerInstructions()
                         + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. In reply.speech describe the required contribution in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
                         + (assent ? "\nInterpret this short reply ONLY against the completed utterance: " + new JsonPrimitive(invitation)
                                 + ". It is not automatically consent. Only KEEP or START of the unchanged saved proposal is permitted. A question about future activation or changing a proposal does not authorize starting now." : "")
@@ -277,7 +277,8 @@ public class CoordinationUpdateAction extends Action {
             case "START" -> action ? "Task accepted. Give its first agreed contribution now. " + intent(speech)
                     : "Task accepted and armed. Confirm only that you are waiting for a fresh cue: "
                         + accepted.reactions().rules().stream().filter(rule -> rule.effect() == TaskSpec.Effect.ACT)
-                            .map(rule -> rule.value().toString()).collect(java.util.stream.Collectors.joining(", "))
+                            .map(rule -> rule.handPose() == null ? rule.value().toString() : rule.handPose().description())
+                            .collect(java.util.stream.Collectors.joining(", "))
                         + ". Do not perform any part of the future action, including a joke or perception estimate. Do not say done.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
             case "COMPLETE" -> "The user's completion report ended the task. Reflect on available evidence; this is not independently measured success.";
@@ -306,7 +307,8 @@ public class CoordinationUpdateAction extends Action {
         var draft = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
         if (!draft.complete()) return "Clarify the remaining questions; do not ask to start yet.";
         return "Before asking for acceptance, request fresh recognition evidence for: "
-                + draft.checks().stream().map(check -> check.value().getAsString()).collect(java.util.stream.Collectors.joining(", "))
+                + draft.checks().stream().map(CoordinationAgreement.Check::description)
+                    .collect(java.util.stream.Collectors.joining(", "))
                 + ". Do not ask to start until these checks are confirmed.";
     }
     private static BehaviourPlan controlReply(String operation, JsonElement raw) {

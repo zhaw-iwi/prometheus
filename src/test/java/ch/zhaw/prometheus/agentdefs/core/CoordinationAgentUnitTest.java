@@ -213,9 +213,11 @@ class CoordinationAgentUnitTest {
         assertEquals(originalResponse, policy().liveActivityContext().continuation().id()); clearInvocations(gateway);
         sign("rock", 1, Instant.now(), live); verifyNoInteractions(gateway);
         var created = Instant.parse(storage().get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString());
-        var event = hear("The task is armed and waiting for your rock sign", true, created.plusMillis(1));
-        var check = TaskResponse.claim(storage(), owner, event, created.plusMillis(1), created.plusMillis(2)).orElseThrow();
-        assertTrue(TaskResponse.finish(storage(), owner, check, true, created.plusMillis(3)));
+        var started = created.plusNanos(1);
+        var event = hear("The task is armed and waiting for your rock sign", true, started);
+        var check = TaskResponse.claim(storage(), owner, event, started, Instant.now()).orElseThrow();
+        // Keep confirmation in the past of the next real-time cue, even on a fast test run.
+        assertTrue(TaskResponse.finish(storage(), owner, check, true, Instant.now()));
         when(gateway.infer(any())).thenReturn("{\"motion\":{\"handSign\":\"paper\"}}");
         assertNotNull(sign("rock", 1, Instant.now(), live)); assertEquals(1, storage().get(TaskMemory.ACTIONS).getAsInt());
         assertFalse(storage().containsKey(TaskResponse.KEY)); assertNull(policy().liveActivityContext().continuation());

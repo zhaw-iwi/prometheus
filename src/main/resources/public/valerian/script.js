@@ -111,6 +111,14 @@ const camera = {
   handDetectorError: "",
   socialDetector: null,
   handRecognizer: null,
+  handModel: "mediapipe",
+  handModelRevision: 0,
+  handLoadPromise: null,
+  handInferencePending: false,
+  handPoseEstimator: null,
+  handPoseStableKey: null,
+  handPoseStableFrames: 0,
+  lastHandPoseEmitAt: 0,
   tracks: new Map(),
   nextTrackId: 1,
   lastEmotionEmitAt: 0,
@@ -242,6 +250,7 @@ const PROFILE_VISUAL_OBSERVATIONS = [
   "obs.social.grouping",
   "obs.social.context",
   "obs.hand.sign",
+  "obs.hand.pose",
 ];
 
 const PROFILE_WEATHER_OBSERVATIONS = [
@@ -252,7 +261,7 @@ const PROFILE_WEATHER_OBSERVATIONS = [
 const PROFILE_SENSOR_OBSERVATIONS = {
   emotion: ["obs.emotion.face"],
   social: ["obs.human.presence", "obs.social.grouping", "obs.social.context"],
-  hand: ["obs.hand.sign"],
+  hand: ["obs.hand.sign", "obs.hand.pose"],
 };
 
 const HAND_CONNECTIONS = [
@@ -265,6 +274,7 @@ const HAND_CONNECTIONS = [
 ];
 
 const stateView = window.PrometheusStateView.create();
+const handReportView = window.PrometheusHandReport.create();
 
 window.addEventListener("load", init);
 window.addEventListener("beforeunload", cleanupAll);
@@ -313,6 +323,7 @@ function wireUi() {
   });
   wireColumnExpansion();
   wireColumnDetach();
+  document.querySelector('[data-hand-report-action="expand"]').addEventListener("click", expandHandReport);
   document.getElementById("submit_access_code").addEventListener("click", submitAccessCode);
   document.getElementById("access_code_input").addEventListener("keydown", handleAccessCodeKeyDown);
   document.getElementById("clear_access_code").addEventListener("click", clearAccessSession);
@@ -412,6 +423,7 @@ function wireUi() {
   document.querySelectorAll("#sensor_emotion_enabled,#sensor_social_enabled,#sensor_hand_enabled").forEach((input) => {
     input.addEventListener("change", handleSensorModeChange);
   });
+  document.getElementById("hand_model_select").addEventListener("change", handleHandModelChange);
   document.getElementById("fetch_weather_current").addEventListener("click", fetchWeatherCurrent);
   document.getElementById("send_weather_current").addEventListener("click", sendWeatherCurrent);
   document.getElementById("send_weather_forecast").addEventListener("click", sendWeatherForecast);
@@ -432,6 +444,18 @@ function wireColumnExpansion() {
   modalElement.addEventListener("shown.bs.modal", refreshExpandedColumnLayout);
 }
 
+function expandHandReport() {
+  const modal = document.getElementById("column_expansion_modal");
+  if (columnExpansion.active) {
+    // Return Sensing to the cockpit before floating the report beside the camera.
+    const agentId = state.agentId;
+    modal.addEventListener("hidden.bs.modal", () => {
+      if (agentId === state.agentId && !document.getElementById("cockpit_shell").hidden) handReportView.expand();
+    }, { once: true });
+    columnExpansion.modal.hide();
+  } else handReportView.expand();
+}
+
 function openColumnExpansion(columnKey, title) {
   if (!columnKey) {
     return;
@@ -443,6 +467,7 @@ function openColumnExpansion(columnKey, title) {
   if (!panel || !modalBody || !columnExpansion.modal) {
     return;
   }
+  handReportView.dock();
   if (columnExpansion.active && columnExpansion.active.panel === panel) {
     columnExpansion.modal.show();
     return;
@@ -928,7 +953,10 @@ async function clearAccessSession() {
 }
 
 function showCockpit(visible) {
-  if (!visible) stateView.dock();
+  if (!visible) {
+    stateView.dock();
+    handReportView.dock();
+  }
   const accessScreen = document.getElementById("access_screen");
   const cockpitShell = document.getElementById("cockpit_shell");
   accessScreen.hidden = visible;
@@ -1246,6 +1274,7 @@ function applyInteractionProfile(profile) {
     const visible = profileElementVisible(element, capabilities);
     setProfileElementVisible(element, visible);
   });
+  if (document.getElementById("hand_report").hidden) handReportView.dock();
   updateVisualSensingEmptyState(capabilities);
   resetUnsupportedSensorModes(capabilities);
 }
@@ -1433,6 +1462,10 @@ function renderHistoricalSensingEvent(event) {
     renderSocialFromHistory(event.type, event.payload);
   } else if (event.type === "obs.hand.sign") {
     renderUserSignFromPayload(event.payload);
+  } else if (event.type === "obs.hand.pose") {
+    try {
+      renderHandPoseReport(JSON.parse(event.payload), "From history");
+    } catch (_) { resetHandSignReport("Invalid hand pose"); }
   } else if (event.type === "obs.weather.current" || event.type === "obs.weather.forecast") {
     renderWeatherFromPayload(event.type, event.payload);
   }
@@ -3245,6 +3278,7 @@ function updateCameraOwnershipControls() {
       element.disabled = !enabled;
     }
   });
+  document.getElementById("hand_model_select").disabled = !enabled || state.cameraRunning || !!camera.handLoadPromise;
   const start = document.getElementById("start_camera");
   if (start) {
     start.disabled = !enabled || state.cameraRunning;
@@ -3320,6 +3354,7 @@ async function startCamera() {
     document.getElementById("start_camera").disabled = true;
     document.getElementById("stop_camera").disabled = false;
     updateCameraDeviceControls();
+    updateCameraOwnershipControls();
     setCameraStatus("Camera Live", "live");
     setCameraDeviceStatus(`Camera input: ${selectedCameraDeviceLabel()}.`, "ready");
     refreshCameraDevices({ requestPermission: false, silent: true });
@@ -3333,6 +3368,7 @@ async function startCamera() {
 }
 
 function stopCamera(options = {}) {
+  resetCameraEmissionGate();
   if (liveVoice.ui?.presenceArmed) void liveVoice.ui.stop("Camera stopped.");
   if (camera.loopTimer) {
     clearTimeout(camera.loopTimer);
@@ -3344,10 +3380,15 @@ function stopCamera(options = {}) {
   }
   camera.video.srcObject = null;
   state.cameraRunning = false;
+  if (camera.handModel === "mediapipe") {
+    setText("hand_sign_value", "-");
+    resetHandSignReport("Camera stopped");
+  }
   clearOverlay();
   document.getElementById("start_camera").disabled = false;
   document.getElementById("stop_camera").disabled = true;
   updateCameraDeviceControls();
+  updateCameraOwnershipControls();
   if (!options.preserveStatus) {
     setCameraStatus("Camera Idle", "idle");
   }
@@ -3440,22 +3481,65 @@ async function loadSocialDetector() {
 }
 
 async function loadHandRecognizer() {
+  if (camera.handLoadPromise) return camera.handLoadPromise;
+  camera.handRecognizer?.close?.();
+  camera.handRecognizer = null;
+  camera.handPoseEstimator = null;
+  const revision = ++camera.handModelRevision;
+  const model = document.getElementById("hand_model_select")?.value || "mediapipe";
+  camera.handLoadPromise = createHandRecognizer(model, revision).finally(() => {
+    camera.handLoadPromise = null;
+    updateCameraOwnershipControls();
+  });
+  updateCameraOwnershipControls();
+  return camera.handLoadPromise;
+}
+
+async function handleHandModelChange() {
+  if (state.cameraRunning) return;
+  camera.handModelRevision += 1;
+  camera.handRecognizer?.close?.();
+  camera.handRecognizer = null;
+  camera.handDetectorReady = false;
+  camera.stableGestureKey = null;
+  camera.stableGestureCount = 0;
+  resetCameraEmissionGate();
+  resetHandSignReport(isSensorModeEnabled("hand") ? "Loading model" : "Detector off");
+  await ensureEnabledModels();
+}
+
+async function createHandRecognizer(model, revision) {
   camera.handDetectorError = "";
   try {
+    if (model !== "mediapipe") throw new Error(`Unknown hand detector: ${model}`);
+    const poseEstimator = (await import("./hand/finger-pose.js")).estimateHandPoses;
     const visionTasks = await import(MEDIAPIPE_TASKS_URL);
     const vision = await visionTasks.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_ROOT);
-    camera.handRecognizer = await visionTasks.GestureRecognizer.createFromOptions(vision, {
+    const recognizer = await visionTasks.GestureRecognizer.createFromOptions(vision, {
       baseOptions: { modelAssetPath: GESTURE_MODEL_URL },
       runningMode: "VIDEO",
-      numHands: 1,
+      numHands: 2,
     });
+    if (revision !== camera.handModelRevision) { recognizer.close?.(); return; }
+    camera.handRecognizer = recognizer;
+    camera.handPoseEstimator = poseEstimator;
+    camera.handModel = model;
+    camera.lastGestureVideoTime = -1;
     camera.handDetectorReady = true;
-    appendLog("camera", "gesture recognizer ready.");
+    setText("hand_report_detector", handRecognizerLabel(model));
+    setHandSignStatus("Model ready", "idle");
+    appendLog("camera", `${model} gesture recognizer ready.`);
   } catch (error) {
+    if (revision !== camera.handModelRevision) return;
     camera.handDetectorReady = false;
     camera.handDetectorError = errorMessage(error);
+    resetHandSignReport("Model load failed — stop camera and retry");
     throw error;
   }
+}
+
+function handRecognizerLabel(model) {
+  return ({ mediapipe: "MediaPipe", "mediapipe-fingers": "MediaPipe Finger Bend (legacy)" })[model] || "-";
 }
 
 async function runCameraLoop() {
@@ -3541,30 +3625,68 @@ async function detectSocial() {
 
 async function detectHandSign() {
   if (camera.video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
-    camera.video.currentTime === camera.lastGestureVideoTime) {
+    camera.video.currentTime === camera.lastGestureVideoTime || camera.handInferencePending) {
     return;
   }
-  const result = camera.handRecognizer.recognizeForVideo(camera.video, performance.now());
-  const candidate = selectCameraGesture(result);
-  updateCameraStability(candidate);
-  drawGestureOverlay(candidate);
-  if (candidate) {
-    setText("hand_sign_value", `${SIGNS[candidate.sign].label} ${candidate.confidence.toFixed(2)}`);
-    renderHandSignReport(candidate.sign, {
-      source: "valerian.hand.camera",
-      detectionMode: "client_camera",
-      confidence: candidate.confidence,
-      cannedGesture: candidate.cannedGesture,
-      stabilityFrames: camera.stableGestureCount,
-      statusText: "Detected",
-      statusMode: "idle",
-    });
-  } else {
-    setText("hand_sign_value", "-");
-    resetHandSignReport("No sign");
-  }
-  await maybeEmitCameraSign(candidate);
-  camera.lastGestureVideoTime = camera.video.currentTime;
+  const frameTime = camera.video.currentTime;
+  const revision = camera.handEmissionRevision || 0;
+  const agentId = state.agentId;
+  const observedAt = new Date().toISOString();
+  camera.handInferencePending = true;
+  try {
+    const started = performance.now();
+    const result = await camera.handRecognizer.recognizeForVideo(camera.video, started);
+    if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
+    const candidate = selectCameraGesture(result);
+    const inferenceMs = result?.inferenceMs ?? performance.now() - started;
+    if (candidate) {
+      candidate.recognizer = camera.handModel;
+      candidate.inferenceMs = inferenceMs;
+      candidate.observedAt = observedAt;
+    }
+    updateCameraStability(candidate);
+    for (const landmarks of result.landmarks || []) drawGestureOverlay({ landmarks });
+    if (candidate) {
+      setText("hand_sign_value", `${SIGNS[candidate.sign].label} ${candidate.confidence.toFixed(2)}`);
+      renderHandSignReport(candidate.sign, {
+        source: "valerian.hand.camera",
+        detectionMode: "client_camera",
+        confidence: candidate.confidence,
+        cannedGesture: candidate.cannedGesture,
+        stabilityFrames: camera.stableGestureCount,
+        recognizer: candidate.recognizer,
+        inferenceMs,
+        statusText: "Detected",
+        statusMode: "idle",
+      });
+    } else {
+      setText("hand_sign_value", "-");
+      resetHandSignReport("No sign");
+    }
+    setText("hand_report_detector", handRecognizerLabel(camera.handModel));
+    setText("hand_report_inference", `${inferenceMs.toFixed(1)} ms`);
+    const hands = camera.handPoseEstimator(result);
+    const key = hands.map(hand => hand.handedness).sort().join("|");
+    camera.handPoseStableFrames = key === camera.handPoseStableKey ? camera.handPoseStableFrames + 1 : 1;
+    camera.handPoseStableKey = key;
+    const pose = {
+      schemaVersion: 1, source: "valerian.hand.camera", detectionMode: "client_camera",
+      recognizer: "mediapipe", handCount: hands.length, hands,
+      inferenceMs: round(inferenceMs, 1), ts: observedAt,
+    };
+    renderHandPoseReport(pose, "Detected", { combined: true });
+    await maybeEmitCameraSign(candidate);
+    if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
+    await maybeEmitHandPose(pose);
+    if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
+    camera.lastGestureVideoTime = frameTime;
+  } catch (error) {
+    if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
+    setHandSignStatus("Detection failed — stop camera and retry", "error");
+    camera.handDetectorReady = false;
+    camera.handDetectorError = errorMessage(error);
+    throw error;
+  } finally { camera.handInferencePending = false; }
 }
 
 function deriveEmotion(expressions) {
@@ -4721,7 +4843,9 @@ function selectCameraGesture(result) {
 }
 
 function updateCameraStability(candidate) {
-  const key = candidate ? `${candidate.sign}|${candidate.cannedGesture}` : null;
+  const threshold = Number(document.getElementById("hand_confidence_threshold").value || 0.65);
+  const key = candidate && Number.isFinite(candidate.confidence) && candidate.confidence >= threshold
+    ? `${candidate.sign}|${candidate.cannedGesture}` : null;
   if (!key) {
     camera.stableGestureKey = null;
     camera.stableGestureCount = 0;
@@ -4747,6 +4871,10 @@ async function maybeEmitCameraSign(candidate) {
     setHandSignStatus("Not sent: enable Emit camera observations", "idle");
     return;
   }
+  if (!currentProfileSupportsObservation("obs.hand.sign")) {
+    setHandSignStatus("Not sent: this agent does not support named hand signs", "idle");
+    return;
+  }
   if (candidate.confidence < Number(document.getElementById("hand_confidence_threshold").value || 0.65)) {
     setHandSignStatus("Not sent: below hand confidence threshold", "idle");
     return;
@@ -4767,6 +4895,10 @@ async function maybeEmitCameraSign(candidate) {
     confidence: round(candidate.confidence, 3),
     cannedGesture: candidate.cannedGesture,
     stabilityFrames: camera.stableGestureCount,
+    recognizer: candidate.recognizer,
+    inferenceMs: candidate.inferenceMs,
+    observedAt: candidate.observedAt,
+    preservePose: true,
   });
   if (ok && emissionRevision === (camera.handEmissionRevision || 0)) {
     camera.lastCameraEmitKey = emitKey;
@@ -4777,10 +4909,92 @@ async function maybeEmitCameraSign(candidate) {
       confidence: candidate.confidence,
       cannedGesture: candidate.cannedGesture,
       stabilityFrames: camera.stableGestureCount,
+      recognizer: candidate.recognizer,
+      inferenceMs: candidate.inferenceMs,
+      preservePose: true,
       statusText: `Emitted ${new Date().toLocaleTimeString()}`,
       statusMode: "live",
     });
   }
+}
+
+async function maybeEmitHandPose(payload) {
+  if (!state.agentId) { setHandPoseStatus("Not sent: connect an agent", "idle"); return; }
+  if (!document.getElementById("sensor_emit_enabled").checked) {
+    setHandPoseStatus("Not sent: enable Emit camera observations", "idle"); return;
+  }
+  if (!currentProfileSupportsObservation("obs.hand.pose")) {
+    setHandPoseStatus("Not sent: this agent does not support hand poses; create a new multimodal instance", "idle"); return;
+  }
+  if (camera.handPoseStableFrames < REQUIRED_STABLE_GESTURE_FRAMES) {
+    setHandPoseStatus(`Stabilizing ${camera.handPoseStableFrames}/${REQUIRED_STABLE_GESTURE_FRAMES}`, "idle"); return;
+  }
+  if (!passesSensorEmitInterval("handPose")) {
+    setHandPoseStatus(`Emitted ${new Date(camera.lastHandPoseEmitAt).toLocaleTimeString()}`, "live"); return;
+  }
+  const revision = camera.handEmissionRevision || 0;
+  const agentId = state.agentId;
+  setHandPoseStatus("Sending", "idle");
+  const data = await acknowledgeEvent({ type: "obs.hand.pose", actor: "user", kind: "observation",
+    payload: JSON.stringify(payload) }, { renderResponse: true });
+  if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
+  if (data) {
+    markSensorEmitted("handPose");
+    setHandPoseStatus(`Emitted ${new Date(camera.lastHandPoseEmitAt).toLocaleTimeString()}`, "live");
+  } else setHandPoseStatus("Emit failed", "error");
+}
+
+function renderHandPoseReport(payload, status = "Detected", { combined = false } = {}) {
+  const hands = Array.isArray(payload?.hands) ? payload.hands.slice(0, 2) : [];
+  document.getElementById("hand_sign_report_details").hidden = !combined;
+  document.getElementById("hand_pose_report").hidden = false;
+  const container = document.getElementById("hand_pose_hands");
+  container.replaceChildren();
+  hands.forEach((hand, index) => {
+    const card = document.createElement("section");
+    card.className = "finger-pose-hand";
+    const title = document.createElement("strong");
+    const side = ["left", "right"].includes(hand.handedness) ? hand.handedness : "unknown side";
+    title.textContent = `Hand ${index + 1} · ${side}`;
+    card.appendChild(title);
+    for (const name of ["thumb", "index", "middle", "ring", "little"]) {
+      const row = document.createElement("div");
+      row.className = "finger-pose-row";
+      const label = document.createElement("span");
+      label.textContent = name[0].toUpperCase() + name.slice(1);
+      const value = hand.fingers?.[name];
+      const available = Number.isFinite(value) && value >= 0 && value <= 1;
+      const classification = hand.fingerStates?.[name];
+      const stateLabel = document.createElement("small");
+      stateLabel.className = "d-block text-muted";
+      stateLabel.dataset.fingerState = name;
+      stateLabel.textContent = !available ? "Unavailable" : ["straight", "neutral", "bent"].includes(classification)
+        ? classification[0].toUpperCase() + classification.slice(1) : "Unclassified";
+      label.append(stateLabel);
+      const meter = document.createElement("meter");
+      meter.min = 0; meter.max = 1; meter.value = available ? value : 0;
+      meter.hidden = !available;
+      meter.setAttribute("aria-label", `${name} bend, 0 straight to 1 fully bent`);
+      const number = document.createElement("output");
+      number.dataset.finger = name;
+      number.textContent = available ? value.toFixed(3) : "—";
+      number.title = available ? "Estimated bend" : "Unavailable";
+      row.append(label, meter, number);
+      card.appendChild(row);
+    }
+    container.appendChild(card);
+  });
+  if (!hands.length) container.textContent = "No hands detected";
+  setHandPoseStatus(status, "idle");
+  if (combined) return;
+  setText("hand_sign_value", `${hands.length} hand${hands.length === 1 ? "" : "s"} · finger bend`);
+  setText("hand_report_source", sourceLabel(payload.source));
+  setText("hand_report_mode", status === "From history" ? "History" : "Camera");
+  setText("hand_report_canned", "No named sign");
+  setText("hand_report_stability", status === "From history" ? "-" : `${camera.handPoseStableFrames} frames`);
+  setText("hand_report_detector", handRecognizerLabel(payload.recognizer));
+  setText("hand_report_inference", Number.isFinite(payload.inferenceMs) ? `${payload.inferenceMs.toFixed(1)} ms` : "-");
+  setHandSignStatus(status, "idle");
 }
 
 async function submitHandSign(sign, options = {}) {
@@ -4799,6 +5013,9 @@ async function submitHandSign(sign, options = {}) {
     confidence: typeof options.confidence === "number" ? options.confidence : 1.0,
     cannedGesture: options.cannedGesture,
     stabilityFrames: options.stabilityFrames,
+    recognizer: options.recognizer,
+    inferenceMs: options.inferenceMs,
+    preservePose: options.preservePose,
     statusText: "Sending",
     statusMode: "idle",
   });
@@ -4808,7 +5025,7 @@ async function submitHandSign(sign, options = {}) {
     sign: normalized,
     confidence: typeof options.confidence === "number" ? options.confidence : 1.0,
     detectionMode: options.detectionMode || "manual",
-    ts: new Date().toISOString(),
+    ts: options.observedAt || new Date().toISOString(),
   };
   if (captureId) payload.captureId = captureId;
   if (options.cannedGesture) {
@@ -4817,6 +5034,8 @@ async function submitHandSign(sign, options = {}) {
   if (options.stabilityFrames) {
     payload.stabilityFrames = options.stabilityFrames;
   }
+  if (options.recognizer) payload.recognizer = options.recognizer;
+  if (Number.isFinite(options.inferenceMs)) payload.inferenceMs = round(options.inferenceMs, 1);
   const data = await acknowledgeEvent({
     type: "obs.hand.sign",
     actor: "user",
@@ -4831,6 +5050,9 @@ async function submitHandSign(sign, options = {}) {
       confidence: payload.confidence,
       cannedGesture: payload.cannedGesture,
       stabilityFrames: payload.stabilityFrames,
+      recognizer: payload.recognizer,
+      inferenceMs: payload.inferenceMs,
+      preservePose: options.preservePose,
       statusText: `Emitted ${new Date().toLocaleTimeString()}`,
       statusMode: "live",
     });
@@ -5395,10 +5617,11 @@ function drawGestureOverlay(candidate) {
   camera.ctx.lineWidth = 2;
   camera.ctx.strokeStyle = "#1d4ed8";
   camera.ctx.fillStyle = "#1d4ed8";
+  const drawable = point => point && Number.isFinite(point.x) && Number.isFinite(point.y);
   for (const [a, b] of HAND_CONNECTIONS) {
     const pa = landmarks[a];
     const pb = landmarks[b];
-    if (!pa || !pb) {
+    if (!drawable(pa) || !drawable(pb)) {
       continue;
     }
     camera.ctx.beginPath();
@@ -5407,6 +5630,7 @@ function drawGestureOverlay(candidate) {
     camera.ctx.stroke();
   }
   for (const p of landmarks) {
+    if (!drawable(p)) continue;
     camera.ctx.beginPath();
     camera.ctx.arc((1 - p.x) * width, p.y * height, 3, 0, Math.PI * 2);
     camera.ctx.fill();
@@ -5451,11 +5675,12 @@ function liveSensorRefreshDue(lastEmitAt) {
 
 function passesSensorEmitInterval(mode) {
   const configured = Number(document.getElementById("emit_interval_ms").value || 2500);
-  const minInterval = liveVoice.ui?.active && mode !== "hand" ? Math.min(configured, LIVE_SENSOR_REFRESH_MS) : configured;
+  const minInterval = liveVoice.ui?.active && !["hand", "handPose"].includes(mode) ? Math.min(configured, LIVE_SENSOR_REFRESH_MS) : configured;
   const lastEmitAtByMode = {
     emotion: Math.max(camera.lastEmotionEmitAt || 0, camera.lastEmotionAttemptAt || 0),
     social: Math.max(camera.lastSocialEmitAt || 0, camera.lastSocialAttemptAt || 0),
     hand: camera.lastCameraEmitAt,
+    handPose: camera.lastHandPoseEmitAt,
   };
   return Date.now() - (lastEmitAtByMode[mode] || 0) >= minInterval;
 }
@@ -5468,6 +5693,8 @@ function markSensorEmitted(mode) {
     camera.lastSocialEmitAt = now;
   } else if (mode === "hand") {
     camera.lastCameraEmitAt = now;
+  } else if (mode === "handPose") {
+    camera.lastHandPoseEmitAt = now;
   }
 }
 
@@ -5475,6 +5702,9 @@ function resetCameraEmissionGate() {
   camera.handEmissionRevision = (camera.handEmissionRevision || 0) + 1;
   camera.lastCameraEmitKey = null;
   camera.lastCameraEmitAt = 0;
+  camera.lastHandPoseEmitAt = 0;
+  camera.handPoseStableKey = null;
+  camera.handPoseStableFrames = 0;
 }
 
 function resetDisabledSensorState() {
@@ -5497,6 +5727,7 @@ function resetDisabledSensorState() {
     camera.lastSocialContextEmitAt = 0;
   }
   if (!isSensorModeEnabled("hand")) {
+    resetCameraEmissionGate();
     setText("hand_sign_value", "-");
     resetHandSignReport("Detector off");
     camera.stableGestureKey = null;
@@ -5533,6 +5764,8 @@ function renderUserSignFromPayload(payload) {
         confidence,
         cannedGesture: parsed.cannedGesture,
         stabilityFrames: parsed.stabilityFrames,
+        recognizer: parsed.recognizer,
+        inferenceMs: parsed.inferenceMs,
         statusText: "From history",
         statusMode: "idle",
       });
@@ -5551,13 +5784,15 @@ function renderUserSign(sign) {
 }
 
 function renderSign(prefix, sign) {
-  const normalized = normalizeSign(sign);
+  const normalized = prefix === "user" ? normalizeSign(sign) : normalizeSign(sign);
   const ui = normalized ? SIGNS[normalized] : null;
   setText(`${prefix}_sign_label`, ui ? ui.label : "-");
   setText(`${prefix}_sign_visual`, ui ? ui.symbol : "-");
 }
 
 function renderHandSignReport(sign, options = {}) {
+  document.getElementById("hand_sign_report_details").hidden = false;
+  if (!options.preservePose) document.getElementById("hand_pose_report").hidden = true;
   const normalized = normalizeSign(sign);
   const ui = normalized ? SIGNS[normalized] : null;
   if (!ui) {
@@ -5573,10 +5808,16 @@ function renderHandSignReport(sign, options = {}) {
   setText("hand_report_mode", modeLabel(options.detectionMode));
   setText("hand_report_canned", options.cannedGesture || "-");
   setText("hand_report_stability", options.stabilityFrames ? `${options.stabilityFrames} frames` : "-");
+  setText("hand_report_detector", options.detectionMode === "manual" ? "Manual" : handRecognizerLabel(options.recognizer));
+  setText("hand_report_inference", Number.isFinite(options.inferenceMs) ? `${options.inferenceMs.toFixed(1)} ms` : "-");
   setHandSignStatus(options.statusText || "Live", options.statusMode || "live");
 }
 
 function resetHandSignReport(statusText = "No sign") {
+  document.getElementById("hand_sign_report_details").hidden = false;
+  document.getElementById("hand_pose_report").hidden = true;
+  document.getElementById("hand_pose_hands").replaceChildren();
+  setHandPoseStatus("No hands", "idle");
   setText("hand_report_visual", "-");
   setText("hand_report_label", "-");
   setText("hand_report_confidence", "0%");
@@ -5585,11 +5826,17 @@ function resetHandSignReport(statusText = "No sign") {
   setText("hand_report_mode", "-");
   setText("hand_report_canned", "-");
   setText("hand_report_stability", "-");
+  setText("hand_report_detector", "-");
+  setText("hand_report_inference", "-");
   setHandSignStatus(statusText, "idle");
 }
 
-function setHandSignStatus(text, mode = "idle") {
-  const el = document.getElementById("hand_sign_status");
+function setHandPoseStatus(text, mode = "idle") {
+  setHandSignStatus(text, mode, "hand_pose_status");
+}
+
+function setHandSignStatus(text, mode = "idle", id = "hand_sign_status") {
+  const el = document.getElementById(id);
   if (!el) {
     return;
   }
@@ -5660,6 +5907,7 @@ function clearMessages() {
 }
 
 function resetCockpitColumns() {
+  handReportView.dock();
   clearMessages();
   if (liveVoice.ui) { liveVoice.ui.ledger = []; liveVoice.ui.setHistory([]); liveVoice.ui.captions({}); }
   const textInput = document.getElementById("text_input");
@@ -5782,7 +6030,7 @@ function setControlsEnabled(enabled) {
     "gptlive_tab",
   ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
-    if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.hasAttribute("data-state-action") || el.classList.contains("btn-close") ||
+    if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.hasAttribute("data-state-action") || el.hasAttribute("data-hand-report-action") || el.classList.contains("btn-close") ||
       el.hasAttribute("data-column-maximize") || el.dataset.bsDismiss === "offcanvas" ||
       el.dataset.bsToggle === "collapse") {
       return;
@@ -5893,6 +6141,7 @@ function setCameraStatus(text, mode) {
 function cleanupAll() {
   state.isPageUnloading = true;
   stateView.dock();
+  handReportView.dock();
   void liveVoice.ui?.stop("Page closed.");
   void stopSpeechPlayback("page_unload", { reset: true, silent: true });
   releaseAllControlOwnership();
@@ -6065,6 +6314,7 @@ function normalizeSign(value) {
   }
   return null;
 }
+
 
 function winnerLabel(value) {
   const token = String(value || "").trim().toLowerCase();
