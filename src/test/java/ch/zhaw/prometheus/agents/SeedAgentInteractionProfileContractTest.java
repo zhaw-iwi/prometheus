@@ -63,11 +63,20 @@ class SeedAgentInteractionProfileContractTest {
 
     @Test
     void keyMultimodalCapabilitiesRemainDeclared() {
+        AgentInteractionProfile facial = new FacialExpressionSensitivity().createAgent().getInteractionProfile();
+        assertWeatherSupport(facial);
+        assertTrue(facial.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
+        assertTrue(facial.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
+
         AgentInteractionProfile socialContext = new SocialContextSensitivity().createAgent().getInteractionProfile();
+        assertWeatherSupport(socialContext);
+        assertTrue(socialContext.supportsObservation(AgentInteractionProfile.OBS_HUMAN_PRESENCE));
+        assertTrue(socialContext.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
         assertTrue(socialContext.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_CONTEXT));
         assertTrue(socialContext.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
 
         AgentInteractionProfile rps = new RockScissorPaper().createAgent().getInteractionProfile();
+        assertWeatherSupport(rps);
         assertTrue(rps.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
         assertTrue(rps.supportsBehaviourModality(AgentInteractionProfile.MODALITY_DISPLAY));
         assertTrue(rps.supportsBehaviourModality(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN));
@@ -89,5 +98,11 @@ class SeedAgentInteractionProfileContractTest {
             assertTrue(source.contains("setInteractionProfile("),
                     "missing interaction profile declaration in " + wiringFile);
         }
+    }
+
+    private static void assertWeatherSupport(AgentInteractionProfile profile) {
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
+        assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_FORECAST));
     }
 }
