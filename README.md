@@ -2108,6 +2108,16 @@ active failure; a failure near operator Stop retains an uncertain timing label.
 has been proved or repaired. The original three gaps still have no established
 physical cause.
 
+Rejected Coordination updates retain one content-free `coordination.lastFailure`
+fact in ordinary Storage: safe failure category/operation, time, source position,
+phase, run/revision and action count, with `mutationCommitted=false`. No raw model
+output, user wording or exception message is retained. It is applicable for at most
+30 minutes while those runtime identities remain unchanged; successful control
+progress clears it and reset removes it. Missing legacy evidence means unknown.
+This diagnostic addition requires no schema or saved-graph migration; it does
+not yet add conversational escalation. Roadmap and verification:
+`.agents/PLAN_ESCALATION.md` and `.agents/ESCALATION_RESULTS.md`.
+
 Agreement goals, roles and success criteria each allow up to 300 characters;
 the whole agreement remains bounded to 3000 UTF-8 bytes. A request for current
 perception stays an instruction to use fresh observations during execution,

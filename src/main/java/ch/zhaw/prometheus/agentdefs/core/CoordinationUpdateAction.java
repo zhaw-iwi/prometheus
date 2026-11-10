@@ -107,6 +107,10 @@ public class CoordinationUpdateAction extends Action {
             ch.zhaw.prometheus.logging.ActivityTrace.failed(inferred ? "coordination_update_invalid" : "coordination_update_failed");
             String category = failure instanceof UnexpectedTerms ? "protected_terms" : rejection;
             String safeOperation = OPERATIONS.contains(operation) ? operation : "UNKNOWN";
+            try { CoordinationRecovery.rejected(storage, category, safeOperation, event, now); }
+            catch (RuntimeException unavailable) {
+                org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn("Coordination recovery evidence unavailable");
+            }
             ch.zhaw.prometheus.logging.ActivityTrace.rejected(category, safeOperation, CoordinationMemory.stage(storage));
             org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn(
                     "Coordination update rejected; category={}, operation={}, phase={}; agreement and preparation preserved",
@@ -118,6 +122,7 @@ public class CoordinationUpdateAction extends Action {
         }
         if (!runtime.taskContinuation().getAsBoolean()) return;
         commit(operation, proposed, reply, event, now, runtime);
+        if (!Set.of("KEEP", "STATUS", "REFLECT").contains(operation)) CoordinationRecovery.clear(storage);
     }
     private boolean explicitCueStart(String command) {
         var draft = CoordinationMemory.agreement(getStorage(), CoordinationMemory.DRAFT);

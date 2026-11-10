@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Escalation ES-01 (2026-11-10): bounded content-free rejected-update evidence
+  persists in ordinary Coordination Storage, scoped to phase/run/revision/actions
+  and 30-minute applicability. Six synthetic classroom cases extend the isolated
+  runner artifacts. Passed 28 Java unit, eight disposable-MySQL integration and
+  eight runner cases; no provider or production writes. No schema/graph migration.
+  ES-02 follows under authorized sequential commit/push execution. Plan:
+  `.agents/PLAN_ESCALATION.md`; evidence: `.agents/ESCALATION_RESULTS.md`.
+
 - Client-owned hand confidence (2026-11-04): new Coordination preparation/reaction
   rules and Generic hand proposals default to no additional server confidence
   floor. Saved and explicitly requested thresholds retain their meaning; the

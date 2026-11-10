@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 import argparse
+import json
 import os
 import re
 import secrets
@@ -16,6 +17,17 @@ import subprocess
 import time
 import uuid
 import pymysql
+
+
+def escalation_cases(root):
+    fixture = json.loads((root / 'src/test/resources/coordination/escalation-cases.json').read_text(encoding='utf-8'))
+    cases = fixture['cases']
+    if fixture.get('baselineIsAcceptance') is not False or len({case['id'] for case in cases}) != len(cases):
+        raise ValueError('Escalation fixtures must have unique cases and cannot claim baseline acceptance')
+    for case in cases:
+        if not case['input'] or not case['expected'] or not re.fullmatch(r'ES-\d{2}', case['milestone']):
+            raise ValueError('Invalid escalation regression case')
+    return fixture
 
 
 def main():
@@ -40,6 +52,7 @@ def main():
         parser.error('--coordination-scenario interaction requires the Live Coordination journey')
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
+    recovery_fixture = escalation_cases(root)
     provider_props = {}
     if args.paid_core:
         # Preflight before provisioning or billing: a worktree may lack ignored local config.
@@ -70,6 +83,7 @@ def main():
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)
     artifacts.mkdir(parents=True)
+    (artifacts / 'escalation-cases.json').write_text(json.dumps(recovery_fixture, indent=2), encoding='utf-8')
     database = pymysql.connect(host=url.hostname, port=url.port or 3306,
         user=os.environ.get('GPTLIVE_MYSQL_ADMIN_USER', props.get('spring.datasource.username')),
         password=os.environ.get('GPTLIVE_MYSQL_ADMIN_PASSWORD', props.get('spring.datasource.password')), autocommit=True)

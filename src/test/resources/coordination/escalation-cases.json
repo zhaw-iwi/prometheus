@@ -1,0 +1,12 @@
+{
+  "description": "Synthetic classroom reliability cases; no student transcripts or production identities.",
+  "baselineIsAcceptance": false,
+  "cases": [
+    {"id":"prepared-start-rejected", "milestone":"ES-03", "input":["Recognise paper for preparation", "Begin our saved activity"], "expected":"Ready evidence survives rejection; acceptance never requires repeating satisfied checks"},
+    {"id":"perception-question", "milestone":"ES-04", "input":["fresh paper confidence 0.91", "Which sign is available?"], "expected":"Grounded answer or honest technical failure without task mutation"},
+    {"id":"riddle-answer", "milestone":"ES-05", "input":["Propose a guessing activity", "Answer the question"], "expected":"Negotiate a supported answer loop; never invite an unsupported task contribution"},
+    {"id":"extra-person", "milestone":"ES-06", "input":["One person is present", "Another person enters"], "expected":"Not silently compiled to the detector's zero-to-present arrival"},
+    {"id":"unaccepted-cue", "milestone":"ES-03", "input":["Propose one greeting on paper", "paper"], "expected":"No action before acceptance"},
+    {"id":"bounded-replacement", "milestone":"ES-05", "input":["Accept one greeting on paper", "paper", "Replace with one greeting on rock", "Accept", "paper", "rock"], "expected":"One action per accepted run; replacement suppresses the old cue"}
+  ]
+}

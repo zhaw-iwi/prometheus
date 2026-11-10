@@ -58,6 +58,22 @@ class CoordinationAgentIntegrationTest {
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
     }
+    @Test void rejectedUpdateEvidenceReloadsWithoutChangingPreparationAndClearsOnProgress() {
+        var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation activity");
+        var draft = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();
+        when(gateway.infer(any())).thenReturn("private invalid inference");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user",
+                Event.KIND_OBSERVATION, "Begin the saved activity"), OutputProfile.FULL_PLAN).orElseThrow();
+        var restored = memory(scope);
+        var failure = ch.zhaw.prometheus.model.coordination.CoordinationRecovery.current(restored, Instant.now());
+        assertNotNull(failure); assertEquals("update_shape", failure.get("category").getAsString());
+        assertTrue(failure.has("sourcePosition")); assertFalse(failure.get("mutationCommitted").getAsBoolean());
+        assertFalse(failure.toString().contains("private")); assertEquals(draft, restored.get(CoordinationMemory.DRAFT));
+        assertEquals("READY", CoordinationMemory.stage(restored));
+        turn(scope, "START", "null", "Accept the current proposal and begin");
+        assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertFalse(memory(scope).containsKey(ch.zhaw.prometheus.model.coordination.CoordinationRecovery.KEY));
+    }
     @Test void rawAndCalibratedObservationsRetainTheirSourceAgesAfterReload() throws Exception {
         JsonObject fixture;
         try (var input = getClass().getResourceAsStream("/coordination/observation-timing.json")) {

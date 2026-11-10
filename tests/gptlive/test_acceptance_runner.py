@@ -4,11 +4,18 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+from run_acceptance import escalation_cases
 
 RUNNER = Path(__file__).with_name('run_acceptance.py')
 
 
 class AcceptanceRunnerTest(unittest.TestCase):
+    def test_synthetic_escalation_manifest_is_available_without_provisioning(self):
+        fixture = escalation_cases(RUNNER.resolve().parents[2])
+        self.assertFalse(fixture['baselineIsAcceptance'])
+        self.assertEqual(6, len(fixture['cases']))
+        self.assertIn('unaccepted-cue', {case['id'] for case in fixture['cases']})
+
     def run_rejected(self, arguments, environment, message):
         result = subprocess.run([sys.executable, '-B', str(RUNNER), *arguments],
                                 env={**os.environ, **environment}, capture_output=True, text=True, timeout=15)
