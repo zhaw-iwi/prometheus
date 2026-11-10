@@ -80,10 +80,10 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         }
     }
     @Override public boolean liveNonMutatingAcknowledgement(String text) {
-        return CoreTaskVoice.acknowledgement(text) || CoreTaskVoice.assent(text) && !hasDraft();
+        return CoreTaskVoice.acknowledgement(text) || CoordinationAcceptance.assent(text) && !hasDraft();
     }
     @Override public boolean liveResolvedControlReply(String text, EventHistory history, ExternalSpeech owner) {
-        return CoreTaskVoice.assent(text) && CoreTaskVoice.prompt(storage(), history, owner, CoordinationMemory.DRAFT) != null;
+        return CoordinationAcceptance.assent(text) && CoordinationAcceptance.invitation(storage(), history, owner, Instant.now()) != null;
     }
     @Override public boolean liveSpeechCaptured(Event event, ExternalSpeech owner, Instant started, Instant now, List<LiveSpeechPart> parts) {
         boolean changed = CoreTaskVoice.capturedPrompt(storage(), event, owner, started, parts, CoordinationMemory.DRAFT);

@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Escalation ES-03 (2026-11-10): natural English/German acceptance for unchanged
+  ON_CUE proposals, bounded completed-invitation context for short assent, and
+  guarded rejection of unsafe inferred starts. Repeated starts preserve identity
+  and budget. Passed 37 Java, ten local-MySQL and two browser checks; real provider
+  interpretation remains ES-08. Evidence: `.agents/ESCALATION_RESULTS.md`.
+
 - Escalation ES-02 (2026-11-10): state-aware support throughout Coordination,
   preserving task authority and pending Live response identity/deadlines. Direct
   requests avoid extra inference; other phrasing uses the existing interpreter.

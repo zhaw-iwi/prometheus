@@ -78,6 +78,29 @@ class CoordinationAgentIntegrationTest {
         assertEquals(count, memory(scope).get(TaskMemory.ACTIONS));
     }
 
+    @Test void preparedSensorProposalAcceptsContextualGermanReplyAfterReloadWithoutInference() {
+        var scope = create(); var proposal = JsonParser.parseString(AGREEMENT).getAsJsonObject();
+        proposal.getAsJsonArray("checks").add(JsonParser.parseString("""
+                {"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"rock","minConfidence":0}
+                """));
+        var reactions = JsonParser.parseString("""
+                {"goal":"Draft an invitation","maxActions":1,"sessionBound":true,"firstAction":"ON_CUE",
+                "rules":[{"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"rock",
+                "action":"Offer one invitation idea","effect":"ACT","minConfidence":0,"samples":1,"cooldownSeconds":3}]}
+                """).getAsJsonObject(); proposal.add("reactions", reactions);
+        turn(scope, "PROPOSE", proposal.toString(), "Prepare recognition before the agreed cue task");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_HAND_SIGN, "camera", Event.KIND_OBSERVATION,
+                "{\"sign\":\"rock\",\"confidence\":0.75,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        clearInvocations(gateway);
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user",
+                Event.KIND_OBSERVATION, "Bereit"), OutputProfile.FULL_PLAN).orElseThrow();
+        verifyNoInteractions(gateway);
+        assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals(1, memory(scope).get(CoordinationMemory.ACCEPTED_EVIDENCE).getAsJsonObject().size());
+    }
+
     @Test void rejectedUpdateEvidenceReloadsWithoutChangingPreparationAndClearsOnProgress() {
         var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation activity");
         var draft = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();

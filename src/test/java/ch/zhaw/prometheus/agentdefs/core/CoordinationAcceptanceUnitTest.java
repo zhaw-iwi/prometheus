@@ -10,7 +10,8 @@ import ch.zhaw.prometheus.model.task.TaskMemory;
 class CoordinationAcceptanceUnitTest {
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
     @Test void explicitAcceptanceOfReadySensorProposalDoesNotDependOnModelOutput() {
-        for (String command : java.util.List.of("Yes, let's start now.", "Run it", "Please start the saved proposal now")) {
+        for (String command : java.util.List.of("Yes, let's start now.", "Run it", "Please start the saved proposal now",
+                "Let's start", "let start", "lets start", "Ja, lass uns starten", "Bitte jetzt starten", "I accept")) {
             var fixture = new CoordinationAgentUnitTest(); fixture.propose(fixture.sensor(false), fixture.live);
             var saved = fixture.storage().get(CoordinationMemory.DRAFT).deepCopy();
             clearInvocations(fixture.gateway);
@@ -22,6 +23,23 @@ class CoordinationAcceptanceUnitTest {
             verifyNoInteractions(fixture.gateway);
         }
     }
+    @Test void readyNeedsARecentCompletedInvitationAndRepeatedStartsCannotResetTheRun() {
+        var ready = new CoordinationAgentUnitTest(); ready.propose(ready.sensor(false), ready.text);
+        org.springframework.test.util.ReflectionTestUtils.setField(ready.agent.getEventHistory().toList().getLast(),
+                "createdDate", java.time.Instant.now());
+        clearInvocations(ready.gateway); ready.say("Bereit", ready.text);
+        assertEquals("EXECUTION", CoordinationMemory.stage(ready.storage())); verifyNoInteractions(ready.gateway);
+        var run = ready.storage().get(CoordinationMemory.RUN).deepCopy();
+        ready.turn("START", null, "Start", ready.text);
+        assertEquals(run, ready.storage().get(CoordinationMemory.RUN));
+        assertEquals(0, ready.storage().get(TaskMemory.ACTIONS).getAsInt());
+        var expired = new CoordinationAgentUnitTest(); expired.propose(expired.sensor(false), expired.text);
+        expired.storage().put(CoreTaskVoice.INVITATION, new com.google.gson.JsonPrimitive(java.time.Instant.now().minusSeconds(121).toString()));
+        clearInvocations(expired.gateway); expired.say("Bereit", expired.text);
+        assertEquals("READY", CoordinationMemory.stage(expired.storage())); verifyNoInteractions(expired.gateway);
+        var noPrompt = new CoordinationAgentUnitTest(); noPrompt.propose(noPrompt.sensor(false), noPrompt.live);
+        noPrompt.say("Bereit", noPrompt.live); assertEquals("READY", CoordinationMemory.stage(noPrompt.storage()));
+    }
     @Test void explicitSensorAcceptanceStillRequiresPreparationAndDoesNotTreatFutureIntentAsConsent() {
         f.propose(f.sensor(true), f.live); var saved = f.storage().get(CoordinationMemory.DRAFT).deepCopy();
         clearInvocations(f.gateway); f.say("Yes, let's start now", f.live);
@@ -29,8 +47,8 @@ class CoordinationAcceptanceUnitTest {
         assertEquals(saved, f.storage().get(CoordinationMemory.DRAFT));
         assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT)); verifyNoInteractions(f.gateway);
         var ready = new CoordinationAgentUnitTest(); ready.propose(ready.sensor(false), ready.live);
-        for (String uncertain : java.util.List.of("Let's start tomorrow, not now", "Run it?", "\"Run it\"", "Don't start now")) {
-            ready.turn("KEEP", null, uncertain, ready.live);
+        for (String uncertain : java.util.List.of("Let's start tomorrow, not now", "Run it?", "\"Run it\"", "Don't start now", "yes?", "\"yes\"", "Bitte nicht starten")) {
+            ready.turn("START", null, uncertain, ready.live);
             assertEquals("READY", CoordinationMemory.stage(ready.storage()), uncertain);
             assertFalse(ready.storage().containsKey(CoordinationMemory.AGREEMENT));
         }

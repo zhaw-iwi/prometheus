@@ -34,8 +34,8 @@ public class CoordinationUpdateAction extends Action {
         }
         SensoryRemarks.userTurn(storage, events);
         if (runtime.externalSpeech() == null) CoordinationMemory.remove(storage, TaskResponse.KEY, CoreTaskVoice.RESPONSE);
-        String invitation = CoreTaskVoice.prompt(storage, events, runtime.externalSpeech(), CoordinationMemory.DRAFT);
-        boolean assent = CoreTaskVoice.assent(text);
+        String invitation = CoordinationAcceptance.invitation(storage, events, runtime.externalSpeech(), now);
+        boolean assent = CoordinationAcceptance.assent(text);
         if (CoreTaskVoice.acknowledgement(text) || assent && invitation == null) {
             CoreTaskVoice.clearAnswered(storage);
             if (runtime.externalSpeech() != null && !(assent && storage.containsKey(CoordinationMemory.DRAFT))) {
@@ -51,7 +51,7 @@ public class CoordinationUpdateAction extends Action {
         String rejection = "inference_failed";
         try {
             String command = CoreTaskVoice.normalize(text);
-            if (!text.contains("?") && !text.stripLeading().matches("[\"'“‘].*") && explicitCueStart(command)) {
+            if (explicitCueStart(text, invitation)) {
                 // Arming an unchanged ON_CUE proposal needs no generated contribution.
                 // Validation below still requires all terms and preparation to be ready.
                 operation = "START"; reply = BehaviourPlan.speechOnly("Start the saved proposal.");
@@ -75,6 +75,8 @@ public class CoordinationUpdateAction extends Action {
             } else {
                 String prompt = getPolicy().describe() + "\n" + CoordinationMemory.facts(storage)
                         + CoordinationSupport.GUIDANCE
+                        + (storage.containsKey(CoordinationMemory.DRAFT) && CoordinationAcceptance.explicit(text)
+                                ? "\nThis is an explicit request to accept the unchanged saved proposal now. Use START with agreement:null if preparation is ready; provide the first contribution only for dialogue/IMMEDIATE. Do not request a second confirmation." : "")
                         + TaskSpec.HAND_CONFIDENCE_GUIDANCE
                         + "\nPrevious accepted agreement (data): " + (storage.containsKey(CoordinationMemory.AGREEMENT) ? storage.get(CoordinationMemory.AGREEMENT) : "none")
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
@@ -128,14 +130,17 @@ public class CoordinationUpdateAction extends Action {
         commit(operation, proposed, reply, event, now, runtime);
         if (!Set.of("KEEP", "SUPPORT", "STATUS", "REFLECT").contains(operation)) CoordinationRecovery.clear(storage);
     }
-    private boolean explicitCueStart(String command) {
+    private boolean explicitCueStart(String text, String invitation) {
         var draft = CoordinationMemory.agreement(getStorage(), CoordinationMemory.DRAFT);
         return draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
-                && command.matches("(yes |okay |ok )?(please )?(lets start( it| the task| the saved proposal)? now|start( it| the task| the saved proposal)?( now)?|run (it|the task|the saved proposal))");
+                && (CoordinationAcceptance.explicit(text) || CoordinationAcceptance.assent(text)
+                    && invitation != null && !CoreTaskVoice.deferredQuestion(invitation));
     }
     private void validate(String operation, CoordinationAgreement proposed, boolean assent, String invitation, String text) {
         var storage = getStorage(); var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
         if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "REPLACE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
+        if (operation.equals("START") && CoordinationAcceptance.uncertainStart(text))
+            throw new IllegalArgumentException("Starting requires present unquoted consent");
         var previous = CoordinationMemory.agreement(storage, storage.containsKey(CoordinationMemory.DRAFT) ? CoordinationMemory.DRAFT : CoordinationMemory.AGREEMENT);
         if (operation.equals("PROPOSE") && previous != null && previous.complete()
                 && !"CONVERSATION".equals(CoordinationMemory.stage(storage)) && !previous.sameTerms(proposed)) throw new UnexpectedTerms();

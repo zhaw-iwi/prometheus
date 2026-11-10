@@ -2035,6 +2035,14 @@ asks to start; an ON_CUE task then waits for a fresh sign. A fully specified new
 task explicitly requested to start now needs no second confirmation when it has
 no preparation checks. An unfinished agreement, recognition evidence alone or a
 casual acknowledgement cannot authorize execution.
+For unchanged ON_CUE proposals, clear starts such as "Let's start", "let start",
+"I accept" and "Bitte jetzt starten" arm locally without a model call. Short
+assent, including "Bereit", needs the current completed acceptance invitation
+(at most two minutes old); in Live, its matching captured utterance is required.
+Without that context, say Start explicitly. Questions, quotes, negation and future
+intent do not authorize START, even if an inferred update requests it. Prepared
+evidence is not requested again merely because an earlier start failed. Repeated
+starts cannot reset the run or contribution budget.
 The agreement must be complete before it can start, and acceptance applies to the
 saved proposal unchanged. Changing a proposal suspends earlier execution and clears
 its preparation evidence. Discarding the replacement preserves an unfinished

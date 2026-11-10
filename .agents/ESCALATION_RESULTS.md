@@ -1,5 +1,38 @@
 # Coordination escalation and classroom reliability evidence
 
+## ES-03 — Natural acceptance and truthful preparation (2026-11-10)
+
+Unchanged ON_CUE starts accept explicit English/German forms and the measured
+minor phrase omission without model inference. Contextual short assent includes
+Ready/Bereit but requires a completed invitation less than two minutes old;
+matching native capture remains required in Live. Stale/missing invitation asks
+for explicit acceptance instead. Negated, future, quoted and question-form START
+updates are rejected even when the scripted interpreter proposes START. Repeated
+starts preserve run and budget. Dialogue starts retain the existing inference
+for the actual contribution, with runtime guidance against redundant confirmation;
+provider behavioural acceptance remains ES-08.
+
+Verification:
+
+- 37 Java cases passed across CoordinationAcceptanceUnitTest,
+  CoordinationSupportUnitTest, CoordinationVoiceUnitTest and
+  CoordinationLifecycleUnitTest. Includes nine explicit-start phrasings and unsafe
+  inferred START variants, missing/expired invitations and repeated starts.
+  The initial contextual-assent unit fixture had no persisted event timestamp;
+  corrected its synthetic completed invitation timestamp, not production logic.
+- `python target/run_coordination_mysql.py CoordinationAgentIntegrationTest`:
+  ten cases passed, including persisted preparation followed by Bereit after
+  reload with zero inference calls, zero actions and retained accepted evidence.
+  Owned schema/account/server cleanup confirmed. Artifacts:
+  `target/gptlive-acceptance-5661b79ce6/` and `target/es03-db.log`.
+- Existing desktop/narrow preparation/acceptance recovery browser cases passed
+  again (two cases); no client rendering changed in this milestone.
+- `git diff --check` passed. No provider or production writes; no schema or saved
+  graph migration. Configurator guidance is appended at runtime for saved actions.
+
+ES-02's final context-budget adjustment also passed an additional 22 focused
+support/voice cases before its commit.
+
 ## ES-02 — Shared state-aware support (2026-11-10)
 
 All nine phases handle direct help/confusion requests through the shared action;
