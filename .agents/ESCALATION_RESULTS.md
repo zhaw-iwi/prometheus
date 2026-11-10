@@ -1,5 +1,67 @@
 # Coordination escalation and classroom reliability evidence
 
+## ES-07 - Service recovery and measured capacity (2026-11-10)
+
+Valerian now retains last-known views and shows a connection-scoped notice for
+network/429/server failures. Uncertain mutations stay uncertain even after a
+successful connection check. Manual recovery performs bounded scoped GETs for
+state/storage/history, rehydrates the view and reconnects streams; it never
+replays task mutations. Agent switches, same-agent reconnects and reset fence
+late replies. Login distinguishes rejected credentials from service outages.
+Buffered monitor snapshots cannot establish recovery. Capture can stop locally
+without falsely confirming a backend stop. No new polling or provider requests.
+
+Integrated review also tightened numeric perception confidence typing and gave
+unambiguous compound pause/stop-plus-help requests priority. Contradictory
+controls ask for clarification; frustration alone never restarts a task.
+No schema/graph replacement or production write is needed.
+
+Verification and retained evidence:
+
+- Focused Support/Perception/Acceptance/Delivery Java checks passed (49 cases),
+  including compound controls and invalid confidence typing.
+- Node performance suite: 33 passed, including four pure recovery-state cases.
+  Python acceptance-runner suite: ten passed, including capacity opt-in isolation.
+- Local MySQL query/SSE regression: eight passed, artifact
+  `target/gptlive-acceptance-81287e1afe/`; the existing single-client synthetic Live
+  workload remains 1,993 Questions/minute under its regression ceiling. This is a
+  separate workload, not an additive measured Live classroom projection.
+- Two independent six-client capacity runs functionally passed, final artifact
+  `target/gptlive-acceptance-38d375003e/` (earlier `c2301028fa`). Owned loopback
+  server, restricted fresh schema/account and cleanup confirmed. All 12 original
+  SSE readers survived the active minute, with no idle held JDBC connections.
+  Final global Questions: create/login/streams 2,010; warm idle five seconds 0;
+  proposal/acceptance 534; active minute 7,776; six-agent manual tick probe 192;
+  recovery/reload/reconnect 871; cleanup 2,712. Active wall time 60,210ms,
+  zero slot overruns; 361 nonstreaming HTTP requests and 24 stream opens.
+  Active projection 466,560/hour; one fixed burst adds 6,127 = 472,687/hour.
+  Functional acceptance **PASS**, numeric 20%-headroom/capacity gate **FAIL**.
+  Both runs produced identical Questions counts. Global counters include direct
+  JDBC and transactions; measurement SHOW commands are excluded.
+- Browser focused recovery checks passed five cases: desktop/narrow unavailable
+  and read-only recovery, buffered snapshots, awaited late old mutations and
+  service-error login. Screenshots inspected. Broad runs retained in
+  `target/es07-browser-regression.log` (46 passed, two timing-export failures,
+  three skips) and `target/es07-browser-integrated-final.log` (47 passed, page-load
+  timeout and settings-initialization timeout, three skips). The timing-export
+  assumption also failed against HEAD baseline: observation-clock entries may
+  enable JSON, while ordinary-turn CSV remains disabled; the fixture now checks
+  CSV. Both later transient failures passed focused rerun in
+  `target/es07-two-recheck.log`. Final combined rerun: 49 passed, three expected non-static/clock skips,
+  `target/es07-browser-final-recheck.log`. No product change was made for the
+  two transient failures. Playwright emitted its NO_COLOR/FORCE_COLOR warning;
+  PowerShell redirection reports NativeCommandError despite the passing test summary.
+
+Operating envelope: six clients, 12 streams, five-second sensor slots (face,
+hand and three-event social batches), bounded accepted cues/questions, synthetic
+language provider, short histories and Hikari pool 10. Automatic ticks disabled;
+the separately measured six-agent tick cost is not included in the active rate.
+Real OpenAI/Live receipts, physical detectors, jitter, long production histories
+and a sustained 60-70 minute run are **NOT RUN**. No classroom-readiness claim.
+At least the measured rate plus headroom/fixed traffic must fit a provisioned
+allowance, or equivalent measured savings must be established. These are rollout
+choices, not authorization for remote load, paid provisioning or deployment.
+
 ## ES-06 — Faithful social conditions and reviewed alternatives (2026-11-10)
 
 Coordination interpretation now receives the actual first-arrival, crowd-threshold

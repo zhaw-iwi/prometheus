@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Escalation ES-07 (2026-11-10): connection-scoped unavailable/last-known/review
+  guidance, read-only recovery and late-response fences; no automatic mutation
+  replay. Local six-client/12-stream functional capacity probe passed, but its
+  short-run projection of 472,687 Questions/hour including one fixed burst fails
+  the 28,800/hour headroom budget. Sustained/physical/production acceptance remains
+  unverified. Evidence: `.agents/ESCALATION_RESULTS.md`; ES-08 follows locally.
+
 - Escalation ES-06 (2026-11-10): truthful first-arrival versus extra-person
   semantics, guarded compilation and reviewed count alternatives; unsupported
   saved drafts get clarification instead of repeat/start advice. Detector and

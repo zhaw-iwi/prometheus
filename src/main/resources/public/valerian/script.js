@@ -266,6 +266,7 @@ const HAND_CONNECTIONS = [
 
 const stateView = window.PrometheusStateView.create();
 let stateGraphVersion = 0;
+let agentConnectionAttempt = 0;
 let stateGraphRequest = null;
 
 window.addEventListener("load", init);
@@ -865,7 +866,7 @@ async function openAccessSession(accessCode, options = {}) {
       body: JSON.stringify({ accessCode }),
     });
     if (!response.ok) {
-      throw new Error(`session rejected: ${response.status}`);
+      const failure = new Error(`session rejected: ${response.status}`); failure.status = response.status; throw failure;
     }
     const session = await response.json();
     state.accessCode = session.accessCode || accessCode;
@@ -901,7 +902,8 @@ async function openAccessSession(accessCode, options = {}) {
     renderAgents();
     showCockpit(false);
     setControlsEnabled(false);
-    setAccessStatus("Access code rejected.", "error");
+    setAccessStatus(error.status === 401 || error.status === 403 ? "Access code rejected."
+      : "Service unavailable: access could not be checked. Try again later or contact the operator.", "error");
     appendLog("app", error.message);
     return false;
   } finally {
@@ -1084,8 +1086,10 @@ async function selectAgent(agentId, options = {}) {
 }
 
 async function connectToAgent(agentId) {
+  const attempt = ++agentConnectionAttempt;
   globalThis.PrometheusObservationTiming?.stop();
   const selectedAgentId = typeof agentId === "string" ? agentId.trim() : "";
+  const connectionCode = state.accessCode;
   if (!selectedAgentId) {
     await disconnectAgent({ preserveInput: false, silent: true });
     appendLog("app", "connect blocked: missing agent ID.");
@@ -1100,9 +1104,12 @@ async function connectToAgent(agentId) {
     stopCamera({ silent: true });
   }
   await stopSpeechPlayback("agent_switch", { reset: true, silent: true });
+  if (attempt !== agentConnectionAttempt || state.accessCode !== connectionCode || state.selectedAgentId !== selectedAgentId) return;
   cleanupStreams();
   resetCockpitColumns();
   state.agentId = selectedAgentId;
+  globalThis.PrometheusServiceRecovery?.scope(selectedAgentId);
+  const connection = captureConnection();
   globalThis.PrometheusActivity?.scope(selectedAgentId);
   document.getElementById("agent_id_input").value = selectedAgentId;
   document.getElementById("agent_select").value = selectedAgentId;
@@ -1112,13 +1119,18 @@ async function connectToAgent(agentId) {
   resetSpeechSensingPanel();
   setControlsEnabled(false);
   const infoLoaded = await loadAgentInfo();
+  if (!currentConnection(connection) || attempt !== agentConnectionAttempt) return;
   if (!infoLoaded) {
+    const unavailable = !!globalThis.PrometheusServiceRecovery?.issue;
     appendLog("app", "agent not found or unavailable.");
     await disconnectAgent({ preserveInput: true, silent: true });
+    if (unavailable && state.selectedAgentId === selectedAgentId) {
+      document.querySelector('[data-testid="agent-connection-state"]').textContent = "Service unavailable. Try connecting again later; no task transition was confirmed.";
+    }
     return;
   }
   await ensureLiveTranscriptionUi();
-  if (state.agentId !== selectedAgentId) return;
+  if (!currentConnection(connection) || attempt !== agentConnectionAttempt) return;
   void globalThis.PrometheusObservationTiming?.start();
   await ensureSpeechPlaybackCoordinator();
   await configureGptLive();
@@ -1136,14 +1148,17 @@ async function loadAgentInfo() {
   if (!state.agentId) {
     return false;
   }
+  const connection = captureConnection();
   try {
     const response = await scopedFetch(demoAgentPath("/info"));
+    if (!currentConnection(connection)) return false;
     if (!response.ok) {
       appendLog("app", `agent info failed: ${response.status}`);
       resetAgentInfo();
       return false;
     }
     const data = await response.json();
+    if (!currentConnection(connection)) return false;
     state.agentInfo = data;
     document.getElementById("agent_info_name").textContent = prometheusFacingText(data.name, data.personaName) || "-";
     document.getElementById("agent_info_description").textContent = prometheusFacingText(
@@ -1156,6 +1171,7 @@ async function loadAgentInfo() {
     applyInteractionProfile(data.interactionProfile);
     return true;
   } catch (error) {
+    if (!currentConnection(connection)) return false;
     appendLog("app", "agent info failed: " + error.message);
     resetAgentInfo();
     return false;
@@ -1163,6 +1179,7 @@ async function loadAgentInfo() {
 }
 
 async function disconnectAgent(options = {}) {
+  ++agentConnectionAttempt;
   globalThis.PrometheusObservationTiming?.stop();
   await liveVoice.ui?.invalidate("Agent disconnected.");
   if (state.transcriptionListening) {
@@ -1399,7 +1416,8 @@ function updateConnectionButton() {
 }
 
 async function loadEventHistory() {
-  const agentId = state.agentId, accessCode = state.accessCode;
+  const agentId = state.agentId;
+  const connection = captureConnection();
   try {
     let response = await scopedFetch(demoAgentPath("/live/history"));
     if (response.status === 404) response = await scopedFetch(`/demo/agents/${encodeURIComponent(agentId)}/eventhistory`);
@@ -1408,7 +1426,7 @@ async function loadEventHistory() {
       return [];
     }
     const events = await response.json();
-    if (agentId !== state.agentId || accessCode !== state.accessCode) return [];
+    if (!currentConnection(connection)) return [];
     applyConversationHistory(events);
     return events || [];
   } catch (error) {
@@ -1494,17 +1512,16 @@ async function loadStorage() {
     resetStorageList();
     return;
   }
+  const connection = captureConnection();
   try {
     const response = await scopedFetch(demoAgentPath("/storage"));
     if (!response.ok) {
-      resetStorageList();
       return;
     }
     const storage = await response.json();
+    if (!currentConnection(connection)) return;
     setStorageEntries(storage);
-  } catch (_) {
-    resetStorageList();
-  }
+  } catch (_) { /* Keep connection-scoped last-known data while the recovery notice is visible. */ }
 }
 
 async function loadAgentState() {
@@ -1512,6 +1529,7 @@ async function loadAgentState() {
     resetStateView();
     return;
   }
+  const connection = captureConnection();
   try {
     const [stateResponse, statesResponse] = await Promise.all([
       scopedFetch(demoAgentPath("/state")),
@@ -1519,6 +1537,7 @@ async function loadAgentState() {
     ]);
     const stateInfo = stateResponse.ok ? await stateResponse.json() : null;
     const states = statesResponse.ok ? await statesResponse.json() : [];
+    if (!currentConnection(connection) || !stateResponse.ok || !statesResponse.ok) return;
     applyStateSnapshot({
       stateName: stateInfo && stateInfo.name,
       innerName: stateInfo && stateInfo.innerName,
@@ -1528,7 +1547,6 @@ async function loadAgentState() {
     });
   } catch (error) {
     appendLog("app", "state load failed: " + error.message);
-    resetStateView();
   }
 }
 
@@ -1855,12 +1873,14 @@ function connectBehaviourStream() {
     state.streamReconnectTimer = null;
   }
   state.behaviourSource = new EventSource(behaviourStreamUrl());
-  const source = state.behaviourSource, agentId = state.agentId;
-  const current = () => state.behaviourSource === source && state.agentId === agentId;
+  const source = state.behaviourSource, connection = captureConnection();
+  const recovering = !!globalThis.PrometheusServiceRecovery?.issue;
+  const current = () => state.behaviourSource === source && currentConnection(connection);
   setBehaviourStatus("Behaviour Connecting", "idle");
   state.behaviourSource.addEventListener("open", () => {
     if (!current()) return;
     state.streamReconnectAttempt = 0;
+    if (recovering) globalThis.PrometheusServiceRecovery?.reachable(connection.recovery);
     setBehaviourStatus("Behaviour Live", "live");
     appendLog("stream", "behaviour stream connected.");
   });
@@ -1882,6 +1902,7 @@ function connectBehaviourStream() {
   });
   state.behaviourSource.onerror = () => {
     if (!current()) return;
+    globalThis.PrometheusServiceRecovery?.failure(globalThis.PrometheusServiceRecovery.capture(), 0, false);
     closeBehaviourStream();
     setBehaviourStatus("Behaviour Error", "error");
     scheduleBehaviourReconnect();
@@ -1894,11 +1915,13 @@ function connectMonitorStream() {
   }
   state.monitorReady = false;
   state.monitorSource = new EventSource(monitorStreamUrl());
-  const source = state.monitorSource, agentId = state.agentId;
-  const current = () => state.monitorSource === source && state.agentId === agentId;
+  const source = state.monitorSource, connection = captureConnection();
+  const recovering = !!globalThis.PrometheusServiceRecovery?.issue;
+  const current = () => state.monitorSource === source && currentConnection(connection);
   state.monitorSource.addEventListener("open", () => {
     if (!current()) return;
     state.monitorReconnectAttempt = 0;
+    if (recovering) globalThis.PrometheusServiceRecovery?.reachable(connection.recovery);
     globalThis.PrometheusActivity?.transport(true);
   });
   state.monitorSource.addEventListener("activity", event => {
@@ -1918,6 +1941,7 @@ function connectMonitorStream() {
   });
   state.monitorSource.onerror = () => {
     if (!current()) return;
+    globalThis.PrometheusServiceRecovery?.failure(globalThis.PrometheusServiceRecovery.capture(), 0, false);
     globalThis.PrometheusActivity?.transport(false);
     state.monitorReady = false;
     if (state.monitorSource) {
@@ -2000,6 +2024,7 @@ async function resetAgent() {
   if (!state.agentId || !window.confirm("Reset this agent event history?")) {
     return;
   }
+  const connection = captureConnection();
   try {
     cleanupStreams();
     await liveVoice.ui?.invalidate("Agent reset.");
@@ -2011,19 +2036,25 @@ async function resetAgent() {
       stopCamera({ silent: true });
     }
     globalThis.PrometheusActivity?.scope(state.agentId);
-    const response = await scopedFetch(demoAgentPath("/reset"), { method: "DELETE" });
+    if (!currentConnection(connection)) return;
+    const response = await scopedFetch(`/demo/agents/${encodeURIComponent(connection.agentId)}/reset`, { method: "DELETE" });
+    if (!currentConnection(connection)) return;
     if (!response.ok) {
       appendLog("app", `reset failed: ${response.status}`);
       connectBehaviourStream(); connectMonitorStream();
       return;
     }
     const data = await response.json();
+    if (!currentConnection(connection)) return;
     setActiveStatus(data.active);
     resetBehaviourDeduplication();
     resetCockpitColumns();
+    globalThis.PrometheusServiceRecovery?.scope(connection.agentId);
+    const resetConnection = captureConnection();
     await ensureLiveTranscriptionUi();
     await ensureSpeechPlaybackCoordinator();
     await configureGptLive();
+    if (!currentConnection(resetConnection)) return;
     handleResponseEvent(data.responseEvent);
     await loadAgentState();
     await loadStorage();
@@ -2058,6 +2089,7 @@ async function sendUserUtterance(text, options = {}) {
   if (!state.agentId || !text || liveVoice.ui?.busy) {
     return false;
   }
+  const connection = captureConnection();
   if (options.renderUser) {
     appendMessage("user", text);
   }
@@ -2073,6 +2105,7 @@ async function sendUserUtterance(text, options = {}) {
       kind: "observation",
       payload: text,
     }, { renderResponse: true, traceId });
+    if (!currentConnection(connection)) return false;
     if (!data) {
       globalThis.PrometheusTimings?.mark(traceId, "rejected");
       activity?.set("text_error", "rejected", { generation, ttl: 10000 });
@@ -2082,6 +2115,7 @@ async function sendUserUtterance(text, options = {}) {
     if (!data.responseEvent) {
       if (!await generateBehaviour("full_plan", traceId)) activity?.set("text_error", "failed", { generation, ttl: 10000 });
     }
+    if (!currentConnection(connection)) return false;
     globalThis.PrometheusTimings?.mark(traceId, "processing_complete");
     globalThis.PrometheusTimings?.mark(traceId, "ui_refresh_start");
     try {
@@ -2104,6 +2138,7 @@ async function acknowledgeEvent(request, options = {}) {
   }
   const profile = options.profile ? `?profile=${encodeURIComponent(options.profile)}` : "";
   const sensorScope = { agentId: state.agentId, code: state.accessCode };
+  const connection = captureConnection();
   const sensor = request.type?.startsWith("obs.") && request.type !== "obs.user_utterance";
   const externalSpeech = liveVoice.ui?.active;
   try {
@@ -2112,12 +2147,14 @@ async function acknowledgeEvent(request, options = {}) {
       headers: { "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify(request),
     });
+    if (!currentConnection(connection)) return null;
     if (sensor) sensorBackendResult(response.status, sensorScope);
     if (!response.ok) {
       appendLog("ack", `${request.type} failed: ${response.status}`);
       return null;
     }
     const data = await response.json();
+    if (!currentConnection(connection)) return null;
     if (data && typeof data.active === "boolean") {
       setActiveStatus(data.active);
     }
@@ -2128,6 +2165,7 @@ async function acknowledgeEvent(request, options = {}) {
     }
     return data;
   } catch (error) {
+    if (!currentConnection(connection)) return null;
     appendLog("ack", `${request.type} failed: ${error.message}`);
     return null;
   }
@@ -5758,6 +5796,7 @@ function clearMessages() {
 }
 
 function resetCockpitColumns() {
+  globalThis.PrometheusServiceRecovery?.scope(null);
   clearMessages();
   if (liveVoice.ui) { liveVoice.ui.ledger = []; liveVoice.ui.setHistory([]); liveVoice.ui.captions({}); }
   const textInput = document.getElementById("text_input");
@@ -6055,13 +6094,55 @@ function timedScopedFetch(traceId, url, options) {
     ? globalThis.PrometheusTimings.fetch(traceId, scopedFetch, url, options) : scopedFetch(url, options);
 }
 
-function scopedFetch(url, options = {}) {
+function captureConnection() {
+  return {agentId: state.agentId, code: state.accessCode, recovery: globalThis.PrometheusServiceRecovery?.capture()};
+}
+
+function currentConnection(connection) {
+  return connection.agentId === state.agentId && connection.code === state.accessCode
+    && (!connection.recovery || globalThis.PrometheusServiceRecovery?.accepts(connection.recovery));
+}
+
+async function scopedFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
   if (state.accessCode) {
     headers.set(ACCESS_CODE_HEADER, state.accessCode);
   }
-  return fetch(url, { ...options, headers });
+  const recovery = globalThis.PrometheusServiceRecovery, scope = recovery?.capture();
+  const scoped = scope && (url === `/demo/agents/${encodeURIComponent(scope.key)}` || url.startsWith(`/demo/agents/${encodeURIComponent(scope.key)}/`));
+  const mutation = !["GET", "HEAD"].includes((options.method || "GET").toUpperCase());
+  try {
+    const response = await fetch(url, { ...options, headers });
+    if (scoped && !response.ok) recovery.failure(scope, response.status, mutation);
+    return response;
+  } catch (error) {
+    if (scoped) recovery.failure(scope, 0, mutation);
+    throw error;
+  }
 }
+
+window.addEventListener("prometheus-check-connection", async () => {
+  const recovery = globalThis.PrometheusServiceRecovery, scope = recovery?.capture(), code = state.accessCode;
+  if (!scope || !state.agentId) return;
+  const button = document.getElementById("service_recovery_check");
+  if (button.disabled) return;
+  button.disabled = true;
+  cleanupStreams(); // Freeze delivery while rehydrating; reconnect from the retained cursor afterward.
+  try {
+    const base = `/demo/agents/${encodeURIComponent(scope.key)}`;
+    const responses = await Promise.all(["/state", "/storage", "/live/history"].map(path =>
+      scopedFetch(base + path, {signal: AbortSignal.timeout(10000)})));
+    if (responses[2].status === 404) responses[2] = await scopedFetch(base + "/eventhistory", {signal: AbortSignal.timeout(10000)});
+    if (responses.some(response => !response.ok)) return;
+    const [current, storage, history] = await Promise.all(responses.map(response => response.json()));
+    if (!recovery.accepts(scope) || state.accessCode !== code) return;
+    applyStateSnapshot(current); setStorageEntries(storage); clearMessages(); resetBehaviourDeduplication(); applyConversationHistory(history);
+    recovery.reachable(scope);
+  } catch (_) { recovery.failure(scope, 0, false); }
+  finally {
+    if (recovery.accepts(scope)) { button.disabled = false; connectBehaviourStream(); connectMonitorStream(); }
+  }
+});
 
 function demoAgentPath(path) {
   return `/demo/agents/${encodeURIComponent(state.agentId)}${path || ""}`;

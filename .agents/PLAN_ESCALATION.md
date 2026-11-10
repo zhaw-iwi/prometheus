@@ -1,6 +1,6 @@
 # Coordination escalation and classroom reliability
 
-Prepared: 2026-11-10. Status: ES-01 through ES-06 complete; ES-07 and ES-08 pending.
+Prepared: 2026-11-10. Status: ES-01 through ES-07 complete; ES-08 pending. ES-07 capacity gate unmet.
 Actual verification and limitations: `ESCALATION_RESULTS.md`.
 
 ## Goal and working model

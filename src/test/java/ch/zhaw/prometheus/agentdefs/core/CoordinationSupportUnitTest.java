@@ -13,6 +13,22 @@ import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationSupportUnitTest {
     @ParameterizedTest
+    @ValueSource(strings={"Pause the task, I need help", "I don't understand. Please pause", "Please pause and help me"})
+    void explicitPauseInAHelpRequestTakesPriorityWithoutInference(String words) {
+        var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(false), f.text); f.start(f.text);
+        clearInvocations(f.gateway); f.say(words, f.text);
+        assertEquals("PAUSED", CoordinationMemory.stage(f.storage()));
+        assertEquals(0, f.storage().get(TaskMemory.ACTIONS).getAsInt()); verifyNoInteractions(f.gateway);
+    }
+    @Test void contradictoryControlsClarifyAndExplicitRestartStillUsesTheExistingInterpreter() {
+        var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(false), f.text); f.start(f.text);
+        var run=f.storage().get(CoordinationMemory.RUN).deepCopy();
+        f.say("Pause; resume; help me", f.text); assertEquals("EXECUTION", CoordinationMemory.stage(f.storage()));
+        f.turn("SUPPORT",null,"Don't pause; I need help",f.text); assertEquals("EXECUTION",CoordinationMemory.stage(f.storage()));
+        f.turn("RESTART",null,"Restart the same task; I need help",f.text);
+        assertNotEquals(run,f.storage().get(CoordinationMemory.RUN)); assertEquals(0,f.storage().get(TaskMemory.ACTIONS).getAsInt());
+    }
+    @ParameterizedTest
     @ValueSource(strings = {"CONVERSATION", "COORDINATION", "PREPARATION", "READY", "EXECUTION", "PAUSED", "FINISHING", "UNCERTAIN", "REFLECTION"})
     void helpPreservesAuthorityInEveryPhase(String phase) {
         var f = new CoordinationAgentUnitTest();

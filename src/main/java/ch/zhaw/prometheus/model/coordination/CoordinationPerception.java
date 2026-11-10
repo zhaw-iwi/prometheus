@@ -27,6 +27,8 @@ public final class CoordinationPerception {
         if (!TaskMemory.fresh(latest, now)) return "The supplied " + label + " observation is expired or has an invalid source time. I cannot describe it as current. Supply a fresh observation.";
         try {
             var data = JsonParser.parseString(latest.getPayload()).getAsJsonObject();
+            if (!data.has("confidence") || !data.get("confidence").isJsonPrimitive()
+                    || !data.get("confidence").getAsJsonPrimitive().isNumber()) throw new IllegalArgumentException();
             double confidence = data.get("confidence").getAsDouble();
             if (!Double.isFinite(confidence) || confidence < 0 || confidence > 1) throw new IllegalArgumentException();
             if (type.equals(Event.TYPE_HAND_SIGN)) {

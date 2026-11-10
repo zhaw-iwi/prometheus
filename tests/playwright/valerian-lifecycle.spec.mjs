@@ -59,6 +59,77 @@ const USED_HISTORY = [
   behaviourEvent("This conversation and sensing state came from history.", "2026-08-29T08:01:05Z"),
 ];
 
+async function stableRecoveryStreams(context) {
+  await context.addInitScript(() => {
+    window.EventSource = class {
+      static OPEN = 1; static CLOSED = 2;
+      constructor(url) { this.url = url; this.readyState = 1; this.listeners = {}; setTimeout(() => this.listeners.open?.({}), 0); }
+      addEventListener(name, listener) { this.listeners[name] = listener; }
+      close() { this.readyState = 2; }
+    };
+  });
+}
+
+for (const layout of [{ name: "desktop", width: 1440, height: 1000 }, { name: "narrow", width: 390, height: 844 }]) {
+  test(`service failure preserves history without replay and allows read-only recovery ${layout.name}`, async ({page, context}, testInfo) => {
+    await stableRecoveryStreams(context);
+    await page.setViewportSize({width: layout.width, height: layout.height});
+    await context.addInitScript(() => localStorage.setItem("prometheus.valerian.theme", "dark"));
+    await installLifecycleApiMocks(context, {created: true, history: [STARTER_BEHAVIOUR]});
+    let mutations = 0;
+    await context.route(`**/demo/agents/${AGENT_ID}/acknowledge*`, route => {
+      ++mutations; return route.fulfill({status: 503, contentType: "application/json", body: "{}"});
+    });
+    await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+    await page.getByTestId("text-input").fill("Help me understand what happened"); await page.getByTestId("send-text").click();
+    const notice = page.getByTestId("service-recovery");
+    await expect(notice).toBeVisible(); await expect(notice).toContainText("last known");
+    // A delayed snapshot from the old stream is not proof of a recovered connection or mutation outcome.
+    await page.evaluate(() => applyMonitorSnapshot({stateName: "Conversation", storage: []}));
+    await expect(notice).toHaveAttribute("data-state", "unavailable");
+    await expect(page.getByTestId("message-list")).toContainText("persisted starter");
+    await notice.scrollIntoViewIfNeeded(); await notice.screenshot({path: testInfo.outputPath(`service-unavailable-${layout.name}.png`)});
+    await page.getByTestId("service-recovery-check").click();
+    await expect(notice).toHaveAttribute("data-state", "review");
+    await expect(notice).toContainText("may have committed"); expect(mutations).toBe(1);
+    await expect(page.getByTestId("message-list")).toContainText("persisted starter");
+    await page.locator("#service_recovery_dismiss").click(); await expect(notice).toBeHidden();
+    await page.evaluate(() => state.monitorSource.onerror());
+    await expect(notice).toBeVisible(); await expect(notice).toContainText("last known");
+    await page.locator("#open_diagnostics").click(); await page.getByTestId("connect-agent").click();
+    await expect(notice).toBeHidden(); await assertColumnsEmpty(page); expect(mutations).toBe(1);
+  });
+}
+
+for (const status of [200, 503]) test(`late mutation reply ${status} cannot revive data or recovery after reconnect`, async ({page, context}) => {
+  await stableRecoveryStreams(context);
+  await installLifecycleApiMocks(context, {created: true, history: [STARTER_BEHAVIOUR]});
+  let release, seen;
+  const wait = new Promise(resolve => {release = resolve;}); const started = new Promise(resolve => {seen = resolve;});
+  await context.route(`**/demo/agents/${AGENT_ID}/acknowledge*`, async route => {
+    seen(); await wait; await route.fulfill(status === 503 ? {status, body: "{}"}
+      : json({active: false, responseEvent: behaviourEvent("Old connection response.", "2026-11-10T13:00:00Z")}));
+  });
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+  await expect(page.getByTestId("send-text")).toBeEnabled();
+  await page.evaluate(() => { window.__lateTurn = sendUserUtterance("Explain this", {renderUser: true}); }); await started;
+  await page.locator("#open_diagnostics").click(); await page.getByTestId("connect-agent").click();
+  await page.getByTestId("connect-agent").click(); release(); await page.evaluate(() => window.__lateTurn);
+  await expect(page.getByTestId("agent-connection-state")).toContainText("Connected");
+  await expect(page.getByTestId("service-recovery")).toBeHidden();
+  await expect(page.getByTestId("speech-preview")).toHaveText("Welcome from the persisted starter.");
+});
+
+test("service login failure does not accuse a valid access code", async ({page, context}) => {
+  await installLifecycleApiMocks(context, {created: true, history: []});
+  await context.route("**/demo/session", route => route.fulfill({status: 500, body: "{}"}));
+  await page.goto("/valerian/"); await page.getByTestId("access-code-input").fill(ACCESS_CODE);
+  await page.getByTestId("submit-access-code").click();
+  await expect(page.getByTestId("access-code-status")).toContainText("Service unavailable");
+  await expect(page.getByTestId("access-code-status")).not.toContainText("rejected");
+  await expect(page.getByTestId("cockpit-shell")).not.toBeVisible();
+});
+
 for (const layout of [{ name: "desktop", width: 1440, height: 1000, theme: "light" },
   { name: "narrow", width: 390, height: 844, theme: "dark" }]) {
   test(`Coordination recovery guidance remains readable ${layout.name}`, async ({ page, context }, testInfo) => {

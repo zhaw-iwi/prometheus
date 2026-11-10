@@ -558,6 +558,32 @@ questions versus 4,731 before these changes. Sustained load at that rate exceeds
 the documented 36,000/hour plan; this regression test is not a capacity guarantee.
 See `.agents/GPTLIVE_RESULTS.md` for workload, verification and deployment limits.
 
+Valerian displays a connection-scoped service-recovery notice for network,
+429 and server failures. Existing history/task status remain last known. A failed
+mutation may have committed; no task request is automatically repeated. **Check
+connection** performs only scoped reads and rehydrates status/history before a
+user decides whether to repeat anything. Local capture teardown does not confirm
+that the backend task stopped. Login service failures are distinguished from a
+rejected access code. Reconnection/switching fences late responses and notices.
+
+For the opt-in six-client capacity probe, run the isolated acceptance runner with
+`--java-tests ClassroomCapacityIntegrationTest --classroom-capacity` and an owned
+loopback MySQL administration configuration. It must run alone; the runner copies
+`classroom-capacity-report.json` into its artifacts and rejects skipped/stale
+measurements. This measures global MySQL `Questions`, including transactions and
+JDBC, not just ORM statements. The November 10 local run kept 12 SSE readers alive
+for a 60-second active sensing/task window: 7,776 Questions/minute, projecting
+466,560/hour plus 6,127 fixed setup/recovery/cleanup Questions. This **fails** the
+28,800/hour budget (36,000 allowance less 20% headroom). Synthetic providers,
+automatic ticks disabled (a separate six-agent tick probe measured 192 Questions),
+short histories and no Live receipt traffic limit this projection. No sustained
+60-70 minute capacity acceptance or production load test has been performed.
+A larger database allowance or measured architectural savings, followed by a
+sustained representative test, is required before claiming classroom readiness.
+Retain sanitized logs and timing/query evidence before resets or deletion; an
+external log drain/research archive requires a separate rollout decision.
+See `.agents/ESCALATION_RESULTS.md` for the exact phases and limitations.
+
 The browser acceptance adds eight separate access-code contexts that join in
 sequence, keep sixteen native SSE streams open, send concurrent turns, and check
 scoped persisted history, disconnect/reconnect, switching instances and reload.

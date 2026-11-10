@@ -37,11 +37,16 @@ def main():
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--browser-mode', choices=['both', 'enabled', 'disabled'], default='both', help='Select fixture modes for focused browser checks')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
+    parser.add_argument('--classroom-capacity', action='store_true', help='Dedicated offline six-client minute with MySQL Questions measurement')
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction'], default='baseline')
     args = parser.parse_args()
+    if args.classroom_capacity and (args.paid_core or args.browser):
+        parser.error('--classroom-capacity requires a separate offline run')
+    if args.classroom_capacity and args.java_tests != 'ClassroomCapacityIntegrationTest':
+        parser.error('--classroom-capacity requires --java-tests ClassroomCapacityIntegrationTest alone')
     if args.paid_core and args.browser:
         parser.error('--paid-core and mocked --browser acceptance must run separately')
     if args.browser_mode != 'both' and not args.browser:
@@ -97,6 +102,7 @@ def main():
         PROMETHEUS_RUNTIME_TICK_ENABLED='false', SERVER_SHUTDOWN='immediate', PROMETHEUS_ADMIN_TOKEN=secrets.token_hex(20),
         SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE='10',
         PROMETHEUS_SKIP_WEBSERVER='true')
+    env['PROMETHEUS_CLASSROOM_CAPACITY'] = 'true' if args.classroom_capacity else 'false'
     maven = ['mvnw.cmd'] if os.name == 'nt' else ['bash', './mvnw']
     npm = 'npx.cmd' if os.name == 'nt' else 'npx'
 
@@ -151,6 +157,15 @@ def main():
             # Every cached Spring context owns a pool. Bound aggregate local connections
             # for full-suite runs without changing any application's production pool size.
             run([*maven, '-q', '-Dspring.test.context.cache.maxSize=4', *selection, 'test'], 'java')
+            if args.classroom_capacity:
+                capacity = root / 'target/classroom-capacity-report.json'
+                if not capacity.exists():
+                    raise SystemExit('Capacity measurement did not produce a report; skipped tests are not acceptance.')
+                measured = json.loads(capacity.read_text(encoding='utf-8'))
+                if measured.get('schema') != schema or not measured.get('functionalAcceptance'):
+                    raise SystemExit('Capacity measurement lacks passing evidence for this owned schema.')
+                print('Capacity numeric headroom: ' + ('PASS' if measured.get('numericHeadroomMet') else 'FAIL')
+                      + '; classroom readiness: ' + str(measured.get('classroomReady')), flush=True)
         if args.paid_core:
             key = os.environ.get('OPENAI_API_KEY') or provider_props.get('openai.key')
             env.update(OPENAI_KEY=key.removeprefix('Bearer '), OPENAI_API_KEY=key.removeprefix('Bearer '),
@@ -234,6 +249,13 @@ def main():
                     stop()
     finally:
         stop()
+        capacity_report = root / 'target/classroom-capacity-report.json'
+        if args.classroom_capacity and capacity_report.exists():
+            try:
+                if json.loads(capacity_report.read_text(encoding='utf-8')).get('schema') == schema:
+                    shutil.copy2(capacity_report, artifacts / capacity_report.name)
+            except (ValueError, OSError):
+                print('Capacity report could not be retained; inspect the Java log.', flush=True)
         with database.cursor() as cursor:
             if created_schema:
                 cursor.execute('DROP DATABASE `' + schema + '`')

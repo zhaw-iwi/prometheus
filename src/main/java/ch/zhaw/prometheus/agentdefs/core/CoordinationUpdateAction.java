@@ -38,6 +38,11 @@ public class CoordinationUpdateAction extends Action {
         if (runtime.externalSpeech() == null) CoordinationMemory.remove(storage, TaskResponse.KEY, CoreTaskVoice.RESPONSE);
         String invitation = CoordinationAcceptance.invitation(storage, events, runtime.externalSpeech(), now);
         boolean assent = CoordinationAcceptance.assent(text);
+        boolean support = CoordinationSupport.requested(text);
+        String helpControl = support ? helpControl(text) : null;
+        if ("AMBIGUOUS".equals(helpControl)) {
+            answerSupport("You mentioned several control operations. Please choose Pause, Stop or Resume; no task change has been applied.", runtime); return;
+        }
         String perception = CoordinationPerception.answer(events, text, now);
         if (perception != null) { answerSupport(perception, runtime); return; }
         if (CoreTaskVoice.acknowledgement(text) || assent && invitation == null) {
@@ -66,15 +71,15 @@ public class CoordinationUpdateAction extends Action {
                 answer("Do you mean return to Conversation, or restart the same agreed task? The state is unchanged.", runtime); return;
             } else if (command.matches("(what is (our|your|the) (current )?state|where are we|which state are we in)")) {
                 operation = "STATUS"; reply = BehaviourPlan.speechOnly(CoordinationMemory.controls(storage));
-            } else if (command.matches("(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?")) {
-                operation = command.replaceFirst("^please ", "").split(" ")[0].toUpperCase(java.util.Locale.ROOT);
+            } else if (helpControl != null || command.matches("(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?")) {
+                operation = helpControl != null ? helpControl : command.replaceFirst("^please ", "").split(" ")[0].toUpperCase(java.util.Locale.ROOT);
                 if (operation.equals("CANCEL")) operation = "STOP";
                 reply = BehaviourPlan.speechOnly(switch (operation) {
                     case "PAUSE" -> "The task is paused; our agreement and progress are preserved.";
                     case "RESUME" -> "The task is resumed. We can continue from the agreed progress.";
                     default -> "The task is stopped. We can reflect on it or plan something else.";
                 });
-            } else if (CoordinationSupport.requested(text)) {
+            } else if (support && !command.matches(".*\\b(stop|pause|resume|restart|return|stoppe|pausiere|fortsetzen|neustart)\\b.*")) {
                 operation = "SUPPORT"; reply = BehaviourPlan.speechOnly(CoordinationSupport.explain(storage, now));
             } else {
                 String prompt = getPolicy().describe() + "\n" + CoordinationMemory.facts(storage)
@@ -147,6 +152,18 @@ public class CoordinationUpdateAction extends Action {
         return draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
                 && (CoordinationAcceptance.explicit(text) || CoordinationAcceptance.assent(text)
                     && invitation != null && !CoreTaskVoice.deferredQuestion(invitation));
+    }
+    private static String helpControl(String text) {
+        var controls = new java.util.HashSet<String>();
+        for (String clause : text.split("[,;.!\\n]|(?i) and (?=help|explain)")) {
+            if (clause.contains("?") || clause.stripLeading().matches("[\"'“‘].*")) continue;
+            String normalized = CoreTaskVoice.normalize(clause);
+            if (normalized.matches("(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?")) {
+                String control = normalized.replaceFirst("^please ", "").split(" ")[0].toUpperCase(java.util.Locale.ROOT);
+                controls.add(control.equals("CANCEL") ? "STOP" : control);
+            }
+        }
+        return controls.size() > 1 ? "AMBIGUOUS" : controls.stream().findFirst().orElse(null);
     }
     private void validate(String operation, CoordinationAgreement proposed, boolean assent, String invitation, String text) {
         var storage = getStorage(); var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);

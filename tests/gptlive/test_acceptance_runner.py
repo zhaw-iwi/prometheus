@@ -10,6 +10,13 @@ RUNNER = Path(__file__).with_name('run_acceptance.py')
 
 
 class AcceptanceRunnerTest(unittest.TestCase):
+    def test_classroom_capacity_must_select_its_dedicated_test(self):
+        self.run_rejected(['--classroom-capacity', '--java-tests', 'all'], {}, 'ClassroomCapacityIntegrationTest alone')
+
+    def test_classroom_capacity_cannot_mix_provider_or_browser_traffic(self):
+        self.run_rejected(['--classroom-capacity', '--java-tests', 'ClassroomCapacityIntegrationTest',
+                           '--paid-core', 'coordination'], {}, 'requires a separate offline run')
+
     def test_synthetic_escalation_manifest_is_available_without_provisioning(self):
         fixture = escalation_cases(RUNNER.resolve().parents[2])
         self.assertFalse(fixture['baselineIsAcceptance'])

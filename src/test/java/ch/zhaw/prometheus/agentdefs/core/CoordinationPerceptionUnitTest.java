@@ -46,6 +46,8 @@ class CoordinationPerceptionUnitTest {
         assertTrue(CoordinationPerception.answer(history, "Was erkennst du aus meinem Gesichtsausdruck?", now).contains("too uncertain"));
         assertNull(CoordinationPerception.answer(history, "Can you tell a joke when I show a hand sign?", now));
         assertNull(CoordinationPerception.answer(history, "Which hand sign should we use?", now));
+        history.appendEvent(Event.observation(Event.TYPE_HAND_SIGN, "camera", "{\"sign\":\"rock\",\"confidence\":\"0.9\",\"ts\":\"" + now + "\"}"));
+        assertTrue(CoordinationPerception.answer(history, "What hand sign do you see?", now).contains("invalid or incomplete"));
     }
 
     @Test void invalidCosmeticExpressionCannotDiscardAnOrdinaryAnswerButMotionRemainsStrict() {
