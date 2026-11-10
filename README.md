@@ -2161,6 +2161,18 @@ Two execution forms are supported:
   silent actions do not wait for captions. Instructions cannot enable sensors or
   alter microphone/turn settings.
 
+Sensor reactions are output-only; they do not implement a human answer/feedback
+loop. Clear promises of such a loop are rejected with guidance to propose a
+bounded dialogue alternative or an explicitly output-only reaction. Changing
+task form still requires an explicit replacement and renewed acceptance; no cue
+is silently removed. A supported dialogue riddle asks its question without the
+solution, then uses another authorized contribution for feedback. Both count
+towards the agreed limit. New proposals disclose the finite contribution/action
+cap, including requests phrased as "until stop". Natural-language quality and
+unseen wording remain bounded provider-acceptance concerns, not a scored-game
+guarantee. Existing saved tasks are not rewritten; unsupported answer attempts
+get specific recovery guidance while their agreement and budget are preserved.
+
 A proposal may additionally request up to three **recognition demonstrations**,
 each checking one supported sensor field using `eq`, `lt` or `gt` and a confidence
 threshold. For example, show rock and paper separately before agreeing to use them

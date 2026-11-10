@@ -18,6 +18,7 @@ public class CoordinationUpdateAction extends Action {
     private static final Set<String> OPERATIONS = Set.of("KEEP", "SUPPORT", "PROPOSE", "REPLACE", "PROPOSE_AND_START", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
     private static final class UnexpectedTerms extends IllegalArgumentException {}
     private static final class PendingResponse extends IllegalArgumentException {}
+    private static final class UnsupportedDialogue extends IllegalArgumentException {}
     protected CoordinationUpdateAction() {}
     public CoordinationUpdateAction(Storage storage, String instructions) {
         super(new PromptPolicy(instructions, null, null), storage, TaskMemory.REPLY); blocking();
@@ -77,6 +78,7 @@ public class CoordinationUpdateAction extends Action {
             } else {
                 String prompt = getPolicy().describe() + "\n" + CoordinationMemory.facts(storage)
                         + CoordinationSupport.GUIDANCE
+                        + CoordinationTaskContract.GUIDANCE
                         + (storage.containsKey(CoordinationMemory.DRAFT) && CoordinationAcceptance.explicit(text)
                                 ? "\nThis is an explicit request to accept the unchanged saved proposal now. Use START with agreement:null if preparation is ready; provide the first contribution only for dialogue/IMMEDIATE. Do not request a second confirmation." : "")
                         + TaskSpec.HAND_CONFIDENCE_GUIDANCE
@@ -113,7 +115,8 @@ public class CoordinationUpdateAction extends Action {
                 storage.put(TaskMemory.REPLY, new JsonObject()); return;
             }
             ch.zhaw.prometheus.logging.ActivityTrace.failed(inferred ? "coordination_update_invalid" : "coordination_update_failed");
-            String category = failure instanceof UnexpectedTerms ? "protected_terms" : rejection;
+            String category = failure instanceof UnexpectedTerms ? "protected_terms"
+                    : failure instanceof UnsupportedDialogue ? "unsupported_dialogue" : rejection;
             String safeOperation = OPERATIONS.contains(operation) ? operation : "UNKNOWN";
             try { CoordinationRecovery.rejected(storage, category, safeOperation, event, now); }
             catch (RuntimeException unavailable) {
@@ -123,7 +126,9 @@ public class CoordinationUpdateAction extends Action {
             org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn(
                     "Coordination update rejected; category={}, operation={}, phase={}; agreement and preparation preserved",
                     category, safeOperation, CoordinationMemory.stage(storage));
-            answerSupport(failure instanceof UnexpectedTerms
+            answerSupport(failure instanceof UnsupportedDialogue
+                    ? "That task form cannot support the promised answer/feedback exchange with its proposed limits. Our agreement is unchanged. We can explicitly propose a bounded dialogue alternative, or an output-only sensor reaction without an answer loop. Please choose before we change or start anything."
+                    : failure instanceof UnexpectedTerms
                     ? "That edit also changes agreed triggers, limits, roles or preparation. I have preserved the agreement. Please say explicitly if you want to replace those terms."
                     : "I couldn't apply that update. " + CoordinationSupport.explain(storage, now), runtime);
             return;
@@ -146,6 +151,10 @@ public class CoordinationUpdateAction extends Action {
             throw new IllegalArgumentException("An ordinary capability question grants no task operation");
         if (operation.equals("START") && CoordinationAcceptance.uncertainStart(text))
             throw new IllegalArgumentException("Starting requires present unquoted consent");
+        if (CoordinationTaskContract.sensorPromisesDialogue(proposed) || CoordinationTaskContract.insufficientDialogueBudget(proposed)
+                || operation.equals("START") && (CoordinationTaskContract.sensorPromisesDialogue(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))
+                    || CoordinationTaskContract.insufficientDialogueBudget(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))))
+            throw new UnsupportedDialogue();
         var previous = CoordinationMemory.agreement(storage, storage.containsKey(CoordinationMemory.DRAFT) ? CoordinationMemory.DRAFT : CoordinationMemory.AGREEMENT);
         if (operation.equals("PROPOSE") && previous != null && previous.complete()
                 && !"CONVERSATION".equals(CoordinationMemory.stage(storage)) && !previous.sameTerms(proposed)) throw new UnexpectedTerms();
@@ -160,6 +169,7 @@ public class CoordinationUpdateAction extends Action {
             }
             case "START" -> { if (!CoordinationMemory.ready(storage)) throw new IllegalArgumentException("Preparation incomplete"); }
             case "STEP" -> {
+                if (accepted != null && accepted.reactions() != null) throw new UnsupportedDialogue();
                 if (storage.containsKey(TaskResponse.KEY) && Set.of("PENDING", "CHECKING").contains(TaskResponse.status(storage)))
                     throw new PendingResponse();
                 if (!TaskMemory.active(storage) || accepted == null || accepted.reactions() != null || storage.containsKey(CoordinationMemory.DRAFT))

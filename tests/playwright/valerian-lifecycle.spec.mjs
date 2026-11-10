@@ -133,6 +133,24 @@ test("Valerian columns follow access, create, connect, disconnect, and logout li
   await expect(page.locator("#activity_log")).toHaveText("");
 });
 
+test("Coordination dialogue shows agreed limits, question and feedback distinctly", async ({ page, context }, testInfo) => {
+  const proposal = "Proposed task: Try one short riddle together. Limit: 2 agent contributions, including questions and feedback. Stop can end earlier. The proposal is awaiting your acceptance and is not active. Shall we start it now?";
+  await installLifecycleApiMocks(context, { created: true, stateName: "Coordination reflection", history: [
+    behaviourEvent(proposal, "2026-11-10T12:00:00Z"),
+    event("obs.user_utterance", "user", "observation", "Start", "2026-11-10T12:00:01Z"),
+    behaviourEvent("What becomes shorter while it works?", "2026-11-10T12:00:02Z"),
+    event("obs.user_utterance", "user", "observation", "A candle", "2026-11-10T12:00:03Z"),
+    behaviourEvent("A candle fits that riddle.", "2026-11-10T12:00:04Z"),
+  ] });
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+  const replies = page.getByTestId("message-list").locator(".demo-message.assistant");
+  await expect(replies).toHaveCount(3); await expect(replies.first()).toContainText("Limit: 2");
+  await expect(replies.nth(1)).not.toContainText("candle"); await expect(replies.nth(2)).toContainText("candle");
+  await expect(page.getByTestId("diagnostics-current-state")).toHaveText("Coordination reflection");
+  await replies.first().scrollIntoViewIfNeeded();
+  await replies.first().screenshot({ path: testInfo.outputPath("dialogue-limits.png") });
+});
+
 test("Coordination perception guidance agrees with sensed input and unchanged status", async ({ page, context }, testInfo) => {
   const words = "When you asked, a fresh supplied hand observation reported scissors (recognition confidence 87%). This is a supplied estimate, not direct access to camera images.";
   await installLifecycleApiMocks(context, { created: true, stateName: "Coordination awaiting acceptance", history: [

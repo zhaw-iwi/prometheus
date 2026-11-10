@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Escalation ES-05 (2026-11-10): output-only versus dialogue task negotiation,
+  specific unsupported-answer recovery, visible finite caps and bounded riddle
+  guidance. No mixed game engine or silent task-form conversion. Passed 71 Java
+  cases plus a final 20-case contract check, 18 local-MySQL and one reviewed browser
+  case. Provider content quality remains ES-08. `.agents/ESCALATION_RESULTS.md`.
+
 - Escalation ES-04 (2026-11-10): source-grounded hand/face questions throughout
   Coordination, safe optional-expression fallback, and task-authority protection
   for ordinary questions. Passed 53 Java, 17 local-MySQL and one reviewed browser

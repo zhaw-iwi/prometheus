@@ -38,7 +38,8 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         return "EXECUTION".equals(stage) ? TaskMemory.phase(storage()) : stage;
     }
     @Override public String voiceInstructions() {
-        return configuredInstructions() + "\nThe backend coordinates both conversational and sensor-rule tasks. "
+        return configuredInstructions() + ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.VOICE_GUIDANCE
+                + "\nThe backend coordinates both conversational and sensor-rule tasks. "
                 + "Answer ordinary conversation and capability/perception questions naturally from current facts. "
                 + "For a current hand-sign question, name the fresh recognised sign directly, for example 'I see a scissor sign'. "
                 + "These are supplied sensor observations, not direct access to camera images. Being a digital agent does not mean you have no sensory evidence. "

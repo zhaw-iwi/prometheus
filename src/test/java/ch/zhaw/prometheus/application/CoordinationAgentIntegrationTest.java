@@ -99,6 +99,32 @@ class CoordinationAgentIntegrationTest {
         assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
         assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
         assertEquals(1, memory(scope).get(CoordinationMemory.ACCEPTED_EVIDENCE).getAsJsonObject().size());
+        turn(scope, "REPLACE", AGREEMENT, "Explicitly replace this sensor task with the invitation dialogue");
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        turn(scope, "START", "null", "Accept this replacement and begin");
+        assertFalse(memory(scope).containsKey(TaskMemory.SPEC));
+        assertTrue(memory(scope).get(CoordinationMemory.AGREEMENT).getAsJsonObject().get("reactions").isJsonNull());
+    }
+
+    @Test void boundedRiddleDialogueReloadsQuestionFeedbackAndDistinctBudgetOutcome() {
+        var scope = create(); var proposal = JsonParser.parseString(AGREEMENT).getAsJsonObject();
+        proposal.addProperty("goal", "Try one short riddle together"); proposal.addProperty("humanRole", "Answer the question");
+        proposal.addProperty("agentRole", "Ask a riddle and give feedback"); proposal.addProperty("dialogueLimit", 2);
+        turn(scope, "PROPOSE", proposal.toString(), "Propose a bounded question and feedback exchange");
+        assertTrue(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast().getPayload().contains("Limit: 2"));
+        when(gateway.infer(any())).thenReturn("{\"operation\":\"START\",\"agreement\":null,\"reply\":{\"speech\":\"What becomes shorter while it works?\"}}");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, "Start"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertFalse(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast().getPayload().contains("candle"));
+        when(gateway.infer(any())).thenReturn("{\"operation\":\"STEP\",\"agreement\":null,\"reply\":{\"speech\":\"A candle fits that riddle.\"}}");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, "A candle"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(2, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals("LIMIT_REACHED", memory(scope).get(CoordinationMemory.OUTCOME).getAsString());
+        var history = agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
+        assertTrue(history.getLast().getPayload().contains("candle"));
+        assertTrue(history.stream().anyMatch(e -> Event.TYPE_USER_UTTERANCE.equals(e.getType()) && "A candle".equals(e.getPayload())));
     }
 
     @Test void currentPerceptionQuestionAndTechnicalFailurePreserveSavedTaskAcrossReload() {

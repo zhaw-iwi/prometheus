@@ -60,6 +60,7 @@ public final class CoordinationSupport {
         var failure = CoordinationRecovery.current(storage, now);
         String reason = failure == null ? "" : switch (failure.get("category").getAsString()) {
             case "protected_terms" -> "it changed protected agreement terms";
+            case "unsupported_dialogue" -> "the task form or contribution limit cannot support the requested answer/feedback exchange";
             case "operation_constraints" -> "the requested operation was not permitted in the current state";
             case "update_shape", "agreement_shape", "reply_shape", "speech_intent_length" -> "the generated update did not meet the response requirements";
             default -> "I could not obtain a usable interpretation; the underlying cause is not established";

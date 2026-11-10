@@ -41,10 +41,12 @@ public final class CoordinationMemory {
     }
     public static String proposalPrompt(Storage storage) {
         var draft = agreement(storage, DRAFT);
-        if (ready(storage)) return "Proposed task: " + draft.goal() + ". " + acceptancePrompt(storage);
+        String limit = " Limit: " + (draft.reactions() == null ? draft.dialogueLimit() + " agent contributions, including questions and feedback"
+                : draft.reactions().maxActions() + " sensor actions") + ". Stop can end earlier.";
+        if (ready(storage)) return "Proposed task: " + draft.goal() + "." + limit + " " + acceptancePrompt(storage);
         if (!draft.complete()) return "The proposal is not complete yet. " + (draft.questions().isEmpty()
                 ? "We still need to agree the goal, roles and success criterion." : draft.questions().getFirst());
-        return "Proposed task: " + draft.goal() + ". Before acceptance, we need fresh recognition evidence for: "
+        return "Proposed task: " + draft.goal() + "." + limit + " Before acceptance, we need fresh recognition evidence for: "
                 + draft.checks().stream().map(check -> check.value().getAsString()).collect(java.util.stream.Collectors.joining(", "))
                 + ". The task is not active. I will ask to start after those checks are recognised.";
     }

@@ -1,5 +1,48 @@
 # Coordination escalation and classroom reliability evidence
 
+## ES-05 — Supported task forms and visible limits (2026-11-10)
+
+Runtime negotiation guidance describes the existing output-only sensor and
+dialogue contracts. Deterministic guards reject recognised sensor promises to
+invite/evaluate answers or start a riddle game, and a question-plus-feedback
+dialogue without two contributions. Exact literal output and a one-contribution
+feedback-only activity remain supported. Unsupported sensor STEP attempts now
+explain the task-form mismatch and offer explicit alternatives without changing
+terms or budget. This is a bounded language guard, not semantic proof for every
+possible phrasing or a new game engine. New complete proposals disclose the
+finite limit and early Stop option.
+
+Dialogue guidance withholds the riddle solution, counts question/feedback
+separately, avoids starting unfundable rounds and uses recent history to avoid
+repetition. Cue and Live guidance prohibit output-only answer-loop promises.
+Generated content quality still needs ES-08's actual provider checks. No mixed
+cue-to-dialogue protocol was introduced; the roadmap's supported-alternative
+default suffices. Saved agreements are not rewritten; unsupported saved drafts
+must be explicitly replaced rather than silently converted. No schema migration.
+
+Verification:
+
+- 71 Java cases passed across CoordinationTaskContractUnitTest (4),
+  CoordinationAgentUnitTest (16), CoordinationRevisionUnitTest (11),
+  CoordinationVoiceUnitTest (9), CoordinationSupportUnitTest (13),
+  CoordinationDeliveryUnitTest (12) and CoordinationAcceptanceUnitTest (6).
+  A final 20-case contract/agent run also passed after narrowing the two-contribution
+  requirement to question-plus-feedback rather than feedback-only activities.
+- Initial regression caught a Live instruction-budget overflow; compacted the
+  voice guidance and retained the existing 16,000-byte cap. It also found an older
+  delivery test using an epoch-dated invitation; updated that synthetic invitation
+  to be recent under ES-03's new expiry contract. Expired-invitation rejection
+  remains covered separately; production expiry was not weakened.
+- `python target/run_coordination_mysql.py CoordinationAgentIntegrationTest,CoordinationDeliveryIntegrationTest`:
+  18 cases passed. A scripted riddle round persists question, answer, feedback and
+  LIMIT_REACHED as distinct facts, and an explicit sensor-to-dialogue replacement
+  reloads without executing before acceptance. Generated question quality is not
+  inferred from scripted output. Owned cleanup confirmed; artifacts:
+  `target/gptlive-acceptance-0a882d246e/` and `target/es05-db.log`.
+- One Playwright case verified visible limits, separate question/feedback and
+  Reflection state; its proposal screenshot was visually inspected. Whitespace
+  checks passed. No provider calls or production writes.
+
 ## ES-04 — Grounded questions and safe optional-expression fallback (2026-11-10)
 
 Recognisable direct hand/face questions now read supplied source-timed observations
