@@ -69,10 +69,13 @@ public final class CoordinationSupport {
         return "Current coordination state: " + stage + ". " + next + diagnostic;
     }
 
-    public static void pending(Storage storage, ExternalSpeech owner, Instant now) {
+    public static void pending(Storage storage, ExternalSpeech owner, Instant now, String explanation) {
         var value = new JsonObject(); value.addProperty("session", owner.sessionId().toString());
         value.addProperty("epoch", owner.epoch().toString()); value.addProperty("at", now.toString());
         value.addProperty("revision", TaskMemory.text(storage, TaskMemory.REVISION, "0"));
+        // Timestamped request-time evidence stays historical if task delivery delays the answer.
+        if ((explanation.startsWith("When you asked,") || explanation.startsWith("No ") || explanation.startsWith("The supplied "))
+                && explanation.length() <= 1000) value.addProperty("requestEvidence", explanation);
         storage.put(LIVE_HELP, value);
     }
 
@@ -84,6 +87,7 @@ public final class CoordinationSupport {
             if (!now.isBefore(Instant.parse(value.get("at").getAsString()).plusSeconds(30))
                     || !value.get("revision").getAsString().equals(TaskMemory.text(storage, TaskMemory.REVISION, "0"))) return context;
             String help = "\nThe user requested help. " + explain(storage, now)
+                    + (value.has("requestEvidence") ? " Request-time perception facts (not proof of current input): " + value.get("requestEvidence").getAsString() : "")
                     + " This explanation is not the pending task contribution; do not report it as task delivery or repeat the task.";
             String facts = context.facts() + help;
             if (facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 4000) return context;

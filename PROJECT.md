@@ -75,6 +75,11 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Escalation ES-04 (2026-11-10): source-grounded hand/face questions throughout
+  Coordination, safe optional-expression fallback, and task-authority protection
+  for ordinary questions. Passed 53 Java, 17 local-MySQL and one reviewed browser
+  case; no schema/graph migration. Evidence: `.agents/ESCALATION_RESULTS.md`.
+
 - Escalation ES-03 (2026-11-10): natural English/German acceptance for unchanged
   ON_CUE proposals, bounded completed-invitation context for short assent, and
   guarded rejection of unsafe inferred starts. Repeated starts preserve identity

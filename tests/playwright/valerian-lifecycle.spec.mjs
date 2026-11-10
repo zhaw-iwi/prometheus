@@ -133,6 +133,21 @@ test("Valerian columns follow access, create, connect, disconnect, and logout li
   await expect(page.locator("#activity_log")).toHaveText("");
 });
 
+test("Coordination perception guidance agrees with sensed input and unchanged status", async ({ page, context }, testInfo) => {
+  const words = "When you asked, a fresh supplied hand observation reported scissors (recognition confidence 87%). This is a supplied estimate, not direct access to camera images.";
+  await installLifecycleApiMocks(context, { created: true, stateName: "Coordination awaiting acceptance", history: [
+    event("obs.hand.sign", "camera", "observation", JSON.stringify({ sign: "scissor", confidence: .868,
+      ts: new Date().toISOString() }), new Date().toISOString()),
+    behaviourEvent(words, new Date().toISOString()),
+  ] });
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+  await expect(page.getByTestId("hand-sign-value")).toContainText(/Schere|scissor/i);
+  await expect(page.getByTestId("message-list")).toContainText("scissors");
+  await expect(page.getByTestId("speech-preview")).toHaveText(words);
+  await expect(page.getByTestId("diagnostics-current-state")).toHaveText("Coordination awaiting acceptance");
+  await page.getByTestId("message-list").locator(".demo-message.assistant").screenshot({ path: testInfo.outputPath("perception-guidance.png") });
+});
+
 test("hand confidence requirements follow monitor proposals, activation and disconnect", async ({ page, context }) => {
   await installLifecycleApiMocks(context, { created: true, history: [] });
   await page.goto(`/valerian/?agentId=${AGENT_ID}`);
@@ -404,7 +419,7 @@ async function installLifecycleApiMocks(context, scenario, realClock = false) {
       return route.fulfill(json([{ key: "visit", value: "used" }]));
     }
     if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/state`) {
-      return route.fulfill(json({ name: "Conversation", innerName: null, innerNames: [] }));
+      return route.fulfill(json({ name: scenario.stateName || "Conversation", innerName: null, innerNames: [] }));
     }
     if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/states`) {
       return route.fulfill(json(["Conversation"]));

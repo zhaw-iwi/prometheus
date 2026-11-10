@@ -2134,6 +2134,14 @@ task contribution or an automatic replay. This is not an acoustic silence gate.
 Reset and a new Live conversation discard pending help; no graph rewrite is needed.
 Database/transport unavailability still requires client-side recovery. Roadmap and verification:
 `.agents/PLAN_ESCALATION.md` and `.agents/ESCALATION_RESULTS.md`.
+Recognisable direct hand/face questions use fresh supplied observations locally,
+without an inference call or task contribution. Missing, expired, future-dated,
+invalid and uncertain samples are distinguished from usable estimates; recognition
+does not establish feelings or physical success. Other questions still use ordinary
+inference. Invalid optional expression styling may be omitted from an otherwise
+valid ordinary/control reply, while speech, hand motion and executable terms remain
+strict. Pending Live questions cannot replace a task response; request-time sensor
+facts are explicitly historical if delivery is delayed.
 
 Agreement goals, roles and success criteria each allow up to 300 characters;
 the whole agreement remains bounded to 3000 UTF-8 bytes. A request for current

@@ -1,5 +1,39 @@
 # Coordination escalation and classroom reliability evidence
 
+## ES-04 — Grounded questions and safe optional-expression fallback (2026-11-10)
+
+Recognisable direct hand/face questions now read supplied source-timed observations
+without inference, in all nine phases. Missing/stale/future/invalid evidence does
+not become a current estimate; face absence and poor confidence remain uncertain.
+Replies explicitly distinguish estimates from direct camera access or feelings.
+Other phrasing uses the existing interpreter. Narrow ordinary capability questions
+cannot grant an inferred task operation. Optional invalid expression styling may
+be discarded for ordinary/support and START replies, without relaxing speech,
+hand motion, agreement or control validation.
+
+Live pending questions preserve task identity/deadlines and expose bounded
+request-time perception facts as historical evidence, not proof of current input
+or task completion. This adds no inference, polling, schema or saved-graph rewrite.
+The original classroom failure's exact model result remains unknown; these are
+independently verified failure boundaries, not a claim of reproducing its cause.
+
+Verification:
+
+- 53 focused Java cases passed across CoordinationPerceptionUnitTest (14),
+  CoordinationAcceptanceUnitTest (6), CoordinationSupportUnitTest (13),
+  CoordinationVoiceUnitTest (9) and CoordinationRevisionUnitTest (11). Coverage
+  includes nine phases, source ages, invalid styling versus invalid motion,
+  dialogue contribution preservation and pending Live identity. An initial local
+  edit introduced a UTF-8 BOM into a new Java test; removed it before verification.
+- `python target/run_coordination_mysql.py CoordinationAgentIntegrationTest,CoordinationDeliveryIntegrationTest`:
+  17 cases passed, including real persisted fresh scissors recognition without
+  inference and provider-failure recovery preserving the saved proposal after
+  reload. Owned schema/account/server cleanup confirmed. Artifacts:
+  `target/gptlive-acceptance-dc97ffe0a4/` and `target/es04-db.log`.
+- One Playwright sensed-input/reply/unchanged-status case passed; its screenshot
+  was inspected. No client rendering changed. `git diff --check` passed.
+- No production writes or provider calls; actual Live wording remains ES-08.
+
 ## ES-03 — Natural acceptance and truthful preparation (2026-11-10)
 
 Unchanged ON_CUE starts accept explicit English/German forms and the measured

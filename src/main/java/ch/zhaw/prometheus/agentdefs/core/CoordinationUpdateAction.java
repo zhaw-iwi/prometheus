@@ -36,6 +36,8 @@ public class CoordinationUpdateAction extends Action {
         if (runtime.externalSpeech() == null) CoordinationMemory.remove(storage, TaskResponse.KEY, CoreTaskVoice.RESPONSE);
         String invitation = CoordinationAcceptance.invitation(storage, events, runtime.externalSpeech(), now);
         boolean assent = CoordinationAcceptance.assent(text);
+        String perception = CoordinationPerception.answer(events, text, now);
+        if (perception != null) { answerSupport(perception, runtime); return; }
         if (CoreTaskVoice.acknowledgement(text) || assent && invitation == null) {
             CoreTaskVoice.clearAnswered(storage);
             if (runtime.externalSpeech() != null && !(assent && storage.containsKey(CoordinationMemory.DRAFT))) {
@@ -139,6 +141,9 @@ public class CoordinationUpdateAction extends Action {
     private void validate(String operation, CoordinationAgreement proposed, boolean assent, String invitation, String text) {
         var storage = getStorage(); var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
         if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "REPLACE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
+        if (CoreTaskVoice.normalize(text).matches("what can you do|what are your capabilities|who are you|was kannst du|wer bist du")
+                && !Set.of("KEEP", "SUPPORT").contains(operation))
+            throw new IllegalArgumentException("An ordinary capability question grants no task operation");
         if (operation.equals("START") && CoordinationAcceptance.uncertainStart(text))
             throw new IllegalArgumentException("Starting requires present unquoted consent");
         var previous = CoordinationMemory.agreement(storage, storage.containsKey(CoordinationMemory.DRAFT) ? CoordinationMemory.DRAFT : CoordinationMemory.AGREEMENT);
@@ -329,7 +334,7 @@ public class CoordinationUpdateAction extends Action {
         try { return TaskMemory.plan(raw); }
         catch (IllegalArgumentException invalid) {
             // Optional expression is not part of a proposal's executable agreement. Keep motion and speech strict.
-            if (!Set.of("PROPOSE", "REPLACE", "STATUS", "RETURN_TO_CONVERSATION", "STOP", "PAUSE", "RESUME", "DISCARD", "COMPLETE").contains(operation)
+            if (!Set.of("KEEP", "SUPPORT", "START", "PROPOSE", "REPLACE", "STATUS", "RETURN_TO_CONVERSATION", "STOP", "PAUSE", "RESUME", "DISCARD", "COMPLETE").contains(operation)
                     || raw == null || !raw.isJsonObject() || raw.toString().length() > 1800 || !raw.getAsJsonObject().has("nonVerbal")) throw invalid;
             var withoutExpression = raw.getAsJsonObject().deepCopy(); withoutExpression.remove("nonVerbal");
             var plan = TaskMemory.plan(withoutExpression);
@@ -346,7 +351,7 @@ public class CoordinationUpdateAction extends Action {
         if (runtime.externalSpeech() != null && (CoordinationDelivery.finishing(getStorage())
                 || Set.of("PENDING", "CHECKING").contains(TaskResponse.status(getStorage())))) {
             getStorage().put(TaskMemory.REPLY, new JsonObject());
-            CoordinationSupport.pending(getStorage(), runtime.externalSpeech(), Instant.now());
+            CoordinationSupport.pending(getStorage(), runtime.externalSpeech(), Instant.now(), text);
             return;
         }
         answer(text, runtime);

@@ -101,6 +101,26 @@ class CoordinationAgentIntegrationTest {
         assertEquals(1, memory(scope).get(CoordinationMemory.ACCEPTED_EVIDENCE).getAsJsonObject().size());
     }
 
+    @Test void currentPerceptionQuestionAndTechnicalFailurePreserveSavedTaskAcrossReload() {
+        var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose the invitation task");
+        var before = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_HAND_SIGN, "camera", Event.KIND_OBSERVATION,
+                "{\"sign\":\"scissor\",\"confidence\":0.868,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
+        clearInvocations(gateway);
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION,
+                "Siehst du mein Handzeichen?"), OutputProfile.FULL_PLAN).orElseThrow();
+        verifyNoInteractions(gateway);
+        assertTrue(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast().getPayload().contains("scissors"));
+        assertEquals(before, memory(scope).get(CoordinationMemory.DRAFT));
+        when(gateway.infer(any())).thenThrow(new IllegalStateException("private provider transport details"));
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION,
+                "Explain your capabilities"), OutputProfile.FULL_PLAN).orElseThrow();
+        var failure = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast().getPayload();
+        assertFalse(failure.contains("private")); assertTrue(failure.contains("cause is not established"));
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        assertEquals(before, memory(scope).get(CoordinationMemory.DRAFT));
+    }
+
     @Test void rejectedUpdateEvidenceReloadsWithoutChangingPreparationAndClearsOnProgress() {
         var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation activity");
         var draft = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();
