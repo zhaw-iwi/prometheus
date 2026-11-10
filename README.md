@@ -2114,8 +2114,17 @@ phase, run/revision and action count, with `mutationCommitted=false`. No raw mod
 output, user wording or exception message is retained. It is applicable for at most
 30 minutes while those runtime identities remain unchanged; successful control
 progress clears it and reset removes it. Missing legacy evidence means unknown.
-This diagnostic addition requires no schema or saved-graph migration; it does
-not yet add conversational escalation. Roadmap and verification:
+This diagnostic addition requires no schema or saved-graph migration. In every
+Coordination phase, requests such as "Help me", "I don't understand" or
+"Ich verstehe das nicht" receive state-aware guidance; other expressions of
+difficulty use the ordinary turn interpreter. Explanations preserve the agreement,
+preparation, run and contribution budget. They do not pause active sensing; ask
+explicitly to Pause or Stop. Known failures explain the rejected boundary without
+inventing an underlying cause. Pending Live task responses retain their identity,
+deadline and playback requirements: help adds quiet facts, never a replacement
+task contribution or an automatic replay. This is not an acoustic silence gate.
+Reset and a new Live conversation discard pending help; no graph rewrite is needed.
+Database/transport unavailability still requires client-side recovery. Roadmap and verification:
 `.agents/PLAN_ESCALATION.md` and `.agents/ESCALATION_RESULTS.md`.
 
 Agreement goals, roles and success criteria each allow up to 300 characters;

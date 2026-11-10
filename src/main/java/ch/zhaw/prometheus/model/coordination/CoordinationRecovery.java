@@ -13,7 +13,7 @@ public final class CoordinationRecovery {
     public static final long TTL_SECONDS = 1800;
     private static final Set<String> CATEGORIES = Set.of("inference_failed", "update_shape", "agreement_shape",
             "reply_shape", "operation_constraints", "speech_intent_length", "protected_terms");
-    private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "REPLACE", "PROPOSE_AND_START", "START",
+    private static final Set<String> OPERATIONS = Set.of("KEEP", "SUPPORT", "PROPOSE", "REPLACE", "PROPOSE_AND_START", "START",
             "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION",
             "RESTART", "STATUS");
     private CoordinationRecovery() {}

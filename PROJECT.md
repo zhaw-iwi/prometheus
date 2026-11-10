@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Escalation ES-02 (2026-11-10): state-aware support throughout Coordination,
+  preserving task authority and pending Live response identity/deadlines. Direct
+  requests avoid extra inference; other phrasing uses the existing interpreter.
+  Passed 51 focused Java, 15 local-MySQL integration and two reviewed browser
+  cases. No graph/schema migration; paid Live acceptance remains ES-08.
+  Evidence: `.agents/ESCALATION_RESULTS.md`; ES-03 follows automatically.
+
 - Escalation ES-01 (2026-11-10): bounded content-free rejected-update evidence
   persists in ordinary Coordination Storage, scoped to phase/run/revision/actions
   and 30-minute applicability. Six synthetic classroom cases extend the isolated

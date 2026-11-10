@@ -71,6 +71,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         super.beginLiveConversation(history);
         SensoryRemarks.cancel(storage());
         CoreTaskVoice.clear(storage());
+        CoordinationMemory.remove(storage(), ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP);
         if (TaskMemory.active(storage()) && java.util.Set.of("PENDING", "CHECKING").contains(TaskResponse.status(storage())))
             TaskMemory.pauseForResponse(storage(), "live_session_replaced");
         if (hasDraft()) {
@@ -100,7 +101,10 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 || !now.isBefore(Instant.parse(response.get("expires").getAsString()))) return changed;
         response.addProperty("consumed", true); storage().put(CoreTaskVoice.RESPONSE, response); return true;
     }
-    @Override public LiveActivityContext liveActivityContext() { return CoordinationDelivery.withPlayback(storage(), speechContext()); }
+    @Override public LiveActivityContext liveActivityContext() {
+        return CoordinationDelivery.withPlayback(storage(),
+                ch.zhaw.prometheus.model.coordination.CoordinationSupport.withHelp(storage(), speechContext(), Instant.now()));
+    }
     private LiveActivityContext speechContext() {
         var storage = storage(); Instant now = Instant.now();
         var response = storage.containsKey(CoreTaskVoice.RESPONSE) ? storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject() : null;
@@ -115,7 +119,11 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 && TaskMemory.active(storage);
         boolean contributionOnly = response != null && response.has("contributionOnly") && response.get("contributionOnly").getAsBoolean()
                 && TaskResponse.accepting(storage);
-        String facts = controlOnly || contributionOnly ? CoordinationMemory.controls(storage) : CoordinationMemory.facts(storage);
+        boolean supportOnly = response != null && response.has("supportOnly") && response.get("supportOnly").getAsBoolean();
+        // Pending-response facts below retain the exact current purpose; omit redundant agreement
+        // background while explaining difficulty so help cannot overflow the Live context budget.
+        boolean pendingHelp = storage.containsKey(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP);
+        String facts = controlOnly || contributionOnly || supportOnly || pendingHelp ? CoordinationMemory.controls(storage) : CoordinationMemory.facts(storage);
         if (current) {
             Instant expires = Instant.parse(response.get("expires").getAsString());
             // The immediate response must precede background terms in the first append chunk.

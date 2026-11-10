@@ -15,7 +15,7 @@ import jakarta.persistence.Entity;
 /** Interpret one user turn, validate the whole update, then commit it under the existing agent-turn boundary. */
 @Entity
 public class CoordinationUpdateAction extends Action {
-    private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "REPLACE", "PROPOSE_AND_START", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
+    private static final Set<String> OPERATIONS = Set.of("KEEP", "SUPPORT", "PROPOSE", "REPLACE", "PROPOSE_AND_START", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
     private static final class UnexpectedTerms extends IllegalArgumentException {}
     private static final class PendingResponse extends IllegalArgumentException {}
     protected CoordinationUpdateAction() {}
@@ -27,6 +27,7 @@ public class CoordinationUpdateAction extends Action {
         if (events.isEmpty() || !runtime.taskContinuation().getAsBoolean()) return;
         var event = events.toList().getLast(); String text = event.getPayload(); Instant now = Instant.now();
         String revision = TaskMemory.text(storage, TaskMemory.REVISION, "0");
+        CoordinationMemory.remove(storage, CoordinationSupport.LIVE_HELP);
         // Acoustic completion is not semantic completeness. These clear fragments cannot authorize a change.
         if (CoreTaskVoice.normalize(text).matches("(a|an|the)( dry)?|(please )?(tell me|make it|change it to|can you|i want)( a| an| the)?")) {
             answer("Please finish that request; the agreement and state are unchanged.", runtime); return;
@@ -69,8 +70,11 @@ public class CoordinationUpdateAction extends Action {
                     case "RESUME" -> "The task is resumed. We can continue from the agreed progress.";
                     default -> "The task is stopped. We can reflect on it or plan something else.";
                 });
+            } else if (CoordinationSupport.requested(text)) {
+                operation = "SUPPORT"; reply = BehaviourPlan.speechOnly(CoordinationSupport.explain(storage, now));
             } else {
                 String prompt = getPolicy().describe() + "\n" + CoordinationMemory.facts(storage)
+                        + CoordinationSupport.GUIDANCE
                         + TaskSpec.HAND_CONFIDENCE_GUIDANCE
                         + "\nPrevious accepted agreement (data): " + (storage.containsKey(CoordinationMemory.AGREEMENT) ? storage.get(CoordinationMemory.AGREEMENT) : "none")
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
@@ -115,14 +119,14 @@ public class CoordinationUpdateAction extends Action {
             org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn(
                     "Coordination update rejected; category={}, operation={}, phase={}; agreement and preparation preserved",
                     category, safeOperation, CoordinationMemory.stage(storage));
-            answer(failure instanceof UnexpectedTerms
+            answerSupport(failure instanceof UnexpectedTerms
                     ? "That edit also changes agreed triggers, limits, roles or preparation. I have preserved the agreement. Please say explicitly if you want to replace those terms."
-                    : "I couldn't apply that update. Our agreement and preparation are preserved; we can clarify the missing requirement or retry.", runtime);
+                    : "I couldn't apply that update. " + CoordinationSupport.explain(storage, now), runtime);
             return;
         }
         if (!runtime.taskContinuation().getAsBoolean()) return;
         commit(operation, proposed, reply, event, now, runtime);
-        if (!Set.of("KEEP", "STATUS", "REFLECT").contains(operation)) CoordinationRecovery.clear(storage);
+        if (!Set.of("KEEP", "SUPPORT", "STATUS", "REFLECT").contains(operation)) CoordinationRecovery.clear(storage);
     }
     private boolean explicitCueStart(String command) {
         var draft = CoordinationMemory.agreement(getStorage(), CoordinationMemory.DRAFT);
@@ -164,6 +168,7 @@ public class CoordinationUpdateAction extends Action {
     private void commit(String operation, CoordinationAgreement proposed, BehaviourPlan reply, Event event, Instant now, PolicyRuntime runtime) {
         var storage = getStorage(); boolean live = runtime.externalSpeech() != null;
         String before = CoordinationMemory.stage(storage);
+        if (operation.equals("SUPPORT")) { answerSupport(CoordinationSupport.explain(storage, now), runtime); return; }
         if (CoordinationDelivery.finishing(storage) && Set.of("STOP", "RETURN_TO_CONVERSATION", "RESTART", "PROPOSE", "REPLACE").contains(operation)) {
             CoordinationDelivery.uncertain(storage, "user_" + operation.toLowerCase(java.util.Locale.ROOT), now);
             if (operation.equals("STOP")) {
@@ -331,5 +336,18 @@ public class CoordinationUpdateAction extends Action {
     private void answer(String text, PolicyRuntime runtime) {
         getStorage().put(TaskMemory.REPLY, runtime.externalSpeech() == null ? BehaviourPlan.speechOnly(text).toJsonObject() : new JsonObject());
         if (runtime.externalSpeech() != null) CoreTaskVoice.response(getStorage(), text, false, false, runtime, CoordinationMemory.facts(getStorage()));
+    }
+    private void answerSupport(String text, PolicyRuntime runtime) {
+        if (runtime.externalSpeech() != null && (CoordinationDelivery.finishing(getStorage())
+                || Set.of("PENDING", "CHECKING").contains(TaskResponse.status(getStorage())))) {
+            getStorage().put(TaskMemory.REPLY, new JsonObject());
+            CoordinationSupport.pending(getStorage(), runtime.externalSpeech(), Instant.now());
+            return;
+        }
+        answer(text, runtime);
+        if (runtime.externalSpeech() != null) {
+            var response = getStorage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
+            response.addProperty("supportOnly", true); getStorage().put(CoreTaskVoice.RESPONSE, response);
+        }
     }
 }

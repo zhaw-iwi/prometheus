@@ -58,6 +58,26 @@ class CoordinationAgentIntegrationTest {
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
     }
+    @Test void supportReloadsWithoutChangingAuthorityAndExistingPauseResumeRemainAvailable() {
+        var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation activity");
+        var before = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user",
+                Event.KIND_OBSERVATION, "I don't understand"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        assertEquals(before, memory(scope).get(CoordinationMemory.DRAFT));
+        var history = agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
+        assertTrue(history.getLast().getPayload().contains("no further demonstration"));
+        turn(scope, "START", "null", "Accept and begin the saved invitation");
+        var count = memory(scope).get(TaskMemory.ACTIONS).deepCopy();
+        turn(scope, "PAUSE", "null", "Pause");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user",
+                Event.KIND_OBSERVATION, "Help me"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("PAUSED", CoordinationMemory.stage(memory(scope)));
+        assertEquals(count, memory(scope).get(TaskMemory.ACTIONS));
+        turn(scope, "RESUME", "null", "Resume"); assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(count, memory(scope).get(TaskMemory.ACTIONS));
+    }
+
     @Test void rejectedUpdateEvidenceReloadsWithoutChangingPreparationAndClearsOnProgress() {
         var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation activity");
         var draft = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();

@@ -141,5 +141,5 @@ public final class CoordinationMemory {
         return prefix + cue + (key.equals(DRAFT) ? "PROPOSAL, NOT ACTIVE. Recognised preparation checks: " + evidence(storage).keySet()
                 + ". " : "Accepted agreement: ") + agreement.json();
     }
-    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, LOG_DROPPED, REVIEW, LAST_CUE, RUN, OUTCOMES, CoordinationRecovery.KEY); }
+    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, LOG_DROPPED, REVIEW, LAST_CUE, RUN, OUTCOMES, CoordinationRecovery.KEY, CoordinationSupport.LIVE_HELP); }
 }

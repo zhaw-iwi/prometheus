@@ -59,6 +59,32 @@ const USED_HISTORY = [
   behaviourEvent("This conversation and sensing state came from history.", "2026-08-29T08:01:05Z"),
 ];
 
+for (const layout of [{ name: "desktop", width: 1440, height: 1000, theme: "light" },
+  { name: "narrow", width: 390, height: 844, theme: "dark" }]) {
+  test(`Coordination recovery guidance remains readable ${layout.name}`, async ({ page, context }, testInfo) => {
+    await page.setViewportSize({ width: layout.width, height: layout.height });
+    await context.addInitScript(theme => localStorage.setItem("prometheus.valerian.theme", theme), layout.theme);
+    const words = "Current coordination state: READY. The proposal and preparation are ready; no further demonstration is needed. Say Start to accept the saved proposal. After acceptance, show a fresh matching cue. The last update was not applied; the agreement and preparation were preserved.";
+    const scenario = { created: false, history: [behaviourEvent(words, "2026-11-10T10:00:00Z")] };
+    await installLifecycleApiMocks(context, scenario);
+    await page.goto("/valerian/"); await enterAccessCode(page);
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("agent-type-select").selectOption(AGENT_KEY);
+    await page.getByTestId("create-agent-instance").click();
+    await page.getByTestId("connect-agent").click();
+    await page.locator('#diagnostics_drawer [data-bs-dismiss="offcanvas"]').click();
+    await expect(page.locator("#diagnostics_drawer")).not.toBeVisible();
+    const message = page.getByTestId("message-list").locator(".demo-message.assistant");
+    await expect(message).toHaveCount(1); await expect(message).toContainText("no further demonstration");
+    await expect(page.getByTestId("speech-preview")).toHaveText(words);
+    await message.scrollIntoViewIfNeeded();
+    await message.screenshot({ path: testInfo.outputPath(`recovery-${layout.name}.png`) });
+    expect(await message.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("connect-agent").click(); await assertColumnsEmpty(page);
+  });
+}
+
 test("Valerian columns follow access, create, connect, disconnect, and logout lifecycle", async ({ page, context }) => {
   const scenario = { created: false, history: [STARTER_BEHAVIOUR] };
   await installLifecycleApiMocks(context, scenario);
