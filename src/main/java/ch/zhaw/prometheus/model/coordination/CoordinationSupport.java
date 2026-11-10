@@ -14,6 +14,11 @@ public final class CoordinationSupport {
             + "The backend supplies the truthful explanation. Do not infer start/restart consent from a complaint. "
             + "Explicit pause/stop/resume/restart requests still use their guarded operations.";
     private CoordinationSupport() {}
+    public static boolean blockedDraft(Storage storage) {
+        var draft = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
+        return CoordinationTaskContract.sensorPromisesDialogue(draft) || CoordinationTaskContract.insufficientDialogueBudget(draft)
+                || CoordinationSocialContract.arrivalMismatch(draft, "");
+    }
     public static boolean requested(String text) {
         String value = text.toLowerCase(Locale.ROOT).replace('’', '\'');
         // A targeted direct-request fallback, not a sentiment classifier. Other wording uses normal inference.
@@ -57,10 +62,13 @@ public final class CoordinationSupport {
             default -> "The task has ended. Its recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established")
                     + ". We can reflect, revise, return to conversation or explicitly restart; output is not proof of success.";
         };
+        if (blockedDraft(storage)) next = "The saved proposal has an unsupported task form, contribution limit or social condition. "
+                + "It cannot start unchanged. We can clarify a supported alternative and review it before acceptance; repeating demonstrations will not fix those terms.";
         var failure = CoordinationRecovery.current(storage, now);
         String reason = failure == null ? "" : switch (failure.get("category").getAsString()) {
             case "protected_terms" -> "it changed protected agreement terms";
             case "unsupported_dialogue" -> "the task form or contribution limit cannot support the requested answer/feedback exchange";
+            case "unsupported_social_condition" -> "the proposed detector condition does not mean the requested social change";
             case "operation_constraints" -> "the requested operation was not permitted in the current state";
             case "update_shape", "agreement_shape", "reply_shape", "speech_intent_length" -> "the generated update did not meet the response requirements";
             default -> "I could not obtain a usable interpretation; the underlying cause is not established";

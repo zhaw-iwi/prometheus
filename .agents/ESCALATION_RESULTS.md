@@ -1,5 +1,41 @@
 # Coordination escalation and classroom reliability evidence
 
+## ES-06 — Faithful social conditions and reviewed alternatives (2026-11-10)
+
+Coordination interpretation now receives the actual first-arrival, crowd-threshold
+and grouping-change semantics. Recognised additional-person promises cannot be
+saved or accepted as zero-to-present arrival; ambiguous immediate-start requests
+cannot silently execute a substituted count condition. Instead, a specific visible
+count alternative is proposed for review, without pretending to identify a person
+or establish physical entry. Complete unsupported legacy drafts receive accurate
+clarification guidance in help, controls and acceptance wording; repeating sensor
+demonstrations is not presented as a fix for invalid terms. Partial proposals may
+still ask clarification questions. No detector, raw event schema, saved agreement
+or shared Generic/Social Space semantics were changed; no new relative/compound
+condition engine was needed.
+
+Verification:
+
+- 64 Java cases passed across CoordinationSocialContractUnitTest (10),
+  SocialSituationChangeDetectorUnitTest (8), CoordinationAcceptanceUnitTest (6),
+  CoordinationRevisionUnitTest (11), CoordinationAgentUnitTest (16) and
+  CoordinationSupportUnitTest (13). Cases include zero-to-one, one-to-two,
+  two-to-three, zero-to-crowd precedence, departure, unchanged scene and
+  grouping-only changes, plus atomic rejection and one bounded count response.
+- `python target/run_coordination_mysql.py CoordinationAgentIntegrationTest,CoordinationDeliveryIntegrationTest`:
+  final 19 cases passed, including persisted reviewed count terms, zero actions
+  on arming, no action for unrelated/nonmatching evidence and one action after a
+  matching fresh count. Initial smoke correctly stayed in Execution because the
+  cue was before the existing arming cooldown. The fixture now waits for the
+  recorded bounded cue window rather than bypassing it. Both attempts and cleanup
+  are retained; final artifacts `target/gptlive-acceptance-ab45977de4/`, prior
+  failed attempt `target/gptlive-acceptance-fd9e4a8669/`.
+- One Playwright count-condition/sensed-count/status case passed; the updated
+  singular-limit screenshot was inspected. `git diff --check` passed.
+- Language guards cover recognised forms, not every possible paraphrase; real
+  Live explanation/compilation quality remains ES-08. No provider or production
+  writes, schema migration or graph rewrite.
+
 ## ES-05 — Supported task forms and visible limits (2026-11-10)
 
 Runtime negotiation guidance describes the existing output-only sensor and

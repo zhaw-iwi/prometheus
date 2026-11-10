@@ -34,6 +34,7 @@ public final class CoordinationMemory {
     }
     public static String acceptancePrompt(Storage storage) {
         var draft = agreement(storage, DRAFT);
+        if (CoordinationSupport.blockedDraft(storage)) return "This proposal needs clarification of unsupported terms before acceptance. We can review a supported alternative; the task is not active.";
         return "The proposal is awaiting your acceptance and is not active."
                 + (draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
                     ? " After you accept, show a fresh matching cue; preparation signs do not count as task actions." : "")
@@ -41,8 +42,9 @@ public final class CoordinationMemory {
     }
     public static String proposalPrompt(Storage storage) {
         var draft = agreement(storage, DRAFT);
-        String limit = " Limit: " + (draft.reactions() == null ? draft.dialogueLimit() + " agent contributions, including questions and feedback"
-                : draft.reactions().maxActions() + " sensor actions") + ". Stop can end earlier.";
+        int count = draft.reactions() == null ? draft.dialogueLimit() : draft.reactions().maxActions();
+        String limit = " Limit: " + count + " " + (draft.reactions() == null ? "agent contribution" : "sensor action")
+                + (count == 1 ? "" : "s") + (draft.reactions() == null ? ", including questions and feedback" : "") + ". Stop can end earlier.";
         if (ready(storage)) return "Proposed task: " + draft.goal() + "." + limit + " " + acceptancePrompt(storage);
         if (!draft.complete()) return "The proposal is not complete yet. " + (draft.questions().isEmpty()
                 ? "We still need to agree the goal, roles and success criterion." : draft.questions().getFirst());
@@ -96,7 +98,9 @@ public final class CoordinationMemory {
             case "CONVERSATION" -> "Explore or propose a task.";
             case "COORDINATION" -> "Clarify missing terms; execution is unavailable.";
             case "PREPARATION" -> "Demonstrate the remaining checks; execution is unavailable.";
-            case "READY" -> "Awaiting your acceptance. Start accepts these terms; then an ON_CUE task needs a fresh cue.";
+            case "READY" -> CoordinationSupport.blockedDraft(storage)
+                    ? "Clarify unsupported proposal terms before acceptance; repeated demonstrations cannot fix them."
+                    : "Awaiting your acceptance. Start accepts these terms; then an ON_CUE task needs a fresh cue.";
             case "EXECUTION" -> "Pause, stop, revise, or report completion.";
             case "PAUSED" -> "Explicitly resume, revise or stop.";
             case "FINISHING" -> "No further action is allowed. Waiting for final response association and client playback; delivery is not yet confirmed.";

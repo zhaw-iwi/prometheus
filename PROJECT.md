@@ -75,6 +75,12 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Escalation ES-06 (2026-11-10): truthful first-arrival versus extra-person
+  semantics, guarded compilation and reviewed count alternatives; unsupported
+  saved drafts get clarification instead of repeat/start advice. Detector and
+  event contracts remain unchanged. Passed 64 Java, 19 local-MySQL and one
+  reviewed browser case. Evidence: `.agents/ESCALATION_RESULTS.md`; ES-07 follows.
+
 - Escalation ES-05 (2026-11-10): output-only versus dialogue task negotiation,
   specific unsupported-answer recovery, visible finite caps and bounded riddle
   guidance. No mixed game engine or silent task-form conversion. Passed 71 Java

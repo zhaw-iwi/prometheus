@@ -2173,6 +2173,18 @@ unseen wording remain bounded provider-acceptance concerns, not a scored-game
 guarantee. Existing saved tasks are not rewritten; unsupported answer attempts
 get specific recovery guidance while their agreement and budget are preserved.
 
+For social conditions, `arrival` means an empty scene becoming occupied; crossing
+the configured crowd threshold takes precedence. It does not mean another person
+joining someone already visible. Group-size changes can also describe departures
+or regrouping, so they are not a generic additional-person predicate either.
+Coordination explains recognised mismatches and can propose an explicit measurable
+alternative, such as `obs.human.presence.humanCount > 1` (at least two visible
+people), for review before starting. A count threshold is not identity or proof
+of physical entry. Independent rules cannot silently become compound conditions
+or previous/current-count comparisons. Existing saved rules are not rewritten;
+known unsupported draft terms get clarification guidance rather than advice to
+repeat preparation or start unchanged. Detector event meanings are unchanged.
+
 A proposal may additionally request up to three **recognition demonstrations**,
 each checking one supported sensor field using `eq`, `lt` or `gt` and a confidence
 threshold. For example, show rock and paper separately before agreeing to use them

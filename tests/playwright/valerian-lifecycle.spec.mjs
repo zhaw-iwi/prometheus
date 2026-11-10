@@ -133,6 +133,22 @@ test("Valerian columns follow access, create, connect, disconnect, and logout li
   await expect(page.locator("#activity_log")).toHaveText("");
 });
 
+test("Coordination social alternative states the actual count condition", async ({ page, context }, testInfo) => {
+  const proposal = "Proposed task: Offer to continue another time once at least two people are visible. Limit: 1 sensor action. Stop can end earlier. The proposal is awaiting your acceptance and is not active.";
+  await installLifecycleApiMocks(context, { created: true, stateName: "Coordination reflection", history: [
+    behaviourEvent(proposal, "2026-11-10T12:00:00Z"),
+    event("obs.human.presence", "camera", "observation", JSON.stringify({humanCount: 2, trackedCount: 2,
+      avgDetectionConfidence: .9, ts: new Date().toISOString()}), new Date().toISOString()),
+    behaviourEvent("We can continue another time.", new Date().toISOString()),
+  ] });
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+  await expect(page.getByTestId("human-count")).toHaveText("2");
+  const first = page.getByTestId("message-list").locator(".demo-message.assistant").first();
+  await expect(first).toContainText("at least two people");
+  await expect(page.getByTestId("diagnostics-current-state")).toHaveText("Coordination reflection");
+  await first.scrollIntoViewIfNeeded(); await first.screenshot({path: testInfo.outputPath("social-condition.png")});
+});
+
 test("Coordination dialogue shows agreed limits, question and feedback distinctly", async ({ page, context }, testInfo) => {
   const proposal = "Proposed task: Try one short riddle together. Limit: 2 agent contributions, including questions and feedback. Stop can end earlier. The proposal is awaiting your acceptance and is not active. Shall we start it now?";
   await installLifecycleApiMocks(context, { created: true, stateName: "Coordination reflection", history: [

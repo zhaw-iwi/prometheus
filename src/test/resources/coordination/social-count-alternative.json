@@ -1,0 +1,20 @@
+{
+  "goal": "Offer to continue another time once at least two people are visible",
+  "humanRole": "Supply camera observations and judge whether the response was useful",
+  "agentRole": "Offer one short continuation sentence after the agreed visible-count threshold",
+  "success": "The observer reports whether the planned response was received",
+  "questions": [],
+  "checks": [],
+  "dialogueLimit": 2,
+  "reactions": {
+    "goal": "Offer to continue another time once at least two people are visible",
+    "maxActions": 1,
+    "sessionBound": true,
+    "firstAction": "ON_CUE",
+    "rules": [{
+      "eventType": "obs.human.presence", "field": "humanCount", "operator": "gt", "value": 1,
+      "action": "Offer briefly to continue another time", "effect": "ACT",
+      "minConfidence": 0, "samples": 1, "cooldownSeconds": 3
+    }]
+  }
+}

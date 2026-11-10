@@ -127,6 +127,31 @@ class CoordinationAgentIntegrationTest {
         assertTrue(history.stream().anyMatch(e -> Event.TYPE_USER_UTTERANCE.equals(e.getType()) && "A candle".equals(e.getPayload())));
     }
 
+    @Test void reviewedSocialCountAlternativeReloadsAndIgnoresUnrelatedObservations() throws Exception {
+        var scope = create(); JsonObject proposal;
+        try (var input = getClass().getResourceAsStream("/coordination/social-count-alternative.json")) {
+            proposal = JsonParser.parseReader(new java.io.InputStreamReader(Objects.requireNonNull(input),
+                    java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+        turn(scope, "PROPOSE", proposal.toString(), "Propose this explicit visible-count alternative for review");
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        turn(scope, "START", "null", "Start"); assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        var rule = memory(scope).get(TaskMemory.SPEC).getAsJsonObject().getAsJsonArray("rules").get(0).getAsJsonObject();
+        assertEquals("humanCount", rule.get("field").getAsString()); assertEquals(1, rule.get("value").getAsInt());
+        when(gateway.infer(any())).thenReturn("{\"speech\":\"We can continue another time.\"}");
+        for (var observation : List.of(Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_HUMAN_PRESENCE))
+            demo.acknowledge(scope.code(), scope.id(), new EventRequest(observation, "camera", Event.KIND_OBSERVATION,
+                    "{\"humanCount\":1,\"avgDetectionConfidence\":0.9,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        long waitMillis = java.time.Duration.between(Instant.now(), Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();
+        assertTrue(waitMillis < 5000, "Unexpected arming window in the bounded fixture");
+        if (waitMillis >= 0) Thread.sleep(waitMillis + 25);
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_HUMAN_PRESENCE, "camera", Event.KIND_OBSERVATION,
+                "{\"humanCount\":2,\"avgDetectionConfidence\":0.9,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+    }
+
     @Test void currentPerceptionQuestionAndTechnicalFailurePreserveSavedTaskAcrossReload() {
         var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose the invitation task");
         var before = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();

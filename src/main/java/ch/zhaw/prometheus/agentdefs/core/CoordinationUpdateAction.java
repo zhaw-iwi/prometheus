@@ -19,6 +19,7 @@ public class CoordinationUpdateAction extends Action {
     private static final class UnexpectedTerms extends IllegalArgumentException {}
     private static final class PendingResponse extends IllegalArgumentException {}
     private static final class UnsupportedDialogue extends IllegalArgumentException {}
+    private static final class UnsupportedSocialCondition extends IllegalArgumentException {}
     protected CoordinationUpdateAction() {}
     public CoordinationUpdateAction(Storage storage, String instructions) {
         super(new PromptPolicy(instructions, null, null), storage, TaskMemory.REPLY); blocking();
@@ -79,6 +80,7 @@ public class CoordinationUpdateAction extends Action {
                 String prompt = getPolicy().describe() + "\n" + CoordinationMemory.facts(storage)
                         + CoordinationSupport.GUIDANCE
                         + CoordinationTaskContract.GUIDANCE
+                        + CoordinationSocialContract.GUIDANCE
                         + (storage.containsKey(CoordinationMemory.DRAFT) && CoordinationAcceptance.explicit(text)
                                 ? "\nThis is an explicit request to accept the unchanged saved proposal now. Use START with agreement:null if preparation is ready; provide the first contribution only for dialogue/IMMEDIATE. Do not request a second confirmation." : "")
                         + TaskSpec.HAND_CONFIDENCE_GUIDANCE
@@ -116,6 +118,7 @@ public class CoordinationUpdateAction extends Action {
             }
             ch.zhaw.prometheus.logging.ActivityTrace.failed(inferred ? "coordination_update_invalid" : "coordination_update_failed");
             String category = failure instanceof UnexpectedTerms ? "protected_terms"
+                    : failure instanceof UnsupportedSocialCondition ? "unsupported_social_condition"
                     : failure instanceof UnsupportedDialogue ? "unsupported_dialogue" : rejection;
             String safeOperation = OPERATIONS.contains(operation) ? operation : "UNKNOWN";
             try { CoordinationRecovery.rejected(storage, category, safeOperation, event, now); }
@@ -126,7 +129,9 @@ public class CoordinationUpdateAction extends Action {
             org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn(
                     "Coordination update rejected; category={}, operation={}, phase={}; agreement and preparation preserved",
                     category, safeOperation, CoordinationMemory.stage(storage));
-            answerSupport(failure instanceof UnsupportedDialogue
+            answerSupport(failure instanceof UnsupportedSocialCondition
+                    ? "The arrival detector means an empty scene becoming occupied, not another person joining someone already visible. That update was not applied. We can review a specific visible-person count threshold instead; it is not identity or proof of physical arrival. Please agree the alternative before starting."
+                    : failure instanceof UnsupportedDialogue
                     ? "That task form cannot support the promised answer/feedback exchange with its proposed limits. Our agreement is unchanged. We can explicitly propose a bounded dialogue alternative, or an output-only sensor reaction without an answer loop. Please choose before we change or start anything."
                     : failure instanceof UnexpectedTerms
                     ? "That edit also changes agreed triggers, limits, roles or preparation. I have preserved the agreement. Please say explicitly if you want to replace those terms."
@@ -155,6 +160,11 @@ public class CoordinationUpdateAction extends Action {
                 || operation.equals("START") && (CoordinationTaskContract.sensorPromisesDialogue(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))
                     || CoordinationTaskContract.insufficientDialogueBudget(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))))
             throw new UnsupportedDialogue();
+        if (CoordinationSocialContract.arrivalMismatch(proposed, text)
+                || operation.equals("START") && CoordinationSocialContract.arrivalMismatch(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT), text)
+                || operation.equals("PROPOSE_AND_START") && proposed != null && proposed.reactions() != null
+                    && CoordinationSocialContract.needsAlternativeReview(text))
+            throw new UnsupportedSocialCondition();
         var previous = CoordinationMemory.agreement(storage, storage.containsKey(CoordinationMemory.DRAFT) ? CoordinationMemory.DRAFT : CoordinationMemory.AGREEMENT);
         if (operation.equals("PROPOSE") && previous != null && previous.complete()
                 && !"CONVERSATION".equals(CoordinationMemory.stage(storage)) && !previous.sameTerms(proposed)) throw new UnexpectedTerms();
