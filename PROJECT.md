@@ -9862,3 +9862,22 @@ and remains unchanged. No production database, paid provider or physical camera/
 robot trial was used. Existing saved profiles are not migrated; create a new
 supported agent instance for pose-event delivery. These are local merge commits;
 push and deployment are explicitly deferred.
+
+
+## Shared hand-pose acceptance fixture routing (2026-11-11)
+
+The hand-pose extension changes the runtime sensor-field section shared by Generic
+and Coordination extraction. The offline provider now recognizes that shared
+section without relying on its old exact heading and distinguishes Coordination
+by the declared agreement response contract. This prevents returning a Generic
+task update for a Coordination request, or generic speech instead of a task update.
+An actual scoped API regression creates each agent and checks that the offline
+provider's response persists the expected executable task/accepted agreement.
+
+All three LiveCockpitSmokeIntegrationTest cases passed against a fresh disposable
+schema on the clean main snapshot, including the new routing regression. Earlier
+full-main evidence remains **904 passing cases and one capacity skip** in
+`/tmp/prometheus-hand-integration-lgr_p302/main-full-suite-reports` and
+`main-full-java.log`; the follow-up is in `main-preview/target/surefire-reports`
+and `main-java.log`. Only test fixtures/tests and this record change. Push and
+deployment remain deferred.

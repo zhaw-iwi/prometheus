@@ -36,7 +36,8 @@ public class LiveSmokeConfiguration {
                     result.addProperty("verdict", data.get("capturedSpeech").getAsString().equals("First fixture observation.") ? "MATCH" : "UNRELATED");
                     return result.toString();
                 }
-                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported trigger fields:")) return """
+                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported trigger fields")
+                        && !prompt.contains("\"agreement\":null")) return """
                         {"operation":"ACTIVATE","task":{"goal":"React to agreed facial feedback","maxActions":5,"rules":[
                          {"eventType":"obs.emotion.face","field":"valence","operator":"lt","value":-0.25,
                           "action":"Offer another brief observation","effect":"ACT","minConfidence":0.6,"samples":1,"cooldownSeconds":3},
@@ -44,7 +45,7 @@ public class LiveSmokeConfiguration {
                           "action":"Finish the agreed task","effect":"COMPLETE","minConfidence":0.6,"samples":1,"cooldownSeconds":3}]},
                          "reply":{"speech":"First fixture observation."}}
                         """;
-                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported sensor fields:")) return """
+                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("\"agreement\":null")) return """
                         {"operation":"PROPOSE_AND_START","agreement":{"goal":"Offer one fixture observation",
                          "humanRole":"Listen and judge usefulness","agentRole":"Offer one observation",
                          "success":"The visitor finds it useful","questions":[],"checks":[],"dialogueLimit":1,"reactions":null},
