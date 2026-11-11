@@ -34,13 +34,58 @@ test('association delayed beyond ten seconds still uses the completed response w
   f.capture(); f.quiet(); assert.deepEqual(f.seen, ['round-one']);
 });
 
+test('a scoped countdown can settle after input discarded an earlier prefix of the same response', () => {
+  const f = fixture();
+  f.speak('discarded-prefix'); f.quiet(); f.gate.interrupt();
+  // Live continues the same response after the input, then counts without an audio break.
+  f.speak('fresh-intro');
+  for (const id of ['schere', 'stein', 'papier']) {
+    f.gate.caption(id); for (let i = 0; i < 4; i++) f.sample(true);
+  }
+  f.quiet();
+  const cue = {...f.cue, segmentId: 'speech', receiptIds: ['schere', 'stein', 'papier']};
+  const segments = ledger('speech', ['discarded-prefix', 'fresh-intro', 'schere', 'stein', 'papier']);
+  f.gate.update(cue, segments); f.quiet();
+  assert.deepEqual(f.seen, ['round-one']);
+  f.gate.update(cue, segments); f.quiet(); assert.deepEqual(f.seen, ['round-one']);
+});
+
+test('scoped receipts must be a bounded contiguous ordered selection from a complete assistant segment', () => {
+  for (const scope of [['missing'], ['target', 'target'], ['target', 'prefix'], ['prefix', 'last'],
+    Array.from({length: 33}, (_, i) => `receipt-${i}`), 'target']) {
+    const f = fixture(); f.speak(); f.quiet();
+    f.gate.update({...f.cue, segmentId: 'speech', receiptIds: scope}, ledger('speech', ['prefix', 'target', 'last']));
+    f.quiet(); assert.deepEqual(f.seen, [], JSON.stringify(scope));
+  }
+  for (const invalid of [{status: 'PENDING'}, {speaker: 'USER'}]) {
+    const f = fixture(); f.speak(); f.quiet();
+    f.gate.update({...f.cue, segmentId: 'speech', receiptIds: ['target']}, [{...ledger()[0], ...invalid}]);
+    f.quiet(); assert.deepEqual(f.seen, []);
+  }
+});
+
+test('countdown receipt selection cannot borrow unrelated earlier audio or survive an interruption', () => {
+  const f = fixture(); f.speak('other');
+  for (let i = 0; i < 20; i++) f.sample(true);
+  f.gate.caption('target'); for (let i = 0; i < 8; i++) f.sample(true);
+  f.quiet();
+  f.gate.update({...f.cue, segmentId: 'speech', receiptIds: ['target']}, ledger('speech', ['missing-prefix', 'target']));
+  f.quiet(); assert.deepEqual(f.seen, []);
+  assert.equal(f.diagnostics.at(-1).outcome, 'overlapping_segment_evidence');
+  const g = fixture();
+  const cue = {...g.cue, segmentId: 'speech', receiptIds: ['target']};
+  g.gate.update(cue, ledger()); g.speak(); g.gate.interrupt(); g.quiet();
+  g.gate.update(cue, ledger()); g.speak(); g.quiet(); assert.deepEqual(g.seen, []);
+});
+
 test('no voice, unplayable output, sampling gaps, stalled media and expired cues cannot trigger', () => {
-  for (const failure of ['no_voice', 'unplayable', 'gap', 'stalled', 'expired']) {
-    const f = fixture(); f.capture();
+  for (const receiptIds of [[], ['target']]) for (const failure of ['no_voice', 'unplayable', 'gap', 'stalled', 'expired']) {
+    const f = fixture(), cue = {...f.cue, segmentId: 'speech', receiptIds};
+    f.gate.update(cue, ledger());
     if (failure !== 'no_voice') f.speak(); else f.gate.caption('target');
-    if (failure === 'expired') f.gate.update({...f.cue, segmentId: 'speech', expiresAt: new Date(0).toISOString()});
+    if (failure === 'expired') f.gate.update({...cue, expiresAt: new Date(0).toISOString()});
     for (let i = 0; i < 20; i++) f.sample(false, failure !== 'unplayable', failure === 'gap' ? 300 : 50, failure === 'stalled' ? 0 : undefined);
-    assert.deepEqual(f.seen, [], failure);
+    assert.deepEqual(f.seen, [], `${receiptIds.length ? 'scoped' : 'whole'} ${failure}`);
   }
 });
 
@@ -80,9 +125,10 @@ test('a caption arriving during an older utterance cannot claim that utterance a
 });
 
 test('muting or a sampling gap before association invalidates even already-settled evidence', () => {
-  for (const muted of [true, false]) {
+  for (const receiptIds of [[], ['target']]) for (const muted of [true, false]) {
     const f = fixture(); f.speak(); f.quiet(); f.sample(false, !muted, muted ? 50 : 300);
-    f.capture(); f.quiet(); assert.deepEqual(f.seen, []);
+    f.gate.update({...f.cue, segmentId: 'speech', receiptIds}, ledger());
+    f.quiet(); assert.deepEqual(f.seen, []);
   }
 });
 

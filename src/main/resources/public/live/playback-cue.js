@@ -18,7 +18,7 @@ export class PlaybackSettlingGate {
     catch (_) { /* Diagnostics must never change playback or completion. */ }
   }
   caption(id) {
-    if (typeof id !== 'string' || !id || id.length > 160 || this.receipts.has(id)) return;
+    if (typeof id !== 'string' || !id || id.length > 200 || this.receipts.has(id)) return;
     this.receipts.set(id, this.now());
     if (this.receipts.size > 1024) this.receipts.delete(this.receipts.keys().next().value);
   }
@@ -31,7 +31,8 @@ export class PlaybackSettlingGate {
     while (this.segments.size > 64) this.segments.delete(this.segments.keys().next().value);
     // No cue yet is normal while context is being refreshed; do not lose its earlier audio.
     if (!cue) { this.cue = null; this.lastDiagnostic = null; return; }
-    if (this.cue?.id === cue.id && this.cue?.segmentId === cue.segmentId && this.cue?.expiresAt === cue.expiresAt) return;
+    if (this.cue?.id === cue.id && this.cue?.segmentId === cue.segmentId && this.cue?.expiresAt === cue.expiresAt
+      && JSON.stringify(this.cue.receiptIds || []) === JSON.stringify(cue.receiptIds || [])) return;
     this.cue = cue; this.received = this.now();
     this.state(this.done.has(cue.id) ? 'already_finished' : cue.segmentId ? 'capture_received' : 'awaiting_capture');
   }
@@ -41,9 +42,20 @@ export class PlaybackSettlingGate {
   }
   remember(id) { this.done.add(id); if (this.done.size > 64) this.done.delete(this.done.values().next().value); }
   evidence() {
-    const ids = this.segments.get(this.cue.segmentId);
-    if (!ids || ids.some(id => !this.receipts.has(id))) return 'awaiting_segment_evidence';
+    const segmentIds = this.segments.get(this.cue.segmentId), selection = this.cue.receiptIds;
+    if (!segmentIds || selection != null && !Array.isArray(selection)) return 'awaiting_segment_evidence';
+    const scoped = selection?.length > 0, ids = scoped ? selection : segmentIds;
+    const from = scoped ? segmentIds.indexOf(ids[0]) : 0;
+    if (scoped && (ids.length > 32 || new Set(ids).size !== ids.length || from < 0
+      || ids.some((id, i) => typeof id !== 'string' || !/^[A-Za-z0-9_:.\-]{1,200}$/.test(id) || segmentIds[from + i] !== id)))
+      return 'awaiting_segment_evidence';
+    if (ids.some(id => !this.receipts.has(id))) return 'awaiting_segment_evidence';
     const times = ids.map(id => this.receipts.get(id)), first = Math.min(...times), last = Math.max(...times);
+    // A countdown may finish a response whose earlier captions were discarded by input.
+    // Observed prefixes from this same completed segment can establish audio continuity;
+    // missing prefixes are not required, and unrelated speech remains excluded.
+    const prefix = scoped ? segmentIds.slice(0, from).filter(id => this.receipts.has(id)).map(id => this.receipts.get(id)) : [];
+    const evidenceStart = Math.min(first, ...prefix);
     // Captions and audio are separate transports. Bound their local overlap, and
     // never use arbitrary voice observed earlier/later in the session as proof.
     const voice = this.frames.findLast(frame => frame.voiced && frame.at >= first - 250 && frame.at <= last + 1000);
@@ -55,7 +67,7 @@ export class PlaybackSettlingGate {
       if (onset - frame.at > QUIET_MS + 50) break;
       onset = frame.at;
     }
-    if (onset < first - 250) return 'overlapping_segment_evidence';
+    if (onset < evidenceStart - 250) return 'overlapping_segment_evidence';
     let quiet = null, settled = null;
     for (const frame of this.frames) {
       if (frame.at <= voice.at) continue;
@@ -64,7 +76,7 @@ export class PlaybackSettlingGate {
       if (quiet !== null && frame.at - quiet >= QUIET_MS && frame.at - last >= QUIET_MS) { settled = frame.at; break; }
     }
     if (settled === null) return 'awaiting_quiet';
-    if ([...this.receipts].some(([id, at]) => at >= first - 250 && at <= settled && !ids.includes(id)))
+    if ([...this.receipts].some(([id, at]) => at >= evidenceStart - 250 && at <= settled && !segmentIds.includes(id)))
       return 'overlapping_segment_evidence';
     return null;
   }

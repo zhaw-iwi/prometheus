@@ -129,7 +129,7 @@ public class LiveTranscriptIngressService {
                         candidates.isEmpty() ? SpeechProvenance.Association.NONE : SpeechProvenance.Association.AMBIGUOUS,
                         segment.closure() == Closure.COMPLETE, Instant.ofEpochMilli(segment.firstReceivedMs()),
                         segment.fragments().stream().map(part -> new ch.zhaw.prometheus.model.policy.LiveSpeechPart(
-                                part.text(), Instant.ofEpochMilli(part.receivedMs()))).toList());
+                                part.text(), Instant.ofEpochMilli(part.receivedMs()), part.eventId())).toList());
                 persisted.finish(segment.closure().name(), segment.reason(), result.map(Event::getId).orElse(null));
             } else if (!ownership.acceptingInput(id, owner)) {
                 persisted.finish("INCOMPLETE", "input_stopped_before_admission", null);

@@ -1,5 +1,25 @@
 # GPT-Live acceptance
 
+## Playback cue receipt selection
+
+Shared playback cues can select a contiguous span of a complete assistant
+transcript by native receipt ID. Trusted speech parts preserve those IDs; empty
+selections retain whole-segment evidence. The client requires each selected
+receipt, matching playable audio and subsequent quiet, while allowing retained
+prefix receipts from the same segment to establish audio continuity. Selections
+are bounded to 32 distinct IDs; unrelated, missing and interrupted evidence is
+rejected. This shared contract does not interpret application countdown words.
+
+```sh
+node --test tests/js/live/playback-cue.test.mjs
+./mvnw -Dtest=LivePlaybackCueUnitTest,ScopedLiveSessionControllerWebMvcTest test
+```
+
+For durable-ingress coverage, run `LiveTranscriptIngressIntegrationTest` through
+`run_acceptance.py` with an ignored local `--database-properties` configuration.
+The runner provisions only a disposable loopback schema/account. These synthetic
+checks do not establish physical audibility. Reload the cockpit after updating.
+
 ## Late playback cue regression
 
 The short-response regression exercises the production playback observer with
