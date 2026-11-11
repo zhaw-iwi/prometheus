@@ -11,12 +11,17 @@ public record LiveActivityContext(String facts, Continuation continuation, Insta
     public LiveActivityContext(String facts, Continuation continuation) { this(facts, continuation, null); }
     public LiveActivityContext { bounded(facts, 4000); }
     public enum Occasion { USER_REQUEST, PROACTIVE }
-    /** A persisted identity authorizes one speaking occasion; facts are not a scripted utterance. */
-    public record Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible) {
+    /** A persisted identity authorizes one speaking occasion; selfContained facts travel with its speaking instruction. */
+    public record Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, boolean selfContained) {
+        public static final int MAX_SELF_CONTAINED_BYTES = 340;
+        public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible) {
+            this(id, occasion, facts, expiresAt, interruptible, false);
+        }
         public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt) { this(id, occasion, facts, expiresAt, false); }
         public Continuation(UUID id, Occasion occasion, String facts) { this(id, occasion, facts, null, false); }
         public Continuation {
             Objects.requireNonNull(id); Objects.requireNonNull(occasion); bounded(facts, 1000);
+            if (selfContained) bounded(facts, MAX_SELF_CONTAINED_BYTES);
             if (interruptible && occasion != Occasion.PROACTIVE) throw new IllegalArgumentException("Only proactive comments may be interruptible");
         }
         public boolean expiredAt(Instant now) { return expiresAt != null && !now.isBefore(expiresAt); }

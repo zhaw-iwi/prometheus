@@ -441,7 +441,9 @@ for (const width of [1440, 390]) {
     await page.locator("#open_diagnostics").click();
     await page.getByTestId("interaction-timing-tab").click();
     await expect(page.getByTestId("timing-count")).toContainText("No ordinary turns recorded");
-    await expect(page.getByTestId("timing-export-json")).toBeDisabled();
+    // Source-clock/connection diagnostics can already make JSON useful before an ordinary turn.
+    // CSV is specifically the ordinary-turn export and must remain empty here.
+    await expect(page.getByTestId("timing-export-csv")).toBeDisabled();
     await page.locator("#diagnostics_drawer .btn-close").click();
     await page.getByTestId("continuous-speech-tab").click();
     await page.getByTestId("toggle-transcription").click();

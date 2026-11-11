@@ -5,7 +5,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 public interface LiveSessionGateway {
-    record Request(String sdp, String voice, String instructions, JsonArray input) {
+    record Request(String sdp, String voice, String instructions, JsonArray input, boolean pendingAcknowledgements) {
+        public Request(String sdp, String voice, String instructions, JsonArray input) { this(sdp, voice, instructions, input, true); }
         @Override public String toString() { return "LiveRequest[voice=" + voice + "]"; }
     }
     record Session(String id, String sdp) {

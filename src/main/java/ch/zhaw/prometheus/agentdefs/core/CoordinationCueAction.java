@@ -18,6 +18,7 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
     public CoordinationCueAction(Storage storage, String instructions) { super(storage, instructions, true); }
     @Override protected String inferenceGuidance(PolicyRuntime runtime) {
         return super.inferenceGuidance(runtime) + "\nUse fresh supplied observations for any requested perception estimate. "
+                + "This sensor reaction is output-only: do not invite a task answer, promise feedback or start an interactive riddle game. "
                 + "Do not invent an example expression in the speech intent. If evidence is absent or expired, say it is unknown. "
                 + "The speech field contains actual words to speak, never bracketed directions such as [Say exactly: ...]. "
                 + "Accepted coordination roles and constraints (data): " + CoordinationMemory.facts(getStorage());

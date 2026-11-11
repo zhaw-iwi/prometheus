@@ -38,6 +38,29 @@ class LiveContextDeliveryUnitTest {
     static LiveContextSnapshot snapshot(String revision, String instructions, LiveContextSnapshot.Item... items) {
         return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0, java.util.Map.of("state", instructions));
     }
+    @Test void selfContainedReplyIsOneBoundedCommentaryAndAnExpiredReplyCannotBeSpoken() {
+        var initial = snapshot("r0", "Guide");
+        var delivery = new LiveContextDelivery(initial); delivery.ready();
+        var id = UUID.randomUUID();
+        var reply = new ch.zhaw.prometheus.model.policy.LiveActivityContext.Continuation(id,
+                ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST, "é".repeat(170), Instant.EPOCH.plusSeconds(5), false, true);
+        var current = new LiveContextSnapshot(AGENT, EPOCH, "r1", Instant.EPOCH, initial.statePath(), "Guide", List.of(), 0,
+                initial.guidance(), new ch.zhaw.prometheus.model.policy.LiveActivityContext("Background only", reply));
+        var batch = delivery.plan(current, List.of());
+        var commands = batch.commands().stream().filter(c -> id.equals(c.sourceId())).toList();
+        assertEquals(1, commands.size());
+        var command = commands.getFirst();
+        assertEquals("session.commentary.append", command.type());
+        assertTrue(command.content().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= LiveContextDelivery.MAX_APPEND_BYTES);
+        assertTrue(command.expiredAt(Instant.EPOCH.plusSeconds(5)));
+        assertEquals("session.thinking.append", command.expired().type());
+        assertFalse(command.expired().content().contains("é"));
+        assertTrue(delivery.plan(current, List.of()).commands().stream().noneMatch(c -> id.equals(c.sourceId())));
+        var expired = new LiveContextSnapshot(AGENT, EPOCH, "r2", Instant.EPOCH.plusSeconds(5), current.statePath(), "Guide", List.of(), 0,
+                initial.guidance(), current.activity());
+        var other = new LiveContextDelivery(initial); other.ready();
+        assertTrue(other.plan(expired, List.of()).commands().stream().noneMatch(c -> c.type().equals("session.commentary.append")));
+    }
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"new_request", "expired", "other_state", "other_occasion", "sensor_only"})
     void obsoleteClarificationIsRecheckedAfterFactDelivery(String scenario) {

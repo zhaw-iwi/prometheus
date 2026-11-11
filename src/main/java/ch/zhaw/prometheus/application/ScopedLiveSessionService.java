@@ -77,6 +77,9 @@ public class ScopedLiveSessionService {
     private final java.util.concurrent.ThreadPoolExecutor cleanup = new java.util.concurrent.ThreadPoolExecutor(2, 2, 30, TimeUnit.SECONDS,
             new java.util.concurrent.ArrayBlockingQueue<>(128), work -> { var thread = new Thread(work, "live-cleanup"); thread.setDaemon(true); return thread; });
     private java.util.concurrent.Executor disposer = Runnable::run;
+    // Cancellation must not wait behind database projection or block the socket's ACK receiver.
+    private final java.util.concurrent.ThreadPoolExecutor delegationControls = new java.util.concurrent.ThreadPoolExecutor(2, 2, 30, TimeUnit.SECONDS,
+            new java.util.concurrent.ArrayBlockingQueue<>(32), work -> { var thread = new Thread(work, "live-delegation-control"); thread.setDaemon(true); return thread; });
 
     @Autowired public ScopedLiveSessionService(ScopedDemoService demo, LiveSessionGateway gateway, LiveProperties properties,
             LiveAgentContextService contexts, ExternalSpeechOwnership ownership) {
@@ -118,6 +121,8 @@ public class ScopedLiveSessionService {
         }
         try {
             lease.failure = reason -> failed(lease, reason);
+            lease.controls = delegationControls;
+            lease.commandTimeout = properties.getRequestTimeoutMs();
             lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
             String build = System.getenv("HEROKU_SLUG_COMMIT");
             lease.configuration = Map.ofEntries(
@@ -127,6 +132,7 @@ public class ScopedLiveSessionService {
                     Map.entry("silenceMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.SILENCE_MS),
                     Map.entry("userSilenceMs", lease.context.userSilenceMs()),
                     Map.entry("filterIsolatedInputActivity", lease.context.filterIsolatedInputActivity()),
+                    Map.entry("pendingAcknowledgements", lease.context.pendingAcknowledgements()),
                     Map.entry("latenessMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.LATENESS_MS),
                     Map.entry("maxOpenMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_OPEN_MS),
                     Map.entry("maxAudioGapMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_AUDIO_GAP_MS));
@@ -141,7 +147,7 @@ public class ScopedLiveSessionService {
                     lease.context.userSilenceMs(), lease.context.filterIsolatedInputActivity());
             lease.provider = gateway.create(new LiveSessionGateway.Request(request.sdp(), voice,
                     lease.context.instructions(),
-                    lease.context.startupInput()));
+                    lease.context.startupInput(), lease.context.pendingAcknowledgements()));
             lease.connection = gateway.attach(lease.provider.id(), lease::receive, () -> failed(lease, "sideband_disconnected"));
             if (lease.stopped.get() || !lease.connection.isOpen() || lease.disconnected.get())
                 throw new LiveProviderException("Live sideband did not become ready");
@@ -226,7 +232,7 @@ public class ScopedLiveSessionService {
     @PreDestroy public void shutdown() {
         for (Lease lease : sessions.values()) dispose(lease, false);
         sessions.clear();
-        cleanup.shutdownNow(); closed.clear();
+        cleanup.shutdownNow(); delegationControls.shutdownNow(); closed.clear();
     }
 
     private Optional<StatusView> closedStatus(String code, UUID agentId, UUID handle) {
@@ -329,14 +335,19 @@ public class ScopedLiveSessionService {
         Map<String,Object> configuration = Map.of("telemetryVersion", 1);
         Double usageSeconds, contextUsageRatio;
         final ArrayDeque<ProviderProblem> providerProblems = new ArrayDeque<>();
+        java.util.concurrent.Executor controls;
+        int commandTimeout;
+        final java.util.Set<String> quietDelegations = new java.util.HashSet<>();
+        final ArrayDeque<String> quietPending = new ArrayDeque<>();
 
         Lease(UUID agentId, byte[] scope, Instant expires, Clock clock) {
             this.agentId = agentId; this.scope = scope; this.expires = expires; this.clock = clock; this.clientSeen = clock.instant();
         }
-        void startBridge() {
+        synchronized void startBridge() {
             // Socket attachment may precede WebRTC/session startup. Context appends must wait for both.
             if (providerStarted && connection != null && bridge != null && !stopped.get() && !disconnected.get()
                     && bridgeStarted.compareAndSet(false, true)) bridge.ready();
+            flushQuietDelegations();
         }
         synchronized void receive(JsonObject event) {
             String type = event.has("type") ? event.get("type").getAsString() : "invalid";
@@ -358,6 +369,7 @@ public class ScopedLiveSessionService {
                 providerProblems.addLast(new ProviderProblem(clock.millis(), safeId(string(error, "code")),
                         safeId(string(error, "type")), safeId(string(error, "client_event_id"))));
             }
+            if (type.equals("session.delegation.created")) quietDelegation(event);
             if (capture != null) capture.receive(event);
             if (bridge != null) bridge.receive(event);
             if (type.equals("session.input_audio.append") || type.equals("session.output_audio.delta")) {
@@ -384,6 +396,31 @@ public class ScopedLiveSessionService {
             if (wait != null && wait.type().equals(type)) wait.result().complete(null);
             if (wait != null && type.equals("error")) wait.result().completeExceptionally(new LiveProviderException("Live command rejected"));
             if (type.equals("error")) failure.accept("provider_error");
+        }
+        private void quietDelegation(JsonObject event) {
+            if (stopped.get() || disconnected.get() || context == null || context.pendingAcknowledgements()) return;
+            try {
+                var delegation = event.getAsJsonObject("delegation");
+                String id = string(delegation, "id");
+                if (!"client".equals(string(delegation, "target")) || id == null || id.isBlank() || id.length() > 200)
+                    throw new IllegalArgumentException();
+                if (quietDelegations.contains(id)) return;
+                if (quietDelegations.size() >= 1024 || quietPending.size() >= 32) throw new IllegalArgumentException();
+                quietDelegations.add(id); quietPending.addLast(id); flushQuietDelegations();
+            } catch (RuntimeException invalid) { failure.accept("delegation_invalid_or_full"); }
+        }
+        private void flushQuietDelegations() {
+            if (!providerStarted || connection == null || stopped.get() || disconnected.get()) return;
+            while (!quietPending.isEmpty()) {
+                String id = quietPending.removeFirst();
+                try { controls.execute(() -> {
+                    if (stopped.get() || disconnected.get()) return;
+                    var event = new JsonObject(); event.addProperty("type", "session.thinking.append");
+                    event.addProperty("content", ""); event.addProperty("delegation_id", id);
+                    try { command(event, "session.thinking.appended", commandTimeout); }
+                    catch (LiveProviderException failed) { /* Existing command failure/ownership fences apply; never retry. */ }
+                }); } catch (java.util.concurrent.RejectedExecutionException full) { failure.accept("delegation_control_full"); return; }
+            }
         }
         void command(String type, String ack, int timeout) {
             JsonObject event = new JsonObject(); event.addProperty("type", type);

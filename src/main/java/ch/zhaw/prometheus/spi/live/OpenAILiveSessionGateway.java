@@ -44,6 +44,7 @@ public class OpenAILiveSessionGateway implements LiveSessionGateway {
         session.addProperty("store", false);
         session.add("input", input.input());
         JsonObject delegation = new JsonObject(); delegation.addProperty("type", "client");
+        if (!input.pendingAcknowledgements()) delegation.addProperty("acknowledgement_delay_ms", 800);
         session.add("delegation", delegation);
         JsonObject output = new JsonObject(); output.addProperty("voice", input.voice());
         JsonObject audio = new JsonObject(); audio.add("output", output); session.add("audio", audio);

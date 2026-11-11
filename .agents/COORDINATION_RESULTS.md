@@ -1,25 +1,39 @@
 # Coordination Agent implementation and evidence
 
-## Hand-confidence deployment integration (2026-11-04)
+## Hand-confidence release (2026-11-04)
 
-The owner authorized committing/pushing main and merging it into agents for
-Heroku. Main was already clean and published at `0231ccb`; it was merged onto
-agents `bbc6597` in the existing worktree. Runtime changes merged cleanly. The
-single audit-log conflict retained both records. Deployment-specific catalog,
-persona/embodiment code, production configuration and workflow are unchanged.
+The owner authorized publishing main and merging it into agents for Heroku.
+Main `0231ccb` was already clean and pushed. Its merge onto agents `bbc6597`
+was committed/pushed as **`3e77683`**. Runtime changes merged cleanly; the single
+audit-log conflict retained both records. Deployment-specific code/configuration
+and the existing workflow were preserved.
 
-The merged tree passed **135 Java tests in 12 suites**, zero failures/errors/skips,
-including the nine shared confidence suites plus `GalaDinnerTaskUnitTest`,
-`GalaDinnerRpsPreparationUnitTest` and `CoreRpsRoundUnitTest`. Isolated acceptance
-artifact: `target/gptlive-acceptance-7cae1862b6/java.log`. The runner removed its
-disposable loopback schema/account and stopped its owned MySQL process.
-All **180 Node tests**, **three browser cases**, packaging and whitespace checks
-passed. Logs: `target/hand-confidence-release-node.log`,
-`target/hand-confidence-release-browser.log` and
-`target/hand-confidence-release-package.log` in the agents worktree.
-No paid provider calls or production test writes were made. Heroku's pre-push
-baseline is successful release **v162**; deployment and served-asset verification
-follow the push. Physical acceptance remains a separate human test.
+Merged-tree verification passed **135 Java tests in 12 suites**, **180 Node
+tests**, **three browser cases**, packaging and whitespace checks. Java coverage
+adds Gala task/preparation and core RPS consumers to the shared confidence suites.
+The disposable local runner removed its schema/account and stopped its MySQL
+process. Evidence is in the agents worktree's ignored
+`target/gptlive-acceptance-7cae1862b6` and `target/hand-confidence-release-*.log`.
+
+Heroku **v163** succeeded at 2026-11-04 16:12:18 UTC; `web.1` was up from
+16:13:02 UTC. At 16:17 UTC, read-only HTTP checks passed: health 200/UP,
+`/runtime/clock` current with `Cache-Control: no-store`, and exact file matches
+after newline normalization for `valerian/index.html`, `valerian/script.js` and
+`live/playback-cue.js`. Main's ignored evidence files are
+`target/hand-confidence-release-http-evidence.json` and
+`target/hand-confidence-heroku-release.json`. No production test writes or paid
+provider calls were used.
+
+[GitHub run 41864719457](https://github.com/zhaw-iwi/prometheus/actions/runs/41864719457)
+targets the exact merge but its API still reported queued at verification time.
+GitHub Status reported degraded Actions performance and an Actions/Pages incident.
+Workflow completion is therefore not claimed; readiness is established by the
+successful Heroku release, running dyno and matching served assets.
+
+Ready for `.reng/HUMAN_TEST.md`: hard-refresh, create a fresh Coordination Agent
+or new proposal, keep Hand send conf at 0.65 and check the proposal shows no
+additional hand minimum. Saved 0.8 agreements retain that requirement. Physical
+camera/Live quality remains the human acceptance gate.
 
 ## Client-owned hand confidence (2026-11-04)
 

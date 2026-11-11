@@ -93,6 +93,49 @@ budgets and writes ignored local artifacts, then removes its schema/account and
 stops its owned application. The retained failure/verification record is
 `.agents/COORDINATION_RESULTS.md`.
 
+## Coordination escalation: physical acceptance still required
+
+The ES-08 synthetic Live runs and their failures are recorded in
+[ESCALATION_RESULTS.md](../../.agents/ESCALATION_RESULTS.md). They use a real local
+database, provider and browser playback observer, but do not establish physical
+audibility or camera accuracy. Per the owner's 2026-11-11 scope update, database
+capacity and the deployment-environment choice are deferred; the current milestone
+checks behaviour and delivery without a Heroku query-quota gate.
+
+For a local operator trial, create a fresh Coordination instance and record the
+commit, provider settings, browser, camera, microphone and speaker selection.
+Check the actual camera preview and microphone input, listen through the selected
+speaker, and keep the cockpit's task state and transcript visible. For each trial
+record **PASS**, **FAIL** or **NOT RUN**, the actual words heard, and the task state,
+run and contribution count. Keep personal recordings private.
+
+1. **Ordinary:** propose one welcome on rock with recognition checked first.
+   Review the goal, roles, success criterion and one-action limit. Demonstrate
+   rock; before accepting, ask what remains to do and which sign is currently
+   visible. Preparation must remain satisfied. Accept naturally, show a new rock,
+   and hear one complete welcome. Reflection requires confirmed final playback;
+   returning to Conversation preserves the outcome and history.
+2. **Challenging:** request help before and after preparation. Try an unclear sign
+   and then a clearly visible sign; compare the camera reading, spoken reply and
+   saved evidence. Ask for a two-contribution riddle dialogue: hear only the
+   question, answer, then hear relevant feedback without an extra question.
+   Help and unrelated questions must not consume the contribution budget. Stop
+   or mute during speech once and check that delivery is not falsely confirmed
+   or automatically replayed.
+3. **After a change:** replace the riddle, review the new terms and accept again;
+   the run must change. Request a welcome when another person joins an occupied
+   scene. Review the actual supported alternative (for example two people
+   visible), not an unimplemented promise to recognize relative arrival. Accept,
+   test the nonmatching and matching scene, then deliberately restart and
+   pause/resume. Pause/resume preserves the run; restart gets a fresh budget.
+
+Finish by explicitly stopping the task, stopping Live and stopping local camera
+and microphone capture. Confirm the browser capture indicators turn off and the
+backend reports the requested stop; a disconnected browser cannot prove the
+backend stopped. Record truncated, duplicate, premature or contradictory speech
+as failures even when the stored task is correct. Do not keep repeating a paid
+trial until it passes. Robot movement, if used, needs its own observed result.
+
 ## What to capture
 
 Record the unexpected wording and approximate time, export cockpit telemetry and

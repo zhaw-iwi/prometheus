@@ -8,6 +8,7 @@ import org.springframework.transaction.support.*;
 import ch.zhaw.prometheus.model.*;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
+import ch.zhaw.prometheus.model.policy.LiveSpeechPart;
 import ch.zhaw.prometheus.model.task.*;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
@@ -40,15 +41,16 @@ public class LiveTaskResponseService {
         transaction.setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
     /** Called inside the native-record transaction, after recording and before saving the same loaded agent. */
-    void prepare(Agent agent, ExternalSpeech owner, Event speech, Instant started) {
+    void prepare(Agent agent, ExternalSpeech owner, Event speech, Instant started, List<LiveSpeechPart> parts) {
         if (!(agent.getCurrentState().ownPolicy() instanceof TaskPolicy policy) || !policy.storage().containsKey(TaskResponse.KEY)) return;
         if (expire(agent, owner)) return;
         if (policy.liveIncompleteResponseIsFailure() && TaskResponse.incomplete(policy.storage(), owner, speech, started, clock.instant())) {
             recover(agent, owner, "response_capture_incomplete"); return;
         }
-        var candidate = TaskResponse.claim(policy.storage(), owner, speech, started, clock.instant(), policy.liveUnrelatedResponseAllowance());
-        if (candidate.isEmpty()) return;
-        var check = candidate.get();
+        TaskResponse.claim(policy.storage(), owner, speech, started, clock.instant(), policy.liveUnrelatedResponseAllowance(), parts)
+                .ifPresent(check -> schedule(agent, owner, policy, check));
+    }
+    private void schedule(Agent agent, ExternalSpeech owner, TaskPolicy policy, TaskResponse.Check check) {
         UUID id = agent.getId();
         var work = new PreparedAction(check.id(), policy.storage().getID(), Map.of(TaskResponse.KEY, policy.storage().get(TaskResponse.KEY).toString()), model -> {
             var verdict = TaskResponse.Verdict.AMBIGUOUS;
@@ -86,7 +88,8 @@ public class LiveTaskResponseService {
                     var p = e.speechProvenance();
                     return p != null && candidate.segment().equals(p.segmentId())
                             && owner.sessionId().equals(p.sessionId()) && owner.epoch().equals(p.epoch());
-                }).findFirst().ifPresent(e -> prepare(agent, owner, e, candidate.started())));
+                }).findFirst().ifPresent(e -> TaskResponse.claimCandidate(policy.storage(), owner, e, candidate, clock.instant(), policy.liveUnrelatedResponseAllowance())
+                        .ifPresent(next -> schedule(agent, owner, policy, next))));
             else if (!captured) recover(agent, owner, "response_association_uncertain");
             agents.saveAndFlush(agent);
             var activity = policy instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external ? external.liveActivityContext() : null;

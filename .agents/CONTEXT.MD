@@ -93,7 +93,13 @@ PROMETHEUS currently provides:
   observations across delayed cues/association; fresh control cues precede provider
   append acknowledgements. Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
-  admission and task controls. Both Generic variants remain available. See README
+  admission and task controls. Cross-phase support uses the shared user action,
+  bounded content-free rejection evidence and canonical pending-response identity;
+  help preserves authority and explicit controls remain guarded. Supported dialogue
+  and output-only sensor tasks stay distinct; first arrival is not extra-person
+  detection. Valerian service recovery keeps last-known views and performs scoped
+  read-only refresh without replaying uncertain mutations. Both Generic variants
+  remain available. See README
   and `.agents/COORDINATION_RESULTS.md` for the bounded contract and verification;
 - persisted explicit state-machine agents with policies, transitions, actions,
   storage, event history, reset, and scheduled evaluation;
@@ -229,8 +235,11 @@ sensor input, rendered output or confirmed action completion.
 
 Application-owned Live policies may disable pending-work acknowledgments through
 `ExternalVoicePolicy.livePendingAcknowledgements()` (default true). The adapter
-removes permission from common voice and task guidance when false. This is prompt
-guidance, not audio gating; default core wording remains identical.
+removes permission from common voice and task guidance when false. Such sessions
+also delay automatic delegation acknowledgments and send an immediate empty thinking
+update through a bounded worker to cancel them where timely. Neither mechanism is
+audio gating or a guarantee against independent native speech; append acknowledgments
+do not prove playback. Default core wording remains identical.
 
 As requested on 2026-10-30, all follow-up work on the recorded Coordination
 interaction and database load starts directly on `main`. This overrides the

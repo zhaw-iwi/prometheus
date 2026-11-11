@@ -1081,6 +1081,32 @@ See `.agents/GPTLIVE_RESULTS.md` for the original reduction and
 the fixed-quota efficiency follow-up. Functional acceptance uses disposable local
 MySQL independently of the production capacity gate.
 
+Valerian displays a connection-scoped service-recovery notice for network,
+429 and server failures. Existing history/task status remain last known. A failed
+mutation may have committed; no task request is automatically repeated. **Check
+connection** performs only scoped reads and rehydrates status/history before a
+user decides whether to repeat anything. Local capture teardown does not confirm
+that the backend task stopped. Login service failures are distinguished from a
+rejected access code. Reconnection/switching fences late responses and notices.
+
+For the opt-in six-client capacity probe, run the isolated acceptance runner with
+`--java-tests ClassroomCapacityIntegrationTest --classroom-capacity` and an owned
+loopback MySQL administration configuration. It must run alone; the runner copies
+`classroom-capacity-report.json` into its artifacts and rejects skipped/stale
+measurements. This measures global MySQL `Questions`, including transactions and
+JDBC, not just ORM statements. The November 10 local run kept 12 SSE readers alive
+for a 60-second active sensing/task window: 7,776 Questions/minute, projecting
+466,560/hour plus 6,127 fixed setup/recovery/cleanup Questions. This **fails** the
+28,800/hour budget (36,000 allowance less 20% headroom). Synthetic providers,
+automatic ticks disabled (a separate six-agent tick probe measured 192 Questions),
+short histories and no Live receipt traffic limit this projection. No sustained
+60-70 minute capacity acceptance or production load test has been performed.
+A larger database allowance or measured architectural savings, followed by a
+sustained representative test, is required before claiming classroom readiness.
+Retain sanitized logs and timing/query evidence before resets or deletion; an
+external log drain/research archive requires a separate rollout decision.
+See `.agents/ESCALATION_RESULTS.md` for the exact phases and limitations.
+
 The browser acceptance adds eight separate access-code contexts that join in
 sequence, keep sixteen native SSE streams open, send concurrent turns, and check
 scoped persisted history, disconnect/reconnect, switching instances and reload.
@@ -2118,9 +2144,15 @@ manual Start remain independent requirements; capability never starts capture
 or changes ordinary text/transcription/TTS generation.
 
 Application-owned `ExternalVoicePolicy` implementations may return false from
-`livePendingAcknowledgements()` to request silent waiting in both shared voice
-and task guidance. The default is true and retains existing core instructions.
-This changes model guidance only; it does not mute audio or prove spoken silence.
+`livePendingAcknowledgements()` to request silent waiting in common voice and
+task guidance. Such sessions also request an 800 ms automatic delegation
+acknowledgment delay. A bounded control worker immediately sends an empty
+`session.thinking.append` with the delegation ID, without waiting for context
+projection or blocking the sideband receiver. Delegation IDs are deduplicated;
+unconfirmed commands are not retried. The default remains true.
+This uses the provider's [automatic acknowledgment cancellation](https://developers.openai.com/api/docs/guides/live-delegation).
+It does not mute audio, cancel speech already generated, or guarantee that Live
+will never speak independently. A provider append acknowledgment is not playback proof.
 
 `liveResolvedControlReply(transcript, history, owner)` lets an application resolve
 a short control reply from its current facts and completed session dialogue.
@@ -2596,6 +2628,14 @@ asks to start; an ON_CUE task then waits for a fresh sign. A fully specified new
 task explicitly requested to start now needs no second confirmation when it has
 no preparation checks. An unfinished agreement, recognition evidence alone or a
 casual acknowledgement cannot authorize execution.
+For unchanged ON_CUE proposals, clear starts such as "Let's start", "let start",
+"I accept" and "Bitte jetzt starten" arm locally without a model call. Short
+assent, including "Bereit", needs the current completed acceptance invitation
+(at most two minutes old); in Live, its matching captured utterance is required.
+Without that context, say Start explicitly. Questions, quotes, negation and future
+intent do not authorize START, even if an inferred update requests it. Prepared
+evidence is not requested again merely because an earlier start failed. Repeated
+starts cannot reset the run or contribution budget.
 The agreement must be complete before it can start, and acceptance applies to the
 saved proposal unchanged. Changing a proposal suspends earlier execution and clears
 its preparation evidence. Discarding the replacement preserves an unfinished
@@ -2647,6 +2687,14 @@ default single-candidate behavior is unchanged.
 Coordination records whether that occasion requests arming or an actual task
 contribution, so a cue-triggered action cannot be confused with initial ON_CUE
 activation during semantic verification. Capture still does not prove audibility.
+The verifier compares the requested communicative act: an equivalent question
+fulfils a requested question; feedback must actually evaluate the answer. Changed
+polarity, quantities, conditions, partial content or a promise to speak are not a
+match. Word-for-word comparison applies only to exact-word requirements. Related
+but insufficient speech remains AMBIGUOUS; genuinely different-topic speech is
+UNRELATED. Invalid identities/output still fail conservatively. The test-only
+response-verifier probe exercises labelled positive and negative examples with the
+configured provider; it does not authorize task progress or establish playback.
 While an armed sensor task waits quietly, new Coordination instances defer
 unsolicited sensory updates to Live. Backend sensing, history and cue matching
 continue. An authorized contribution or ordinary user turn restores selected
@@ -2669,6 +2717,46 @@ active failure; a failure near operator Stop retains an uncertain timing label.
 has been proved or repaired. The original three gaps still have no established
 physical cause.
 
+Rejected Coordination updates retain one content-free `coordination.lastFailure`
+fact in ordinary Storage: safe failure category/operation, time, source position,
+phase, run/revision and action count, with `mutationCommitted=false`. No raw model
+output, user wording or exception message is retained. It is applicable for at most
+30 minutes while those runtime identities remain unchanged; successful control
+progress clears it and reset removes it. Missing legacy evidence means unknown.
+This diagnostic addition requires no schema or saved-graph migration. In every
+Coordination phase, requests such as "Help me", "I don't understand" or
+"Ich verstehe das nicht" receive state-aware guidance; other expressions of
+difficulty use the ordinary turn interpreter. Explanations preserve the agreement,
+preparation, run and contribution budget. Concrete requests such as "Help me set
+up a task" use ordinary task negotiation. Help does not pause active sensing;
+ask explicitly to Pause or Stop. Known failures explain the rejected boundary without
+inventing an underlying cause. Pending Live task responses retain their identity,
+deadline and playback requirements: help adds quiet facts, never a replacement
+task contribution or an automatic replay. This is not an acoustic silence gate.
+Reset and a new Live conversation discard pending help; no graph rewrite is needed.
+Clear unfinished answers such as "My answer is" request completion through the
+same support path, preserving the task budget and any in-flight response. This
+cannot restore words omitted by the Live provider; review the admitted transcript
+and complete/correct it explicitly. Final dialogue feedback excludes appended
+reflection invitations; a separate reflection turn follows confirmed delivery.
+Database/transport unavailability still requires client-side recovery. Roadmap and verification:
+`.agents/PLAN_ESCALATION.md` and `.agents/ESCALATION_RESULTS.md`.
+Recognisable direct hand/face questions use fresh supplied observations locally,
+without an inference call or task contribution. Missing, expired, future-dated,
+invalid and uncertain samples are distinguished from usable estimates; recognition
+does not establish feelings or physical success. Other questions still use ordinary
+inference. Invalid optional expression styling may be omitted from an otherwise
+valid ordinary/control reply, while speech, hand motion and executable terms remain
+strict. Pending Live questions cannot replace a task response; request-time sensor
+facts are explicitly historical if delivery is delayed.
+
+Questions about the agreed trigger or task rules use task interpretation instead
+of being mistaken for a request to identify the currently visible sign. An
+explicit instruction not to start also blocks a combined propose-and-start
+operation. These are bounded language guards, not universal intent recognition.
+Successful preparation remains satisfied when the current sensor sample expires;
+READY guidance asks for acceptance, with a fresh execution cue needed afterwards.
+
 Agreement goals, roles and success criteria each allow up to 300 characters;
 the whole agreement remains bounded to 3000 UTF-8 bytes. A request for current
 perception stays an instruction to use fresh observations during execution,
@@ -2686,6 +2774,59 @@ Two execution forms are supported:
   `IMMEDIATE`/`ON_CUE` timing. Spoken Live actions retain response-capture gating;
   silent actions do not wait for captions. Instructions cannot enable sensors or
   alter microphone/turn settings.
+
+Sensor reactions are output-only; they do not implement a human answer/feedback
+loop. Clear promises of such a loop are rejected with guidance to propose a
+bounded dialogue alternative or an explicitly output-only reaction. Changing
+task form still requires an explicit replacement and renewed acceptance; no cue
+is silently removed. A supported dialogue riddle asks its question without the
+solution, then uses another authorized contribution for feedback. Both count
+towards the agreed limit. Complete text proposals disclose the finite contribution/action
+cap, including requests phrased as "until stop"; Live is instructed to explain it.
+Natural-language quality and
+unseen wording remain bounded provider-acceptance concerns, not a scored-game
+guarantee. Existing saved tasks are not rewritten; unsupported answer attempts
+get specific recovery guidance while their agreement and budget are preserved.
+The turn interpreter receives the current user utterance and remaining dialogue
+budget explicitly after history and perception. Earlier questions remain context;
+they are not requests to answer again. Final contributions are instructed to omit
+another question or feedback invitation. This guidance still needs provider review.
+
+For social conditions, `arrival` means an empty scene becoming occupied; crossing
+the configured crowd threshold takes precedence. It does not mean another person
+joining someone already visible. Group-size changes can also describe departures
+or regrouping, so they are not a generic additional-person predicate either.
+Coordination explains recognised mismatches and can propose an explicit measurable
+alternative, such as `obs.human.presence.humanCount > 1` (at least two visible
+people), for review before starting. A count threshold is not identity or proof
+of physical entry. Complete text proposals disclose the actual numeric count condition
+from their executable rules, even when the goal description is vague. The same
+count can already be present; it does not establish that somebody just joined.
+Ready Live count proposals put those executable terms, the action limit and the
+review-before-acceptance requirement into a single bounded speaking request when
+it fits. Longer proposals retain the full existing context path without truncating
+their terms. Proposal review neither starts the task nor creates a task contribution.
+Independent rules cannot silently become compound conditions
+or previous/current-count comparisons. Existing saved rules are not rewritten;
+known unsupported draft terms get clarification guidance rather than advice to
+repeat preparation or start unchanged. Detector event meanings are unchanged.
+
+Bounded real OpenAI text smoke checks for preparation/help/acceptance, riddle
+feedback/replacement and reviewed count alternatives are available through the
+existing provider probe; see [the test instructions](tests/gptlive/README.md).
+These checks use the real agent and gateway in memory. They do not establish
+Realtime speech delivery, database capacity or physical classroom acceptance.
+The same test instructions now include the three ES-08 real Live journeys with
+disposable local MySQL and browser-observed playback. Dialogue response capture
+compares the current committed contribution, following the sensor-response pattern;
+it still requires a semantic match and separate playback confirmation. Actual
+passes, retained failures and outstanding gates are recorded in
+[the escalation results](.agents/ESCALATION_RESULTS.md).
+ES-08 acceptance remains unmet. The revised verifier passes the labelled direct
+provider evaluation, but that alone does not establish reliable Live delivery.
+The integrated runs retain wording, capture and final-feedback failures; consult
+the results for which journey steps were actually reached. Physical trials remain
+unrun. Database capacity is deferred by the owner while deployment options are reviewed.
 
 A proposal may additionally request up to three **recognition demonstrations**,
 each checking one supported sensor field using `eq`, `lt` or `gt` and a confidence
@@ -2818,6 +2959,18 @@ progression. This adds a model round trip at task boundaries and does not prove
 physical playback. New Generic and Social Space instances opt into this contract
 through persisted `core.task.liveWording`; saved instances without the flag retain
 their original announcement contract. The original configuration prompt is unchanged.
+
+A complete native segment may span an early remark and a later confirmed response.
+Trusted transcript-part receipt times can select a complete sentence suffix after
+the response's creation boundary for checking. Earlier words and mid-sentence tails
+cannot establish delivery. The original full transcript and segment identity remain
+unchanged; a queued candidate retains its suffix offset within the original deadline.
+Receipt comparison permits the same outer whitespace trimming used by transcript
+ingress, while preserving internal characters, receipt timing and stored offsets.
+Ambiguous checks still fail conservatively, and Coordination still requires the
+client's separate playback receipt. Short Coordination task replies now carry their
+content and speaking instruction in one bounded commentary append, once per response
+identity. Long replies and other agents retain their existing context delivery path.
 
 For these new instances, `CoreTaskUpdateAction` commits validated decisions and
 nonverbal/motion output while `CoreTaskPolicy` supplies bounded task facts for Live

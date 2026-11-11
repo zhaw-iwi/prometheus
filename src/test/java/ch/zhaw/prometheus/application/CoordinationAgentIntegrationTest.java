@@ -58,6 +58,145 @@ class CoordinationAgentIntegrationTest {
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
     }
+    @Test void deniedCombinedStartRemainsUnacceptedAfterReload() {
+        var scope = create();
+        turn(scope, "PROPOSE_AND_START", AGREEMENT, "Propose this invitation task, but do not start it");
+        var reloaded = memory(scope);
+        assertEquals("CONVERSATION", CoordinationMemory.stage(reloaded));
+        assertFalse(reloaded.containsKey(CoordinationMemory.AGREEMENT));
+        assertFalse(reloaded.containsKey(CoordinationMemory.RUN));
+        assertFalse(reloaded.containsKey(TaskMemory.ACTIONS));
+    }
+    @Test void supportReloadsWithoutChangingAuthorityAndExistingPauseResumeRemainAvailable() {
+        var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation activity");
+        var before = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user",
+                Event.KIND_OBSERVATION, "I don't understand"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        assertEquals(before, memory(scope).get(CoordinationMemory.DRAFT));
+        var history = agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
+        assertTrue(history.getLast().getPayload().contains("no further demonstration"));
+        turn(scope, "START", "null", "Accept and begin the saved invitation");
+        var count = memory(scope).get(TaskMemory.ACTIONS).deepCopy();
+        turn(scope, "PAUSE", "null", "Pause");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user",
+                Event.KIND_OBSERVATION, "Help me"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("PAUSED", CoordinationMemory.stage(memory(scope)));
+        assertEquals(count, memory(scope).get(TaskMemory.ACTIONS));
+        turn(scope, "RESUME", "null", "Resume"); assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(count, memory(scope).get(TaskMemory.ACTIONS));
+    }
+
+    @Test void preparedSensorProposalAcceptsContextualGermanReplyAfterReloadWithoutInference() {
+        var scope = create(); var proposal = JsonParser.parseString(AGREEMENT).getAsJsonObject();
+        proposal.getAsJsonArray("checks").add(JsonParser.parseString("""
+                {"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"rock","minConfidence":0}
+                """));
+        var reactions = JsonParser.parseString("""
+                {"goal":"Draft an invitation","maxActions":1,"sessionBound":true,"firstAction":"ON_CUE",
+                "rules":[{"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"rock",
+                "action":"Offer one invitation idea","effect":"ACT","minConfidence":0,"samples":1,"cooldownSeconds":3}]}
+                """).getAsJsonObject(); proposal.add("reactions", reactions);
+        turn(scope, "PROPOSE", proposal.toString(), "Prepare recognition before the agreed cue task");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_HAND_SIGN, "camera", Event.KIND_OBSERVATION,
+                "{\"sign\":\"rock\",\"confidence\":0.75,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        clearInvocations(gateway);
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user",
+                Event.KIND_OBSERVATION, "Bereit"), OutputProfile.FULL_PLAN).orElseThrow();
+        verifyNoInteractions(gateway);
+        assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals(1, memory(scope).get(CoordinationMemory.ACCEPTED_EVIDENCE).getAsJsonObject().size());
+        turn(scope, "REPLACE", AGREEMENT, "Explicitly replace this sensor task with the invitation dialogue");
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        turn(scope, "START", "null", "Accept this replacement and begin");
+        assertFalse(memory(scope).containsKey(TaskMemory.SPEC));
+        assertTrue(memory(scope).get(CoordinationMemory.AGREEMENT).getAsJsonObject().get("reactions").isJsonNull());
+    }
+
+    @Test void boundedRiddleDialogueReloadsQuestionFeedbackAndDistinctBudgetOutcome() {
+        var scope = create(); var proposal = JsonParser.parseString(AGREEMENT).getAsJsonObject();
+        proposal.addProperty("goal", "Try one short riddle together"); proposal.addProperty("humanRole", "Answer the question");
+        proposal.addProperty("agentRole", "Ask a riddle and give feedback"); proposal.addProperty("dialogueLimit", 2);
+        turn(scope, "PROPOSE", proposal.toString(), "Propose a bounded question and feedback exchange");
+        assertTrue(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast().getPayload().contains("Limit: 2"));
+        when(gateway.infer(any())).thenReturn("{\"operation\":\"START\",\"agreement\":null,\"reply\":{\"speech\":\"What becomes shorter while it works?\"}}");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, "Start"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertFalse(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast().getPayload().contains("candle"));
+        when(gateway.infer(any())).thenReturn("{\"operation\":\"STEP\",\"agreement\":null,\"reply\":{\"speech\":\"A candle fits that riddle.\"}}");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, "A candle"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(2, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals("LIMIT_REACHED", memory(scope).get(CoordinationMemory.OUTCOME).getAsString());
+        var history = agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
+        assertTrue(history.getLast().getPayload().contains("candle"));
+        assertTrue(history.stream().anyMatch(e -> Event.TYPE_USER_UTTERANCE.equals(e.getType()) && "A candle".equals(e.getPayload())));
+    }
+
+    @Test void reviewedSocialCountAlternativeReloadsAndIgnoresUnrelatedObservations() throws Exception {
+        var scope = create(); JsonObject proposal;
+        try (var input = getClass().getResourceAsStream("/coordination/social-count-alternative.json")) {
+            proposal = JsonParser.parseReader(new java.io.InputStreamReader(Objects.requireNonNull(input),
+                    java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+        turn(scope, "PROPOSE", proposal.toString(), "Propose this explicit visible-count alternative for review");
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        turn(scope, "START", "null", "Start"); assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        var rule = memory(scope).get(TaskMemory.SPEC).getAsJsonObject().getAsJsonArray("rules").get(0).getAsJsonObject();
+        assertEquals("humanCount", rule.get("field").getAsString()); assertEquals(1, rule.get("value").getAsInt());
+        when(gateway.infer(any())).thenReturn("{\"speech\":\"We can continue another time.\"}");
+        for (var observation : List.of(Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_HUMAN_PRESENCE))
+            demo.acknowledge(scope.code(), scope.id(), new EventRequest(observation, "camera", Event.KIND_OBSERVATION,
+                    "{\"humanCount\":1,\"avgDetectionConfidence\":0.9,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        long waitMillis = java.time.Duration.between(Instant.now(), Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();
+        assertTrue(waitMillis < 5000, "Unexpected arming window in the bounded fixture");
+        if (waitMillis >= 0) Thread.sleep(waitMillis + 25);
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_HUMAN_PRESENCE, "camera", Event.KIND_OBSERVATION,
+                "{\"humanCount\":2,\"avgDetectionConfidence\":0.9,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+    }
+
+    @Test void currentPerceptionQuestionAndTechnicalFailurePreserveSavedTaskAcrossReload() {
+        var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose the invitation task");
+        var before = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_HAND_SIGN, "camera", Event.KIND_OBSERVATION,
+                "{\"sign\":\"scissor\",\"confidence\":0.868,\"ts\":\"" + Instant.now() + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
+        clearInvocations(gateway);
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION,
+                "Siehst du mein Handzeichen?"), OutputProfile.FULL_PLAN).orElseThrow();
+        verifyNoInteractions(gateway);
+        assertTrue(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast().getPayload().contains("scissors"));
+        assertEquals(before, memory(scope).get(CoordinationMemory.DRAFT));
+        when(gateway.infer(any())).thenThrow(new IllegalStateException("private provider transport details"));
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION,
+                "Explain your capabilities"), OutputProfile.FULL_PLAN).orElseThrow();
+        var failure = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast().getPayload();
+        assertFalse(failure.contains("private")); assertTrue(failure.contains("cause is not established"));
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        assertEquals(before, memory(scope).get(CoordinationMemory.DRAFT));
+    }
+
+    @Test void rejectedUpdateEvidenceReloadsWithoutChangingPreparationAndClearsOnProgress() {
+        var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation activity");
+        var draft = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();
+        when(gateway.infer(any())).thenReturn("private invalid inference");
+        demo.acknowledge(scope.code(), scope.id(), new EventRequest(Event.TYPE_USER_UTTERANCE, "user",
+                Event.KIND_OBSERVATION, "Begin the saved activity"), OutputProfile.FULL_PLAN).orElseThrow();
+        var restored = memory(scope);
+        var failure = ch.zhaw.prometheus.model.coordination.CoordinationRecovery.current(restored, Instant.now());
+        assertNotNull(failure); assertEquals("update_shape", failure.get("category").getAsString());
+        assertTrue(failure.has("sourcePosition")); assertFalse(failure.get("mutationCommitted").getAsBoolean());
+        assertFalse(failure.toString().contains("private")); assertEquals(draft, restored.get(CoordinationMemory.DRAFT));
+        assertEquals("READY", CoordinationMemory.stage(restored));
+        turn(scope, "START", "null", "Accept the current proposal and begin");
+        assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertFalse(memory(scope).containsKey(ch.zhaw.prometheus.model.coordination.CoordinationRecovery.KEY));
+    }
     @Test void rawAndCalibratedObservationsRetainTheirSourceAgesAfterReload() throws Exception {
         JsonObject fixture;
         try (var input = getClass().getResourceAsStream("/coordination/observation-timing.json")) {

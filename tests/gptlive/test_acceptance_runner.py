@@ -4,11 +4,31 @@ from pathlib import Path
 import subprocess
 import sys
 import unittest
+from run_acceptance import escalation_cases
 
 RUNNER = Path(__file__).with_name('run_acceptance.py')
 
 
 class AcceptanceRunnerTest(unittest.TestCase):
+    def test_escalation_requires_real_live_transport(self):
+        for scenario in ('escalation-recovery', 'escalation-dialogue', 'escalation-social'):
+            self.run_rejected(['--paid-core', 'coordination-text', '--coordination-scenario', scenario], {},
+                              'requires the Live Coordination journey')
+    def test_classroom_capacity_must_select_its_dedicated_test(self):
+        self.run_rejected(['--classroom-capacity', '--java-tests', 'all'], {}, 'ClassroomCapacityIntegrationTest alone')
+
+    def test_classroom_capacity_cannot_mix_provider_or_browser_traffic(self):
+        for traffic in (['--paid-core', 'coordination'], ['--paid-gala'], ['--browser']):
+            with self.subTest(traffic=traffic):
+                self.run_rejected(['--classroom-capacity', '--java-tests', 'ClassroomCapacityIntegrationTest',
+                                   *traffic], {}, 'requires a separate offline run')
+
+    def test_synthetic_escalation_manifest_is_available_without_provisioning(self):
+        fixture = escalation_cases(RUNNER.resolve().parents[2])
+        self.assertFalse(fixture['baselineIsAcceptance'])
+        self.assertEqual(6, len(fixture['cases']))
+        self.assertIn('unaccepted-cue', {case['id'] for case in fixture['cases']})
+
     def run_rejected(self, arguments, environment, message):
         result = subprocess.run([sys.executable, '-B', str(RUNNER), *arguments],
                                 env={**os.environ, **environment}, capture_output=True, text=True, timeout=15)

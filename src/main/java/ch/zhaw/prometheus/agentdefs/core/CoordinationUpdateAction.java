@@ -15,9 +15,11 @@ import jakarta.persistence.Entity;
 /** Interpret one user turn, validate the whole update, then commit it under the existing agent-turn boundary. */
 @Entity
 public class CoordinationUpdateAction extends Action {
-    private static final Set<String> OPERATIONS = Set.of("KEEP", "PROPOSE", "REPLACE", "PROPOSE_AND_START", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
+    private static final Set<String> OPERATIONS = Set.of("KEEP", "SUPPORT", "PROPOSE", "REPLACE", "PROPOSE_AND_START", "START", "STEP", "COMPLETE", "PAUSE", "RESUME", "STOP", "DISCARD", "REFLECT", "RETURN_TO_CONVERSATION", "RESTART", "STATUS");
     private static final class UnexpectedTerms extends IllegalArgumentException {}
     private static final class PendingResponse extends IllegalArgumentException {}
+    private static final class UnsupportedDialogue extends IllegalArgumentException {}
+    private static final class UnsupportedSocialCondition extends IllegalArgumentException {}
     protected CoordinationUpdateAction() {}
     public CoordinationUpdateAction(Storage storage, String instructions) {
         super(new PromptPolicy(instructions, null, null), storage, TaskMemory.REPLY); blocking();
@@ -27,14 +29,22 @@ public class CoordinationUpdateAction extends Action {
         if (events.isEmpty() || !runtime.taskContinuation().getAsBoolean()) return;
         var event = events.toList().getLast(); String text = event.getPayload(); Instant now = Instant.now();
         String revision = TaskMemory.text(storage, TaskMemory.REVISION, "0");
+        CoordinationMemory.remove(storage, CoordinationSupport.LIVE_HELP);
         // Acoustic completion is not semantic completeness. These clear fragments cannot authorize a change.
-        if (CoreTaskVoice.normalize(text).matches("(a|an|the)( dry)?|(please )?(tell me|make it|change it to|can you|i want)( a| an| the)?")) {
-            answer("Please finish that request; the agreement and state are unchanged.", runtime); return;
+        if (CoreTaskVoice.normalize(text).matches("(a|an|the)( dry)?|(please )?(tell me|make it|change it to|can you|i want)( a| an| the)?|(my|the) answer is|i think it is|(meine|die) antwort ist")) {
+            answerSupport("Please finish that request; the agreement and state are unchanged.", runtime); return;
         }
         SensoryRemarks.userTurn(storage, events);
         if (runtime.externalSpeech() == null) CoordinationMemory.remove(storage, TaskResponse.KEY, CoreTaskVoice.RESPONSE);
-        String invitation = CoreTaskVoice.prompt(storage, events, runtime.externalSpeech(), CoordinationMemory.DRAFT);
-        boolean assent = CoreTaskVoice.assent(text);
+        String invitation = CoordinationAcceptance.invitation(storage, events, runtime.externalSpeech(), now);
+        boolean assent = CoordinationAcceptance.assent(text);
+        boolean support = CoordinationSupport.requested(text);
+        String helpControl = support ? helpControl(text) : null;
+        if ("AMBIGUOUS".equals(helpControl)) {
+            answerSupport("You mentioned several control operations. Please choose Pause, Stop or Resume; no task change has been applied.", runtime); return;
+        }
+        String perception = CoordinationPerception.answer(events, text, now);
+        if (perception != null) { answerSupport(perception, runtime); return; }
         if (CoreTaskVoice.acknowledgement(text) || assent && invitation == null) {
             CoreTaskVoice.clearAnswered(storage);
             if (runtime.externalSpeech() != null && !(assent && storage.containsKey(CoordinationMemory.DRAFT))) {
@@ -50,7 +60,7 @@ public class CoordinationUpdateAction extends Action {
         String rejection = "inference_failed";
         try {
             String command = CoreTaskVoice.normalize(text);
-            if (!text.contains("?") && !text.stripLeading().matches("[\"'“‘].*") && explicitCueStart(command)) {
+            if (explicitCueStart(text, invitation)) {
                 // Arming an unchanged ON_CUE proposal needs no generated contribution.
                 // Validation below still requires all terms and preparation to be ready.
                 operation = "START"; reply = BehaviourPlan.speechOnly("Start the saved proposal.");
@@ -61,16 +71,23 @@ public class CoordinationUpdateAction extends Action {
                 answer("Do you mean return to Conversation, or restart the same agreed task? The state is unchanged.", runtime); return;
             } else if (command.matches("(what is (our|your|the) (current )?state|where are we|which state are we in)")) {
                 operation = "STATUS"; reply = BehaviourPlan.speechOnly(CoordinationMemory.controls(storage));
-            } else if (command.matches("(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?")) {
-                operation = command.replaceFirst("^please ", "").split(" ")[0].toUpperCase(java.util.Locale.ROOT);
+            } else if (helpControl != null || command.matches("(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?")) {
+                operation = helpControl != null ? helpControl : command.replaceFirst("^please ", "").split(" ")[0].toUpperCase(java.util.Locale.ROOT);
                 if (operation.equals("CANCEL")) operation = "STOP";
                 reply = BehaviourPlan.speechOnly(switch (operation) {
                     case "PAUSE" -> "The task is paused; our agreement and progress are preserved.";
                     case "RESUME" -> "The task is resumed. We can continue from the agreed progress.";
                     default -> "The task is stopped. We can reflect on it or plan something else.";
                 });
+            } else if (support && !command.matches(".*\\b(stop|pause|resume|restart|return|stoppe|pausiere|fortsetzen|neustart)\\b.*")) {
+                operation = "SUPPORT"; reply = BehaviourPlan.speechOnly(CoordinationSupport.explain(storage, now));
             } else {
                 String prompt = getPolicy().describe() + "\n" + CoordinationMemory.facts(storage)
+                        + CoordinationSupport.GUIDANCE
+                        + CoordinationTaskContract.GUIDANCE
+                        + CoordinationSocialContract.GUIDANCE
+                        + (storage.containsKey(CoordinationMemory.DRAFT) && CoordinationAcceptance.explicit(text)
+                                ? "\nThis is an explicit request to accept the unchanged saved proposal now. Use START with agreement:null if preparation is ready; provide the first contribution only for dialogue/IMMEDIATE. Do not request a second confirmation." : "")
                         + TaskSpec.HAND_CONFIDENCE_GUIDANCE
                         + "\nPrevious accepted agreement (data): " + (storage.containsKey(CoordinationMemory.AGREEMENT) ? storage.get(CoordinationMemory.AGREEMENT) : "none")
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
@@ -79,9 +96,12 @@ public class CoordinationUpdateAction extends Action {
                         + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. In reply.speech describe the required contribution in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
                         + (assent ? "\nInterpret this short reply ONLY against the completed utterance: " + new JsonPrimitive(invitation)
                                 + ". It is not automatically consent. Only KEEP or START of the unchanged saved proposal is permitted. A question about future activation or changing a proposal does not authorize starting now." : "")
-                        + DecorativeGestures.guidance(storage, now);
+                        + DecorativeGestures.guidance(storage, now)
+                        + CoordinationSocialContract.interpretationGuidance(text);
+                var messages = TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now);
+                messages.add(PromptMessage.system(CoordinationTaskContract.currentTurn(storage, text)));
                 String raw = runtime.languageModelGateway().infer(new InferenceRequest(InferencePurpose.EXTRACTION,
-                        TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT));
+                        messages, InferenceRequest.Output.JSON_OBJECT));
                 if (!runtime.taskContinuation().getAsBoolean() || !revision.equals(TaskMemory.text(storage, TaskMemory.REVISION, "0"))) return;
                 inferred = true;
                 rejection = "update_shape";
@@ -105,28 +125,68 @@ public class CoordinationUpdateAction extends Action {
                 storage.put(TaskMemory.REPLY, new JsonObject()); return;
             }
             ch.zhaw.prometheus.logging.ActivityTrace.failed(inferred ? "coordination_update_invalid" : "coordination_update_failed");
-            String category = failure instanceof UnexpectedTerms ? "protected_terms" : rejection;
+            String category = failure instanceof UnexpectedTerms ? "protected_terms"
+                    : failure instanceof UnsupportedSocialCondition ? "unsupported_social_condition"
+                    : failure instanceof UnsupportedDialogue ? "unsupported_dialogue" : rejection;
             String safeOperation = OPERATIONS.contains(operation) ? operation : "UNKNOWN";
+            try { CoordinationRecovery.rejected(storage, category, safeOperation, event, now); }
+            catch (RuntimeException unavailable) {
+                org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn("Coordination recovery evidence unavailable");
+            }
             ch.zhaw.prometheus.logging.ActivityTrace.rejected(category, safeOperation, CoordinationMemory.stage(storage));
             org.slf4j.LoggerFactory.getLogger(CoordinationUpdateAction.class).warn(
                     "Coordination update rejected; category={}, operation={}, phase={}; agreement and preparation preserved",
                     category, safeOperation, CoordinationMemory.stage(storage));
-            answer(failure instanceof UnexpectedTerms
+            answerSupport(failure instanceof UnsupportedSocialCondition
+                    ? "The arrival detector means an empty scene becoming occupied, not another person joining someone already visible. That update was not applied. We can review a specific visible-person count threshold instead; it is not identity or proof of physical arrival. Please agree the alternative before starting."
+                    : failure instanceof UnsupportedDialogue
+                    ? "That task form cannot support the promised answer/feedback exchange with its proposed limits. Our agreement is unchanged. We can explicitly propose a bounded dialogue alternative, or an output-only sensor reaction without an answer loop. Please choose before we change or start anything."
+                    : failure instanceof UnexpectedTerms
                     ? "That edit also changes agreed triggers, limits, roles or preparation. I have preserved the agreement. Please say explicitly if you want to replace those terms."
-                    : "I couldn't apply that update. Our agreement and preparation are preserved; we can clarify the missing requirement or retry.", runtime);
+                    : "I couldn't apply that update. " + CoordinationSupport.explain(storage, now), runtime);
             return;
         }
         if (!runtime.taskContinuation().getAsBoolean()) return;
         commit(operation, proposed, reply, event, now, runtime);
+        if (!Set.of("KEEP", "SUPPORT", "STATUS", "REFLECT").contains(operation)) CoordinationRecovery.clear(storage);
     }
-    private boolean explicitCueStart(String command) {
+    private boolean explicitCueStart(String text, String invitation) {
         var draft = CoordinationMemory.agreement(getStorage(), CoordinationMemory.DRAFT);
         return draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
-                && command.matches("(yes |okay |ok )?(please )?(lets start( it| the task| the saved proposal)? now|start( it| the task| the saved proposal)?( now)?|run (it|the task|the saved proposal))");
+                && (CoordinationAcceptance.explicit(text) || CoordinationAcceptance.assent(text)
+                    && invitation != null && !CoreTaskVoice.deferredQuestion(invitation));
+    }
+    private static String helpControl(String text) {
+        var controls = new java.util.HashSet<String>();
+        for (String clause : text.split("[,;.!\\n]|(?i) and (?=help|explain)")) {
+            if (clause.contains("?") || clause.stripLeading().matches("[\"'“‘].*")) continue;
+            String normalized = CoreTaskVoice.normalize(clause);
+            if (normalized.matches("(please )?(stop|cancel|pause|resume)( (the |this |my )?(task|interaction|conversation))?")) {
+                String control = normalized.replaceFirst("^please ", "").split(" ")[0].toUpperCase(java.util.Locale.ROOT);
+                controls.add(control.equals("CANCEL") ? "STOP" : control);
+            }
+        }
+        return controls.size() > 1 ? "AMBIGUOUS" : controls.stream().findFirst().orElse(null);
     }
     private void validate(String operation, CoordinationAgreement proposed, boolean assent, String invitation, String text) {
         var storage = getStorage(); var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
         if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "REPLACE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
+        if (CoreTaskVoice.normalize(text).matches("what can you do|what are your capabilities|who are you|was kannst du|wer bist du")
+                && !Set.of("KEEP", "SUPPORT").contains(operation))
+            throw new IllegalArgumentException("An ordinary capability question grants no task operation");
+        if (operation.equals("START") && CoordinationAcceptance.uncertainStart(text))
+            throw new IllegalArgumentException("Starting requires present unquoted consent");
+        if (Set.of("START", "PROPOSE_AND_START", "RESTART").contains(operation) && CoordinationAcceptance.withholdsStart(text))
+            throw new IllegalArgumentException("An explicit instruction not to start cannot authorize activation");
+        if (CoordinationTaskContract.sensorPromisesDialogue(proposed) || CoordinationTaskContract.insufficientDialogueBudget(proposed)
+                || operation.equals("START") && (CoordinationTaskContract.sensorPromisesDialogue(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))
+                    || CoordinationTaskContract.insufficientDialogueBudget(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))))
+            throw new UnsupportedDialogue();
+        if (CoordinationSocialContract.arrivalMismatch(proposed, text)
+                || operation.equals("START") && CoordinationSocialContract.arrivalMismatch(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT), text)
+                || operation.equals("PROPOSE_AND_START") && proposed != null && proposed.reactions() != null
+                    && CoordinationSocialContract.needsAlternativeReview(text))
+            throw new UnsupportedSocialCondition();
         var previous = CoordinationMemory.agreement(storage, storage.containsKey(CoordinationMemory.DRAFT) ? CoordinationMemory.DRAFT : CoordinationMemory.AGREEMENT);
         if (operation.equals("PROPOSE") && previous != null && previous.complete()
                 && !"CONVERSATION".equals(CoordinationMemory.stage(storage)) && !previous.sameTerms(proposed)) throw new UnexpectedTerms();
@@ -141,6 +201,7 @@ public class CoordinationUpdateAction extends Action {
             }
             case "START" -> { if (!CoordinationMemory.ready(storage)) throw new IllegalArgumentException("Preparation incomplete"); }
             case "STEP" -> {
+                if (accepted != null && accepted.reactions() != null) throw new UnsupportedDialogue();
                 if (storage.containsKey(TaskResponse.KEY) && Set.of("PENDING", "CHECKING").contains(TaskResponse.status(storage)))
                     throw new PendingResponse();
                 if (!TaskMemory.active(storage) || accepted == null || accepted.reactions() != null || storage.containsKey(CoordinationMemory.DRAFT))
@@ -159,6 +220,7 @@ public class CoordinationUpdateAction extends Action {
     private void commit(String operation, CoordinationAgreement proposed, BehaviourPlan reply, Event event, Instant now, PolicyRuntime runtime) {
         var storage = getStorage(); boolean live = runtime.externalSpeech() != null;
         String before = CoordinationMemory.stage(storage);
+        if (operation.equals("SUPPORT")) { answerSupport(CoordinationSupport.explain(storage, now), runtime); return; }
         if (CoordinationDelivery.finishing(storage) && Set.of("STOP", "RETURN_TO_CONVERSATION", "RESTART", "PROPOSE", "REPLACE").contains(operation)) {
             CoordinationDelivery.uncertain(storage, "user_" + operation.toLowerCase(java.util.Locale.ROOT), now);
             if (operation.equals("STOP")) {
@@ -273,13 +335,13 @@ public class CoordinationUpdateAction extends Action {
         if (operation.equals("KEEP") || operation.equals("REFLECT")) { CoreTaskVoice.clearAnswered(storage); return; }
         String facts = switch (operation) {
             case "PROPOSE" -> "Proposal saved, not active. Explain the goal, roles, success criterion and limits without performing the task. "
-                    + "Refer to the supplied action text without quoting it, even as a future-tense example. " + proposalNextStep(storage);
+                    + "Refer to the agreed action without quoting it or inventing a supplied literal line, even as a future-tense example. " + proposalNextStep(storage);
             case "REPLACE" -> "A replacement proposal was saved and the earlier task is not executing. Explain the changed terms without performing them. " + CoordinationMemory.proposalPrompt(storage);
             case "START" -> action ? "Task accepted. Give its first agreed contribution now. " + intent(speech)
                     : "Task accepted and armed. Confirm only that you are waiting for a fresh cue: "
                         + accepted.reactions().rules().stream().filter(rule -> rule.effect() == TaskSpec.Effect.ACT)
                             .map(rule -> rule.value().toString()).collect(java.util.stream.Collectors.joining(", "))
-                        + ". Do not perform any part of the future action, including a joke or perception estimate. Do not say done.";
+                        + ". Do not perform the future action, joke or perception estimate. Preparation is satisfied; waiting for a new cue does not mean recognition failed. The future task is not completed.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
             case "COMPLETE" -> "The user's completion report ended the task. Reflect on available evidence; this is not independently measured success.";
             case "STOP" -> "No further task actions are authorized. The recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".";
@@ -294,7 +356,16 @@ public class CoordinationUpdateAction extends Action {
         if (!(operation.equals("START") && !action)) associationFacts +=
                 "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage);
         CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime, associationFacts);
+        if (live && Set.of("PROPOSE", "REPLACE").contains(operation)) {
+            var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
+            response.addProperty("proposalReview", true); storage.put(CoreTaskVoice.RESPONSE, response);
+        }
         if (live) TaskResponse.purpose(storage, action ? TaskResponse.Purpose.CONTRIBUTION : TaskResponse.Purpose.ARMING);
+        if (live && action && speech != null && !speech.isBlank()) {
+            // As with sensor contributions, judge the committed content, not future/past agreement steps
+            // or FINISHING's prohibition on authorizing another action. Capture is still not playback proof.
+            TaskResponse.contribution(storage, "One current task contribution is authorized. " + intent(speech), null);
+        }
         if (live && operation.equals("START") && !action) {
             var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
             response.addProperty("controlOnly", true); storage.put(CoreTaskVoice.RESPONSE, response);
@@ -314,7 +385,7 @@ public class CoordinationUpdateAction extends Action {
         try { return TaskMemory.plan(raw); }
         catch (IllegalArgumentException invalid) {
             // Optional expression is not part of a proposal's executable agreement. Keep motion and speech strict.
-            if (!Set.of("PROPOSE", "REPLACE", "STATUS", "RETURN_TO_CONVERSATION", "STOP", "PAUSE", "RESUME", "DISCARD", "COMPLETE").contains(operation)
+            if (!Set.of("KEEP", "SUPPORT", "START", "PROPOSE", "REPLACE", "STATUS", "RETURN_TO_CONVERSATION", "STOP", "PAUSE", "RESUME", "DISCARD", "COMPLETE").contains(operation)
                     || raw == null || !raw.isJsonObject() || raw.toString().length() > 1800 || !raw.getAsJsonObject().has("nonVerbal")) throw invalid;
             var withoutExpression = raw.getAsJsonObject().deepCopy(); withoutExpression.remove("nonVerbal");
             var plan = TaskMemory.plan(withoutExpression);
@@ -326,5 +397,18 @@ public class CoordinationUpdateAction extends Action {
     private void answer(String text, PolicyRuntime runtime) {
         getStorage().put(TaskMemory.REPLY, runtime.externalSpeech() == null ? BehaviourPlan.speechOnly(text).toJsonObject() : new JsonObject());
         if (runtime.externalSpeech() != null) CoreTaskVoice.response(getStorage(), text, false, false, runtime, CoordinationMemory.facts(getStorage()));
+    }
+    private void answerSupport(String text, PolicyRuntime runtime) {
+        if (runtime.externalSpeech() != null && (CoordinationDelivery.finishing(getStorage())
+                || Set.of("PENDING", "CHECKING").contains(TaskResponse.status(getStorage())))) {
+            getStorage().put(TaskMemory.REPLY, new JsonObject());
+            CoordinationSupport.pending(getStorage(), runtime.externalSpeech(), Instant.now(), text);
+            return;
+        }
+        answer(text, runtime);
+        if (runtime.externalSpeech() != null) {
+            var response = getStorage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
+            response.addProperty("supportOnly", true); getStorage().put(CoreTaskVoice.RESPONSE, response);
+        }
     }
 }

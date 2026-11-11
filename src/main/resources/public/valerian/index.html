@@ -2021,6 +2021,12 @@
 
         <section class="main-column cockpit-column" data-column-key="interaction">
           <div class="demo-card card" data-column-panel="interaction">
+            <div id="service_recovery" class="alert alert-warning m-3" role="status" aria-live="polite" hidden data-testid="service-recovery">
+              <strong id="service_recovery_title"></strong>
+              <p id="service_recovery_detail" class="small my-2"></p>
+              <button id="service_recovery_check" class="btn btn-sm btn-outline-ink" type="button" data-testid="service-recovery-check">Check connection</button>
+              <button id="service_recovery_dismiss" class="btn btn-sm btn-outline-ink" type="button" hidden>I've reviewed the state</button>
+            </div>
             <div class="card-header">
               <span><i class="bi bi-chat-dots me-2"></i>Interaction</span>
               <div class="card-header-actions">
@@ -2715,6 +2721,7 @@
   <link rel="stylesheet" href="/valerian/state-graph.css">
   <script src="/valerian/state-graph.js"></script>
   <script src="script.js"></script>
+  <script type="module" src="/valerian/service-recovery.js"></script>
 </body>
 
 </html>

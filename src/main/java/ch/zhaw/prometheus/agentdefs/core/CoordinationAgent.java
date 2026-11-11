@@ -30,7 +30,8 @@ public class CoordinationAgent implements AgentDefinition {
     static final String CONFIGURE = VOICE + GenericMultimodalBehaviour.OUTPUT + """
 
             Interpret the latest USER utterance and return exactly {"operation":"...","agreement":null,"reply":{...}}.
-            Operations: KEEP (conversation/question), PROPOSE (save or revise a partial/full proposal),
+            Operations: SUPPORT (the person is struggling, confused, reports unexpected behaviour or needs guidance),
+            KEEP (conversation/question), PROPOSE (save or revise a partial/full proposal),
             START (accept the unchanged saved proposal), STEP (one contribution to an active dialogue task),
             COMPLETE (the user explicitly reports completion), PAUSE, RESUME, STOP, DISCARD (discard draft), REFLECT,
             RETURN_TO_CONVERSATION (go back to initial/general conversation, preserving history),

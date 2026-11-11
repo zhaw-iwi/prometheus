@@ -29,8 +29,8 @@ public class LiveSmokeConfiguration {
                 }
                 ch.zhaw.prometheus.logging.ActivityTrace.inference(request.requestId(), request.purpose().name(), "fixture-model", "low", 10, 5, 1);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
-                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Determine whether the captured assistant speech fulfils")) {
-                    var data = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+                var data = responseCheckData(request);
+                if (data != null) {
                     var result = new JsonObject();
                     for (var field : List.of("responseId", "revision", "segmentId")) result.add(field, data.get(field));
                     result.addProperty("verdict", data.get("capturedSpeech").getAsString().equals("First fixture observation.") ? "MATCH" : "UNRELATED");
@@ -70,6 +70,14 @@ public class LiveSmokeConfiguration {
             public JsonElement summarise(List<PromptMessage> messages) { return new JsonObject(); }
             public String summariseOffline(List<PromptMessage> messages) { return "Synthetic summary"; }
         };
+    }
+    private static JsonObject responseCheckData(InferenceRequest request) {
+        if (request.purpose() != InferencePurpose.EXTRACTION || request.output() != InferenceRequest.Output.JSON_OBJECT) return null;
+        try {
+            var data = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+            return data.keySet().containsAll(Set.of("responseId", "revision", "segmentId", "confirmedTaskFacts", "capturedSpeech"))
+                    ? data : null;
+        } catch (JsonParseException | IllegalStateException notResponseData) { return null; }
     }
     @Bean @Primary public SpeechSynthesisGateway offlineSpeechGateway(Provider provider) {
         return new SpeechSynthesisGateway() {

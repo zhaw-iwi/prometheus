@@ -72,6 +72,13 @@ class LiveSessionGatewayUnitTest {
         assertEquals("webrtc", body.getAsJsonObject("transport").get("type").getAsString());
         assertFalse(session.toString().contains("answer")); assertFalse(offer().toString().contains("Diagnostic"));
     }
+    @Test void quietPolicyRequestsTheBoundedAutomaticAcknowledgementDelay() {
+        var normal = offer();
+        gateway.create(new LiveSessionGateway.Request(normal.sdp(), normal.voice(), normal.instructions(), normal.input(), false));
+        assertEquals(800, request.get().getAsJsonObject("session").getAsJsonObject("delegation").get("acknowledgement_delay_ms").getAsInt());
+        gateway.create(normal);
+        assertFalse(request.get().getAsJsonObject("session").getAsJsonObject("delegation").has("acknowledgement_delay_ms"));
+    }
     @Test void rejectedOrMalformedResponsesDoNotExposeProviderBodyAndMalformedSdpIsHungUp() {
         status = 403; response = "private-provider-sentinel";
         var error = assertThrows(LiveProviderException.class, () -> gateway.create(offer()));

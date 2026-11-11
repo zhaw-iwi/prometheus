@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 import argparse
+import json
 import os
 import re
 import secrets
@@ -16,6 +17,17 @@ import subprocess
 import time
 import uuid
 import pymysql
+
+
+def escalation_cases(root):
+    fixture = json.loads((root / 'src/test/resources/coordination/escalation-cases.json').read_text(encoding='utf-8'))
+    cases = fixture['cases']
+    if fixture.get('baselineIsAcceptance') is not False or len({case['id'] for case in cases}) != len(cases):
+        raise ValueError('Escalation fixtures must have unique cases and cannot claim baseline acceptance')
+    for case in cases:
+        if not case['input'] or not case['expected'] or not re.fullmatch(r'ES-\d{2}', case['milestone']):
+            raise ValueError('Invalid escalation regression case')
+    return fixture
 
 
 def main():
@@ -28,15 +40,20 @@ def main():
     parser.add_argument('--paid-gala', action='store_true', help='Opt in to real OpenAI audio/control journeys on the disposable local database')
     parser.add_argument('--connection-only', action='store_true', help='With --paid-gala, probe greeting/question/context update without games')
     parser.add_argument('--game', choices=['all', 'RPS', 'GUESS'], default='all', help='Paid journey selection; each game includes two rounds/replay')
+    parser.add_argument('--classroom-capacity', action='store_true', help='Dedicated offline six-client minute with MySQL Questions measurement')
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
-    parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction'], default='baseline')
+    parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
     if args.paid_gala and args.browser:
         parser.error('--paid-gala and mocked --browser acceptance are separate runs')
     if args.connection_only and not args.paid_gala:
         parser.error('--connection-only requires --paid-gala')
+    if args.classroom_capacity and (args.paid_core or args.paid_gala or args.browser):
+        parser.error('--classroom-capacity requires a separate offline run')
+    if args.classroom_capacity and args.java_tests != 'ClassroomCapacityIntegrationTest':
+        parser.error('--classroom-capacity requires --java-tests ClassroomCapacityIntegrationTest alone')
     if args.paid_core and args.browser:
         parser.error('--paid-core and mocked --browser acceptance must run separately')
     if args.paid_gala and args.paid_core:
@@ -47,8 +64,12 @@ def main():
         parser.error('--coordination-scenario requires a paid Coordination journey')
     if args.coordination_scenario == 'interaction' and args.paid_core != 'coordination':
         parser.error('--coordination-scenario interaction requires the Live Coordination journey')
+    escalation = args.coordination_scenario.startswith('escalation-')
+    if escalation and args.paid_core != 'coordination':
+        parser.error('Escalation acceptance requires the Live Coordination journey')
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
+    recovery_fixture = escalation_cases(root)
     provider_props = {}
     if args.paid_core or args.paid_gala:
         # Preflight before provisioning or billing: a worktree may lack ignored local config.
@@ -79,6 +100,7 @@ def main():
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)
     artifacts.mkdir(parents=True)
+    (artifacts / 'escalation-cases.json').write_text(json.dumps(recovery_fixture, indent=2), encoding='utf-8')
     database = pymysql.connect(host=url.hostname, port=url.port or 3306,
         user=os.environ.get('GPTLIVE_MYSQL_ADMIN_USER', props.get('spring.datasource.username')),
         password=os.environ.get('GPTLIVE_MYSQL_ADMIN_PASSWORD', props.get('spring.datasource.password')), autocommit=True)
@@ -92,6 +114,7 @@ def main():
         PROMETHEUS_RUNTIME_TICK_ENABLED='false', SERVER_SHUTDOWN='immediate', PROMETHEUS_ADMIN_TOKEN=secrets.token_hex(20),
         SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE='10',
         PROMETHEUS_SKIP_WEBSERVER='true')
+    env['PROMETHEUS_CLASSROOM_CAPACITY'] = 'true' if args.classroom_capacity else 'false'
     maven = ['mvnw.cmd'] if os.name == 'nt' else ['bash', './mvnw']
     npm = 'npx.cmd' if os.name == 'nt' else 'npx'
 
@@ -146,6 +169,15 @@ def main():
             # Every cached Spring context owns a pool. Bound aggregate local connections
             # for full-suite runs without changing any application's production pool size.
             run([*maven, '-q', '-Dspring.test.context.cache.maxSize=4', *selection, 'test'], 'java')
+            if args.classroom_capacity:
+                capacity = root / 'target/classroom-capacity-report.json'
+                if not capacity.exists():
+                    raise SystemExit('Capacity measurement did not produce a report; skipped tests are not acceptance.')
+                measured = json.loads(capacity.read_text(encoding='utf-8'))
+                if measured.get('schema') != schema or not measured.get('functionalAcceptance'):
+                    raise SystemExit('Capacity measurement lacks passing evidence for this owned schema.')
+                print('Capacity numeric headroom: ' + ('PASS' if measured.get('numericHeadroomMet') else 'FAIL')
+                      + '; classroom readiness: ' + str(measured.get('classroomReady')), flush=True)
         if args.paid_core or args.paid_gala:
             key = os.environ.get('OPENAI_API_KEY') or provider_props.get('openai.key')
             env.update(OPENAI_KEY=key.removeprefix('Bearer '), OPENAI_API_KEY=key.removeprefix('Bearer '),
@@ -154,6 +186,12 @@ def main():
                 PROMETHEUS_SPEECH_URL='https://api.openai.com/v1/audio/speech',
                 PROMETHEUS_LIVE_SESSIONS_URL='https://api.openai.com/v1/live/sessions',
                 PROMETHEUS_LIVE_ENABLED='true', PROMETHEUS_LIVE_REQUEST_TIMEOUT_MS='30000')
+            if escalation:
+                env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='24', PROMETHEUS_PROVIDER_MAX_TOKENS='200000',
+                    PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
+                    OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000')
+                for purpose in ('BEHAVIOUR', 'NONVERBAL', 'DECISION', 'EXTRACTION', 'SUMMARY'):
+                    env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
             fixture_root = artifacts / 'provider-classes'
@@ -233,6 +271,13 @@ def main():
                     stop()
     finally:
         stop()
+        capacity_report = root / 'target/classroom-capacity-report.json'
+        if args.classroom_capacity and capacity_report.exists():
+            try:
+                if json.loads(capacity_report.read_text(encoding='utf-8')).get('schema') == schema:
+                    shutil.copy2(capacity_report, artifacts / capacity_report.name)
+            except (ValueError, OSError):
+                print('Capacity report could not be retained; inspect the Java log.', flush=True)
         with database.cursor() as cursor:
             if created_schema:
                 cursor.execute('DROP DATABASE `' + schema + '`')

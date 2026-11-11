@@ -59,6 +59,103 @@ const USED_HISTORY = [
   behaviourEvent("This conversation and sensing state came from history.", "2026-08-29T08:01:05Z"),
 ];
 
+async function stableRecoveryStreams(context) {
+  await context.addInitScript(() => {
+    window.EventSource = class {
+      static OPEN = 1; static CLOSED = 2;
+      constructor(url) { this.url = url; this.readyState = 1; this.listeners = {}; setTimeout(() => this.listeners.open?.({}), 0); }
+      addEventListener(name, listener) { this.listeners[name] = listener; }
+      close() { this.readyState = 2; }
+    };
+  });
+}
+
+for (const layout of [{ name: "desktop", width: 1440, height: 1000 }, { name: "narrow", width: 390, height: 844 }]) {
+  test(`service failure preserves history without replay and allows read-only recovery ${layout.name}`, async ({page, context}, testInfo) => {
+    await stableRecoveryStreams(context);
+    await page.setViewportSize({width: layout.width, height: layout.height});
+    await context.addInitScript(() => localStorage.setItem("prometheus.valerian.theme", "dark"));
+    await installLifecycleApiMocks(context, {created: true, history: [STARTER_BEHAVIOUR]});
+    let mutations = 0;
+    await context.route(`**/demo/agents/${AGENT_ID}/acknowledge*`, route => {
+      ++mutations; return route.fulfill({status: 503, contentType: "application/json", body: "{}"});
+    });
+    await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+    await page.getByTestId("text-input").fill("Help me understand what happened"); await page.getByTestId("send-text").click();
+    const notice = page.getByTestId("service-recovery");
+    await expect(notice).toBeVisible(); await expect(notice).toContainText("last known");
+    // A delayed snapshot from the old stream is not proof of a recovered connection or mutation outcome.
+    await page.evaluate(() => applyMonitorSnapshot({stateName: "Conversation", storage: []}));
+    await expect(notice).toHaveAttribute("data-state", "unavailable");
+    await expect(page.getByTestId("message-list")).toContainText("persisted starter");
+    await notice.scrollIntoViewIfNeeded(); await notice.screenshot({path: testInfo.outputPath(`service-unavailable-${layout.name}.png`)});
+    await page.getByTestId("service-recovery-check").click();
+    await expect(notice).toHaveAttribute("data-state", "review");
+    await expect(notice).toContainText("may have committed"); expect(mutations).toBe(1);
+    await expect(page.getByTestId("message-list")).toContainText("persisted starter");
+    await page.locator("#service_recovery_dismiss").click(); await expect(notice).toBeHidden();
+    await page.evaluate(() => state.monitorSource.onerror());
+    await expect(notice).toBeVisible(); await expect(notice).toContainText("last known");
+    await page.locator("#open_diagnostics").click(); await page.getByTestId("connect-agent").click();
+    await expect(notice).toBeHidden(); await assertColumnsEmpty(page); expect(mutations).toBe(1);
+  });
+}
+
+for (const status of [200, 503]) test(`late mutation reply ${status} cannot revive data or recovery after reconnect`, async ({page, context}) => {
+  await stableRecoveryStreams(context);
+  await installLifecycleApiMocks(context, {created: true, history: [STARTER_BEHAVIOUR]});
+  let release, seen;
+  const wait = new Promise(resolve => {release = resolve;}); const started = new Promise(resolve => {seen = resolve;});
+  await context.route(`**/demo/agents/${AGENT_ID}/acknowledge*`, async route => {
+    seen(); await wait; await route.fulfill(status === 503 ? {status, body: "{}"}
+      : json({active: false, responseEvent: behaviourEvent("Old connection response.", "2026-11-10T13:00:00Z")}));
+  });
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+  await expect(page.getByTestId("send-text")).toBeEnabled();
+  await page.evaluate(() => { window.__lateTurn = sendUserUtterance("Explain this", {renderUser: true}); }); await started;
+  await page.locator("#open_diagnostics").click(); await page.getByTestId("connect-agent").click();
+  await page.getByTestId("connect-agent").click(); release(); await page.evaluate(() => window.__lateTurn);
+  await expect(page.getByTestId("agent-connection-state")).toContainText("Connected");
+  await expect(page.getByTestId("service-recovery")).toBeHidden();
+  await expect(page.getByTestId("speech-preview")).toHaveText("Welcome from the persisted starter.");
+});
+
+test("service login failure does not accuse a valid access code", async ({page, context}) => {
+  await installLifecycleApiMocks(context, {created: true, history: []});
+  await context.route("**/demo/session", route => route.fulfill({status: 500, body: "{}"}));
+  await page.goto("/valerian/"); await page.getByTestId("access-code-input").fill(ACCESS_CODE);
+  await page.getByTestId("submit-access-code").click();
+  await expect(page.getByTestId("access-code-status")).toContainText("Service unavailable");
+  await expect(page.getByTestId("access-code-status")).not.toContainText("rejected");
+  await expect(page.getByTestId("cockpit-shell")).not.toBeVisible();
+});
+
+for (const layout of [{ name: "desktop", width: 1440, height: 1000, theme: "light" },
+  { name: "narrow", width: 390, height: 844, theme: "dark" }]) {
+  test(`Coordination recovery guidance remains readable ${layout.name}`, async ({ page, context }, testInfo) => {
+    await page.setViewportSize({ width: layout.width, height: layout.height });
+    await context.addInitScript(theme => localStorage.setItem("prometheus.valerian.theme", theme), layout.theme);
+    const words = "Current coordination state: READY. The proposal and preparation are ready; no further demonstration is needed. Say Start to accept the saved proposal. After acceptance, show a fresh matching cue. The last update was not applied; the agreement and preparation were preserved.";
+    const scenario = { created: false, history: [behaviourEvent(words, "2026-11-10T10:00:00Z")] };
+    await installLifecycleApiMocks(context, scenario);
+    await page.goto("/valerian/"); await enterAccessCode(page);
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("agent-type-select").selectOption(AGENT_KEY);
+    await page.getByTestId("create-agent-instance").click();
+    await page.getByTestId("connect-agent").click();
+    await page.locator('#diagnostics_drawer [data-bs-dismiss="offcanvas"]').click();
+    await expect(page.locator("#diagnostics_drawer")).not.toBeVisible();
+    const message = page.getByTestId("message-list").locator(".demo-message.assistant");
+    await expect(message).toHaveCount(1); await expect(message).toContainText("no further demonstration");
+    await expect(page.getByTestId("speech-preview")).toHaveText(words);
+    await message.scrollIntoViewIfNeeded();
+    await message.screenshot({ path: testInfo.outputPath(`recovery-${layout.name}.png`) });
+    expect(await message.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+    await page.locator("#open_diagnostics").click();
+    await page.getByTestId("connect-agent").click(); await assertColumnsEmpty(page);
+  });
+}
+
 test("Valerian columns follow access, create, connect, disconnect, and logout lifecycle", async ({ page, context }) => {
   const scenario = { created: false, history: [STARTER_BEHAVIOUR] };
   await installLifecycleApiMocks(context, scenario);
@@ -105,6 +202,55 @@ test("Valerian columns follow access, create, connect, disconnect, and logout li
   await expect(page.getByTestId("agent-connection-state")).toHaveText("No agent selected");
   await assertColumnsEmpty(page);
   await expect(page.locator("#activity_log")).toHaveText("");
+});
+
+test("Coordination social alternative states the actual count condition", async ({ page, context }, testInfo) => {
+  const proposal = "Proposed task: Offer to continue another time once at least two people are visible. Limit: 1 sensor action. Stop can end earlier. The proposal is awaiting your acceptance and is not active.";
+  await installLifecycleApiMocks(context, { created: true, stateName: "Coordination reflection", history: [
+    behaviourEvent(proposal, "2026-11-10T12:00:00Z"),
+    event("obs.human.presence", "camera", "observation", JSON.stringify({humanCount: 2, trackedCount: 2,
+      avgDetectionConfidence: .9, ts: new Date().toISOString()}), new Date().toISOString()),
+    behaviourEvent("We can continue another time.", new Date().toISOString()),
+  ] });
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+  await expect(page.getByTestId("human-count")).toHaveText("2");
+  const first = page.getByTestId("message-list").locator(".demo-message.assistant").first();
+  await expect(first).toContainText("at least two people");
+  await expect(page.getByTestId("diagnostics-current-state")).toHaveText("Coordination reflection");
+  await first.scrollIntoViewIfNeeded(); await first.screenshot({path: testInfo.outputPath("social-condition.png")});
+});
+
+test("Coordination dialogue shows agreed limits, question and feedback distinctly", async ({ page, context }, testInfo) => {
+  const proposal = "Proposed task: Try one short riddle together. Limit: 2 agent contributions, including questions and feedback. Stop can end earlier. The proposal is awaiting your acceptance and is not active. Shall we start it now?";
+  await installLifecycleApiMocks(context, { created: true, stateName: "Coordination reflection", history: [
+    behaviourEvent(proposal, "2026-11-10T12:00:00Z"),
+    event("obs.user_utterance", "user", "observation", "Start", "2026-11-10T12:00:01Z"),
+    behaviourEvent("What becomes shorter while it works?", "2026-11-10T12:00:02Z"),
+    event("obs.user_utterance", "user", "observation", "A candle", "2026-11-10T12:00:03Z"),
+    behaviourEvent("A candle fits that riddle.", "2026-11-10T12:00:04Z"),
+  ] });
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+  const replies = page.getByTestId("message-list").locator(".demo-message.assistant");
+  await expect(replies).toHaveCount(3); await expect(replies.first()).toContainText("Limit: 2");
+  await expect(replies.nth(1)).not.toContainText("candle"); await expect(replies.nth(2)).toContainText("candle");
+  await expect(page.getByTestId("diagnostics-current-state")).toHaveText("Coordination reflection");
+  await replies.first().scrollIntoViewIfNeeded();
+  await replies.first().screenshot({ path: testInfo.outputPath("dialogue-limits.png") });
+});
+
+test("Coordination perception guidance agrees with sensed input and unchanged status", async ({ page, context }, testInfo) => {
+  const words = "When you asked, a fresh supplied hand observation reported scissors (recognition confidence 87%). This is a supplied estimate, not direct access to camera images.";
+  await installLifecycleApiMocks(context, { created: true, stateName: "Coordination awaiting acceptance", history: [
+    event("obs.hand.sign", "camera", "observation", JSON.stringify({ sign: "scissor", confidence: .868,
+      ts: new Date().toISOString() }), new Date().toISOString()),
+    behaviourEvent(words, new Date().toISOString()),
+  ] });
+  await page.goto(`/valerian/?agentId=${AGENT_ID}`); await enterAccessCode(page);
+  await expect(page.getByTestId("hand-sign-value")).toContainText(/Schere|scissor/i);
+  await expect(page.getByTestId("message-list")).toContainText("scissors");
+  await expect(page.getByTestId("speech-preview")).toHaveText(words);
+  await expect(page.getByTestId("diagnostics-current-state")).toHaveText("Coordination awaiting acceptance");
+  await page.getByTestId("message-list").locator(".demo-message.assistant").screenshot({ path: testInfo.outputPath("perception-guidance.png") });
 });
 
 test("hand confidence requirements follow monitor proposals, activation and disconnect", async ({ page, context }) => {
@@ -378,7 +524,7 @@ async function installLifecycleApiMocks(context, scenario, realClock = false) {
       return route.fulfill(json([{ key: "visit", value: "used" }]));
     }
     if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/state`) {
-      return route.fulfill(json({ name: "Conversation", innerName: null, innerNames: [] }));
+      return route.fulfill(json({ name: scenario.stateName || "Conversation", innerName: null, innerNames: [] }));
     }
     if (request.method() === "GET" && path === `/demo/agents/${AGENT_ID}/states`) {
       return route.fulfill(json(["Conversation"]));

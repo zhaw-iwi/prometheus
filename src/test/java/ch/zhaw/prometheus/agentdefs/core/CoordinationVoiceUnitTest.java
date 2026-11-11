@@ -12,6 +12,58 @@ import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationVoiceUnitTest {
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
+    @Test void confirmedQuestionIsPublishedOnceTogetherWithItsSpeakingInstruction() {
+        f.propose(f.dialogue(), f.live);
+        org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(f.update("START", null, "What has keys but cannot open a door?"));
+        f.say("Start", f.live);
+        var epoch = UUID.randomUUID();
+        var initial = new ch.zhaw.prometheus.application.live.LiveContextSnapshot(UUID.randomUUID(), epoch,
+                "before", Instant.now(), List.of("state"), "Guide", List.of(), 0, Map.of());
+        var current = new ch.zhaw.prometheus.application.live.LiveContextSnapshot(initial.agentId(), epoch,
+                "after", Instant.now(), initial.statePath(), "Guide", List.of(), 0, Map.of(), f.policy().liveActivityContext());
+        var delivery = new ch.zhaw.prometheus.application.live.LiveContextDelivery(initial); delivery.ready();
+        var batch = delivery.plan(current, List.of());
+        var content = batch.commands().stream().filter(c -> c.content().contains("What has keys")).toList();
+        assertEquals(1, content.size());
+        assertEquals("session.commentary.append", content.getFirst().type());
+        assertEquals(1, batch.commands().stream().filter(c -> c.type().equals("session.commentary.append")).count());
+        assertTrue(delivery.plan(current, List.of()).commands().stream().noneMatch(c -> c.type().equals("session.commentary.append")),
+                "An unconfirmed append must not cause an automatic second question");
+    }
+    @Test void dialogueAssociationUsesCommittedContributionWithoutConflictingLifecycleBackground() {
+        var proposal = f.dialogue(); proposal.addProperty("dialogueLimit", 2);
+        f.propose(proposal, f.live);
+        org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(f.update("START", null, "What has keys but cannot open a door?"));
+        f.say("Start", f.live);
+        var first = f.storage().get(TaskResponse.KEY).getAsJsonObject();
+        assertFalse(first.get("facts").getAsString().contains("Accepted agreement"));
+        var started = Instant.parse(first.get("created").getAsString()).plusNanos(1);
+        var check = TaskResponse.claim(f.storage(), f.owner, f.hear("What has keys but cannot open a door?", true, started),
+                started, started.plusMillis(1)).orElseThrow();
+        TaskResponse.finish(f.storage(), f.owner, check, true, started.plusMillis(2));
+        org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(f.update("STEP", null, "Correct, a piano."));
+        f.say("My answer is a piano", f.live);
+        var last = f.storage().get(TaskResponse.KEY).getAsJsonObject();
+        assertEquals("FINISHING", TaskMemory.phase(f.storage()));
+        assertEquals("CONTRIBUTION", last.get("purpose").getAsString());
+        assertTrue(last.get("facts").getAsString().contains("Correct, a piano."));
+        assertFalse(last.get("facts").getAsString().contains("No further action is allowed"));
+        assertFalse(TaskResponse.captured(f.storage(), f.owner));
+        assertTrue(f.policy().liveActivityContext().continuation().facts().contains("budget is exhausted"));
+    }
+    @Test void readyFactsKeepRecognisedPreparationDistinctFromCurrentSensorFreshness() {
+        f.propose(f.sensor(true), f.live);
+        f.sign("rock", .95, Instant.now(), f.live); f.sign("paper", .95, Instant.now(), f.live);
+        f.sign("scissor", .95, Instant.now().minusSeconds(60), f.live);
+        assertEquals("READY", ch.zhaw.prometheus.model.coordination.CoordinationMemory.stage(f.storage()));
+        assertEquals(2, ch.zhaw.prometheus.model.coordination.CoordinationMemory.evidence(f.storage()).size());
+        assertTrue(f.policy().liveActivityContext().facts().contains("no further demonstration is needed"));
+        assertFalse(f.storage().containsKey(TaskMemory.ACTIONS));
+        assertDoesNotThrow(() -> new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().instructions(f.agent));
+    }
     @Test void pendingPreparationNamesTheRequiredEvidenceBeforeRequestingAcceptance() {
         f.propose(f.sensor(true), f.live);
         var facts = f.policy().liveActivityContext().facts();
@@ -22,9 +74,11 @@ class CoordinationVoiceUnitTest {
     @Test void armingDoesNotExposeFutureActionScriptButTheQualifiedCueDoes() {
         f.propose(f.sensor(false), f.live); f.start(f.live);
         var context = f.policy().liveActivityContext();
-        assertNotNull(context.continuation()); assertTrue(context.facts().contains("rock"));
+        assertNotNull(context.continuation()); assertTrue(context.continuation().facts().contains("rock"));
         assertFalse(f.policy().liveObservationContextEnabled());
-        assertTrue(context.facts().startsWith("Task accepted and armed."));
+        assertTrue(context.continuation().selfContained());
+        assertTrue(context.continuation().facts().startsWith("Task accepted and armed."));
+        assertFalse(context.facts().contains("Task accepted and armed."));
         assertFalse(context.facts().contains("Offer one welcome idea"));
         var response = f.storage().get(TaskResponse.KEY).getAsJsonObject();
         assertEquals("ARMING", response.get("purpose").getAsString());
@@ -41,7 +95,7 @@ class CoordinationVoiceUnitTest {
         assertEquals(1, f.storage().get(TaskMemory.ACTIONS).getAsInt());
         assertEquals("CONTRIBUTION", f.storage().get(TaskResponse.KEY).getAsJsonObject().get("purpose").getAsString());
         assertTrue(f.policy().liveObservationContextEnabled());
-        assertTrue(f.policy().liveActivityContext().facts().contains("Required spoken content: One welcome idea"));
+        assertTrue(f.policy().liveActivityContext().continuation().facts().contains("Required spoken content: One welcome idea"));
         assertFalse(f.policy().liveActivityContext().facts().contains("Offer one welcome idea"));
         var contribution = f.storage().get(TaskResponse.KEY).getAsJsonObject();
         var contributionStart = Instant.parse(contribution.get("created").getAsString()).plusNanos(1);

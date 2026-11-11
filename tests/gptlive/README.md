@@ -177,6 +177,56 @@ trials as passing.
 
 ## Representative task-agent journeys
 
+### Integrated Coordination escalation (ES-08)
+
+These three scenarios use the existing real local application, disposable MySQL,
+real OpenAI Live transport and the production browser playback observer. Visitor
+audio is synthesized and sensor inputs are synthetic. They extend the existing
+journey; `coordination-text` cannot satisfy these checks.
+
+After configuring local MySQL administration and provider credentials as described
+above, select one explicitly paid scenario:
+
+```powershell
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordination --coordination-scenario escalation-recovery
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordination --coordination-scenario escalation-dialogue
+python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordination --coordination-scenario escalation-social
+```
+
+Recovery covers recognition, difficulty before/after preparation, fresh perception,
+natural acceptance, one cue and confirmed final delivery, then return. Dialogue
+covers a riddle question/answer/feedback, help and ordinary questions, followed by
+an unfinished-answer completion request, explicit replacement and renewed acceptance.
+The final-feedback rubric reads the associated transcript segment and recorded
+suffix offset, keeping any later Reflection turn separate; all native captions
+remain available for semantic review. Social covers a reviewed count
+alternative, matching/nonmatching cues and explicit restart/pause/resume/stop.
+Each journey fails on an unmet check and retains native transcripts, task state,
+provider evidence and playback diagnostics under its ignored artifact directory.
+Visitor-turn assertions wait for durable transcript processing, not just quiet
+captions. Final completion still requires real browser playback observation.
+
+Per invocation: at most 12 scripted visitor turns, 24 backend inference requests,
+2,048 completion tokens per request, 80,000 UTF-8 input bytes per inference, one
+Live session with a 360-second lifetime, and a 420-second child-process deadline.
+Further inference stops once reported cumulative usage reaches 200,000 tokens;
+the last request can cross that threshold, so it is not a hard monetary cap.
+Synthetic speech is limited to 12 clips/6,000 characters and cached between runs.
+The test-only provider recorder enforces request/input/session limits without
+altering production transport. Provider usage may be unavailable after failures;
+Live seconds, backend tokens and synthesis calls are separate measures.
+
+Review actual wording against the rubric in `journey.json`: truthful state and
+perception, visible supported terms, finite budgets, no premature/duplicate
+contribution or answer leak. An automated pass does not complete semantic review.
+Never automatically rerun until success: retain every attempt and state the
+specific correction that justifies another run. Integrated evidence and unresolved
+checks are in [ESCALATION_RESULTS.md](../../.agents/ESCALATION_RESULTS.md); physical
+operator trials are in [CORE_AGENTS.md](CORE_AGENTS.md) and the
+[escalation operator checklist](../../.agents/ESCALATION_OPERATOR.md). Physical audibility,
+camera accuracy and robot movement remain separate gates. Database capacity is
+deferred for the current behavioural milestone by the owner's 2026-11-11 scope update.
+
 Core improvements are tracked in
 [PLAN_COREAGENTIMPROVEMENT.md](../../.agents/PLAN_COREAGENTIMPROVEMENT.md).
 Offline remains the default. To explicitly permit paid OpenAI calls:
@@ -224,6 +274,55 @@ control requests: activation as a question or offer, an unrelated question or
 statement, revision and future activation. It verifies the persisted outcome, including deterministic rejection
 when a model misclassifies a deferred question. This diagnostic does not replace
 the full paid Live journey.
+
+The same entry point accepts `--coordination-cases` for three real OpenAI **text**
+smoke scenarios: recognition/help/natural acceptance/one-shot cue, a supplied
+riddle question and feedback followed by explicit replacement, and a reviewed
+visible-count alternative with pause/resume. Each uses a fresh production
+Coordination graph, real actions, canonical replies and storage assertions.
+No Spring application or database is started. This diagnostic does not complete
+ES-08's Realtime audio/persistence/physical acceptance requirements.
+
+Set `OPENAI_API_KEY` in the process environment (or use ignored `openai.key`
+configuration). It loads checked-in `openai-prod.properties` routes, then local
+`openai.properties` and `application.properties` OpenAI overrides; it never uses
+their database credentials. Models/effort and provider token usage are retained
+in the artifact. There are at most 14 requests, 2,048 completion tokens per request,
+30 seconds per request and a five-minute scenario budget; there are no automatic
+provider retries. Normal Maven tests never invoke this paid main.
+
+```powershell
+.\mvnw.cmd -q -DskipTests test-compile dependency:build-classpath '-Dmdep.outputFile=target/coordination-provider-classpath.txt'
+$probeClasspath = 'target/test-classes;target/classes;' + (Get-Content target/coordination-provider-classpath.txt -Raw).Trim()
+java -cp $probeClasspath fixtures.live.CoreTaskProviderProbe --allow-paid-provider target/coordination-provider-smoke.json --coordination-cases
+```
+
+Failures return nonzero and retain the synthetic requests, raw model output,
+response/state snapshots and usage in the ignored artifact. Review wording as
+well as assertions; passing a few cases is not a paraphrase-robustness guarantee.
+
+For speech-association failures, `fixtures.live.TaskResponseProviderProbe` evaluates
+the production `TaskResponse.Check` against the labelled synthetic cases in
+`src/test/resources/coordination/response-verification-cases.json`. It includes
+question paraphrases, full/partial/contradictory feedback, arming, count-condition
+drift, exact words and instruction-like captured text. It uses the same configuration
+precedence and private key setup as the probe above, with no database or voice session.
+
+```powershell
+.\mvnw.cmd -q -DskipTests test-compile dependency:build-classpath '-Dmdep.outputFile=target/response-probe-classpath.txt'
+$responseProbeClasspath = 'target/test-classes;target/classes;' + (Get-Content target/response-probe-classpath.txt -Raw).Trim()
+java -cp $responseProbeClasspath fixtures.live.TaskResponseProviderProbe --allow-paid-provider target/response-verifier.json --repeat=2
+```
+
+Omit `--repeat=2` for one pass. Maximums are 36 requests, 512 completion tokens per
+request, 12,000 input bytes per request, 30 seconds per request and four minutes
+overall. A 30,000 reported-token threshold prevents subsequent requests (the last
+request can cross it). There are no provider retries. Exact-word matches use the
+production fast path and are identified separately. Errors stop spending and retain
+the partial report; classification failures retain every result and return nonzero.
+Malformed output or a mismatched response identity fails the evaluation even when
+production conservatively maps it to AMBIGUOUS and that is the expected label.
+This evaluates delivery content only, not acoustic timing, playback or task success.
 
 ```powershell
 python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests GenericMultimodalTaskIntegrationTest,SocialSpaceLiveJourneySmokeIntegrationTest,GalaDinnerReceptionJourneySmokeIntegrationTest

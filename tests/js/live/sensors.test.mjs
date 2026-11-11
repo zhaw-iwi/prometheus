@@ -201,7 +201,7 @@ test("monitor snapshots replace detail reads, with fallback before readiness and
     monitorStreamUrl: () => "/monitor", applyMonitorSnapshot() {}, scheduleMonitorReconnect() {},
     async loadStorage() { reads.push("storage"); }, async loadAgentState() { reads.push("state"); },
   });
-  for (const name of ["connectMonitorStream", "refreshAgentDetailsIfNeeded"]) {
+  for (const name of ["connectMonitorStream", "refreshAgentDetailsIfNeeded", "captureConnection", "currentConnection"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
     const rest = source.slice(match.index), end = /^}/m.exec(rest);
     vm.runInContext(rest.slice(0, end.index + 1), context);
