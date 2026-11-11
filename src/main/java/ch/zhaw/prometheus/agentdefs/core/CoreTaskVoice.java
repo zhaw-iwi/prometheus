@@ -77,6 +77,7 @@ final class CoreTaskVoice {
         var events = history.toList();
         for (int i = events.size() - 1; i >= 0; i--) {
             var event = events.get(i);
+            if (ConversationProjection.isUnplayed(event)) continue;
             if (Event.TYPE_USER_UTTERANCE.equals(event.getType())) {
                 if (i == events.size() - 1) continue;
                 return null;

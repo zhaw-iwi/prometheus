@@ -19,6 +19,33 @@ import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 class LiveTranscriptCaptureServiceUnitTest {
+    @Test void optedInAssistantSentencesReachIngressTogetherWithTheirOriginalReceipts() throws Exception {
+        var ingress = mock(LiveTranscriptIngressService.class);
+        when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());
+        var now = new AtomicLong(1000); var clock = mock(Clock.class);
+        when(clock.millis()).thenAnswer(call -> now.get());
+        var service = new LiveTranscriptCaptureService(ingress, mock(ApplicationEventPublisher.class), clock);
+        try {
+            var capture = service.open(UUID.randomUUID(), new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID()),
+                    () -> List.of("finishing"), reason -> fail(reason), 2000, false, 2400);
+            var quiet = new com.google.gson.JsonObject(); quiet.addProperty("type", "session.output_audio.delta");
+            quiet.addProperty("delta", Base64.getEncoder().encodeToString(new byte[4800]));
+            capture.receive(JsonParser.parseString("{\"type\":\"session.output_transcript.delta\",\"event_id\":\"evaluation\",\"start_ms\":88000,\"end_ms\":88800,\"delta\":\"That's it, a piano!\"}").getAsJsonObject());
+            for (int i = 1; i <= 14; i++) { now.set(1000 + i * 100); capture.receive(quiet); service.poll(); }
+            verify(ingress, never()).commit(any(), any(), any(), any());
+            var explanation = JsonParser.parseString("{\"type\":\"session.output_transcript.delta\",\"event_id\":\"explanation\",\"start_ms\":90200,\"end_ms\":93200,\"delta\":\" Correct, a piano has keys but opens no doors.\"}").getAsJsonObject();
+            capture.receive(explanation); capture.receive(explanation);
+            for (int i = 1; i <= 24; i++) { now.set(2400 + i * 100); capture.receive(quiet); service.poll(); }
+            capture.close().get(3, TimeUnit.SECONDS);
+            var segments = org.mockito.ArgumentCaptor.forClass(Segment.class);
+            verify(ingress).commit(any(), any(), segments.capture(), eq(List.of("finishing")));
+            var segment = segments.getValue();
+            assertEquals(ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Closure.COMPLETE, segment.closure());
+            assertEquals(List.of("evaluation", "explanation"), segment.fragments().stream().map(f -> f.eventId()).toList());
+            assertEquals("That's it, a piano! Correct, a piano has keys but opens no doors.", segment.text());
+            verify(ingress, times(2)).receipt(any(), any(), any());
+        } finally { service.shutdown(); }
+    }
     @Test void documentedOutputAudioWithoutTimingCanCloseACompleteAssistantSegment() throws Exception {
         var ingress = mock(LiveTranscriptIngressService.class);
         when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());

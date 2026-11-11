@@ -11,10 +11,25 @@ import com.google.gson.JsonObject;
 public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
         List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
         long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity, boolean filterIsolatedInputActivity,
-        boolean pendingAcknowledgements) {
+        boolean pendingAcknowledgements, long assistantSilenceMs, boolean speechApprovalRequired) {
+    public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
+            List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
+            long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity, boolean filterIsolatedInputActivity,
+            boolean pendingAcknowledgements, long assistantSilenceMs) {
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, userSilenceMs,
+                activity, filterIsolatedInputActivity, pendingAcknowledgements, assistantSilenceMs, false);
+    }
     public LiveContextSnapshot {
         statePath = List.copyOf(statePath); items = List.copyOf(items); guidance = Map.copyOf(guidance);
         LiveTranscriptSegmenter.validateUserSilence(userSilenceMs);
+        LiveTranscriptSegmenter.validateAssistantSilence(assistantSilenceMs);
+    }
+    public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
+            List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
+            long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity, boolean filterIsolatedInputActivity,
+            boolean pendingAcknowledgements) {
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, userSilenceMs,
+                activity, filterIsolatedInputActivity, pendingAcknowledgements, LiveTranscriptSegmenter.SILENCE_MS);
     }
     public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
             List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,

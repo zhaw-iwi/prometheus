@@ -5,7 +5,14 @@ import java.util.UUID;
 
 /** Internal additive event metadata; absence denotes ordinary legacy backend speech. */
 public record SpeechProvenance(Origin origin, UUID sessionId, UUID epoch, String segmentId,
-        Association association, List<UUID> intentIds, boolean complete) {
+        Association association, List<UUID> intentIds, boolean complete, Boolean playbackConfirmed) {
+    public SpeechProvenance(Origin origin, UUID sessionId, UUID epoch, String segmentId,
+            Association association, List<UUID> intentIds, boolean complete) {
+        this(origin, sessionId, epoch, segmentId, association, intentIds, complete, null);
+    }
+    public SpeechProvenance playback(boolean played) {
+        return new SpeechProvenance(origin, sessionId, epoch, segmentId, association, intentIds, complete, played);
+    }
     public enum Origin { BACKEND_INTENT, NATIVE }
     public enum Association { NONE, AMBIGUOUS, CONFIRMED }
     public SpeechProvenance {

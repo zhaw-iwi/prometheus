@@ -155,9 +155,11 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             requests.add(request);
             if (secondVisitor) assertNoFirstVisitor(request.messages().stream()
                     .map(PromptMessage::getContent).reduce("", (left, right) -> left + "\n" + right));
-            if (request.messages().getFirst().getContent().startsWith("Determine whether the captured assistant speech")) {
-                var response = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
-                response.remove("confirmedTaskFacts"); response.remove("capturedSpeech"); response.addProperty("verdict", "MATCH");
+            if (deliveryVerification(request)) {
+                var input = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+                var response = new JsonObject();
+                for (String key : List.of("responseId", "revision", "segmentId")) response.add(key, input.get(key));
+                response.addProperty("verdict", "MATCH");
                 return response.toString();
             }
             String answer = scripted.poll();
@@ -603,7 +605,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertFalse(history().stream().filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
                     .anyMatch(event -> JsonParser.parseString(event.getPayload()).getAsJsonObject().has("nv")));
             assertTrue(requests.stream().filter(request -> request.purpose() == InferencePurpose.EXTRACTION)
-                    .filter(request -> !request.messages().getFirst().getContent().startsWith("Determine whether the captured assistant speech"))
+                    .filter(request -> !deliveryVerification(request))
                     .allMatch(request -> request.messages().getFirst().getContent().contains("only inside reply")));
             verifyNoInteractions(speech);
         } finally {
@@ -698,6 +700,13 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     private long speechIntents() {
         return history().stream().filter(ConversationProjection::isIntent)
                 .filter(e -> BehaviourPlan.fromJson(e.getPayload()).getSpeech() != null).count();
+    }
+    private static boolean deliveryVerification(InferenceRequest request) {
+        if (request.purpose() != InferencePurpose.EXTRACTION || request.messages().isEmpty()) return false;
+        try {
+            var input = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+            return input.keySet().containsAll(List.of("responseId", "revision", "segmentId", "confirmedTaskFacts", "capturedSpeech"));
+        } catch (RuntimeException notVerificationData) { return false; }
     }
     private void nativeSpeech(Encounter encounter, String text) {
         boolean pending = loaded().getStorage().containsKey(TaskResponse.KEY);

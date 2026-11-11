@@ -164,12 +164,12 @@ async function say(name) {
 async function captionsFrom(index) {
   return page.evaluate(index => {
     let text = '', previous;
-    for (const event of logs.slice(index).filter(e => e.type === 'session.output_transcript.delta')) {
+    for (const event of logs.slice(index).filter(e => e.type === (window.approval ? 'trial.speech_played' : 'session.output_transcript.delta'))) {
       // A display-only separator avoids joining separate utterances into e.g. "PersonNein".
       // Raw events remain intact; this is not a production turn/playback boundary.
       if (previous && Number.isFinite(event.start_ms) && Number.isFinite(previous.end_ms)
           && event.start_ms - previous.end_ms >= 800) text += '\n';
-      text += event.delta || ''; previous = event;
+      text += event.text || event.delta || ''; previous = event;
     }
     return text;
   }, index);
@@ -181,7 +181,7 @@ async function settled(index, expected) {
     const text = (await captionsFrom(index)).trim(); return text && (!expected || expected.test(text));
   });
   // This is a test pacing heuristic, not a production audio-completion contract.
-  await page.waitForFunction(() => performance.now() - logs.findLast(e => e.type === 'session.output_transcript.delta').at > 3500,
+  await page.waitForFunction(() => window.approval ? !window.approval.current : performance.now() - logs.findLast(e => e.type === 'session.output_transcript.delta').at > 3500,
     {}, {timeout: 30000});
   const status = await api(`${agentPath}/live/sessions/${handle}`);
   assert.equal(status.state, 'attached', 'Live closed: ' + status.reason);
@@ -453,7 +453,7 @@ try {
     finally { heartbeatBusy = false; }
   }, 5000);
   page = await browser.newPage(); await page.goto(base + '/valerian/');
-  const offer = await page.evaluate(async ({agentPath, code, connectionOnly}) => {
+  const offer = await page.evaluate(async ({agentPath, code, connectionOnly, coordinationJourney}) => {
     window.logs = []; window.mark = (type, fields = {}) => logs.push({type, ...fields, at: performance.now()});
     window.ac = new AudioContext({sampleRate: 24000}); await ac.resume();
     window.destination = ac.createMediaStreamDestination();
@@ -471,6 +471,21 @@ try {
       });
       mark('trial.playback_ack', {ok: response.ok, accepted: response.ok && await response.json()});
     }, value => mark('trial.playback_diagnostic', value));
+    if (coordinationJourney) {
+      const {ApprovedSpeechPlayer} = await import('/live/approved-speech.js');
+      playback?.close();
+      window.approval = new ApprovedSpeechPlayer({audio: player,
+        api: async (path, options) => {
+          const response = await fetch(`${agentPath}/live/sessions/${window.liveHandle}/${path}`, {
+            ...options, headers: {'Content-Type': 'application/json', 'X-Prometheus-Access-Code': code}});
+          if (!response.ok) throw Error(`Approval endpoint ${response.status}`);
+          return response.json();
+        }, diagnostic: value => mark('trial.approval_diagnostic', value),
+        withheld: message => mark('trial.speech_withheld', {message}),
+        played: value => mark('trial.speech_played', {text: value.text, segmentId: value.segmentId, requestId: value.id})});
+      await approval.prepare(destination.stream);
+      window.playback = approval.observer;
+    }
     window.playbackSamples = [];
     if (playback) {
       const sample = playback.gate.sample.bind(playback.gate);
@@ -490,18 +505,20 @@ try {
         try {
           const response = await fetch(`${agentPath}/live/sessions/${handle}/updates`, {headers: {'X-Prometheus-Access-Code': code}});
           if (response.ok) {
-            const update = await response.json(); playback?.update(update.playbackCue, update.transcripts);
+            const update = await response.json();
+            if (window.approval) approval.update(update.transcripts, update.playbackCue, update.speechRequestId);
+            else playback?.update(update.playbackCue, update.transcripts);
             captions.reconcile(update.transcripts);
           }
         } finally {busy = false;}
       }, 1000);
     };
-    pc.ontrack = event => {player.srcObject = event.streams[0]; playback?.stream(player.srcObject); player.play().catch(() => {});};
+    pc.ontrack = event => {if (window.approval) {approval.stream(event.streams[0]); return;} player.srcObject = event.streams[0]; playback?.stream(player.srcObject); player.play().catch(() => {});};
     window.dc = pc.createDataChannel('oai-events'); dc.onmessage = event => {
       const message = JSON.parse(event.data);
       if (captions.receive(message)) {
-        if (message.type === 'session.input_transcript.delta') playback?.interrupt();
-        if (message.type === 'session.output_transcript.delta') playback?.caption(message.event_id);
+        if (message.type === 'session.input_transcript.delta') {if (window.approval) approval.interrupt(); else playback?.interrupt();}
+        if (message.type === 'session.output_transcript.delta') {if (window.approval) approval.receipt(message); else playback?.caption(message.event_id);}
       }
       if (!message.type.includes('audio.')) mark(message.type, message.type === 'session.started' ? {} : message);
     };
@@ -511,9 +528,9 @@ try {
       else {pc.onicegatheringstatechange = () => {if (pc.iceGatheringState === 'complete') resolve();}; setTimeout(resolve, 2000);}
     });
     return pc.localDescription.sdp;
-  }, {agentPath, code, connectionOnly});
-  const session = await api(agentPath + '/live/sessions', 'POST', {sdp: offer, voice: 'willow'}); handle = session.handle;
-  await page.evaluate(sdp => pc.setRemoteDescription({type: 'answer', sdp}), session.sdp);
+  }, {agentPath, code, connectionOnly, coordinationJourney});
+  const session = await api(agentPath + '/live/sessions', 'POST', {sdp: offer, voice: 'willow', speechApproval: true}); handle = session.handle;
+  await page.evaluate(({sdp, handle}) => {window.liveHandle = handle; return pc.setRemoteDescription({type: 'answer', sdp});}, session);
   await page.waitForFunction(coordination => coordination
     ? pc.connectionState === 'connected' && dc.readyState === 'open'
     : logs.some(e => e.type === 'session.started'), coordinationJourney, {timeout: 20000});
@@ -733,7 +750,8 @@ finally {
       context: p?.context?.state, hidden: document.hidden};
   }).catch(() => null);
   if (page) report.playbackSamples = await page.evaluate(() => window.playbackSamples).catch(() => []);
-  if (page) await page.evaluate(() => {clearInterval(window.playbackTimer); window.playback?.close();}).catch(() => {});
+  if (page) report.speechBuffer = await page.evaluate(() => window.approval?.buffer.diagnostic()).catch(() => null);
+  if (page) await page.evaluate(() => {clearInterval(window.playbackTimer); if (window.approval) approval.close(); else window.playback?.close();}).catch(() => {});
   if (handle) {
     report.finalStatus = await api(`${agentPath}/live/sessions/${handle}`).catch(error => ({error: error.message}));
     report.ledger = await api(`${agentPath}/live/transcripts?sessionId=${handle}`).catch(error => ({error: error.message}));

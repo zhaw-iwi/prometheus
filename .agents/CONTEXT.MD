@@ -91,13 +91,26 @@ PROMETHEUS currently provides:
   associated speech and scoped playback confirmation; uncertain delivery never
   automatically replays work. The browser retains bounded receipt-linked playback
   observations across delayed cues/association; fresh control cues precede provider
-  append acknowledgements. Bounded content-free journals explain transitions;
+  append acknowledgements. Delivery-aware Coordination sessions opt into bounded
+  assistant sentence assembly before verification; user interruption, original
+  capture/response deadlines and separate playback evidence remain authoritative.
+  Following owner approval, Coordination Live buffers original audio before
+  audible release. A separate scoped approval service checks current request,
+  owner/revision and complete receipts; task speech reuses its semantic verifier.
+  Observed playback alone exposes the candidate as conversation/consent evidence.
+  Rejected or unpaired clips give recovery guidance without automatic task replay.
+  The browser retains two bounded clips and preserves the original deadlines;
+  other agents keep direct playback. ES-08 real-provider outcomes remain in
+  `.agents/ESCALATION_RESULTS.md`; physical audibility is unverified.
+  Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
   admission and task controls. Cross-phase support uses the shared user action,
   bounded content-free rejection evidence and canonical pending-response identity;
   help preserves authority and explicit controls remain guarded. Supported dialogue
   and output-only sensor tasks stay distinct; first arrival is not extra-person
-  detection. Valerian service recovery keeps last-known views and performs scoped
+  detection. Native Coordination voice receives count/arrival and total-budget
+  limits before proposal negotiation; confirmed alternatives still need acceptance.
+  Valerian service recovery keeps last-known views and performs scoped
   read-only refresh without replaying uncertain mutations. Both Generic variants
   remain available. See README
   and `.agents/COORDINATION_RESULTS.md` for the bounded contract and verification;

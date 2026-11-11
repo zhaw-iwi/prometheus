@@ -31,7 +31,7 @@ final class SpeechTurnSelector {
     }
 
     private static String speechFromEvent(Event event) {
-        if (ch.zhaw.prometheus.model.event.ConversationProjection.isIntent(event)) return null;
+        if ((ch.zhaw.prometheus.model.event.ConversationProjection.isIntent(event) || ch.zhaw.prometheus.model.event.ConversationProjection.isUnplayed(event))) return null;
         if (event == null || !Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())) {
             return null;
         }

@@ -12,6 +12,72 @@ import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationVoiceUnitTest {
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
+    void ambientOccasion() {
+        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
+        var history = new EventHistory();
+        var now = Instant.now();
+        for (var at : List.of(now.minusSeconds(3), now.minusSeconds(1)))
+            history.appendEvent(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor", "{\"humanCount\":2,\"ts\":\"" + at + "\"}"));
+        new SensoryReactionAction(f.storage(), "Brief respectful comment", 2000, 4000, 15000).execute(history, f.live);
+    }
+    @Test void ambientRemarksRetainTheirScopedShortLivedPermissionAndConsumeOnlyAfterPlayback() {
+        ambientOccasion();
+        var request = f.policy().liveSpeechRequest(f.owner);
+        assertNotNull(request);
+        assertEquals(request.id(), f.policy().liveActivityContext().continuation().id());
+        assertEquals(request.created().plusSeconds(6), request.expiresAt());
+        assertEquals(request.expiresAt(), request.releaseBy());
+        assertTrue(request.facts().contains("humanCount"));
+        assertNull(f.policy().liveSpeechRequest(new ExternalSpeech(UUID.randomUUID(), f.owner.epoch())));
+        var event = f.hear("I can see two people.", true, Instant.now());
+        assertNotNull(f.policy().liveSpeechRequest(f.owner), "An unheard draft cannot consume the occasion");
+        event.speechProvenance(event.speechProvenance().playback(true));
+        assertTrue(f.policy().liveSpeechCaptured(event, f.owner, Instant.now(), Instant.now(), List.of()));
+        assertNull(f.policy().liveSpeechRequest(f.owner));
+        assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
+        assertFalse(f.storage().containsKey(TaskResponse.KEY));
+    }
+    @Test void ambientRemarksCannotDisplaceCurrentRepliesAndUserInputCancelsThem() {
+        f.propose(f.dialogue(), f.live);
+        ambientOccasion();
+        var response = f.storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
+        assertEquals(response.get("id").getAsString(), f.policy().liveSpeechRequest(f.owner).id().toString());
+        response.addProperty("created", Instant.now().minusSeconds(20).toString());
+        response.addProperty("expires", Instant.now().minusSeconds(1).toString());
+        f.storage().put(CoreTaskVoice.RESPONSE, response);
+        var ambient = f.policy().liveSpeechRequest(f.owner);
+        assertNotEquals(response.get("id").getAsString(), ambient.id().toString());
+        var history = new EventHistory(); history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Wait"));
+        ch.zhaw.prometheus.model.behaviour.SensoryRemarks.userTurn(f.storage(), history);
+        assertNotEquals(ambient.id(), f.policy().liveSpeechRequest(f.owner).id());
+    }
+    @Test void approvedHelpCannotCreateAcceptanceOrConsumeTheSavedProposalResponse() {
+        f.propose(f.dialogue(), f.live);
+        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
+        String facts = f.policy().liveSpeechRequest(f.owner).facts();
+        for (String field : List.of("goal", "humanRole", "agentRole", "success"))
+            assertTrue(facts.contains(f.dialogue().get(field).getAsString()), "Approval must check the actual proposed " + field);
+        var saved = f.storage().get(CoreTaskVoice.RESPONSE).deepCopy();
+        var at = Instant.now().minusMillis(1);
+        ch.zhaw.prometheus.model.coordination.CoordinationSupport.pending(f.storage(), f.owner, at, "The proposal is saved. Ask for its terms before accepting.");
+        var event = f.hear("The proposal is saved. Do you need more help?", true, Instant.now());
+        assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
+        event.speechProvenance(event.speechProvenance().playback(true));
+        assertTrue(f.policy().liveSpeechCaptured(event, f.owner, Instant.now(), Instant.now(), List.of()));
+        assertEquals(saved, f.storage().get(CoreTaskVoice.RESPONSE));
+        assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
+        assertFalse(f.policy().liveResolvedControlReply("yes", f.agent.getEventHistory(), f.owner));
+    }
+    @Test void nativeVoiceKnowsSocialLimitsBeforeAnyProposalExists() {
+        assertFalse(f.storage().containsKey(ch.zhaw.prometheus.model.coordination.CoordinationMemory.DRAFT));
+        String instructions = new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().instructions(f.agent);
+        assertTrue(instructions.contains("not proof that someone joined"));
+        assertTrue(instructions.contains("total across the run"));
+        assertTrue(instructions.contains("explicitly reviewed visible-count alternative"));
+        f.storage().put(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.CORRECTION, new com.google.gson.JsonPrimitive(true));
+        assertDoesNotThrow(() -> new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().instructions(f.agent),
+                "Social limits and optional correction guidance must fit the existing instruction budget");
+    }
     @Test void confirmedQuestionIsPublishedOnceTogetherWithItsSpeakingInstruction() {
         f.propose(f.dialogue(), f.live);
         org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any()))

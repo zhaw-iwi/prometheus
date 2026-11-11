@@ -206,7 +206,7 @@ public class CoordinationUpdateAction extends Action {
                     throw new PendingResponse();
                 if (!TaskMemory.active(storage) || accepted == null || accepted.reactions() != null || storage.containsKey(CoordinationMemory.DRAFT))
                     throw new IllegalArgumentException("No active dialogue task");
-                if (storage.containsKey(TaskResponse.KEY) && !"CAPTURED".equals(TaskResponse.status(storage)))
+                if (storage.containsKey(TaskResponse.KEY) && (!"CAPTURED".equals(TaskResponse.status(storage)) || TaskResponse.playbackPending(storage)))
                     throw new PendingResponse();
             }
             case "COMPLETE" -> { if (!TaskMemory.active(storage)) throw new IllegalArgumentException(); }
@@ -332,7 +332,12 @@ public class CoordinationUpdateAction extends Action {
         if (live) reply.setSpeech(null);
         storage.put(TaskMemory.REPLY, reply.toJsonObject());
         if (action || DecorativeGestures.requested(singleEvent(event))) storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
-        if (operation.equals("KEEP") || operation.equals("REFLECT")) { CoreTaskVoice.clearAnswered(storage); return; }
+        if (operation.equals("KEEP") || operation.equals("REFLECT")) {
+            CoreTaskVoice.clearAnswered(storage);
+            if (live && CoordinationSpeechApproval.enabled(storage) && speech != null && !speech.isBlank())
+                CoreTaskVoice.response(storage, "Answer the current user turn: " + speech + " No task change or contribution is authorized.", false, false, runtime);
+            return;
+        }
         String facts = switch (operation) {
             case "PROPOSE" -> "Proposal saved, not active. Explain the goal, roles, success criterion and limits without performing the task. "
                     + "Refer to the agreed action without quoting it or inventing a supplied literal line, even as a future-tense example. " + proposalNextStep(storage);
@@ -344,7 +349,7 @@ public class CoordinationUpdateAction extends Action {
                         + ". Do not perform the future action, joke or perception estimate. Preparation is satisfied; waiting for a new cue does not mean recognition failed. The future task is not completed.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
             case "COMPLETE" -> "The user's completion report ended the task. Reflect on available evidence; this is not independently measured success.";
-            case "STOP" -> "No further task actions are authorized. The recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".";
+            case "STOP" -> "The task is stopped, not paused. No further task actions are authorized. The recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".";
             case "RETURN_TO_CONVERSATION" -> "We are now in Conversation. Previous history and recorded outcomes are preserved. No task action is authorized.";
             case "PAUSE" -> "The task is paused; agreement and budget are preserved. Explicit resume is required.";
             case "RESUME" -> "The task is resumed with its existing agreement and remaining budget. No extra task action was performed.";

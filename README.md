@@ -2024,10 +2024,13 @@ the tab is enabled, its model and allowed voices; it never grants eligibility.
 | Method and path below `/demo/agents/{agentId}/live` | Contract |
 | --- | --- |
 | `GET /capabilities` | Enabled flag, pilot eligibility, model, allowed voices, diagnostic-only marker. |
-| `POST /sessions` | `{ "sdp": "v=0…", "voice": "marin" }`; returns 201 with an opaque local handle and SDP answer after sideband attachment. Unknown fields are rejected. |
+| `POST /sessions` | `{ "sdp": "v=0…", "voice": "marin", "speechApproval": true }`; returns 201 with an opaque local handle and SDP answer after sideband attachment, plus `speechApprovalRequired`. Delivery-aware Coordination instances require an approval-capable client. Unknown fields are rejected. |
 | `GET /sessions/{handle}` | Bounded, content-free activity counters and event types. |
 | `POST /sessions/{handle}/input?muted=true` | Waits for the corresponding provider mute/unmute acknowledgement. |
 | `DELETE /sessions/{handle}` | Closes the session and reports whether finalization was confirmed. |
+| `POST /sessions/{handle}/speech-approvals` | `{ "segmentId": "UUID" }`; verifies one current complete speech candidate. Returns a bounded status, approval identity, exact receipts/text and expiry when approved. |
+| `POST /sessions/{handle}/speech-approvals/{id}/release` | Same segment body; rechecks authority immediately before buffered playback. One successful release only. |
+| `POST /sessions/{handle}/speech-approvals/{id}/played` | Same segment body; records observed playback separately from approval. Does not replace the final task playback cue. |
 
 Agent and session scope mismatches return 404; invalid access codes return 401;
 invalid settings return 400; disabled sessions return 503; an occupied agent or
@@ -2762,6 +2765,21 @@ same support path, preserving the task budget and any in-flight response. This
 cannot restore words omitted by the Live provider; review the admitted transcript
 and complete/correct it explicitly. Final dialogue feedback excludes appended
 reflection invitations; a separate reflection turn follows confirmed delivery.
+Delivery-aware Coordination Live sessions assemble nearby assistant sentences
+until 2.4 seconds of observed audio silence. This avoids checking an initial
+feedback sentence before its explanation arrives. A fresh user turn ends the
+assembly boundary: already observed nonoverlapping quiet may complete the prior
+segment; interruption/overlap leaves it incomplete. Missing audio, session closure
+and the original 30-second capture limit remain conservative. Other agents and
+legacy Coordination instances retain 800 ms assistant capture. The existing
+45-second response and 60-second final-playback deadlines are unchanged. This
+bounded acoustic grouping does not prove semantic completeness; response matching
+and separate browser playback evidence are still required.
+Native Coordination speech receives social cue limits before a proposal exists:
+visible counts do not prove someone joined, and action limits apply across the
+whole run. A supported count alternative must be described and accepted explicitly.
+This guidance does not guarantee that the provider remains silent while processing;
+acceptance reviews include preliminary speech as well as confirmed proposals.
 Database/transport unavailability still requires client-side recovery. Roadmap and verification:
 `.agents/PLAN_ESCALATION.md` and `.agents/ESCALATION_RESULTS.md`.
 Recognisable direct hand/face questions use fresh supplied observations locally,
@@ -2847,9 +2865,27 @@ passes, retained failures and outstanding gates are recorded in
 [the escalation results](.agents/ESCALATION_RESULTS.md).
 ES-08 acceptance remains unmet. The revised verifier passes the labelled direct
 provider evaluation, but that alone does not establish reliable Live delivery.
-The integrated runs retain wording, capture and final-feedback failures; consult
-the results for which journey steps were actually reached. Physical trials remain
-unrun. Database capacity is deferred by the owner while deployment options are reviewed.
+The latest three Live attempts still fail full acceptance: early arming speech,
+a changed riddle clue, and Stop described as Pause. The social count proposal and
+one welcome with confirmed playback did succeed. Approval before audible Coordination speech is now implemented following the owner's
+latency/playback decision. The production player buffers original audio through a
+silent worklet, matches complete receipt-bound clips and releases only current
+approved speech. An ordinary current-turn draft can be checked after the backend
+commits its facts; older-turn drafts cannot qualify. Task contributions retain
+their existing post-request generation fence. Captured or approved speech alone is not delivery: conversation,
+consent and task continuation require observed playback. Rejection or missing
+proof gives visible recovery guidance; it never automatically repeats a task.
+
+The audio path holds at most two 30-second clips, requires 2.4 seconds of acoustic
+quiet and retains the original 45-second verification / 60-second playback bounds.
+Ordinary, control and help replies add one bounded semantic check; task speech
+reuses its existing verifier. These checks add latency and provider/database work.
+Audio remains in browser memory. Raw native receipts remain diagnostic evidence;
+unplayed candidates are excluded from conversational history and prompts.
+An older client that cannot buffer speech must reload before opening Coordination
+Live. Other agents retain their existing audio path. Consult the results for exact
+real-provider coverage; deterministic success does not close ES-08. Physical trials
+remain unrun. Database capacity is deferred while deployment options are reviewed.
 
 A proposal may additionally request up to three **recognition demonstrations**,
 each checking one supported sensor field using `eq`, `lt` or `gt` and a confidence

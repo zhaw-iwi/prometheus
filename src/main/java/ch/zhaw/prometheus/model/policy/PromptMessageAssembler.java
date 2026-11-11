@@ -134,7 +134,7 @@ public class PromptMessageAssembler {
             return messages;
         }
         for (Event event : eventHistory.toList()) {
-            if (ch.zhaw.prometheus.model.event.ConversationProjection.isIntent(event)) continue;
+            if ((ch.zhaw.prometheus.model.event.ConversationProjection.isIntent(event) || ch.zhaw.prometheus.model.event.ConversationProjection.isUnplayed(event))) continue;
             messages.add(toPromptMessage(event));
         }
         for (PromptContextAugmenter augmenter : this.contextAugmenters) {

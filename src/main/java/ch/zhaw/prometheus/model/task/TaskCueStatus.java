@@ -26,7 +26,7 @@ public record TaskCueStatus(UUID epoch, String phase, int revision, boolean draf
             var expectedOwner = TaskResponse.owner(storage);
             return new TaskCueStatus(agent.executionEpoch(), TaskResponse.expired(storage, now) ? "UNCERTAIN" : policy.statusPhase(),
                     revision, policy.hasDraft(), expectedOwner.epoch().equals(agent.executionEpoch())
-                    && TaskResponse.captured(storage, expectedOwner), Math.max(0, after - now.toEpochMilli()),
+                    && TaskResponse.captured(storage, expectedOwner) && !TaskResponse.playbackPending(storage), Math.max(0, after - now.toEpochMilli()),
                     revision + "." + after + "." + TaskResponse.status(storage));
         }
         return new TaskCueStatus(agent.executionEpoch(), policy.statusPhase(), revision, policy.hasDraft(),

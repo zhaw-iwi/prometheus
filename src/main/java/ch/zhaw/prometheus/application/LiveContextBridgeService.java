@@ -100,6 +100,7 @@ public class LiveContextBridgeService {
         }
         /** Current control evidence, independent of provider append acknowledgements. */
         public ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue() { return closed.get() ? null : playbackCue; }
+        public UUID speechRequestId() { return closed.get() ? null : currentOccasion.get().id(); }
         public void ready() { delivery.ready(); ready = true; state = "ready"; request(); }
         public void receive(JsonObject event) {
             if (closed.get() || !event.has("type") || !"session.delegation.created".equals(event.get("type").getAsString())) return;

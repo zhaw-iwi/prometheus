@@ -103,6 +103,11 @@ public class LiveAgentContextService {
                 if (agent == null || !owner.equals(ownership.current(agent))) return null;
                 var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
                 if (!(leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy)) return null;
+                if (policy.liveSpeechApprovalRequired() && agent.getEventHistory().toList().stream().noneMatch(e -> {
+                    var p = e.speechProvenance();
+                    return p != null && owner.sessionId().equals(p.sessionId()) && owner.epoch().equals(p.epoch())
+                            && segmentId.equals(p.segmentId()) && Boolean.TRUE.equals(p.playbackConfirmed());
+                })) return null;
                 var activity = policy.liveActivityContext();
                 var cue = activity == null ? null : activity.playbackCue();
                 return cue != null && cue.segmentId() != null && cue.id().equals(cueId) && cue.segmentId().equals(segmentId)

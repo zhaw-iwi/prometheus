@@ -1,5 +1,311 @@
 # Coordination escalation and classroom reliability evidence
 
+## Approval before audible speech - implementation checkpoint (2026-11-11)
+
+**Owner-authorized scope implemented; ES-08 is NOT accepted.** The owner accepted
+added latency and the buffered playback change. No deployment or physical trial
+was performed. The current state machine, agreement/budget authority and task
+speech generation fences remain intact. No task verification was weakened to turn
+an unsuccessful Live journey into a pass.
+
+### What changed
+
+- Delivery-aware Coordination Live sessions require an approval-capable client.
+  Original remote PCM is captured through a silent worklet, with two bounded clips,
+  a 30-second clip limit, 2.4-second acoustic quiet and 60-second retention.
+  Receipt matching uses one-second onset / 1.5-second end margins, below the
+  grouping gap, exact whole text/receipt identity and exclusion of extra receipts.
+  These are conservative acoustic checks, not perfect speech/ASR correspondence.
+- A separate scoped approval/release/played protocol checks current agent/session/
+  epoch/revision and deadlines. Task contributions reuse their existing semantic
+  verifier. Ordinary/control/help speech has one semantic check per current
+  request, at most four concurrent checks and 128 attempts per session. Provider
+  waits occur outside agent locks and database transactions.
+- Optional sensory remarks use their existing scoped occasion and facts. They
+  cannot displace a current reply, establish consent or consume a task response.
+  Release must still occur within the original observation/occasion expiry (at
+  most six seconds); playback admitted in time may finish within the overall
+  60-second bound. Supersession and user input cancel the occasion. This short
+  admission window can expire during buffering/verification; no paid sensory
+  remark trial was performed.
+- An ordinary draft may precede backend commitment only if it follows the last
+  trusted receipt of the current user turn and is then reviewed against committed
+  facts. Earlier-turn drafts, mute and interruption cannot qualify. Task content
+  retains its post-request generation fence and original 45-second deadline.
+- Approval does not prove delivery. Only observed playback exposes native speech
+  to conversation/prompt/consent views and opens the next cue. The existing final
+  task playback cue remains separate. Help cannot consume a task response or
+  manufacture acceptance evidence. Missing/rejected speech gives visible recovery
+  guidance; there is no automatic replay or new contribution.
+- The production player uses a private muted, zero-volume remote sink for
+  [Chromium's remote-stream consumption issue](https://issues.chromium.org/issues/40094084).
+  The original stream is never audible. A real local WebRTC peer-pair regression
+  checks nonzero capture, silence on rejection and one approved playback.
+  Buffered playback binds receipts at observed audio onset after media warmup;
+  a later interruption/stall still invalidates proof.
+
+### Verification and retained offline failures
+
+- Full disposable-MySQL regression: **913 cases, 912 passed, one explicitly gated
+  capacity case skipped, zero failures/errors**; artifact
+  `target/gptlive-acceptance-65ad2c77c2`.
+- **Four Playwright checks passed** in that same run: real local WebRTC
+  capture/rejection/approved playback, real-app Coordination Reflection, neighboring
+  scoped cockpit and persisted state/SSE. The approved-conversation screenshot was
+  visually inspected; it contains the delivered contribution without draft leakage.
+- Final review completed the verifier's proposal facts with actual human/agent
+  roles and success criteria, then restored the optional sensory-occasion adapter.
+  **42 focused Java cases passed after both changes** (`CoordinationVoiceUnitTest`,
+  `LiveSpeechApprovalServiceUnitTest`, `SensoryRemarksUnitTest`). These cover
+  current-reply priority, owner scope, consumption after playback, cancellation,
+  and expiry between approval and release versus completion after timely release.
+  The full suite and browser checks above preceded these two final changes.
+- **208 Node tests**, **11 acceptance-runner preflight tests**, `mvnw -DskipTests
+  package` and `git diff --check` passed. Logs are under
+  `target/es08-approval-20261111`. No configured application database was used.
+
+The initial full run `target/gptlive-acceptance-de3a2de656` had 908 cases:
+900 passed, one capacity test skipped, six failures and one error. Six older
+fixtures treated capture as delivery/consent; they were updated to exercise the
+new approval/playback boundary. The other fixture needed the client handshake.
+The subsequent query regression measured **2,007 vs the prior 1,993** questions
+per synthetic minute because ordinary replies now persist speaking requests.
+The ceiling is now 2,010, with the reason recorded in the test. This is **not quota
+acceptance** and excludes approval/release/playback calls: capacity remains deferred.
+
+The first three browser checks passed in `3474b06b4d`; paid capture diagnostics
+then exposed the zero-PCM issue that synthetic media did not cover. The new local
+WebRTC regression checks the repair. Run `f7edc39af5`
+passed the WebRTC check but failed the application playback acknowledgement after
+media warmup erased early receipt evidence. The bounded onset binding regression
+and both browser paths then passed in `d73b66f455`. All failures remain retained.
+
+### Real-provider attempts ? generated is not heard
+
+All runs used the real local application, disposable loopback MySQL,
+`gpt-live-1`/`willow`, backend `gpt-5.6-luna` with effort `none` (run-only settings),
+synthetic visitor audio/sensors and the production approval player. Per-run caps:
+12 visitor turns, 24 backend requests, 2,048 completion tokens/request, 80,000
+input bytes/request, 200,000 reported backend tokens, one Live session/360 seconds,
+12 synthesis clips/6,000 characters and 420 child wall seconds. No configured
+application database or model defaults were changed.
+
+| Artifact under `target/gptlive-acceptance-*` | Result and actual coverage | Backend requests / tokens | Last reported Live seconds |
+| --- | --- | --- | --- |
+| `dbe35c23e6` ? social, initial capture | No heard speech or approval check. Generated draft incorrectly promised a count increase/once per arrival; later diagnostics identified the capture-path problem. | 1 / 5,648 | 60 |
+| `d193041426` ? recovery, diagnostic capture | Zero voiced PCM frames. No heard speech or approval check; no recovery steps reached. | 1 / 5,532 | 59 |
+| `6690c35a38` ? recovery, capture repaired | Nonzero real audio; complete proposal discarded by the newly introduced generation cutoff. Led to the current-turn ordinary-draft correction, without changing task fences. | 1 / 5,547 | 58 |
+| `102583eaef` ? dialogue, reviewed drafts | Proposal MATCH, released once and observed. Question withheld: backend locks/space/enter riddle differed from native keys/no-doors riddle; verifier AMBIGUOUS. One contribution remained spent; task paused/uncertain. Help/feedback/replacement/Stop not reached. | 4 / 12,390 | 88 |
+| `6a49f65690` ? social, reviewed drafts | Generated count-alternative proposal; no heard speech or semantic check. First caption was 601.33 ms before audio onset, outside initial 600 ms margin. Final one-second margin is unit-verified, not provider-rerun. | 1 / 5,646 | 58 |
+| `8caa01d8b3` ? recovery, reviewed drafts | Generated rock-preparation proposal; no heard speech or semantic check. Final caption was 1,260 ms before voice end, outside initial 1,200 ms margin. Final 1,500 ms margin is unit-verified, not provider-rerun. | 1 / 5,539 | 58 |
+
+**Zero complete journey passes.** The sole confirmed proposal had **4,720 ms**
+between captured voice end and playback release; it took additional time to play
+and settle. This is one observation, not a latency distribution. Total backend
+usage: **9 requests, 40,302 tokens (38,383 input + 1,919 output)**. All synthesis
+clips were cached: **zero new TTS requests**. Live seconds above are the last
+reported telemetry values, not billing totals. Each artifact retains raw generated
+captions, observed speech, provider results, buffer diagnostics where available,
+`semantic-review.json` and `approval-usage.json`. Every owned session/app/schema/
+account/MySQL process was cleaned up. Earlier failed runs were not overwritten;
+repeats followed concrete capture/authority repairs, not unchanged rerolls.
+
+### Remaining decision and unverified areas
+
+The approval stage prevents unverified speech from becoming delivered task or
+consent evidence, but it does not make independently generated Live wording
+reliably match a committed task. The final audio-margin fixes and full proposal-role/criterion verifier payload
+have not been tested in another paid journey; all later recovery/social steps and final dialogue feedback
+remain unverified on this path. Physical audibility, microphone interruption/echo,
+camera accuracy and classroom usability remain unrun. Database capacity remains
+a separate, explicitly deferred gate.
+
+A next milestone needs an owner decision: permit **one bounded new realization
+of a rejected task response that was never released to the audible player**, keeping its request identity, spent
+budget and original deadlines, or choose backend-controlled speech for committed
+task content. Recommendation for the smaller continuation: one bounded unheard
+retry, with no second task action and no retry after release (even when completion is unconfirmed). This
+changes the present fail-closed recovery contract and is not implemented or
+assumed authorized by the current checkpoint. Do not simply widen verifier meaning,
+relax task generation fences, increase action budgets or repeat paid runs for luck.
+
+
+## ES-08 continuation C — three bounded Live attempts (2026-11-11)
+
+**ES-08 remains incomplete. All three attempts failed whole-journey acceptance.**
+The combined code checkpoint was `4c787cc`, including assembly commit `2424691`.
+Each used the real local application, disposable loopback MySQL, real OpenAI Live,
+synthetic visitor audio/sensors and the production browser playback observer.
+No failed run was retried. Semantic review includes preliminary native speech,
+not only the associated final response. Each artifact has `journey.json`,
+`provider.jsonl`, logs and a manually assessed `semantic-review.json`.
+
+### Actual findings
+
+1. **Recovery — `target/gptlive-acceptance-c6d15c8a41`: FAIL.** Correct proposal,
+   rock preparation, help before/after preparation and protected-state assertions
+   passed. The perception turn nevertheless said "I see a rock sign" before
+   "I see a scissor sign", despite fresh scissors being supplied: the lexical
+   check accepted the correction, but semantic review rejects the initial error.
+   After acceptance, the only arming sentence began "Got it, it's active...".
+   Its first trusted receipt was `15:06:33.247Z`, the response was created at
+   `15:06:33.708145400Z`, and the confirmed commentary was sent at `15:06:34.498Z`.
+   There was no eligible complete sentence beginning after response creation.
+   The original 45-second deadline ended UNCERTAIN and paused the task with zero
+   actions. No welcome, final playback or return step was reached. The authority
+   fence behaved correctly; acoustic grouping cannot authorize earlier speech.
+2. **Dialogue — `target/gptlive-acceptance-d0c0646196`: FAIL.** A two-contribution
+   dialogue proposal and acceptance succeeded without revealing the solution.
+   Backend question: "What has many keys but cannot open a single door?" Native
+   question: "Here we go. I have keys, but no locks; what am I?" A single complete
+   segment was checked and the verifier returned AMBIGUOUS. This is a recognizable
+   variant, but the changed clue does not explicitly preserve the door-opening
+   condition; it is not verified faithful delivery. The task paused with one
+   consumed contribution and no replay. Help, unfinished-answer support, final
+   feedback assembly/playback and replacement were **not reached**. Do not label
+   the acoustic fix as real-Live feedback acceptance based on this run.
+3. **Social — `target/gptlive-acceptance-6f3bd05d2d`: FAIL, with a confirmed welcome.**
+   Spoken proposal explicitly denied newcomer detection, disclosed "more than
+   one person is visible" and "One welcome total", and required acceptance.
+   This is positive evidence for continuation B. A count of one did nothing;
+   two triggered "Welcome, everyone." Exactly one contribution reached
+   PLAYBACK_CONFIRMED/Reflection. Restart created a new run and fresh budget;
+   pause/resume preserved it. Stop correctly persisted COMPLETED/CANCELLED with
+   zero actions in that second run, but native speech said "Okay, pausing it here"
+   and "Paused and outcome recorded. What's next?" Backend facts explicitly
+   contained CANCELLED and prohibited further actions. This is a real spoken
+   control mismatch, not a matcher defect. Restart also mixed "propose the same
+   terms again" with an already-running fresh task. No whole-journey pass.
+
+The assembly regression and earlier offline checks remain valid. The live
+remaining failures concern speaking before authority, stale preliminary
+perception, changed task wording and incorrect control confirmations. Neither
+retroactive association, a longer timeout, weaker verification nor retrying for
+a luckier result would establish the required contract.
+
+### Configuration, bounds, usage and cleanup
+
+This device's ignored backend default was `gpt-5.2`; run-only environment
+overrides reproduced the home comparison settings: all inference routes
+`gpt-5.6-luna`/effort `none`, Live `gpt-live-1`/`willow`. Recorded inference spans
+confirm the route and effort. No private or production configuration changed.
+These are application models, not a claim about the coding agent's model.
+
+Per run: 12 visitor turns, 24 backend requests, 2,048 completion tokens/request,
+80,000 input bytes/request, further-inference cutoff at 200,000 reported tokens,
+one 360-second Live session, 12 synthesis clips/6,000 characters and a 420-second
+child timeout. The final inference may cross the token threshold. The same
+previously authorized bounds were declared before each invocation.
+
+| Scenario | Backend requests | Prompt / completion tokens | Last reported Live seconds | New synthesis requests |
+| --- | ---: | ---: | ---: | ---: |
+| Recovery | 1 | 5,227 / 308 | 133 | 5 |
+| Dialogue | 3 | 11,273 / 362 | 43 | 4 |
+| Social | 6 | 17,082 / 645 | 149 | 5 |
+
+Total reported backend usage: **10 requests / 34,897 tokens**. Last Live usage
+updates are not complete billing totals; synthesis and Live usage are separate.
+All three requested session closure and the runner confirmed owned app, random
+schema/account and private MySQL cleanup. Recovery additionally recorded
+`context_injection_incomplete` during teardown after the primary failure.
+No physical trial, deployment, remote database write or capacity investigation.
+
+The authorized A/B/C sequence is now recorded, but the acceptance milestone is
+not complete. Further implementation stops at the new product/architecture
+decision in `PLAN_ESCALATION.md`: whether to add a bounded approval stage before
+native speech becomes audible, accepting latency and a separate playback path.
+Current playback code observes audio that is already playing; it cannot prevent
+an incorrect utterance from being heard. The provider also distinguishes
+[acknowledgment cancellation](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run)
+from [checking buffered speech before playback](https://developers.openai.com/api/docs/guides/voice-server-controls?api=live#check-speech-before-playback).
+
+## ES-08 continuation B — early social capability guidance (2026-11-11)
+
+The backend already knew that arrival is empty-to-occupied and that an extra
+person requires an explicitly reviewed count alternative. Native startup speech
+did not have those limits before the backend produced a proposal. Coordination
+now supplies that distinction, accurate numeric terms and the run-wide action
+limit in its existing voice guidance. No new state, transport or per-turn request
+was added. The new regression failed before the change (`proposal-before.log`).
+
+The existing 16,000-byte instruction bound remains. An initial wording exceeded
+it; shorter wording passed ordinary cases, and an additional optional-correction
+case then exposed a remaining overrun. The final wording fits both. This checks
+prompt availability and bounds, not probabilistic speech compliance. Preliminary
+native speech is explicitly included in the Live semantic-review rubric.
+Provider acknowledgment cancellation cannot stop independent or already generated
+speech; see [the official acknowledgment guidance](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run).
+No audio-buffering/muting architecture was added in this step.
+
+Verification on top of continuation A:
+
+- Full disposable-MySQL suite: **891 cases, 889 passed, one intentional capacity
+  skip, one prompt-size failure** described above. Artifact
+  `target/gptlive-acceptance-019460a91b` preserves its log and JUnit XML.
+- After shortening, **all 46 affected Java cases passed** (Coordination voice,
+  social contract and Live context projection), including optional correction
+  guidance. **Three real-app browser cases passed**: delayed cue/Reflection,
+  durable scoped conversation, and persisted state/monitor SSE. Artifact
+  `target/gptlive-acceptance-2687ebd4e0` retains logs, XML and screenshots.
+  The recorded-conversation and RPS-result screenshots were visually inspected;
+  content and controls remained readable. Owned app/schema/account/MySQL cleanup
+  completed after both invocations. The whole suite was not repeated after the
+  final wording-only shortening; the affected cases were.
+- **193 Node and 11 runner checks passed; packaging and whitespace checks passed.**
+  Local command logs: `target/es08-continuation-20261111/`. No paid journey was
+  used to select the wording. Real Live acceptance is the next step; ES-08 is open.
+
+## ES-08 continuation A — bounded assistant sentence assembly (2026-11-11)
+
+Started from clean `main`, incorporated the subsequent shared receipt-selection
+and test-clock commits through `057aa55`, then reproduced the home feedback split.
+The deterministic baseline closed "That's it, a piano!" after 800 ms, before the
+explanation 1.4 seconds later. The new regression failed before the change;
+`target/es08-continuation-20261111/assembly-before.log` retains that result.
+
+Delivery-aware Coordination policies now opt into a 2,400 ms **observed assistant
+silence** boundary through the existing session snapshot/capture path. Nearby
+sentences stay in one native segment with their original receipt IDs/times. No
+completed history is rewritten and no second semantic inference/retry is added.
+Default/legacy policies retain 800 ms; user capture remains at its existing setting.
+Fresh user audio/transcript closes the assembly boundary: nonoverlapping speech
+with the original minimum observed quiet may complete; overlap/interruption stays
+incomplete. Delayed older input and muted input cannot cut the current response.
+Coverage gaps, close, receipt/character bounds and the original 30-second maximum
+open duration remain. Response verification still has 45 seconds, final playback
+60 seconds, and the existing owner/revision/session fences. AMBIGUOUS is unchanged.
+
+This is bounded acoustic assembly, not proof that every generated answer is
+semantically finished. A longer pause may still split an answer; missing or
+incorrect content still fails verification. Physical/noisy-room behavior is not
+established. The provider's continuous audio and absence of an output-done event
+are documented in [the Live event guide](https://developers.openai.com/api/docs/guides/voice-websockets?api=live#send-and-receive-events).
+
+Verification:
+
+- **88 focused Java cases passed** in segmenter, capture, context projection,
+  scoped sessions, Coordination voice and TaskResponse tests. Covers the exact
+  split pattern, original receipts, repeated receipt suppression, interruption,
+  muted/old/overlapping input, coverage/close/time bounds, policy opt-in and existing
+  response identity/deadlines. Command: `mvnw.cmd -q -Dtest=LiveTranscriptSegmenterUnitTest,LiveTranscriptCaptureServiceUnitTest,LiveContextProjectionUnitTest,ScopedLiveSessionServiceUnitTest,CoordinationVoiceUnitTest,TaskResponseUnitTest test`.
+  Final log: `target/es08-continuation-20261111/assembly-focused-final.log`.
+- **38 local-MySQL cases and three real-app browser cases passed** in artifact
+  `target/gptlive-acceptance-7d1a686f48`, through the owned local helper. Selection:
+  Coordination agent/delivery, transcript ingress/claim, speech/receipt durability,
+  task-voice persistence, core RPS and Social Space smoke. Browser cases cover
+  delayed playback to Reflection, durable scoped conversation and real state/SSE.
+  The fake provider now supplies three seconds of measured assistant quiet, rather
+  than ending synthetic PCM after one second. This run preceded the final narrow
+  muted-input guard, which is covered by the final unit run above. Combined final
+  regression follows the proposal correction before paid acceptance.
+- **193 Node tests** and **11 runner preflight checks** passed. No paid provider
+  run yet; no physical trial, deployment or capacity investigation. Owned local
+  schema/account/app/MySQL cleanup was reported by the runner.
+
+The assistant-assembly implementation is ready for the next authorized step.
+ES-08 acceptance remains open. Next: make social-condition limits available to
+native speech before a proposal, then review the three bounded real Live journeys.
+
 ## Office/home consolidation (2026-11-11)
 
 The home checkpoint `02df87b` is the integration base. The office's 19 changed or

@@ -2,7 +2,59 @@ import { test, expect } from "./fixtures/offline-ui-assets.mjs";
 
 // This suite must run only via tests/gptlive/run_acceptance.py. No PROMETHEUS HTTP or SSE mocks.
 const enabled = process.env.PROMETHEUS_LIVE_EXPECT_ENABLED !== "false";
-test("Coordination reaches Reflection through observed short speech before a delayed playback cue", async ({ page, context, request }) => {
+test("approval player captures real WebRTC while withholding unapproved audio", async ({page}) => {
+  test.skip(!enabled || !process.env.PROMETHEUS_ADMIN_TOKEN, "Use the enabled isolated acceptance runner.");
+  await page.goto('/valerian/');
+  const result = await page.evaluate(async () => {
+    const {ApprovedSpeechPlayer} = await import('/live/approved-speech.js');
+    const context = new AudioContext(), input = context.createMediaStreamDestination(), remote = context.createMediaStreamDestination();
+    const oscillator = context.createOscillator(), gain = context.createGain(); gain.gain.value = 0;
+    oscillator.connect(gain).connect(remote); oscillator.start(); await context.resume();
+    const audio = document.createElement('audio'); document.body.append(audio);
+    let approvalCalls = 0, heard = 0, allowed = false;
+    const player = new ApprovedSpeechPlayer({audio, api: async (path, options) => {
+      approvalCalls++;
+      if (path !== 'speech-approvals') return true;
+      const {segmentId} = JSON.parse(options.body);
+      return {status: allowed ? 'APPROVED' : 'REJECTED', id: 'request', segmentId,
+        text: 'Approved words.', receiptIds: [segmentId], expiresAt: new Date(Date.now() + 60000).toISOString()};
+    }, played: () => heard++});
+    await player.prepare(input.stream);
+    const a = new RTCPeerConnection(), b = new RTCPeerConnection();
+    a.onicecandidate = e => {if (e.candidate) void b.addIceCandidate(e.candidate);};
+    b.onicecandidate = e => {if (e.candidate) void a.addIceCandidate(e.candidate);};
+    let connected; const receiving = new Promise(resolve => {connected = resolve;});
+    b.ontrack = e => {player.stream(e.streams[0]); connected();};
+    remote.stream.getTracks().forEach(track => a.addTrack(track, remote.stream));
+    await a.setLocalDescription(await a.createOffer()); await b.setRemoteDescription(a.localDescription);
+    await b.setLocalDescription(await b.createAnswer()); await a.setRemoteDescription(b.localDescription); await receiving;
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const analyser = context.createAnalyser(), monitor = context.createMediaStreamSource(audio.srcObject);
+    const silent = context.createGain(); silent.gain.value = 0; monitor.connect(analyser).connect(silent).connect(context.destination);
+    const samples = new Float32Array(analyser.fftSize); let peak = 0;
+    const timer = setInterval(() => {analyser.getFloatTimeDomainData(samples); peak = Math.max(peak, ...samples.map(Math.abs));}, 20);
+    const clip = async id => {
+      player.receipt({event_id: id, delta: 'Approved words.'}); gain.gain.value = .15;
+      await wait(700); gain.gain.value = 0; await wait(2800);
+      player.update([{segmentId: id, speaker: 'ASSISTANT', status: 'COMPLETE', receiptIds: [id], text: 'Approved words.'}], null, 'request');
+      await wait(1500);
+    };
+    try {
+      await wait(700); await clip('rejected');
+      const before = {peak, heard, approvalCalls, capture: player.buffer.diagnostic(), muted: player.remoteSink.muted, volume: player.remoteSink.volume};
+      allowed = true; await clip('accepted');
+      const deadline = performance.now() + 5000; while (!heard && performance.now() < deadline) await wait(50);
+      return {before, peak, heard, approvalCalls};
+    } finally {clearInterval(timer); player.close(); a.close(); b.close(); await context.close(); audio.remove();}
+  });
+  expect(result.before.capture.voicedFrames).toBeGreaterThan(0);
+  expect(result.before.capture.peakRms).toBeGreaterThan(.02);
+  expect(result.before.muted).toBe(true); expect(result.before.volume).toBe(0);
+  expect(result.before.peak).toBe(0); expect(result.before.heard).toBe(0); expect(result.before.approvalCalls).toBe(1);
+  expect(result.peak).toBeGreaterThan(.02); expect(result.heard).toBe(1); expect(result.approvalCalls).toBe(4);
+});
+
+test("Coordination reaches Reflection after approved buffered speech and observed playback", async ({ page, context, request }, info) => {
   test.skip(!enabled || !process.env.PROMETHEUS_ADMIN_TOKEN, "Use the enabled isolated acceptance runner.");
   const headers = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
   const code = Math.random().toString(36).slice(2, 7).toUpperCase();
@@ -35,16 +87,19 @@ test("Coordination reaches Reflection through observed short speech before a del
     expect(caption).toBeTruthy();
     // Exercise the production analyser/gate and LiveClient callback. Only media is
     // synthetic; every application request, ledger, transition and SSE remains real.
-    await page.evaluate(caption => {window.__smokeReceive(caption); window.__smokeVoiced = true;}, caption);
+    await page.evaluate(caption => {window.__smokeReceive(caption); window.__smokeGain.gain.value = .15;}, caption);
     await page.waitForTimeout(600);
-    await page.evaluate(() => {window.__smokeVoiced = false;});
-    await page.waitForTimeout(11000); // Both cue and association arrive after the old ten-second voice limit.
+    await page.evaluate(() => {window.__smokeGain.gain.value = 0;});
+    await expect(page.getByTestId('gptlive-history')).not.toContainText('First fixture observation.');
+    await page.waitForTimeout(11000); // Hold the candidate across delayed authority/ledger polling, inside its original deadline.
     await expect(page.getByTestId('activity-label')).toHaveText('Finishing the response');
     const acknowledgement = page.waitForResponse(r => r.url().endsWith(`/playback-cues/${cue.id}`) && r.request().method() === 'POST');
     await page.evaluate(() => window.__smokeReleaseUpdates());
     const result = await acknowledgement;
     expect(await result.json()).toBe(true);
     await expect(page.getByTestId('activity-label')).toHaveText('Reflecting on the task');
+    await expect(page.getByTestId('gptlive-history')).toContainText('First fixture observation.');
+    await page.getByTestId('gptlive-panel').screenshot({path: info.outputPath('approved-coordination-playback.png')});
     await expect.poll(() => page.evaluate(() => window.PrometheusActivity.snapshot().journals.at(-1)?.recent.some(
       e => e.stage === 'coordination' && e.details.beforePhase === 'READY' && e.details.phase === 'FINISHING'
         || e.stage === 'coordination' && e.details.phase === 'FINISHING' && Number.isFinite(e.details.sourcePosition)))).toBe(true);
@@ -55,7 +110,11 @@ test("Coordination reaches Reflection through observed short speech before a del
       e => e.stage === 'coordination' && e.details.beforePhase === 'FINISHING' && e.details.phase === 'REFLECTION'
         && e.details.taskOutcome === 'LIMIT_REACHED' && Number.isFinite(e.details.sourcePosition)))).toBe(true);
     await page.getByTestId('gptlive-stop').click();
-  } finally { await request.delete(path, {headers:scoped}); }
+  } finally {
+    await info.attach('approval-diagnostics', {contentType: 'application/json', body: Buffer.from(JSON.stringify(
+      await page.evaluate(async () => (await import('/live/diagnostics.js')).liveDiagnostics.snapshot()).catch(() => ({}))))});
+    await request.delete(path, {headers:scoped});
+  }
 });
 test("real scoped cockpit, durable Live conversation and legacy feature-off speech", async ({ page, context, request }, info) => {
   test.skip(!process.env.PROMETHEUS_ADMIN_TOKEN || !process.env.PROMETHEUS_LIVE_EXPECT_ENABLED, "Use the isolated acceptance runner.");
@@ -351,9 +410,11 @@ test("Social Space opt-in reception uses real scopes and fresh encounters", asyn
 async function hardware(context, playback = false) {
   await context.addInitScript(playback => {
     window.__smokeCaptures = 0;
+    if (!playback) {
     Object.defineProperty(HTMLMediaElement.prototype, "srcObject", { configurable: true, get() { return this.__stream || null; }, set(value) { this.__stream = value; } });
     HTMLMediaElement.prototype.play = async function () {}; HTMLMediaElement.prototype.pause = function () {};
     HTMLMediaElement.prototype.setSinkId = async function () {};
+    }
     class Track extends EventTarget { constructor() { super(); this.kind = "audio"; this.enabled = true; this.readyState = 'live'; this.muted = false; } stop() {} getSettings() { return { echoCancellation: true }; } }
     if (playback) {
       const fetch = window.fetch.bind(window); let release;
@@ -365,29 +426,23 @@ async function hardware(context, playback = false) {
         if (String(args[0]).includes('/updates?') && window.__smokeHoldUpdates) {window.__smokeUpdateHeld = true; await held;}
         return response;
       };
-      Object.defineProperty(HTMLMediaElement.prototype, 'currentTime', {configurable: true, get() {return performance.now() / 1000;}});
-      Object.defineProperty(HTMLMediaElement.prototype, 'readyState', {configurable: true, get() {return 4;}});
-      Object.defineProperty(HTMLMediaElement.prototype, 'paused', {configurable: true, get() {return this.__paused ?? true;}});
-      HTMLMediaElement.prototype.play = async function () {this.__paused = false;};
-      HTMLMediaElement.prototype.pause = function () {this.__paused = true;};
-      const connection = () => ({connect() {}, disconnect() {}});
-      window.AudioContext = class {
-        state = 'running';
-        createMediaStreamSource() {return connection();}
-        createGain() {return {...connection(), gain: {value: 0}};}
-        createAnalyser() {return {...connection(), getFloatTimeDomainData(samples) {samples.fill(window.__smokeVoiced ? .1 : 0);}};}
-        async resume() {} async close() {}
-      };
+      window.__smokeContext = new AudioContext();
+      const oscillator = __smokeContext.createOscillator();
+      window.__smokeGain = __smokeContext.createGain(); __smokeGain.gain.value = 0;
+      window.__smokeRemote = __smokeContext.createMediaStreamDestination();
+      oscillator.connect(__smokeGain).connect(__smokeRemote); oscillator.start();
+      window.__smokeInput = __smokeContext.createMediaStreamDestination();
+
     }
     Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: {
-      async getUserMedia() { window.__smokeCaptures++; const track = new Track(); return { getAudioTracks: () => [track], getTracks: () => [track] }; },
+      async getUserMedia() { window.__smokeCaptures++; if (playback) {await __smokeContext.resume(); return __smokeInput.stream;} const track = new Track(); return { getAudioTracks: () => [track], getTracks: () => [track] }; },
       async enumerateDevices() { return []; }, addEventListener() {}, removeEventListener() {}, getSupportedConstraints() { return {}; },
     } });
     window.RTCPeerConnection = class {
       constructor() { this.iceGatheringState = "complete"; }
       createDataChannel() { this.channel = { close() {} }; window.__smokeReceive = event => this.channel.onmessage?.({data: JSON.stringify(event)}); return this.channel; } addTrack() {} getSenders() { return []; }
       async createOffer() { return { type: "offer", sdp: "v=0 synthetic-offer" }; } async setLocalDescription(value) { this.localDescription = value; }
-      async setRemoteDescription() { const track = new Track(); this.channel.onmessage?.({ data: '{"type":"session.started"}' }); this.ontrack?.({ streams: [{getAudioTracks: () => [track]}], track }); }
+      async setRemoteDescription() { const track = playback ? __smokeRemote.stream.getAudioTracks()[0] : new Track(); this.channel.onmessage?.({ data: '{"type":"session.started"}' }); this.ontrack?.({ streams: [playback ? __smokeRemote.stream : {getAudioTracks: () => [track]}], track }); }
       async getStats() { return new Map([["private-device", { type: "inbound-rtp", kind: "audio", timestamp: performance.now(),
         packetsLost: 2, concealedSamples: 960, jitter: .01, trackIdentifier: "private-device" }]]); }
       close() {}

@@ -82,6 +82,72 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Post-Nicole deployment-branch integration (2026-11-11): merge shared main
+  `333f0f0` (including approval checkpoint `02f25dd` and
+  `.agents/HANDOFF_POSTNICOLE_IMPROVEMENTS.md`) into agents `77efb85`. Preserve
+  Gala/application catalogs, embodiment/persona behavior, production configuration
+  and the existing agents-push Heroku workflow. Resolve three additive conflicts
+  by retaining both branches' documentation and projection tests.
+  The full disposable-MySQL run reported 1,293 cases: 1,289 passed, two explicit
+  capacity checks skipped and two Gala journey fixture errors. The Gala fixture
+  still identified verifier calls by an obsolete prompt sentence, already stale
+  before this merge. It now uses the structured request fields and emits exactly
+  the verifier response contract; production logic is unchanged by that repair.
+  All ten Gala journey cases then passed, along with 38 browser checks, 209 Node
+  tests, 12 runner preflight checks, packaging and whitespace checks. The approved
+  Coordination conversation screenshot was visually inspected. Retained local
+  artifacts: `target/gptlive-acceptance-03a320c7bc` (initial full run) and
+  `target/gptlive-acceptance-8ed63e51b1` (repaired journey/browser run); owned
+  application/MySQL processes and temporary schemas/accounts were removed.
+  No paid provider or physical trials ran in this integration. ES-08 remains
+  incomplete and capacity deferred; pushing this merge initiates deployment,
+  whose outcome must be checked separately in GitHub Actions/Heroku.
+
+- Approval-before-audio checkpoint (2026-11-11), authorized by the owner: bounded
+  original-PCM capture and separate approval/release/observed-playback checks now
+  protect delivery-aware Coordination sessions. Unconfirmed speech cannot supply
+  conversation, consent or the next cue. Existing state/budget/task-generation
+  authority is preserved. Last full local-MySQL run: 912 passed, one capacity skip;
+  four browser checks passed, including real local WebRTC. Final proposal-facts
+  completion and the sensory-occasion adapter then passed 42 focused Java tests;
+  208 Node, 11 preflight and package
+  checks passed. Six retained paid attempts produced **zero complete ES-08 passes**;
+  one ordinary proposal was approved and observed playing. Timing-margin repairs
+  are offline-verified; native/committed task wording still diverged. See
+  `.agents/ESCALATION_RESULTS.md` for exact coverage, usage and retained failures.
+  Stop for the next owner decision: one bounded retry of a never-released response,
+  or backend-controlled task speech. Neither is implemented. No deployment;
+  physical trials unrun and database capacity deferred.
+
+- ES-08 continuation C (2026-11-11): one bounded real Live attempt per scenario
+  on `4c787cc`; **zero complete journey passes** after semantic review. Recovery
+  spoke before authority and initially misidentified a sign; dialogue changed
+  the riddle clue and paused on AMBIGUOUS; social correctly negotiated the count
+  alternative and confirmed one welcome's playback, but described Stop as Pause.
+  Backend cancellation/budget/ownership guards held. Artifacts, usage and cleanup
+  are recorded in `.agents/ESCALATION_RESULTS.md`. No automatic retry. ES-08 is
+  incomplete; the owner subsequently approved the buffered speech stage recorded
+  in `.agents/PLAN_ESCALATION.md`. See the newer checkpoint for its verification. No deployment; physical
+  trials unrun and database capacity deferred.
+
+- ES-08 continuation B (2026-11-11): native Coordination startup guidance now
+  includes count/arrival limits and total action budgets before proposal review.
+  The instruction bound remains unchanged. Full local-MySQL regression passed
+  889 cases, skipped capacity and exposed one prompt-size edge case; after its
+  wording-only fix, all 46 affected cases and three real-app browser cases passed.
+  Also passed 193 Node, 11 preflight, packaging and whitespace checks. Exact
+  sequence is in `.agents/ESCALATION_RESULTS.md`. Three real Live journeys and
+  semantic review remain; physical trials are unrun and capacity stays deferred.
+
+- ES-08 continuation A (2026-11-11): delivery-aware Coordination uses a bounded
+  2.4-second observed assistant-silence window to keep nearby feedback sentences
+  together before verification. User interruption/overlap, muted/old input,
+  original capture/response/playback limits and receipt identities are covered;
+  other/legacy policies retain 800 ms. Passed 88 focused Java, 38 local-MySQL,
+  three browser, 193 Node and 11 runner checks; exact sequencing/limits are in
+  `.agents/ESCALATION_RESULTS.md`. Real Live acceptance remains pending the next
+  proposal correction and three-journey review. Capacity remains deferred.
+
 - Gala/application branch split (2026-11-11): shared playback receipt support is
   committed on main (`057aa55`) and merged into agents (`a8572b4`). The games-only
   Gala definition, its catalog/graph/prompts and countdown receipt selection stay

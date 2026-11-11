@@ -18,6 +18,9 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     protected CoordinationPolicy() {}
     public CoordinationPolicy(Storage storage, String instructions) { super(storage, instructions); }
     @Override public long liveUserSilenceMs() { return 2000; }
+    @Override public boolean liveSpeechApprovalRequired() { return CoordinationSpeechApproval.enabled(storage()); }
+    @Override public LiveSpeechRequest liveSpeechRequest(ExternalSpeech owner) { return CoordinationSpeechApproval.request(storage(), owner); }
+    @Override public long liveAssistantSilenceMs() { return CoordinationDelivery.enabled(storage()) ? 2400 : 800; }
     @Override public String livePlaybackCompletionEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.PLAYED : null; }
     @Override public String liveSessionEndEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.ENDED : null; }
     @Override public String liveSessionClaimEventType() { return CoordinationDelivery.finishing(storage()) ? CoordinationDelivery.ENDED : null; }
@@ -39,6 +42,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     }
     @Override public String voiceInstructions() {
         return configuredInstructions() + ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.VOICE_GUIDANCE
+                + ch.zhaw.prometheus.model.coordination.CoordinationSocialContract.VOICE_GUIDANCE
                 + "\nThe backend coordinates both conversational and sensor-rule tasks. "
                 + "Answer ordinary conversation and capability/perception questions naturally from current facts. "
                 + "For a current hand-sign question, name the fresh recognised sign directly, for example 'I see a scissor sign'. "
@@ -70,6 +74,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
             ch.zhaw.prometheus.spi.LanguageModelGateway gateway) { return CoordinationMemory.facts(storage()); }
     @Override public void beginLiveConversation(EventHistory history) {
         super.beginLiveConversation(history);
+        if (CoordinationDelivery.enabled(storage())) storage().put(LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
         SensoryRemarks.cancel(storage());
         CoreTaskVoice.clear(storage());
         CoordinationMemory.remove(storage(), ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP);
@@ -87,6 +92,23 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         return CoordinationAcceptance.assent(text) && CoordinationAcceptance.invitation(storage(), history, owner, Instant.now()) != null;
     }
     @Override public boolean liveSpeechCaptured(Event event, ExternalSpeech owner, Instant started, Instant now, List<LiveSpeechPart> parts) {
+        if (liveSpeechApprovalRequired() && (event.speechProvenance() == null || !Boolean.TRUE.equals(event.speechProvenance().playbackConfirmed()))) return false;
+        if (liveSpeechApprovalRequired() && storage().containsKey(SensoryRemarks.PENDING)) {
+            var request = liveSpeechRequest(owner);
+            if (request != null && request.id().toString().equals(storage().get(SensoryRemarks.PENDING).getAsJsonObject().get("id").getAsString())) {
+                SensoryRemarks.cancel(storage());
+                return true; // Ambient speech cannot consume a task response or establish proposal consent.
+            }
+        }
+        if (liveSpeechApprovalRequired() && storage().containsKey(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP)) {
+            var help = storage().get(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP).getAsJsonObject().deepCopy();
+            var request = liveSpeechRequest(owner);
+            if (!help.has("consumed") && request != null && request.id().toString().equals(help.get("id").getAsString())
+                    && started != null && !started.isAfter(now)) {
+                help.addProperty("consumed", true); storage().put(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP, help);
+                return true; // Help cannot consume a task response or create proposal-consent evidence.
+            }
+        }
         boolean changed = CoreTaskVoice.capturedPrompt(storage(), event, owner, started, parts, CoordinationMemory.DRAFT);
         if (!storage().containsKey(CoreTaskVoice.RESPONSE)) return changed;
         var response = storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
@@ -98,8 +120,9 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 || !response.has("session") || !owner.sessionId().toString().equals(response.get("session").getAsString())
                 || !owner.epoch().toString().equals(response.get("epoch").getAsString())
                 || !TaskMemory.text(storage(), TaskMemory.REVISION, "0").equals(response.get("revision").getAsString())
-                || started == null || !started.isAfter(Instant.parse(response.get("created").getAsString())) || started.isAfter(now)
-                || !now.isBefore(Instant.parse(response.get("expires").getAsString()))) return changed;
+                || started == null || started.isAfter(now)
+                || !liveSpeechApprovalRequired() && (!started.isAfter(Instant.parse(response.get("created").getAsString()))
+                    || !now.isBefore(Instant.parse(response.get("expires").getAsString())))) return changed;
         response.addProperty("consumed", true); storage().put(CoreTaskVoice.RESPONSE, response); return true;
     }
     @Override public LiveActivityContext liveActivityContext() {
