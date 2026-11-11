@@ -20,7 +20,11 @@ final class GalaDinnerPrompts {
             """;
 
     static String voice(boolean activities) {
-        return VOICE_CORE + (activities ? "Offer conversation, information, games or co-created tasks. "
+        return voice(activities, activities);
+    }
+    static String voice(boolean activities, boolean coCreatedTasks) {
+        return VOICE_CORE + (activities ? coCreatedTasks ? "Offer conversation, information, games or co-created tasks. "
+                : "Offer conversation, information and games. "
                 : "Offer conversation and information. ") + VOICE_LIMITS;
     }
     static final String VOICE = voice(true);
@@ -44,7 +48,8 @@ final class GalaDinnerPrompts {
             no interruption, greeting, arrival identification or raw-sensor speech.
             """;
 
-    static final String LIVE = """
+    static String live(boolean coCreatedTasks) {
+        return """
             # Backchannel policy
             RPS/GUESS off-topic: ask ONLY "End this game to address that?"; NO factual answer before consent.
             Preserve until confirmed: yes exits without reveal; no continues. Missing game facts are not topic changes.
@@ -57,7 +62,8 @@ final class GalaDinnerPrompts {
             # Delegation policy
             CURRENT ACTIVITY DATA confirms backend changes/results.
             ## Generate <|SpawnThinking|> when
-            Only TASK work; never start another action.
+            """ + (coCreatedTasks ? "Only TASK work; never start another action.\n"
+                : "Never: reception and games use current facts; no delegated work is available.\n") + """
             ## Do not generate <|SpawnThinking|> when
             Ordinary/reference/choice/rules/guessing questions or game requests: use current facts.
             No invented lookup; use supplied facts. Pending reveals stay silent.
@@ -77,6 +83,7 @@ final class GalaDinnerPrompts {
             RPS: name your sign only with the confirmed result. Never choose signs, invent results,
             claim executed motion or exact countdown timing.
             """ + LIVE_OCCASIONS;
+    }
 
     static final String LIVE_RECEPTION = """
             # Backchannel policy
@@ -104,6 +111,9 @@ final class GalaDinnerPrompts {
         return operations(mode, confirmingExit, true);
     }
     static java.util.List<String> operations(String mode, boolean confirmingExit, boolean activities) {
+        return operations(mode, confirmingExit, activities, activities);
+    }
+    static java.util.List<String> operations(String mode, boolean confirmingExit, boolean activities, boolean coCreatedTasks) {
         if (!activities) {
             if (!"RECEPTION".equals(mode)) throw new IllegalArgumentException("Reception-only mode required");
             return java.util.List.of("CHAT", "WAIT", "CLARIFY", "RETURN", "QUIET", "CORRECT_FACE");
@@ -114,6 +124,7 @@ final class GalaDinnerPrompts {
             case "GUESS" -> java.util.List.of("WAIT", "GIVE_UP", "CHECK_EXIT", "RETURN", "QUIET", "CORRECT_FACE");
             default -> throw new IllegalArgumentException("Invalid Gala control mode");
         });
+        if (!coCreatedTasks) operations.remove("START_TASK");
         if (confirmingExit && !"RECEPTION".equals(mode)) operations.addAll(java.util.List.of("EXIT_GAME", "KEEP_GAME"));
         return java.util.List.copyOf(operations);
     }
@@ -122,15 +133,20 @@ final class GalaDinnerPrompts {
         return turn(mode, confirmingExit, true);
     }
     static String turn(String mode, boolean confirmingExit, boolean activities) {
+        return turn(mode, confirmingExit, activities, activities);
+    }
+    static String turn(String mode, boolean confirmingExit, boolean activities, boolean coCreatedTasks) {
         String rules = switch (mode) {
             case "RECEPTION" -> """
                     RECEPTION: CHAT for ordinary conversation, including repeating a revealed name or
                     asking about a completed game/person. There is no active target to guess or give up.
                     START_RPS or START_GUESS only for a clear choice or acceptance of a recent invitation.
                     Asking how to play, mentioning a game or an unfinished request is not a start.
-                    Unspecified play uses CHOOSE_GAME, never a default game. START_TASK only for a clear
+                    Unspecified play uses CHOOSE_GAME, never a default game. \
+                    """ + (coCreatedTasks ? """
+                    START_TASK only for a clear
                     custom interaction request or acceptance; hypothetical examples stay CHAT.
-                    """;
+                    """ : "\n");
             case "RPS", "RPS_SETUP" -> """
                     RPS: WAIT for game questions or hesitations. Hand signs/results are deterministic.
                     An unrelated question or another activity request uses CHECK_EXIT, preserving the round pending confirmation.
@@ -168,7 +184,7 @@ final class GalaDinnerPrompts {
                  "gesture":"NONE|OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE",
                  "expression":"warmNeutral|gentleSmile|attentive|thoughtful",
                  "gaze":"toward_user|toward_group|briefly_aside|forward"}
-                """.formatted(String.join("|", operations(mode, confirmingExit, activities))) + rules + """
+                """.formatted(String.join("|", operations(mode, confirmingExit, activities, coCreatedTasks))) + rules + """
                 A clear stop, goodbye or refusal uses RETURN; explicit silence uses QUIET.
                 RETURN requires an explicit end/stop request; a question on another topic alone never authorizes exit.
                 Acknowledgments, politeness and uncertainty are not refusals; preserve an active game with WAIT.

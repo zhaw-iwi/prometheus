@@ -16,17 +16,21 @@ import ch.zhaw.prometheus.model.Agent;
 
 class AgentDefinitionRegistryUnitTest {
     @Test
-    void allThreeGalaDefinitionsRemainIndependentlyRegistered() {
+    void allFourGalaDefinitionsRemainIndependentlyRegistered() {
         var configuration = new ApplicationAgentDefinitionConfiguration();
         var original = configuration.galaDinnerReception();
         var receptionOnly = configuration.galaDinnerReceptionSingleState();
         var tutorial = configuration.galaDinnerReceptionRpsPreparation();
-        var registry = new AgentDefinitionRegistry(List.of(original, receptionOnly, tutorial));
-        assertEquals(3, registry.list().size());
-        for (var definition : List.of(original, receptionOnly, tutorial))
+        var games = configuration.galaDinnerReceptionMultiStateGames();
+        var registry = new AgentDefinitionRegistry(List.of(original, receptionOnly, tutorial, games));
+        assertEquals(4, registry.list().size());
+        for (var definition : List.of(original, receptionOnly, tutorial, games))
             assertEquals(definition, registry.findByKey(definition.key()).orElseThrow());
         assertFalse(original.createAgent().listStates().contains("Gala rock-scissor-paper preparation"));
         assertTrue(tutorial.createAgent().listStates().contains("Gala rock-scissor-paper preparation"));
+        assertTrue(games.createAgent().listStates().contains("Gala rock-scissor-paper preparation"));
+        assertFalse(games.createAgent().listStates().contains("Gala co-created task"));
+        assertTrue(tutorial.createAgent().listStates().contains("Gala co-created task"));
         assertFalse(receptionOnly.createAgent().listStates().contains("Gala rock-scissor-paper"));
     }
 

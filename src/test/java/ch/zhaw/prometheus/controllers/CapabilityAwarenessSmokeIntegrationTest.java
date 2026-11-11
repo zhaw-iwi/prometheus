@@ -52,6 +52,8 @@ class CapabilityAwarenessSmokeIntegrationTest {
         for (var definition : definitions.list()) {
             boolean aware = definition.key().startsWith("core.")
                     || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception.KEY)
+                    || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation.KEY)
+                    || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionMultiStateGames.KEY)
                     || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionSingleState.KEY);
             assertEquals(aware, definition.capabilityAwareness(), definition.key());
             assertEquals(aware, definition.createAgent().getInteractionProfile().isCapabilityAwareness(), definition.key());

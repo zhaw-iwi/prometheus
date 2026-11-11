@@ -12,6 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception;
+import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionMultiStateGames;
+import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation;
+import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerGamesPolicy;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.model.AgentEmbodiment;
 import ch.zhaw.prometheus.model.event.Event;
@@ -21,15 +24,21 @@ import ch.zhaw.prometheus.model.task.TaskMemory;
 import ch.zhaw.prometheus.model.task.TaskPolicy;
 import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerTaskPolicy;
 import ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter;
+import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @SpringBootTest(properties = "prometheus.runtime.tick.enabled=false")
 class GalaDinnerReceptionIntegrationTest {
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> tutorialVariants() {
+        return java.util.stream.Stream.of(GalaDinnerReceptionRpsPreparation.KEY, GalaDinnerReceptionMultiStateGames.KEY)
+                .flatMap(key -> java.util.stream.Stream.of("ROBOT", "COCKPIT")
+                        .map(embodiment -> org.junit.jupiter.params.provider.Arguments.of(key, embodiment)));
+    }
+
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"ROBOT", "COCKPIT"})
-    void tutorialProgressPlaybackAndFreshCaptureSurvivePersistence(String embodiment) {
-        String key = ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation.KEY;
+    @org.junit.jupiter.params.provider.MethodSource("tutorialVariants")
+    void tutorialProgressPlaybackAndFreshCaptureSurvivePersistence(String key, String embodiment) {
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
@@ -80,6 +89,85 @@ class GalaDinnerReceptionIntegrationTest {
             contexts.closed(id, owner);
             assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_prepared"));
         } finally { ownership.release(id, session); }
+    }
+
+    @Test void mixedCountdownReceiptSelectionSurvivesDurableIngressReloadAndOnePlaybackAcknowledgement() {
+        String key = GalaDinnerReceptionMultiStateGames.KEY;
+        String code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
+        UUID id = demo.createAgent(code, key, "COCKPIT").getID();
+        group(code, id, 1);
+        UUID session = UUID.randomUUID();
+        var owner = new ExternalSpeech(session, contexts.claim(code, id, session).orElseThrow().epoch());
+        try {
+            when(language.infer(any())).thenReturn(answer("START_RPS", ""));
+            say(code, id, "Schere Stein Papier bitte");
+            String preparation = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
+            for (String sign : List.of("rock", "paper", "scissor")) hand(code, id, sign, preparation);
+            var waiting = agents.findById(id).orElseThrow();
+            Instant boundary = Instant.parse(waiting.getStorage().get("gala.rps_intro_at").getAsString());
+            long freshAt = Math.max(Instant.now().toEpochMilli(), boundary.toEpochMilli() + 1);
+            String[] words = {"Infos zum Abend. ", "Und jetzt das Spiel: ", "Schere,", " Stein,", " Papier", "."};
+            String[] ids = {"discarded-prefix", "fresh-intro", "schere", "stein", "papier", "punctuation"};
+            var fragments = new java.util.ArrayList<LiveTranscriptSegmenter.Fragment>();
+            for (int i = 0; i < words.length; i++) {
+                var fragment = new LiveTranscriptSegmenter.Fragment(ids[i], LiveTranscriptSegmenter.Speaker.ASSISTANT,
+                        i * 200L, (i + 1) * 200L, i == 0 ? boundary.minusSeconds(2).toEpochMilli() : freshAt, i, words[i]);
+                assertTrue(ingress.receipt(id, owner, fragment)); fragments.add(fragment);
+            }
+            UUID segmentId = UUID.randomUUID();
+            var segment = new LiveTranscriptSegmenter.Segment(segmentId, LiveTranscriptSegmenter.Speaker.ASSISTANT,
+                    fragments, LiveTranscriptSegmenter.Closure.COMPLETE, "observed_silence", fragments.getFirst().receivedMs(), freshAt);
+            var committed = ingress.commit(id, owner, segment, waiting.getCurrentState().getActiveStatePath()).orElseThrow();
+            assertEquals("COMPLETE", committed.status());
+            assertEquals(List.of(ids), committed.receiptIds());
+            var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
+            assertEquals(segmentId.toString(), cue.segmentId());
+            assertEquals(List.of("schere", "stein", "papier"), cue.receiptIds());
+            assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_capture_id"));
+            assertEquals(committed.eventId(), ingress.commit(id, owner, segment, List.of()).orElseThrow().eventId());
+            assertEquals(cue, contexts.snapshot(code, id).orElseThrow().activity().playbackCue());
+            assertTrue(contexts.playbackSettled(code, id, owner, cue.id(), cue.segmentId()));
+            assertFalse(contexts.playbackSettled(code, id, owner, cue.id(), cue.segmentId()));
+            var playing = agents.findById(id).orElseThrow();
+            assertFalse(playing.getStorage().containsKey("gala.rps_countdown_receipts"));
+            hand(code, id, "paper", playing.getStorage().get("gala.rps_capture_id").getAsString());
+            assertEquals("Gala reception", agents.findById(id).orElseThrow().getCurrentState().getName());
+            say(code, id, "Noch einmal bitte");
+            assertTrue(contexts.snapshot(code, id).orElseThrow().activity().playbackCue().receiptIds().isEmpty());
+        } finally { ownership.release(id, session); }
+    }
+
+    @Test void gamesOnlyCloneKeepsItsPolicyAndRejectsTasksAcrossReloadAndReset() {
+        String key = GalaDinnerReceptionMultiStateGames.KEY;
+        String code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
+        assertTrue(demo.listAgentTypes(code).stream().anyMatch(type -> key.equals(type.getKey())));
+        UUID id = demo.createAgent(code, key, "ROBOT").getID();
+        for (int attempt = 0; attempt < 2; attempt++) {
+            group(code, id, 1);
+            UUID session = UUID.randomUUID();
+            contexts.claim(code, id, session).orElseThrow();
+            try {
+                when(language.infer(any())).thenReturn(answer("START_GUESS", ""));
+                say(code, id, "Personenraten bitte");
+                var guessing = agents.findById(id).orElseThrow();
+                assertEquals("Gala guess the person", guessing.getCurrentState().getName());
+                assertInstanceOf(GalaDinnerGamesPolicy.class, guessing.getCurrentState().ownPolicy());
+                say(code, id, guessing.getStorage().get("gala.person").getAsString());
+                when(language.infer(any())).thenReturn(answer("START_TASK", ""));
+                say(code, id, "Wenn ich Papier zeige, erzähle einen Witz.");
+                var loaded = agents.findById(id).orElseThrow();
+                assertEquals("Gala reception", loaded.getCurrentState().getName());
+                assertTrue(loaded.getStorage().keySet().stream().noneMatch(name -> name.startsWith("task.")));
+                for (var state : loaded.reachableStates()) assertInstanceOf(GalaDinnerGamesPolicy.class, state.ownPolicy());
+                assertFalse(new LiveVoicePolicyAdapter().instructions(loaded).contains("co-created"));
+                assertFalse(loaded.listStates().contains("Gala co-created task"));
+            } finally { ownership.release(id, session); }
+            demo.reset(code, id);
+        }
     }
 
     private void hand(String code, UUID id, String sign, String capture) {

@@ -25,6 +25,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     public GalaDinnerPolicy(Storage storage) { this.storage = storage; }
     Storage storage() { return storage; }
     boolean activitiesEnabled() { return true; }
+    boolean coCreatedTasksEnabled() { return activitiesEnabled(); }
     @Override public boolean supportsLiveState(State state) { return state.getClass() == GalaDinnerState.class; }
     @Override public String liveSessionEndEventType() { return LIVE_ENDED; }
     @Override public int liveHistoryStartIndex() {
@@ -46,9 +47,10 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public String voiceInstructions() {
         // Keep reference and behavioural guidance stable; the Live state section carries activity changes.
-        return GalaDinnerPrompts.voice(activitiesEnabled()) + "\n"
-                + (activitiesEnabled() ? GalaDinnerPrompts.LIVE + "\n" + GalaDinnerPrompts.TASK_VOICE : GalaDinnerPrompts.LIVE_RECEPTION)
-                + "\n" + GalaDinnerReference.context(activitiesEnabled());
+        return GalaDinnerPrompts.voice(activitiesEnabled(), coCreatedTasksEnabled()) + "\n"
+                + (activitiesEnabled() ? GalaDinnerPrompts.live(coCreatedTasksEnabled())
+                        + (coCreatedTasksEnabled() ? "\n" + GalaDinnerPrompts.TASK_VOICE : "") : GalaDinnerPrompts.LIVE_RECEPTION)
+                + "\n" + GalaDinnerReference.context(activitiesEnabled(), coCreatedTasksEnabled());
     }
     @Override public long liveUserSilenceMs() { return 2000; }
     @Override public long liveDepartureGraceMs() { return GalaDinnerMemory.DEPARTURE_GRACE_MS; }
@@ -103,7 +105,7 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
                 : GalaDinnerRpsPreparation.enabled(storage)
                 ? "RPS introduction: sign selected privately, no gesture/capture yet. Say exactly Schere, Stein, Papier. once, then listen."
                 : "RPS introduction: sign selected, no gesture/capture yet. Invite a hand and count one, two, three once on the confirmed occasion, then listen.";
-        else if ("TASK".equals(mode)) {
+        else if (coCreatedTasksEnabled() && "TASK".equals(mode)) {
             facts += "Task phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
                 + "; revision: " + GalaDinnerMemory.text(storage, ch.zhaw.prometheus.model.task.TaskMemory.REVISION, "0")
                 + "; active agreement: " + storage.containsKey(ch.zhaw.prometheus.model.task.TaskMemory.SPEC)
@@ -129,11 +131,11 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerMemory.QUIET, ""))) facts += " Visitor requested silence.";
         if ("true".equals(GalaDinnerMemory.text(storage, GalaDinnerSensing.CORRECTED, "")))
             facts += " Visitor corrected expression: no unsolicited mood/expression claims this encounter. Direct answers use fresh evidence tentatively; accept their account.";
-        if (storage.containsKey(GalaDinnerMemory.TASK_FACTS)
+        if (coCreatedTasksEnabled() && storage.containsKey(GalaDinnerMemory.TASK_FACTS)
                 && java.time.Instant.now().isBefore(GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES)))
             // Constraints precede action descriptions when the provider receives context in bounded parts.
             facts = "Current task response facts: " + GalaDinnerMemory.text(storage, GalaDinnerMemory.TASK_FACTS, "") + "\n" + facts;
-        if (storage.containsKey(ch.zhaw.prometheus.model.task.TaskResponse.KEY))
+        if (coCreatedTasksEnabled() && storage.containsKey(ch.zhaw.prometheus.model.task.TaskResponse.KEY))
             facts += "\nResponse association: " + ch.zhaw.prometheus.model.task.TaskResponse.status(storage)
                     + ". This status never proves physical playback.";
         LiveActivityContext.Continuation continuation = null;
@@ -164,7 +166,8 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) { return null; }
     @Override public String describe() {
-        return GalaDinnerPrompts.voice(activitiesEnabled()) + "\n" + GalaDinnerReference.context(activitiesEnabled())
+        return GalaDinnerPrompts.voice(activitiesEnabled(), coCreatedTasksEnabled()) + "\n"
+                + GalaDinnerReference.context(activitiesEnabled(), coCreatedTasksEnabled())
                 + "\nCurrent mode: " + GalaDinnerMemory.mode(storage);
     }
     @Override public String summarise(State state, EventHistory events, PromptMessageAssembler assembler,

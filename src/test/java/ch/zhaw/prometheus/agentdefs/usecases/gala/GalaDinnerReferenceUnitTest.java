@@ -159,12 +159,15 @@ class GalaDinnerReferenceUnitTest {
     @Test void capabilityVariantsShareFactsWithoutAdvertisingTheOtherVersionsActivities() {
         var sources = List.of(new GalaDinnerReference.Source("owner", "Audit note", List.of()));
         var section = new GalaDinnerReference.Section("gigi", "Gigi", List.of("owner"),
-                List.of("Shared origin."), "Games available.", "Reception only.");
+                List.of("Shared origin."), "Games and tasks available.", "Reception only.", "Games only.");
         var document = new GalaDinnerReference.Document("2026-10-23", sources, List.of(section));
-        assertEquals("GALA REFERENZ (Stand der bereitgestellten Angaben: 2026-10-23).\nGigi: Shared origin. Games available.", GalaDinnerReference.render(document));
+        assertEquals("GALA REFERENZ (Stand der bereitgestellten Angaben: 2026-10-23).\nGigi: Shared origin. Games and tasks available.", GalaDinnerReference.render(document));
         assertEquals("GALA REFERENZ (Stand der bereitgestellten Angaben: 2026-10-23).\nGigi: Shared origin. Reception only.", GalaDinnerReference.render(document, false));
+        assertEquals("GALA REFERENZ (Stand der bereitgestellten Angaben: 2026-10-23).\nGigi: Shared origin. Games only.", GalaDinnerReference.render(document, true, false));
+        assertFalse(GalaDinnerReference.context(true, false).contains("gemeinsam vereinbarte kurze Sensorreaktionen"));
+        assertTrue(GalaDinnerReference.context().contains("gemeinsam vereinbarte kurze Sensorreaktionen"));
         var incomplete = new GalaDinnerReference.Section("gigi", "Gigi", List.of("owner"),
-                List.of("Shared origin."), "Games available.", null);
+                List.of("Shared origin."), "Games available.", null, "Games only.");
         assertThrows(IllegalArgumentException.class, () -> GalaDinnerReference.render(
                 new GalaDinnerReference.Document("2026-10-23", sources, List.of(incomplete)), false));
     }

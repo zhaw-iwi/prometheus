@@ -17,12 +17,13 @@ final class GalaDinnerReference {
     private static final Document DOCUMENT = load();
     private static final String CONTEXT = render(DOCUMENT);
     private static final String RECEPTION_CONTEXT = render(DOCUMENT, false);
+    private static final String GAMES_CONTEXT = render(DOCUMENT, true, false);
 
     record Source(String id, String description, List<String> urls) {}
     record Section(String id, String title, List<String> sourceIds, List<String> facts,
-            String activityFacts, String receptionOnlyActivityFacts) {
+            String activityFacts, String receptionOnlyActivityFacts, String gamesOnlyActivityFacts) {
         Section(String id, String title, List<String> sourceIds, List<String> facts) {
-            this(id, title, sourceIds, facts, null, null);
+            this(id, title, sourceIds, facts, null, null, null);
         }
     }
     record Document(String recordedOn, List<Source> sources, List<Section> sections) {}
@@ -31,6 +32,9 @@ final class GalaDinnerReference {
 
     static String context() { return CONTEXT; }
     static String context(boolean activities) { return activities ? CONTEXT : RECEPTION_CONTEXT; }
+    static String context(boolean activities, boolean coCreatedTasks) {
+        return !activities ? RECEPTION_CONTEXT : coCreatedTasks ? CONTEXT : GAMES_CONTEXT;
+    }
 
     private static Document load() {
         var input = GalaDinnerReference.class.getResourceAsStream(RESOURCE);
@@ -46,6 +50,9 @@ final class GalaDinnerReference {
         return render(document, true);
     }
     static String render(Document document, boolean activities) {
+        return render(document, activities, activities);
+    }
+    static String render(Document document, boolean activities, boolean coCreatedTasks) {
         if (document == null) throw new IllegalArgumentException("Gala reference is required");
         LocalDate.parse(document.recordedOn());
         if (document.sources() == null || document.sources().isEmpty()
@@ -63,16 +70,16 @@ final class GalaDinnerReference {
                     || !sourceIds.containsAll(section.sourceIds()) || section.facts() == null
                     || section.facts().isEmpty() || section.facts().stream().anyMatch(GalaDinnerReference::blank))
                 throw new IllegalArgumentException("Invalid or unsourced Gala reference section");
-            if ((section.activityFacts() != null || section.receptionOnlyActivityFacts() != null)
-                    && (blank(section.activityFacts()) || blank(section.receptionOnlyActivityFacts())))
-                throw new IllegalArgumentException("Both Gala capability variants are required");
+            if ((section.activityFacts() != null || section.receptionOnlyActivityFacts() != null || section.gamesOnlyActivityFacts() != null)
+                    && (blank(section.activityFacts()) || blank(section.receptionOnlyActivityFacts()) || blank(section.gamesOnlyActivityFacts())))
+                throw new IllegalArgumentException("All Gala capability variants are required");
         }
         // Render approved facts only: no source URLs, audit descriptions or duplicate summaries.
         return "GALA REFERENZ (Stand der bereitgestellten Angaben: " + document.recordedOn() + ").\n"
                 + document.sections().stream()
                     .map(section -> section.title() + ": " + String.join(" ", section.facts())
-                            + (section.activityFacts() == null ? "" : " " + (activities
-                                    ? section.activityFacts() : section.receptionOnlyActivityFacts())))
+                            + (section.activityFacts() == null ? "" : " " + (!activities ? section.receptionOnlyActivityFacts()
+                                    : coCreatedTasks ? section.activityFacts() : section.gamesOnlyActivityFacts())))
                     .collect(Collectors.joining("\n"));
     }
 

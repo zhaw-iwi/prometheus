@@ -384,6 +384,7 @@ experiment-specific application definitions as Spring beans via
 | `usecases.gala_dinner_reception` | German GIGI reception for the Home of Innovation gala, with RPS, person guessing and co-created multimodal tasks over GPT-Live. |
 | `usecases.gala_dinner_reception_single_state` | Reception-only GIGI backup with the same knowledge, persona and sensing; no games or co-created tasks. |
 | `usecases.gala_dinner_reception_rps_preparation` | Full Gala agent with a three-sign RPS recognition tutorial once per Live conversation. |
+| `usecases.gala_dinner_reception_multi_state_games` | Gala reception with multi-state RPS preparation and person guessing, without co-created tasks. |
 | `tdsr.aisha.*` | Arabic Invest Qatar stage-host agents using a versioned approved-answer catalog and semantic gestures. |
 | `tdsr.core.<language>.*` | TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`. |
 | `tdsr.shhd.<language>.*` | SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`. |
@@ -404,11 +405,25 @@ reload and a declined exit. Completed preparation is retained for the same Live
 conversation; a new session or reset requires the tutorial again. Allow this key
 for the access code and create a fresh instance; saved graphs are not migrated.
 
+**Gigi - Gala with multi-state RPS and guessing game**
+(`usecases.gala_dinner_reception_multi_state_games`) is a separate clone of that
+tutorial variant. It retains reception, RPS preparation/countdown/play and person
+guessing, with the same persona, knowledge, sensing and Live lifecycle. Its graph
+omits `Gala co-created task`; its voice, control and reference prompts omit task
+offers and configuration guidance, and task-start operations are rejected before
+mutation. Allow the new key for the access code and create a fresh instance.
+Existing definitions and saved instances remain available.
+
 Every tutorial-variant round has a new identity and a private selected sign. Live
 is asked to say exactly "Schere, Stein, Papier."; matching complete native speech
 and the shared client playback acknowledgement release one gesture and a fresh
 camera capture. Tutorial observations and old-round results cannot decide the new
-round. Missing playback expires after 30 seconds, including when scheduled ticks
+round. The playback cue selects the native caption receipts containing the recognized
+countdown, so earlier captions in a mixed response need not survive an input reset.
+The full response must still be complete, with matching observed audio and quiet;
+input interruption still invalidates a known cue. Reload the cockpit after updating
+the backend to use this receipt selection; no database schema migration is needed.
+Missing playback expires after 30 seconds, including when scheduled ticks
 are disabled. This is software coordination evidence, not physical audibility or
 robot execution confirmation. The original and reception-only definitions remain
 separately available, with the original's existing countdown flow.
@@ -421,8 +436,9 @@ The optional backup is `GalaDinnerReceptionSingleState`, catalog key
 `usecases.gala_dinner_reception_single_state`, displayed as **GIGI - Gala Dinner
 Reception (Reception only)**. Allow that key for the access code and create a new
 instance; existing full Gala instances are not converted. Both embodiments retain
-GIGI's fixed identity. The setup below applies to all three variants; game/task
-details apply to the original and tutorial definitions.
+GIGI's fixed identity. The setup below applies to all four variants. Game details
+also apply to the games-only clone; co-created-task details apply to the original
+and tutorial definitions.
 
 The backup has exactly one reception state, with self-transitions for conversation,
 presence, facial, weather and hand observations. It shares the full agent's persona,
@@ -436,7 +452,7 @@ display outputs are not advertised; ordinary nonverbal behaviour is retained.
 
 The persisted reception-only policy keeps this restriction across reload/reset.
 No new database column, frontend protocol or standalone Valerian cockpit change is
-needed. All three definitions read the same reference; only the explicit activity
+needed. All four definitions read the same reference; only the explicit activity
 availability sentence differs. Spoken wording remains model-generated and needs
 a short listening check; this backup does not fix the open audio cut-off issue.
 
@@ -2043,7 +2059,7 @@ playback settling: the cue has `id`, nullable `segmentId` (pending capture),
 `expiresAt`, and optional `receiptIds`. Missing or empty `receiptIds` require the
 complete segment's receipts. A nonempty selection contains at most 32 distinct
 native receipt identities in contiguous ledger order; the client rejects invalid
-or foreign selections.
+or foreign selections. Gala countdowns persist this selection with their round.
 The shared Live client begins observing the received track on attachment,
 without rerouting or recording audio. It retains at most 65 seconds of content-free
 sample/receipt timing, 1,024 caption identities and 64 complete segment mappings.

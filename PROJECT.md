@@ -82,6 +82,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Gala/application branch split (2026-11-11): shared playback receipt support is
+  committed on main (`057aa55`) and merged into agents (`a8572b4`). The games-only
+  Gala definition, its catalog/graph/prompts and countdown receipt selection stay
+  on agents with their own regressions. Agents passed 444 focused Java/API/
+  persistence/catalog checks and all 194 JavaScript checks; main passed 226 Java
+  checks and 193 JavaScript checks. Temporary schemas/accounts were removed.
+
 - Main-to-agents integration (2026-11-11): integrate main `7a5ba2b` with the
   deployment catalog/persona layer. Resolve documentation and acceptance-runner
   conflicts while retaining Gala/provider and dedicated offline classroom modes.
@@ -206,6 +213,27 @@ and regulation diagnostics remain future work.
   eight runner cases; no provider or production writes. No schema/graph migration.
   ES-02 follows under authorized sequential commit/push execution. Plan:
   `.agents/PLAN_ESCALATION.md`; evidence: `.agents/ESCALATION_RESULTS.md`.
+
+- Gala RPS reliability, step 1 (2026-11-05): playback cues now persist a bounded
+  selection of the native receipts containing the recognized countdown. Mixed
+  responses no longer require input-cleared introductory captions, while complete
+  segment, audio/quiet, ownership, expiry and interruption checks remain enforced.
+  Passed 308 selected Java checks against disposable MySQL and 100 Live JavaScript
+  checks; JAR packaging and whitespace checks passed. Recorded-data replay selects
+  four of round 5's 46 receipts; round 6's
+  early first word remains rejected. Early-countdown recovery and interrupted-cue
+  recovery remain separate pending steps. Reload the cockpit after the backend
+  update; no schema migration is needed. Physical acceptance remains pending.
+
+- Gala games-only clone (2026-11-05): separately registered **Gigi - Gala with
+  multi-state RPS and guessing game** retains the RPS-preparation variant's
+  reception, tutorial/countdown/play and guessing flow. Its graph and model
+  guidance omit co-created tasks; restricted control validation survives reset
+  and database reload. Original/tutorial definitions retain their tasks. Passed
+  232 Java checks, including isolated local MySQL persistence and catalog checks;
+  JAR packaging and whitespace checks passed.
+  Create a fresh instance using the new README catalog key; provider/robot trials
+  and deployment were not run. Details are in the audit entry below.
 
 - Client-owned hand confidence (2026-11-04): new Coordination preparation/reaction
   rules and Generic hand proposals default to no additional server confidence
@@ -11933,3 +11961,82 @@ and whitespace checks passed. Evidence is retained under
 
 No schema migration or physical playback guarantee is introduced. This branch
 split includes local commits only; no push or deployment is authorized.
+
+## Gala multi-state games clone (2026-11-05)
+
+Added `GalaDinnerReceptionMultiStateGames`, displayed as **Gigi - Gala with
+multi-state RPS and guessing game**, as a separate Spring catalog definition.
+It reuses the RPS-preparation graph factory with the co-created-task branch
+excluded. A persisted games-only policy and restricted turn action retain that
+boundary across reset/reload. Voice, control, failure guidance and the shared
+reference's explicit capability sentence omit custom task offers and configuration.
+The original and tutorial agents retain their task state and guidance; the
+reception-only reference now uses its existing capability-specific rendering.
+
+Verification passed 232 Java checks: 218 focused Gala/registry/profile units and
+14 isolated MySQL integration/catalog cases. Coverage includes the new clone's
+six-state graph, task-operation rejection before/after reset and reload, guessing,
+RPS recognition/countdown/playback/capture/replay in both embodiments, and Live
+instruction budgets. An initial run required an explicit Byte Buddy agent because
+the local Java 21 runtime cannot self-attach; the first database attempt needed a
+loopback account. The corrected disposable-server run passed with synthetic
+providers. JAR packaging and `git diff --check` passed.
+No provider/physical trial, commit, push or deployment was requested.
+
+## Gala RPS reliability step 1: countdown receipt selection (2026-11-05)
+
+The supplied telemetry and read-only database investigation showed two distinct
+failures. Round 5 recognized a fresh countdown inside a 46-receipt assistant
+response, but the browser still required earlier receipts cleared by user input.
+Round 6's first countdown word arrived 209 ms before the round boundary and was
+rejected by the existing freshness check. This step addresses the receipt mismatch.
+
+Durable transcript ingress now carries native receipt identities into speech
+parts. Gala recognizes the countdown with its existing freshness/language rules
+and persists the smallest contiguous fragment span retaining that match. The
+optional cue selection is immutable and bounded to 32 distinct IDs; older callers
+without identities and oversized selections retain whole-segment evidence. The
+client checks the selection against a complete assistant ledger, requires every
+selected receipt and matching audio/quiet, and allows retained same-segment prefix
+receipts to establish continuous audio onset. Unrelated audio cannot substitute.
+Round introduction, completion and cancellation clear the selection.
+
+Verification passed 308 Java checks across 25 suites using disposable MySQL and
+scripted providers, plus all 100 checks in the ten Live JavaScript test files.
+Coverage includes persisted ingress/reload, update API serialization, split-word
+fragments, invalid selections, duplicate acknowledgement, replay cleanup and
+muted/stalled/interrupted output. A read-only replay of the recorded receipt data
+selects four receipts for round 5 and still rejects round 6; the regression tests
+use synthetic text. Early-countdown recovery and interrupted-cue recovery remain
+pending. Reload the cockpit after updating the backend; no schema migration is
+needed. Physical audibility and robot execution remain unverified.
+JAR packaging and `git diff --check` passed. No deployment was performed.
+
+## Gala/application branch split (2026-11-11)
+
+The owner authorized separating reusable playback infrastructure from event
+application changes. Main owns `LivePlaybackCue`, `LiveSpeechPart`, native ingress
+receipt propagation, the shared browser gate, generic model/API/JavaScript tests
+and protocol documentation (`057aa55`). The existing Coordination timestamp test
+correction was carried back independently (`ac1d258`). Agents merges those commits
+forward (`a8572b4`) and owns the games-only Gala definition, registration, state
+factory/policy/prompt/reference changes and countdown receipt-span selection.
+Its catalog and durable game regressions remain application-specific.
+
+Preserved the complete original work in a named safety stash and a byte-for-byte
+temporary backup before switching branches. Application source files match that
+backup; the documentation preserves both generic and Gala records. The ignored
+application configuration is unchanged and is not part of any commit. No other
+repository was changed during this branch split.
+
+Main verification passed 226 Java/API/persistence tests in 24 suites and all 193
+JavaScript cases. Agents passed **444 Java tests in 42 suites**, including native
+transcript persistence, the new clone across reset/reload, both embodiments,
+countdown receipt persistence/playback/replay and deployment catalog checks, plus
+**194 JavaScript tests**. Both branches used clean temporary exports and an owned
+loopback MySQL server. Scripted providers kept the checks offline; each runner
+removed its schema/account. Syntax and whitespace checks passed. Evidence is in
+`/tmp/prometheus-branch-split-20261111-l2ckgq8q/agents-java.log`, `agents-js.log`
+and the `agents-preview/target/surefire-reports` directory.
+Physical audibility, real-provider timing and robot trials remain unverified.
+The split authorizes local commits only; no push or deployment is included.

@@ -8,6 +8,7 @@ import ch.zhaw.prometheus.agentdefs.AgentCreationResult;
 import ch.zhaw.prometheus.agentdefs.AgentDefinition;
 import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerAction;
 import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerDecision;
+import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerGamesPolicy;
 import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerPolicy;
 import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerState;
 import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerTaskAction;
@@ -34,19 +35,27 @@ public class GalaDinnerReception implements AgentDefinition {
     }
 
     protected Agent createAgent(boolean prepareRps) {
+        return createAgent(prepareRps, true);
+    }
+
+    protected Agent createAgent(boolean prepareRps, boolean coCreatedTasks) {
         Storage storage = new Storage();
         if (prepareRps) ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerRpsPreparation.enable(storage);
-        var reception = new GalaDinnerState("Gala reception", storage, true);
-        var rps = new GalaDinnerState("Gala rock-scissor-paper", storage, true);
-        var guessing = new GalaDinnerState("Gala guess the person", storage, true);
-        var task = new GalaDinnerState("Gala co-created task", new GalaDinnerTaskPolicy(storage), true);
-        var routing = new GalaDinnerState("Gala routing", storage, false);
-        task.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerTaskPolicy.RESPONSE_UNCERTAIN),
-                new GalaDinnerAction(storage, "FAIL_TASK"), routing));
-        var activities = new ArrayList<>(List.of(reception, rps, guessing, task));
+        var reception = activityState("Gala reception", storage, true, coCreatedTasks);
+        var rps = activityState("Gala rock-scissor-paper", storage, true, coCreatedTasks);
+        var guessing = activityState("Gala guess the person", storage, true, coCreatedTasks);
+        var routing = activityState("Gala routing", storage, false, coCreatedTasks);
+        var activities = new ArrayList<>(List.of(reception, rps, guessing));
+        GalaDinnerState task = null;
+        if (coCreatedTasks) {
+            task = new GalaDinnerState("Gala co-created task", new GalaDinnerTaskPolicy(storage), true);
+            task.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerTaskPolicy.RESPONSE_UNCERTAIN),
+                    new GalaDinnerAction(storage, "FAIL_TASK"), routing));
+            activities.add(task);
+        }
         if (prepareRps) {
-            var preparation = new GalaDinnerState("Gala rock-scissor-paper preparation", storage, true);
-            var countdown = new GalaDinnerState("Gala rock-scissor-paper countdown", storage, true);
+            var preparation = activityState("Gala rock-scissor-paper preparation", storage, true, coCreatedTasks);
+            var countdown = activityState("Gala rock-scissor-paper countdown", storage, true, coCreatedTasks);
             routing.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS_SETUP"), preparation));
             routing.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS_INTRO"), countdown));
             preparation.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HAND_SIGN),
@@ -60,9 +69,9 @@ public class GalaDinnerReception implements AgentDefinition {
         }
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS"), rps));
         routing.addTransition(new Transition(new GalaDinnerDecision(storage, "GUESS"), guessing));
-        routing.addTransition(new Transition(new GalaDinnerDecision(storage, "TASK"), task));
+        if (task != null) routing.addTransition(new Transition(new GalaDinnerDecision(storage, "TASK"), task));
         routing.addTransition(new Transition(reception));
-        addReceptionTransitions(activities, routing, storage, "TURN");
+        addReceptionTransitions(activities, routing, storage, coCreatedTasks ? "TURN" : "GAMES_TURN");
         rps.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HAND_SIGN),
                 new GalaDinnerAction(storage, "HAND"), routing));
         rps.addTransition(new Transition(new LatestEventTypeDecision(GalaDinnerPolicy.COUNTDOWN_PLAYED),
@@ -70,12 +79,19 @@ public class GalaDinnerReception implements AgentDefinition {
         rps.addTransition(new Transition(new GalaDinnerDecision(storage, "RPS_PREP_TIMEOUT"),
                 new GalaDinnerAction(storage, "RPS_PREP_TIMEOUT"), routing));
         addAmbientTransitions(reception, routing, storage);
-        // The browser can submit human presence before grouping for the same camera sample.
-        task.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HUMAN_PRESENCE),
-                new GalaDinnerAction(storage, "PRESENCE"), routing));
-        task.addTransition(new Transition(new TaskDecision(storage, "CUE"),
-                new GalaDinnerTaskAction(storage, true), routing));
+        if (task != null) {
+            // The browser can submit human presence before grouping for the same camera sample.
+            task.addTransition(new Transition(new LatestEventTypeDecision(Event.TYPE_HUMAN_PRESENCE),
+                    new GalaDinnerAction(storage, "PRESENCE"), routing));
+            task.addTransition(new Transition(new TaskDecision(storage, "CUE"),
+                    new GalaDinnerTaskAction(storage, true), routing));
+        }
         return completeAgent(reception, storage, true);
+    }
+
+    private static GalaDinnerState activityState(String name, Storage storage, boolean starting, boolean coCreatedTasks) {
+        return new GalaDinnerState(name, coCreatedTasks ? new GalaDinnerPolicy(storage)
+                : new GalaDinnerGamesPolicy(storage), starting);
     }
 
     protected static void addReceptionTransitions(List<GalaDinnerState> states, GalaDinnerState target,
@@ -102,11 +118,16 @@ public class GalaDinnerReception implements AgentDefinition {
 
     protected Agent completeAgent(GalaDinnerState reception, Storage storage, boolean activities) {
         boolean preparation = ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerRpsPreparation.enabled(storage);
-        var agent = new Agent(preparation ? "GIGI - Gala Dinner Reception with RPS preparation"
+        return completeAgent(reception, storage, activities,
+                preparation ? "GIGI - Gala Dinner Reception with RPS preparation"
                         : activities ? "GIGI - Gala Dinner Reception" : "GIGI - Gala Dinner Reception (Reception only)",
                 activities ? "German GIGI reception for the Home of Innovation gala on 24 October 2026, with RPS, person guessing and co-created multimodal tasks."
-                        : "German GIGI gala reception with conversation, information and multimodal reactions; no games or co-created tasks.",
-                reception, storage);
+                        : "German GIGI gala reception with conversation, information and multimodal reactions; no games or co-created tasks.");
+    }
+
+    protected Agent completeAgent(GalaDinnerState reception, Storage storage, boolean activities,
+            String name, String description) {
+        var agent = new Agent(name, description, reception, storage);
         agent.setPersonaName("GIGI");
         agent.setInteractionProfile(AgentInteractionProfile.of(
                 List.of(AgentInteractionProfile.OBS_USER_UTTERANCE, AgentInteractionProfile.OBS_FACE_EMOTION,

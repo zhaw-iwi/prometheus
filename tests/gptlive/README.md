@@ -20,6 +20,25 @@ For durable-ingress coverage, run `LiveTranscriptIngressIntegrationTest` through
 The runner provisions only a disposable loopback schema/account. These synthetic
 checks do not establish physical audibility. Reload the cockpit after updating.
 
+## Gala countdown receipt selection
+
+The mixed-response regression retains the complete assistant transcript while
+selecting only the native receipts containing the recognized countdown. It covers
+input-cleared prefix captions, continuous introductory audio, durable ingress and
+reload, API serialization, one playback acknowledgement and a fresh replay round.
+
+```powershell
+node --test tests/js/live/playback-cue.test.mjs
+python tests/gptlive/run_acceptance.py --java-tests GalaDinnerCountdownReceiptUnitTest,LivePlaybackCueUnitTest,ScopedLiveSessionControllerWebMvcTest,GalaDinnerReceptionIntegrationTest,LiveTranscriptIngressIntegrationTest
+```
+
+Supply `--database-properties` for an ignored local administrative configuration
+if needed; the runner creates and removes a disposable schema/account. Scripted
+providers and synthetic audio keep these checks offline. Whole-segment callers,
+ownership, expiry, interruption and muted/stalled-output rejection retain their
+contracts. Early countdown recovery and interrupted-cue recovery are separate
+pending steps; these checks do not establish physical audibility.
+
 ## Late playback cue regression
 
 The short-response regression exercises the production playback observer with

@@ -75,8 +75,9 @@ class LiveSessionSmokeIntegrationTest {
     }
 
     @Test void deploymentCatalogAdmitsOnlyValidatedConversationalDefinitions() {
-        var expected = java.util.Set.of("core.facial_expression_sensitivity", "core.generic_multimodal_behaviour", "core.live_multimodal", "core.multimodal_behaviour",
+        var expected = java.util.Set.of("core.coordination", "core.facial_expression_sensitivity", "core.generic_multimodal_behaviour", "core.live_multimodal", "core.multimodal_behaviour",
                 "core.generic_multimodal_behaviour_at_social_space", "usecases.gala_dinner_reception", "usecases.gala_dinner_reception_single_state",
+                "usecases.gala_dinner_reception_rps_preparation", "usecases.gala_dinner_reception_multi_state_games",
                 "core.rock_scissor_paper", "core.role_clarification_guessing_game", "core.social_context_sensitivity",
                 "usecases.healthcare.guessing_game", "usecases.healthcare.guessing_game_user_guess",
                 "usecases.healthcare.healthcare_conversation", "usecases.healthcare.smart_goal_coaching",
