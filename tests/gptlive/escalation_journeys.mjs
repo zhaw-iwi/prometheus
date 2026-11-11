@@ -15,6 +15,10 @@ export function capturedContribution(memory, ledger) {
   const segment = ledger.find(item => item.segmentId === response.segment && item.speaker === 'ASSISTANT');
   assert.equal(segment?.status, 'COMPLETE', 'The associated assistant segment must exist and be complete');
   const offset = response.speechOffset ?? 0;
+  if (memory['live.speechApproval']) {
+    assert.equal(response.played, true, 'Semantic capture is not observed playback');
+    assert.equal(offset, 0, 'The approved audio must match the entire segment');
+  }
   assert.ok(Number.isInteger(offset) && offset >= 0 && offset < segment.text.length, 'Invalid captured speech offset');
   return {segment: segment.segmentId, text: segment.text.slice(offset)};
 }

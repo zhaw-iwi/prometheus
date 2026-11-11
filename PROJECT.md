@@ -75,6 +75,22 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Approval-before-audio checkpoint (2026-11-11), authorized by the owner: bounded
+  original-PCM capture and separate approval/release/observed-playback checks now
+  protect delivery-aware Coordination sessions. Unconfirmed speech cannot supply
+  conversation, consent or the next cue. Existing state/budget/task-generation
+  authority is preserved. Last full local-MySQL run: 912 passed, one capacity skip;
+  four browser checks passed, including real local WebRTC. Final proposal-facts
+  completion and the sensory-occasion adapter then passed 42 focused Java tests;
+  208 Node, 11 preflight and package
+  checks passed. Six retained paid attempts produced **zero complete ES-08 passes**;
+  one ordinary proposal was approved and observed playing. Timing-margin repairs
+  are offline-verified; native/committed task wording still diverged. See
+  `.agents/ESCALATION_RESULTS.md` for exact coverage, usage and retained failures.
+  Stop for the next owner decision: one bounded retry of a never-released response,
+  or backend-controlled task speech. Neither is implemented. No deployment;
+  physical trials unrun and database capacity deferred.
+
 - ES-08 continuation C (2026-11-11): one bounded real Live attempt per scenario
   on `4c787cc`; **zero complete journey passes** after semantic review. Recovery
   spoke before authority and initially misidentified a sign; dialogue changed
@@ -82,8 +98,8 @@ and regulation diagnostics remain future work.
   alternative and confirmed one welcome's playback, but described Stop as Pause.
   Backend cancellation/budget/ownership guards held. Artifacts, usage and cleanup
   are recorded in `.agents/ESCALATION_RESULTS.md`. No automatic retry. ES-08 is
-  incomplete; a new owner decision about approval before audible speech and its
-  latency is recorded in `.agents/PLAN_ESCALATION.md`. No deployment; physical
+  incomplete; the owner subsequently approved the buffered speech stage recorded
+  in `.agents/PLAN_ESCALATION.md`. See the newer checkpoint for its verification. No deployment; physical
   trials unrun and database capacity deferred.
 
 - ES-08 continuation B (2026-11-11): native Coordination startup guidance now

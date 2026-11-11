@@ -30,6 +30,7 @@ class ScopedLiveSessionServiceUnitTest {
     final LiveTranscriptIngressService ingress = mock(LiveTranscriptIngressService.class);
     final GenericTaskSessionLifecycleService taskLifecycle = mock(GenericTaskSessionLifecycleService.class);
     boolean pendingAcknowledgements = true;
+    boolean approvalRequired;
     @BeforeEach void setUp() {
         properties.setEnabled(true); properties.setCloseTimeoutMs(100); properties.setRequestTimeoutMs(100);
         when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:00:00Z"));
@@ -39,13 +40,22 @@ class ScopedLiveSessionServiceUnitTest {
             var epoch = UUID.randomUUID(); ownership.acquire(agent, new ch.zhaw.prometheus.model.policy.ExternalSpeech(call.getArgument(2), epoch));
             return Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
                 agent, epoch, "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0, java.util.Map.of("state", "Test instructions"),
-                800, null, false, pendingAcknowledgements));
+                800, null, false, pendingAcknowledgements, 800, approvalRequired));
         });
         service = new ScopedLiveSessionService(demo, gateway, properties, contexts, ownership, clock);
         service.configureIngress(ingress);
         service.configureTaskLifecycle(taskLifecycle);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
+    @Test void approvalRequiredPolicyRejectsLegacyPlayersBeforeOpeningProviderMedia() {
+        approvalRequired = true;
+        try {
+            assertThrows(IllegalArgumentException.class, this::start);
+            assertNull(gateway.lastRequest);
+            var session = service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin", true)).orElseThrow();
+            assertTrue(session.speechApprovalRequired());
+        } finally { service.shutdown(); }
+    }
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
     void quietPolicyCancelsEachAutomaticAcknowledgementWithoutBlockingTheSocket(boolean allowAcknowledgements) {

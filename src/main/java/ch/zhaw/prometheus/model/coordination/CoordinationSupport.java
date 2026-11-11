@@ -82,6 +82,7 @@ public final class CoordinationSupport {
 
     public static void pending(Storage storage, ExternalSpeech owner, Instant now, String explanation) {
         var value = new JsonObject(); value.addProperty("session", owner.sessionId().toString());
+        value.addProperty("id", java.util.UUID.randomUUID().toString()); value.addProperty("explanation", explanation);
         value.addProperty("epoch", owner.epoch().toString()); value.addProperty("at", now.toString());
         value.addProperty("revision", TaskMemory.text(storage, TaskMemory.REVISION, "0"));
         // Timestamped request-time evidence stays historical if task delivery delays the answer.
@@ -90,11 +91,12 @@ public final class CoordinationSupport {
         storage.put(LIVE_HELP, value);
     }
 
-    /** Quiet facts only: never replace the pending response identity, occasion or playback cue. */
+    /** Help has its own release identity; it never spends or completes the pending task contribution. */
     public static LiveActivityContext withHelp(Storage storage, LiveActivityContext context, Instant now) {
         if (!storage.containsKey(LIVE_HELP)) return context;
         try {
             var value = storage.get(LIVE_HELP).getAsJsonObject();
+            if (value.has("consumed")) return context;
             if (!now.isBefore(Instant.parse(value.get("at").getAsString()).plusSeconds(30))
                     || !value.get("revision").getAsString().equals(TaskMemory.text(storage, TaskMemory.REVISION, "0"))) return context;
             String help = "\nThe user requested help. " + explain(storage, now)
@@ -102,6 +104,11 @@ public final class CoordinationSupport {
                     + " This explanation is not the pending task contribution; do not report it as task delivery or repeat the task.";
             String facts = context.facts() + help;
             if (facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 4000) return context;
+            if (storage.containsKey(LiveSpeechRequest.ENABLED) && storage.get(LiveSpeechRequest.ENABLED).getAsBoolean()) {
+                var expires = Instant.parse(value.get("at").getAsString()).plusSeconds(30);
+                return new LiveActivityContext(facts, new LiveActivityContext.Continuation(java.util.UUID.fromString(value.get("id").getAsString()),
+                        LiveActivityContext.Occasion.USER_REQUEST, "Explain the user's requested help using the current help facts. Do not perform or repeat the task contribution.", expires), expires, context.playbackCue());
+            }
             return new LiveActivityContext(facts, context.continuation(), context.refreshAt(), context.playbackCue());
         } catch (RuntimeException invalid) { return context; }
     }

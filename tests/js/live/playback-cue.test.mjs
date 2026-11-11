@@ -184,3 +184,21 @@ test('production observer samples before a cue and discards evidence on stream r
     for (const [key, value] of Object.entries(originals)) {if (value === undefined) delete globalThis[key]; else globalThis[key] = value;}
   }
 });
+
+
+test('buffered playback binds receipts after initial media warmup but never after a later stall', () => {
+  for (const failure of ['none', 'stall', 'interruption']) {
+    const f = fixture(), observer = new LivePlaybackObserver({}, () => {}); observer.gate = f.gate;
+    observer.scheduled({...f.cue, segmentId: 'speech'}, ledger()[0]);
+    observer.sample({voiced: false, playable: false, mediaTime: 0});
+    assert.equal(f.gate.receipts.size, 0);
+    observer.sample({voiced: true, playable: true, mediaTime: .05});
+    assert.equal(f.gate.receipts.size, 1);
+    if (failure === 'stall') observer.sample({voiced: true, playable: false, mediaTime: .05});
+    if (failure === 'interruption') observer.interrupt();
+    for (let i = 0; i < 10; i++) f.sample(true);
+    f.quiet();
+    assert.deepEqual(f.seen, failure === 'none' ? ['round-one'] : []);
+    observer.close();
+  }
+});

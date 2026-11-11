@@ -23,6 +23,10 @@ public interface ExternalVoicePolicy {
     default long liveUserSilenceMs() { return 800; }
     /** Session-fixed assistant sentence assembly; completion still needs observed quiet and current authority. */
     default long liveAssistantSilenceMs() { return 800; }
+    /** Requires an approval-capable player; default policies keep direct native playback. */
+    default boolean liveSpeechApprovalRequired() { return false; }
+    /** Immutable authority for checking a candidate; null means no speech is authorized. */
+    default LiveSpeechRequest liveSpeechRequest(ExternalSpeech owner) { return null; }
     /** Opt-in occupied-encounter grace for camera dropouts; Stop and access checks remain immediate. */
     default long liveDepartureGraceMs() { return 0; }
     /** Opt-in rejection of isolated input activity spikes for backend capture only. */

@@ -70,6 +70,9 @@ public class LiveVoicePolicyAdapter {
                                 ? "Answer from current facts. The application processes visitor transcripts and confirms state changes."
                                 : "Delegate task questions to the application.")
                 + "\nLanguage: " + language;
+        if (leaf.ownPolicy() instanceof ExternalVoicePolicy external && external.liveSpeechApprovalRequired())
+            result = result.replace("Backend announcements may be paraphrased, preserving the confirmed result and meaning.",
+                    "Audio is held for approval. Earlier drafts were NOT heard. Speak each confirmed request faithfully; preserve every clue and control state.");
         var sections = new LinkedHashMap<String, String>();
         sections.put("voice", result);
         sections.put("policy", "Current conversational policy:\n" + policy);

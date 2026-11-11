@@ -47,7 +47,7 @@ public class ScopedBehaviourSpeechService {
     }
 
     static String canonicalSpeech(Event event) {
-        if (ch.zhaw.prometheus.model.event.ConversationProjection.isIntent(event))
+        if ((ch.zhaw.prometheus.model.event.ConversationProjection.isIntent(event) || ch.zhaw.prometheus.model.event.ConversationProjection.isUnplayed(event)))
             throw new BehaviourSpeechUnavailableException("speech is an external narration intent");
         if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())) {
             throw new BehaviourSpeechUnavailableException("event is not a behaviour plan");

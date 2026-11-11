@@ -9,6 +9,15 @@ factual-feedback failure is retained separately, not resolved by delivery matchi
 
 ## Latest office continuation
 
+The newest approval checkpoint is implemented and regression-checked; consult the
+first results section. Its last full Java run passed 912 cases with one capacity
+skip; all four browser checks passed. Final proposal-fact completion and the
+sensory-occasion adapter then passed 42 focused Java checks. Six retained provider attempts yielded one approved/heard
+proposal and no complete ES-08 journey. The next owner decision is a bounded retry
+for a never-released response versus backend-controlled task speech. Neither has
+been implemented; do not treat this checkpoint as ES-08 completion.
+
+
 Shared changes through `057aa55` were incorporated before continuation work.
 `2424691` adds bounded assistant sentence assembly; `4c787cc` supplies social
 limits to native speech before proposal negotiation. Both are pushed to main.
@@ -24,12 +33,17 @@ but Stop was spoken as Pause. Recovery began arming speech before response
 authority; dialogue changed the required clue and failed verification before the
 feedback step. Do not weaken authority/verification or retry unchanged for luck.
 
-**Next step requires an owner decision**, described in `PLAN_ESCALATION.md`:
-whether to add approval before native speech becomes audible, accepting latency
-and changes to playback. No such architecture has been implemented. ES-08 remains
-incomplete; database capacity stays deferred, physical trials are unrun and no
-deployment occurred. The original home investigation below remains historical
-evidence, not a directive to repeat its completed fixes.
+**The owner has since approved the playback change.** The current continuation
+adds bounded original-audio capture, semantic approval, fresh release checks and
+separate observed-playback recording. Unplayed candidates are excluded from
+conversation, prompts and consent. Ordinary current-turn drafts can be reviewed
+after backend commitment; existing task generation-time fences remain intact.
+The real-provider harness now uses the production approval player and distinguishes
+generated captions from observed speech. Read the newest `ESCALATION_RESULTS.md`
+section for actual acceptance; earlier provider and browser failures remain retained.
+The original home investigation below is historical evidence, not a directive to
+repeat completed fixes. Database capacity remains deferred; no deployment or
+physical trial is included.
 
 ## Original home checkpoint
 

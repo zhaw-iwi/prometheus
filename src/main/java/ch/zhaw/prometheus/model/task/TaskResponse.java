@@ -115,7 +115,18 @@ public final class TaskResponse {
         return value.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}\\s]", "").strip().replaceAll("\\s+", " ");
     }
     public static boolean expired(Storage storage, Instant now) {
-        Instant end = deadline(storage); return end != null && !now.isBefore(end);
+        Instant end = deadline(storage);
+        if (playbackPending(storage) && "CAPTURED".equals(status(storage))) end = Instant.parse(value(storage).get("created").getAsString()).plusSeconds(60);
+        return end != null && !now.isBefore(end);
+    }
+    public static boolean playbackPending(Storage storage) {
+        return storage.containsKey(LiveSpeechRequest.ENABLED) && storage.get(LiveSpeechRequest.ENABLED).getAsBoolean()
+                && storage.containsKey(KEY) && !value(storage).has("played");
+    }
+    public static void played(Storage storage, UUID id, Instant now) {
+        if (!storage.containsKey(KEY) || !value(storage).get("id").getAsString().equals(id.toString())) return;
+        var v = value(storage); v.addProperty("played", true); storage.put(KEY, v);
+        TaskMemory.put(storage, TaskMemory.AFTER, now.toString());
     }
     public static String status(Storage storage) { return storage.containsKey(KEY) ? value(storage).get("status").getAsString() : "NONE"; }
     public static void uncertain(Storage storage) {
@@ -256,7 +267,7 @@ public final class TaskResponse {
         var v = value(storage); return new ExternalSpeech(UUID.fromString(v.get("session").getAsString()), UUID.fromString(v.get("epoch").getAsString()));
     }
     public static int firstSample(Storage storage, List<Event> events, ExternalSpeech owner) {
-        if (!captured(storage, owner)) return -1;
+        if (!captured(storage, owner) || playbackPending(storage)) return -1;
         String segment = value(storage).get("segment").getAsString();
         for (int i = events.size() - 1; i >= 0; i--) {
             var p = events.get(i).speechProvenance();

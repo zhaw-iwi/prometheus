@@ -74,7 +74,8 @@ public final class LiveContextDelivery {
                     // Content and permission arrive together. Publishing the requested answer first as
                     // quiet facts lets native speech race a second, separate speaking instruction.
                     String content = "Confirmed reply " + continuation.id()
-                            + ". Say once, preserving meaning; do not repeat it or read metadata: " + continuation.facts();
+                            + (current.speechApprovalRequired() ? ". Prior drafts were unheard. Say this now; preserve all meaning: "
+                                    : ". Say once, preserving meaning; do not repeat it or read metadata: ") + continuation.facts();
                     if (bytes(content) > MAX_APPEND_BYTES) throw new IllegalStateException("Confirmed reply exceeds one append");
                     occasion.add(new Command("session.commentary.append", content, null, continuation.id(), revision));
                 } else {
@@ -83,7 +84,8 @@ public final class LiveContextDelivery {
                             + (continuation.occasion() == ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST
                                     ? ". Continue the visitor's pending request once, in your own words."
                                     : ". Make the authorized proactive comment once, in your own words.")
-                            + " Do not repeat an answer already spoken or read metadata aloud.", null, continuation.id(), revision);
+                            + (current.speechApprovalRequired() ? " Earlier drafts were unheard. Give this confirmed reply now, preserving every fact."
+                                    : " Do not repeat an answer already spoken or read metadata aloud."), null, continuation.id(), revision);
                 }
                 for (var command : occasion) commands.add(new Command(command.type(), command.content(), null,
                         continuation.id(), revision, null, continuation.expiresAt(), continuation.interruptible()));
@@ -131,7 +133,7 @@ public final class LiveContextDelivery {
             var items = new ArrayList<>(current.items().stream().filter(item -> !deferred.contains(item.type())).toList());
             items.addAll(delivered.items().stream().filter(item -> deferred.contains(item.type())).toList());
             delivered = new LiveContextSnapshot(current.agentId(), current.epoch(), current.revision(), current.builtAt(),
-                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance(), current.userSilenceMs(), current.activity(), current.filterIsolatedInputActivity(), current.pendingAcknowledgements());
+                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance(), current.userSilenceMs(), current.activity(), current.filterIsolatedInputActivity(), current.pendingAcknowledgements(), current.assistantSilenceMs(), current.speechApprovalRequired());
         }
         return delivered;
     }

@@ -218,36 +218,63 @@ as Pause. Recovery exposed speech before response authority and incorrect initia
 perception; dialogue changed the riddle clue and failed association before feedback.
 See the newest evidence section. Do not rerun these unchanged scenarios for luck.
 
-### New owner decision — approval before audible Coordination speech
+### Authorized approval before audible Coordination speech (2026-11-11)
 
-**Proposed next scope; not yet authorized or implemented.** The slim capture and
-guidance changes cannot guarantee that independently generated Live speech waits
-for backend authority or preserves confirmed meaning. The decision is whether to
-accept added response latency and a change to playback, rather than treating this
-as another prompt-only adjustment. Recommendation: investigate and implement a
-bounded approval stage before task/control/perception speech is audible.
+The owner accepted the recommended playback change and its added latency.
+The implementation retains the state machine, agreements and contribution budgets.
+The browser buffers bounded original PCM through a silent worklet; native captions
+are audit evidence until one complete receipt-matched clip is approved, released
+and observed playing. `LiveSpeechApprovalService` validates the current owner,
+request and revision before and after verification and immediately before release. An ordinary draft
+may precede backend commitment only when it follows the last trusted receipt of
+the current user turn; the whole draft must still pass semantic approval after
+commitment. Older-turn speech and mute/interruption cannot qualify. Existing
+`TaskResponse` generation-time fences remain unchanged.
+Task contributions reuse `TaskResponse` verification; ordinary/control/help replies
+use one semantic check per request, with four concurrent checks and 128 attempts
+per session. Approval never spends a contribution. Final task playback cues remain
+a separate protocol. Unplayed speech cannot supply conversation or consent evidence.
 
-If chosen, keep the current state machine, agreement and contribution authority.
-`public/live/client.js` currently plays the remote track immediately;
-`public/live/playback-cue.js` observes it after the fact. The new path must buffer
-bounded original audio with receipt identities, release only a complete approved
-span, and observe actual playback separately. Existing `TaskResponse`,
-`LiveTaskResponseService`, session/epoch/revision ownership and original deadlines
-remain authoritative. Discarded/unplayed speech must not masquerade as delivered
-conversation. A rejected unheard candidate needs an explicit bounded recovery
-contract; uncertain already-played output must never be replayed automatically.
-Keep raw receipts for diagnosis and preserve ordinary conversation without adding
-a parallel task engine. Do not silently broaden the current final-playback cue
-into a universal speech-authorization token.
+The declared bounds remain 30 seconds per captured clip, 45 seconds for response
+verification and 60 seconds for playback; the browser retains at most two clips.
+Acoustic completion requires 2.4 seconds of quiet. No automatic speech retry or
+new task contribution follows rejection. Missing audio/caption alignment produces
+visible guidance after ten seconds; help, Pause, Stop and explicit reconnection
+remain available. User interruption, mute, close, a superseding speaking occasion
+or the original deadline discard/cancel playback. API release/completion recheck
+current authority; cached browser context is not authority.
+Optional sensory remarks retain their existing facts, owner/revision scope,
+priority and cancellation rules. Their shorter observation/occasion expiry also
+bounds release; timely release permits completion within the overall playback
+bound. Buffering or verification may exhaust this short admission window.
 
-Testable outcomes: no early control/perception/task audio reaches the user; wrong
-Stop/Pause wording and changed required clues are withheld; valid approved speech
-plays once and advances only after observed playback. Interruption, mute, close,
-stale owners/revisions, missing receipts, size/deadline limits and late approvals
-fail conservatively. Prove these with deterministic audio/receipt unit cases,
-disposable-MySQL authority/reload tests, a production-browser playback smoke and
-the three separately authorized bounded Live journeys. Measure the added latency.
-Until this decision, ES-08 stays incomplete; no deployment or new paid retries.
+Offline acceptance covers original-sample/silent-output tests, interruption and
+network races, disposable-MySQL approval/playback/reload and consent checks, and
+a production-player browser smoke. Real-provider acceptance must use that same
+player, distinguish generated captions from observed speech, retain every failed
+attempt and measure buffering delay. Acoustic segmentation and model verification
+are fallible checks, not proof of physical audibility or perfect transcription.
+Current run outcomes and remaining ES-08 gates are in `ESCALATION_RESULTS.md`.
+Database capacity and physical trials remain deferred; no deployment is included.
+
+### Next decision after approval checkpoint - not authorized
+
+The gate is implemented and tested offline; ES-08 remains incomplete. The paid
+attempts and final unrerun timing/fact-input changes are recorded in the results.
+Recommendation: allow one bounded corrective realization of the **same committed
+response**, only if no release was granted. Keep request/run identity, spent
+contribution count, original deadlines and explicit user interruption authority.
+Rejecting a second candidate or running out of time must return visible recovery
+guidance. A released response must never retry merely because playback completion
+was lost. This is a new recovery policy, not an implicit part of speech approval.
+Backend-controlled task speech is the more deterministic alternative, with a larger
+change to the voice path. The owner must choose before either is implemented.
+
+If the bounded retry is chosen, acceptance requires unit races and budget/deadline
+checks, a real-MySQL reload/ownership test, production-browser rejected-first /
+approved-second playback with exactly one contribution, and the three capped Live
+journeys with full semantic review. Preserve every failed attempt. No new action,
+weaker verifier or hidden deadline extension may be used to make the tests pass.
 
 ### ES-01 — Reproducible classroom cases and bounded recovery evidence
 

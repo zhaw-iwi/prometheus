@@ -32,6 +32,7 @@ public class LiveTranscriptSegment {
     }
     public void finish(String status, String reason, UUID eventId) { this.status = status; this.reason = reason; this.eventId = eventId; }
     public UUID getId() { return id; }
+    public UUID getAgentId() { return agent.getId(); }
     public UUID getSessionId() { return sessionId; }
     public UUID getEpoch() { return epoch; }
     public String getSpeaker() { return speaker; }

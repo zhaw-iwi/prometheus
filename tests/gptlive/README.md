@@ -20,26 +20,35 @@ For durable-ingress coverage, run `LiveTranscriptIngressIntegrationTest` through
 The runner provisions only a disposable loopback schema/account. These synthetic
 checks do not establish physical audibility. Reload the cockpit after updating.
 
-## Late playback cue regression
+## Approval before Coordination playback
 
-The short-response regression exercises the production playback observer with
-synthetic audio and native caption identities, holding back real updates until
-eleven seconds after playback. The browser must acknowledge the associated
-segment itself and the persisted Coordination task must enter Reflection.
-Application HTTP, transcript capture, semantic association and monitor SSE are real;
-provider/media boundaries are synthetic. No manual playback POST substitutes for
-the observer in this journey.
+Coordination requires the production `ApprovedSpeechPlayer` and the session
+handshake `speechApproval: true`. The real-provider journey uses that player:
+`session.output_transcript.delta` remains raw generated evidence, while
+`trial.speech_played` alone supplies assertions about delivered speech. Reports
+retain buffer timing/RMS/count diagnostics without recording audio. Task semantic
+association, release, observed playback and final task completion stay separate.
+
+The browser smoke holds real updates for eleven seconds after synthetic capture.
+No speech may appear in conversation until approval and observed playback; only
+then may the persisted task reach Reflection. HTTP, transcript capture, semantic
+association, database and SSE are real. A separate local WebRTC peer-pair test
+checks remote PCM capture, zero audible output on rejection, and one approved
+playback. It catches Chromium's remote-stream consumption issue that a synthetic
+MediaStream alone cannot expose. The private remote sink is muted and zero-volume;
+the original stream is never used as audible output.
 
 ```powershell
-node --test tests/js/live/playback-cue.test.mjs tests/js/live/client.test.mjs
-python tests/gptlive/run_acceptance.py --java-tests LiveContextDeliveryUnitTest,ScopedLiveSessionServiceUnitTest,CoordinationDeliveryIntegrationTest --browser --browser-mode enabled --live-only --browser-grep 'Coordination reaches Reflection'
+node --test tests/js/live/approved-speech.test.mjs tests/js/live/speech-buffer.test.mjs tests/js/live/playback-cue.test.mjs tests/js/live/client.test.mjs
+python tests/gptlive/run_acceptance.py --java-tests LiveSpeechApprovalServiceUnitTest,CoordinationDeliveryIntegrationTest --browser --browser-mode enabled --live-only --browser-grep 'approval player captures real WebRTC|Coordination reaches Reflection'
 ```
 
 Supply `--database-properties` with an ignored loopback MySQL administrative
-configuration if needed. Unit coverage includes late initial cues, delayed
-association, unrelated/overlapping speech, missing receipts, interruption,
-duplicate captions, muted/stalled output and stream replacement. Physical audibility
-and real caption/audio skew still require `.reng/HUMAN_TEST.md` after deployment.
+configuration if needed. Interruption, duplicate input, stale requests, muted/
+hidden/stalled output, mismatched receipts, missing audio and size/deadline limits
+fail conservatively. No uncertain output is automatically replayed. Physical
+audibility and real caption/audio skew remain separate acceptance questions;
+see `.reng/HUMAN_TEST.md` and the latest escalation results.
 
 ## Observation timing
 

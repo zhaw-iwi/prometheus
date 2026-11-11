@@ -116,11 +116,25 @@ export class LivePlaybackObserver {
     this.output = stream; this.start();
   }
   caption(id) { if (!this.closed) this.gate.caption(id); }
+  /** A buffered clip has known receipts before audio starts; bind them at observed onset,
+   * after the media element has begun progressing, not during its initial silent stall. */
+  scheduled(cue, segment) {
+    this.gate.reset(); this.gate.update(cue, [segment]);
+    this.onset = {ids: [...segment.receiptIds], deadline: performance.now() + 500};
+  }
   update(cue, segments) {
     if (this.closed) return;
     this.gate.update(cue, segments);
   }
-  interrupt() { this.gate.interrupt(); }
+  interrupt() { this.onset = null; this.gate.interrupt(); }
+  sample(value) {
+    this.gate.sample(value);
+    if (this.onset && performance.now() > this.onset.deadline) this.onset = null;
+    if (this.onset && value.voiced && this.gate.frames.at(-1)?.voiced) {
+      for (const id of this.onset.ids) this.gate.caption(id);
+      this.onset = null;
+    }
+  }
   async start() {
     if (this.context || !this.output || this.closed) return;
     let context;
@@ -137,7 +151,7 @@ export class LivePlaybackObserver {
         this.analyser.getFloatTimeDomainData(this.samples);
         const rms = Math.sqrt(this.samples.reduce((sum, value) => sum + value * value, 0) / this.samples.length);
         const track = this.output?.getAudioTracks()[0];
-        this.gate.sample({voiced: rms > 500 / 32768, mediaTime: this.audio.currentTime,
+        this.sample({voiced: rms > 500 / 32768, mediaTime: this.audio.currentTime,
           playable: context.state === 'running' && !document.hidden && !this.audio.paused && !this.audio.muted
             && this.audio.volume > 0 && this.audio.readyState >= 2 && track?.readyState === 'live' && !track.muted});
       }, 50);
@@ -153,5 +167,5 @@ export class LivePlaybackObserver {
     const context = this.context; this.context = null;
     if (context) void context.close().catch(() => {});
   }
-  close() { this.closed = true; this.gate.reset(); this.release(); this.output = null; }
+  close() { this.closed = true; this.onset = null; this.gate.reset(); this.release(); this.output = null; }
 }

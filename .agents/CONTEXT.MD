@@ -94,6 +94,14 @@ PROMETHEUS currently provides:
   append acknowledgements. Delivery-aware Coordination sessions opt into bounded
   assistant sentence assembly before verification; user interruption, original
   capture/response deadlines and separate playback evidence remain authoritative.
+  Following owner approval, Coordination Live buffers original audio before
+  audible release. A separate scoped approval service checks current request,
+  owner/revision and complete receipts; task speech reuses its semantic verifier.
+  Observed playback alone exposes the candidate as conversation/consent evidence.
+  Rejected or unpaired clips give recovery guidance without automatic task replay.
+  The browser retains two bounded clips and preserves the original deadlines;
+  other agents keep direct playback. ES-08 real-provider outcomes remain in
+  `.agents/ESCALATION_RESULTS.md`; physical audibility is unverified.
   Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
   admission and task controls. Cross-phase support uses the shared user action,

@@ -72,6 +72,9 @@ public class ExternalSpeechRecordingService {
                 }
                 Event nativeSpeech = agent.recordExternalSpeech(text, new SpeechProvenance(Origin.NATIVE, owner.sessionId(), owner.epoch(),
                         segmentId, association, sources, complete));
+                var voice = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast().ownPolicy();
+                if (voice instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveSpeechApprovalRequired())
+                    nativeSpeech.speechProvenance(nativeSpeech.speechProvenance().playback(false));
                 if (taskResponses != null) taskResponses.prepare(agent, owner, nativeSpeech, started, parts);
                 var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
                 if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy)

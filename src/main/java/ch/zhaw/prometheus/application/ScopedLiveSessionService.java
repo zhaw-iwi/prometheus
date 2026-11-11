@@ -33,7 +33,8 @@ import ch.zhaw.prometheus.application.live.LiveContextSnapshot;
 public class ScopedLiveSessionService {
     public static final List<String> VOICES = List.of("marin", "quartz", "willow", "meridian");
     public record Capabilities(boolean enabled, String model, List<String> voices, boolean diagnosticOnly, boolean eligible, long departureGraceMs) {}
-    public record SessionView(UUID handle, String sdp, String model, String voice, boolean sidebandReady) {
+    public record SessionView(UUID handle, String sdp, String model, String voice, boolean sidebandReady, boolean speechApprovalRequired) {
+        public SessionView(UUID handle, String sdp, String model, String voice, boolean sidebandReady) { this(handle, sdp, model, voice, sidebandReady, false); }
         @Override public String toString() { return "SessionView[handle=" + handle + ",sdp=redacted]"; }
     }
     public record Diagnostic(String type, long sequence, long serverMs, String eventId, String clientEventId) {}
@@ -46,7 +47,9 @@ public class ScopedLiveSessionService {
     public record ProviderTelemetry(Double usageSeconds, Double contextUsageRatio, String closeReason,
             List<ProviderProblem> problems, Map<String,Object> configuration) {}
     public record UpdatesView(StatusView status, long transcriptRevision, List<LiveTranscriptIngressService.Outcome> transcripts,
-            ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue) {
+            ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue, UUID speechRequestId) {
+        public UpdatesView(StatusView status, long transcriptRevision, List<LiveTranscriptIngressService.Outcome> transcripts,
+                ch.zhaw.prometheus.model.policy.LivePlaybackCue cue) { this(status, transcriptRevision, transcripts, cue, null); }
         public UpdatesView(StatusView status, long transcriptRevision, List<LiveTranscriptIngressService.Outcome> transcripts) {
             this(status, transcriptRevision, transcripts, null);
         }
@@ -58,6 +61,8 @@ public class ScopedLiveSessionService {
     private final LiveAgentContextService contexts;
     private final ExternalSpeechOwnership ownership;
     private final Clock clock;
+    private LiveSpeechApprovalService speechApprovals;
+    @Autowired void speechApprovals(LiveSpeechApprovalService service) { speechApprovals = service; }
     private LiveTranscriptCaptureService captures;
     @Autowired void configureCaptures(LiveTranscriptCaptureService captures) { this.captures = captures; }
     private LiveContextBridgeService bridge;
@@ -124,6 +129,8 @@ public class ScopedLiveSessionService {
             lease.controls = delegationControls;
             lease.commandTimeout = properties.getRequestTimeoutMs();
             lease.context = contexts.claim(code, agentId, lease.handle).orElseThrow(() -> new IllegalArgumentException("Agent unavailable"));
+            if (lease.context.speechApprovalRequired() && !request.speechApproval())
+                throw new IllegalArgumentException("This agent requires an approval-capable Live player. Reload the client.");
             String build = System.getenv("HEROKU_SLUG_COMMIT");
             lease.configuration = Map.ofEntries(
                     Map.entry("model", properties.getModel()), Map.entry("voice", voice),
@@ -134,6 +141,7 @@ public class ScopedLiveSessionService {
                     Map.entry("assistantSilenceMs", lease.context.assistantSilenceMs()),
                     Map.entry("filterIsolatedInputActivity", lease.context.filterIsolatedInputActivity()),
                     Map.entry("pendingAcknowledgements", lease.context.pendingAcknowledgements()),
+                    Map.entry("speechApprovalRequired", lease.context.speechApprovalRequired()),
                     Map.entry("latenessMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.LATENESS_MS),
                     Map.entry("maxOpenMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_OPEN_MS),
                     Map.entry("maxAudioGapMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.MAX_AUDIO_GAP_MS));
@@ -153,7 +161,7 @@ public class ScopedLiveSessionService {
             if (lease.stopped.get() || !lease.connection.isOpen() || lease.disconnected.get())
                 throw new LiveProviderException("Live sideband did not become ready");
             lease.startBridge();
-            return Optional.of(new SessionView(lease.handle, lease.provider.sdp(), properties.getModel(), voice, true));
+            return Optional.of(new SessionView(lease.handle, lease.provider.sdp(), properties.getModel(), voice, true, lease.context.speechApprovalRequired()));
         } catch (RuntimeException failure) {
             sessions.remove(lease.handle, lease);
             dispose(lease, false);
@@ -171,6 +179,7 @@ public class ScopedLiveSessionService {
             String command = muted ? "session.input_audio.mute" : "session.input_audio.unmute";
             String acknowledgement = muted ? "session.input_audio.muted" : "session.input_audio.unmuted";
             lease.command(command, acknowledgement, properties.getRequestTimeoutMs());
+            if (muted) lease.approvals.interrupt(clock.instant());
             if (lease.capture != null) lease.capture.inputMuted(muted);
             return lease.status();
         });
@@ -185,8 +194,26 @@ public class ScopedLiveSessionService {
             return new UpdatesView(lease.status(), revision,
                     revision == transcriptRevision ? null : ingress.history(agentId, handle),
                     lease.bridge != null ? lease.bridge.playbackCue()
-                            : lease.context.activity() == null ? null : lease.context.activity().playbackCue());
+                            : lease.context.activity() == null ? null : lease.context.activity().playbackCue(),
+                    lease.bridge != null ? lease.bridge.speechRequestId() : null);
         }).or(() -> closedStatus(code, agentId, handle).map(status -> new UpdatesView(status, -1, null)));
+    }
+
+    public Optional<LiveSpeechApprovalService.Result> approveSpeech(String code, UUID agent, UUID handle, String segment) {
+        return owned(code, agent, handle).map(lease -> {
+            if (!lease.context.speechApprovalRequired() || speechApprovals == null) throw new IllegalArgumentException("Speech approval unavailable");
+            lease.clientSeen = clock.instant();
+            return speechApprovals.approve(agent, new ch.zhaw.prometheus.model.policy.ExternalSpeech(handle, lease.context.epoch()), lease.approvals, segment);
+        });
+    }
+    public Optional<Boolean> approvedSpeech(String code, UUID agent, UUID handle, UUID approval, String segment, boolean played) {
+        return owned(code, agent, handle).map(lease -> {
+            if (!lease.context.speechApprovalRequired() || speechApprovals == null) return false;
+            lease.clientSeen = clock.instant();
+            var owner = new ch.zhaw.prometheus.model.policy.ExternalSpeech(handle, lease.context.epoch());
+            return played ? speechApprovals.played(agent, owner, lease.approvals, approval, segment)
+                    : speechApprovals.release(agent, owner, lease.approvals, approval, segment);
+        });
     }
 
     public Optional<Boolean> playbackSettled(String code, UUID agentId, UUID handle, UUID cueId, String segmentId) {
@@ -257,6 +284,7 @@ public class ScopedLiveSessionService {
     private void dispose(Lease lease, boolean graceful) {
         boolean first = lease.stopped.compareAndSet(false, true);
         ownership.pauseInput(lease.agentId, lease.handle);
+        lease.approvals.close();
         if (lease.capture != null) lease.capture.inputMuted(true);
         lease.pending.values().forEach(value -> value.result.completeExceptionally(new LiveProviderException("Live session stopped")));
         if (lease.bridge != null) lease.bridge.close();
@@ -322,6 +350,7 @@ public class ScopedLiveSessionService {
         final ArrayDeque<Diagnostic> recent = new ArrayDeque<>();
         volatile LiveSessionGateway.Session provider;
         volatile LiveContextSnapshot context;
+        final LiveSpeechApprovalService.Window approvals = new LiveSpeechApprovalService.Window();
         volatile LiveTranscriptCaptureService.Capture capture;
         volatile LiveContextBridgeService.Session bridge;
         volatile String contextProblem;
@@ -371,6 +400,7 @@ public class ScopedLiveSessionService {
                         safeId(string(error, "type")), safeId(string(error, "client_event_id"))));
             }
             if (type.equals("session.delegation.created")) quietDelegation(event);
+            if ("session.input_transcript.delta".equals(type)) approvals.input(string(event, "event_id"), clock.instant());
             if (capture != null) capture.receive(event);
             if (bridge != null) bridge.receive(event);
             if (type.equals("session.input_audio.append") || type.equals("session.output_audio.delta")) {
