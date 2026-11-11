@@ -9,6 +9,20 @@ import ch.zhaw.prometheus.model.task.TaskMemory;
 
 class CoordinationAcceptanceUnitTest {
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
+    @Test void combinedProposalCannotOverrideAnExplicitInstructionNotToStart() {
+        for (String request : java.util.List.of("Propose an invitation task but do not start yet",
+                "Don't start now; just propose the task", "Bitte nicht starten; schlage eine Aufgabe vor")) {
+            var fixture = new CoordinationAgentUnitTest();
+            fixture.turn("PROPOSE_AND_START", fixture.dialogue(), request, fixture.text);
+            assertFalse(fixture.storage().containsKey(CoordinationMemory.AGREEMENT), request);
+            assertFalse(fixture.storage().containsKey(TaskMemory.ACTIONS), request);
+            assertEquals("CONVERSATION", CoordinationMemory.stage(fixture.storage()), request);
+        }
+        var allowed = new CoordinationAgentUnitTest();
+        allowed.turn("PROPOSE_AND_START", allowed.sensor(false), "Start now: when I show rock, offer a welcome idea; finish on paper", allowed.text);
+        assertEquals("EXECUTION", CoordinationMemory.stage(allowed.storage()));
+        assertEquals(0, allowed.storage().get(TaskMemory.ACTIONS).getAsInt());
+    }
     @Test void explicitAcceptanceOfReadySensorProposalDoesNotDependOnModelOutput() {
         for (String command : java.util.List.of("Yes, let's start now.", "Run it", "Please start the saved proposal now",
                 "Let's start", "let start", "lets start", "Ja, lass uns starten", "Bitte jetzt starten", "I accept")) {

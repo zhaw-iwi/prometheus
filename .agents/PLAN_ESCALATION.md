@@ -1,7 +1,19 @@
 # Coordination escalation and classroom reliability
 
-Prepared: 2026-11-10. Status: ES-01 through ES-07 complete; ES-08 pending. ES-07 capacity gate unmet.
+Prepared: 2026-11-10. Status: ES-01 through ES-07 implemented and re-audited;
+ES-08 harness and local/Live investigation executed, acceptance unmet. Native
+speech fidelity/association remain open; database capacity is deferred by the
+2026-11-11 owner scope update below. Follow-up work adds receipt-aware capture,
+atomic short replies, verifier evaluation and explicit current-turn context.
+Passing local and direct-provider checks do not close the integrated Live failures.
+Physical trials NOT RUN.
 Actual verification and limitations: `ESCALATION_RESULTS.md`.
+
+**2026-11-11 owner scope update:** finish the response-verifier and spoken-proposal
+reliability work, then run the three complete Live journeys. Database capacity is
+deferred while a different deployment environment is considered; the Heroku query
+quota is not a gate for this milestone. Retain the earlier measurements as history,
+without further capacity investigation or deployment changes here.
 
 ## Goal and working model
 
@@ -394,9 +406,23 @@ or adding a durable research archive is a separate rollout decision.
 
 ### ES-08 — Integrated OpenAI Live acceptance and operator handoff
 
-**Depends on:** ES-02 through ES-07 for the final acceptance tree. A capacity
-failure does not prevent local functional investigation, but it blocks a claim
-that the deployment is ready for another six-user class.
+**2026-11-10 review:** integrated local MySQL, browser and real Live evidence is
+now recorded in `ESCALATION_RESULTS.md`, with retained failed attempts and an
+operator script. This is not a completed acceptance milestone: native speech
+sequencing/association still has critical failures and the classroom capacity gate
+remains unmet. Do not replace those failures with a claim based on text probes
+or deterministic tests.
+
+**2026-11-11 follow-up:** the final verifier evaluation passes 36/36 labelled
+checks, and full local regression passes. Real Live demonstrates one complete
+riddle round with confirmed playback, but also split feedback and preliminary
+proposal wording that prevent integrated acceptance. Capture now mirrors ingress
+outer-whitespace trimming. See the retained attempts and exact coverage in
+`ESCALATION_RESULTS.md`; database capacity remains deferred under the scope update.
+
+**Depends on:** ES-02 through ES-07 for the final behavioural acceptance tree.
+Per the 2026-11-11 scope update, database capacity and the choice of deployment
+environment are deferred; they do not block the current behavioural checks.
 
 **Deliverable:** one integrated evidence record and three short real Live happy
 paths, using the extended existing runner and its bounded paid-run controls:

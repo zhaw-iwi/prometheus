@@ -196,7 +196,7 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("demoAgentPath(\"/states\")"));
         assertTrue(script.contains("demoAgentPath(\"/storage\")"));
         assertTrue(script.contains("demoAgentPath(\"/start\")"));
-        assertTrue(script.contains("demoAgentPath(\"/reset\")"));
+        assertTrue(script.contains("scopedFetch(`/demo/agents/${encodeURIComponent(connection.agentId)}/reset`"));
         assertTrue(script.contains("demoAgentPath(`/acknowledge${profile}`)"));
         assertTrue(script.contains("demoAgentPath(\"/behaviour/generate\")"));
         assertTrue(script.contains("demoAgentPath(\"/behaviour/stream\")"));

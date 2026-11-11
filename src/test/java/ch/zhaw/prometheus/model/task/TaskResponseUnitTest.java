@@ -27,6 +27,63 @@ class TaskResponseUnitTest {
     String result(TaskResponse.Check c, String verdict) {
         return "{\"responseId\":\""+c.id()+"\",\"revision\":"+c.revision()+",\"segmentId\":\""+c.segment()+"\",\"verdict\":\""+verdict+"\"}";
     }
+    @Test void ingressTrimmedSpeechKeepsReceiptTimingAndAllSpokenWords() {
+        var parts = List.of(new LiveSpeechPart(" \t", now.minusSeconds(1)),
+                new LiveSpeechPart(" What has keys", now.plusMillis(100)),
+                new LiveSpeechPart(" but opens no door? \n", now.plusMillis(700)));
+        var event = speech("What has keys but opens no door?", owner, true, "trimmed");
+        var check = TaskResponse.claim(storage, owner, event, now.minusSeconds(1), now.plusSeconds(2), 1, parts).orElseThrow();
+        assertEquals("What has keys but opens no door?", check.text());
+        assertEquals(0, storage.get(TaskResponse.KEY).getAsJsonObject().get("speechOffset").getAsInt());
+        assertFalse(TaskResponse.captured(storage, owner));
+    }
+    @Test void trimmingCannotReclassifyEarlyWordsOrChangeInternalText() {
+        for (var parts : List.of(
+                List.of(new LiveSpeechPart(" The robot", now.minusSeconds(1)), new LiveSpeechPart(" jokes. ", now.plusSeconds(1))),
+                List.of(new LiveSpeechPart(" The  robot jokes. ", now.plusSeconds(1)))))
+            assertTrue(TaskResponse.claim(storage, owner, speech("The robot jokes.", owner, true, "trim-reject"),
+                    now.minusSeconds(1), now.plusSeconds(2), 1, parts).isEmpty());
+        assertEquals("PENDING", TaskResponse.status(storage));
+    }
+    @Test void earlyRemarkAndFragmentedLaterReplyUseOnlyTheCompletePostCommitSuffix() {
+        var parts = List.of(new LiveSpeechPart("Okay, starting it now. ", now.minusSeconds(1)),
+                new LiveSpeechPart("Started. I'm waiting ", now.plusMillis(100)),
+                new LiveSpeechPart("for a fresh cue.", now.plusMillis(700)));
+        String raw = parts.stream().map(LiveSpeechPart::text).collect(java.util.stream.Collectors.joining());
+        var event = speech(raw, owner, true, "merged");
+        TaskResponse.purpose(storage, TaskResponse.Purpose.ARMING);
+        var check = TaskResponse.claim(storage, owner, event, now.minusSeconds(1), now.plusSeconds(2), 1, parts).orElseThrow();
+        assertEquals("Started. I'm waiting for a fresh cue.", check.text());
+        assertEquals(raw, BehaviourPlan.fromJson(event.getPayload()).getSpeech());
+        assertFalse(TaskResponse.captured(storage, owner));
+        assertTrue(TaskResponse.finish(storage, owner, check, TaskResponse.Verdict.MATCH, now.plusSeconds(3)));
+        assertEquals("merged", storage.get(TaskResponse.KEY).getAsJsonObject().get("segment").getAsString());
+    }
+    @Test void receiptSlicingCannotUseEarlyWordsMidSentenceTailsOrUntrustedText() {
+        for (var parts : List.of(
+                List.of(new LiveSpeechPart("Started. I'm waiting for a fresh cue.", now)),
+                List.of(new LiveSpeechPart("Started. I'm waiting ", now.minusSeconds(1)), new LiveSpeechPart("for a fresh cue.", now.plusSeconds(1))),
+                List.of(new LiveSpeechPart("An early promise. ", now), new LiveSpeechPart("A complete late answer.", now.plusSeconds(10))))) {
+            String raw = parts.stream().map(LiveSpeechPart::text).collect(java.util.stream.Collectors.joining());
+            assertTrue(TaskResponse.claim(storage, owner, speech(raw, owner, true, "unsafe"), now.minusSeconds(1), now.plusSeconds(2), 1, parts).isEmpty());
+        }
+        assertTrue(TaskResponse.claim(storage, owner, speech("Only the retained history is evidence.", owner, true, "mismatch"),
+                now.minusSeconds(1), now.plusSeconds(2), 1, List.of(new LiveSpeechPart("Invented answer.", now.plusSeconds(1)))).isEmpty());
+        assertEquals("PENDING", TaskResponse.status(storage));
+    }
+    @Test void queuedMixedSegmentRetainsItsSuffixBoundaryAcrossReload() {
+        var first = TaskResponse.claim(storage, owner, speech("Unrelated weather comment", owner, true, "first"), now.plusMillis(1), now.plusMillis(2), 1).orElseThrow();
+        var parts = List.of(new LiveSpeechPart(" An early remark. ", now.minusMillis(1)), new LiveSpeechPart("The complete authorized reply. ", now.plusMillis(3)));
+        var event = speech("An early remark. The complete authorized reply.", owner, true, "second");
+        assertTrue(TaskResponse.claim(storage, owner, event, now.minusMillis(1), now.plusMillis(4), 1, parts).isEmpty());
+        var reload = new Storage(); storage.toMap().forEach((k,v) -> reload.put(k, JsonParser.parseString(v.toString())));
+        TaskResponse.finish(reload, owner, first, TaskResponse.Verdict.UNRELATED, now.plusMillis(5));
+        var queued = TaskResponse.takeCandidate(reload, owner).orElseThrow();
+        var check = TaskResponse.claimCandidate(reload, owner, event, queued, now.plusMillis(6), 1).orElseThrow();
+        assertEquals("The complete authorized reply.", check.text()); assertEquals(first.deadline(), check.deadline());
+        TaskResponse.finish(reload, owner, check, TaskResponse.Verdict.AMBIGUOUS, now.plusMillis(7));
+        assertEquals("UNCERTAIN", TaskResponse.status(reload));
+    }
     @Test void completedParaphraseCanBeClaimedOnceAndOnlyFreshPostCheckCuesAreEligible() {
         var e = speech("My circuits run on coffee today!", owner, true, "segment-1");
         var c = TaskResponse.claim(storage, owner, e, now.plusSeconds(1), now.plusSeconds(5)).orElseThrow();
@@ -62,7 +119,7 @@ class TaskResponseUnitTest {
         var check = TaskResponse.claim(storage, owner, speech("Okay!", owner, true, "literal"),
                 now.plusSeconds(1), now.plusSeconds(2)).orElseThrow();
         assertFalse(TaskResponse.captured(storage, owner));
-        assertTrue(check.request().messages().getFirst().getContent().contains("explicitly requested exact word"));
+        assertTrue(check.request().messages().getFirst().getContent().replaceAll("\\s+", " ").contains("explicitly requested exact word"));
         assertTrue(TaskResponse.finish(storage, owner, check, true, now.plusSeconds(3)));
         assertTrue(TaskResponse.captured(storage, owner));
     }

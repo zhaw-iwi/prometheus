@@ -75,6 +75,54 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Coordination behavioural follow-up (2026-11-11): the response verifier has a
+  labelled direct-provider evaluation (36/36 final checks), count proposals
+  carry executable terms in a bounded speaking request, and task interpretation
+  identifies the current user turn and remaining dialogue budget explicitly.
+  A real Live run exposed an outer-whitespace mismatch between saved transcripts
+  and raw receipts; capture now mirrors ingress trimming without weakening timing
+  or playback checks. ES-08 remains unaccepted; actual Live attempts, regression
+  results and remaining limitations are in `.agents/ESCALATION_RESULTS.md`.
+  Full regression: **871 Java passed, one capacity test skipped; 187 Node and
+  11 preflight passed; packaging passed.** One real riddle round reached confirmed
+  playback, but another split feedback before verification; premature proposal
+  wording also persists. No full three-journey acceptance claim is made.
+  Physical trials NOT RUN. Database capacity is deferred by owner instruction
+  while deployment options are considered. Owner-requested GitHub continuation
+  checkpoint: `.agents/HANDOFF_COORDINATION_2026-11-11.md`; no deployment included.
+
+- Coordination delivery follow-up (2026-11-10): short pending task replies now
+  publish their content and speaking instruction together; trusted receipt times
+  allow checking a complete later response within a segment that began early.
+  Silent-wait policies also use bounded provider acknowledgment cancellation.
+  Existing authority/deadline/playback requirements remain. **308 focused Java,
+  184 Node and 11 preflight checks pass; packaging passes.** Three bounded Live
+  attempts still leave ES-08 unmet: a spoken count condition was omitted, one
+  fixture invitation matcher needed repair, and the verifier rejected a valid
+  riddle paraphrase after one complete question. Final-feedback delivery remains
+  unverified. Physical acceptance and the earlier classroom capacity gate remain
+  open. Evidence: `.agents/ESCALATION_RESULTS.md`. Uncommitted for owner review.
+
+- Escalation ES-08 integrated audit (2026-11-10): re-read all seven milestones,
+  added bounded real Live/local-MySQL journeys and operator handoff, and repaired
+  explicit-no-start and agreed-trigger question guards. Preparation guidance now
+  distinguishes saved evidence from current sample freshness; dialogue association
+  uses the committed contribution as its content reference. Local deterministic,
+  persistence and browser checks pass, but real Live exposed duplicate/fragmented
+  dialogue speech and uncertain final delivery. ES-08 acceptance remains unmet;
+  the repeated 472,687 Questions/hour capacity projection also blocks classroom
+  rollout. Physical trials NOT RUN. Full attempts, usage and limits:
+  `.agents/ESCALATION_RESULTS.md`. Changes await owner review; no deployment.
+
+- Coordination review (2026-11-10, after ES-07): bounded real OpenAI text probes
+  exposed help-prefix interception and repeated extra-person/arrival
+  miscompilation. Concrete help-with-task requests now reach interpretation;
+  targeted count-alternative guidance and executable-condition disclosure improve
+  negotiation. Three text scenarios passed with real configured routes; 124
+  Coordination unit cases and 33 Node performance cases passed. This is partial
+  provider evidence, not ES-08 completion: Realtime/local-DB/physical acceptance
+  and the failed classroom capacity gate remain open. `.agents/ESCALATION_RESULTS.md`.
+
 - Escalation ES-07 (2026-11-10): connection-scoped unavailable/last-known/review
   guidance, read-only recovery and late-response fences; no automatic mutation
   replay. Local six-client/12-stream functional capacity probe passed, but its

@@ -48,6 +48,34 @@ class CoordinationDeliveryIntegrationTest {
     void hear(Scope scope, boolean complete) {
         hear(scope, complete, "final-contribution", "The class is invited to the lab.");
     }
+    @Test void mergedEarlyRemarkKeepsNativeHistoryAndRequiresPlaybackOfTheLaterCheckedReply() throws Exception {
+        var scope = start();
+        try {
+            Instant created = Instant.parse(memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString());
+            String early = "Okay, starting it now. ", reply = "The class is invited to the lab.";
+            var checked = new java.util.concurrent.atomic.AtomicReference<String>();
+            doAnswer(call -> {
+                var input = JsonParser.parseString(((InferenceRequest) call.getArgument(0)).messages().getLast().getContent()).getAsJsonObject();
+                checked.set(input.get("capturedSpeech").getAsString());
+                var result = new JsonObject(); for (String key : List.of("responseId", "revision", "segmentId")) result.add(key, input.get(key));
+                result.addProperty("verdict", "MATCH"); return result.toString();
+            }).when(gateway).infer(any());
+            var nativeSpeech = recording.record(scope.id(), scope.owner(), "merged", early + reply, List.of(),
+                    SpeechProvenance.Association.NONE, true, created.minusMillis(1),
+                    List.of(new LiveSpeechPart(" " + early, created.minusMillis(1)), new LiveSpeechPart("The class is invited ", created.plusNanos(1)),
+                            new LiveSpeechPart("to the lab. \n", created.plusNanos(2)))).orElseThrow();
+            awaitCaptured(scope);
+            assertEquals(reply, checked.get());
+            assertEquals(early + reply, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(nativeSpeech.getPayload()).getSpeech());
+            assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
+            assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+            var cue = contexts.refresh(scope.id(), scope.owner()).orElseThrow().context().activity().playbackCue();
+            assertEquals("merged", cue.segmentId());
+            assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "early"));
+            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "merged"));
+            assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+        } finally { ownership.release(scope.id(), scope.owner().sessionId()); }
+    }
     void hear(Scope scope, boolean complete, String segment, String words) {
         Instant started = Instant.parse(memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString()).plusNanos(1);
         doAnswer(call -> {

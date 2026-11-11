@@ -45,6 +45,7 @@ public final class CoordinationMemory {
         int count = draft.reactions() == null ? draft.dialogueLimit() : draft.reactions().maxActions();
         String limit = " Limit: " + count + " " + (draft.reactions() == null ? "agent contribution" : "sensor action")
                 + (count == 1 ? "" : "s") + (draft.reactions() == null ? ", including questions and feedback" : "") + ". Stop can end earlier.";
+        limit += CoordinationSocialContract.proposalCondition(draft);
         if (ready(storage)) return "Proposed task: " + draft.goal() + "." + limit + " " + acceptancePrompt(storage);
         if (!draft.complete()) return "The proposal is not complete yet. " + (draft.questions().isEmpty()
                 ? "We still need to agree the goal, roles and success criterion." : draft.questions().getFirst());
@@ -100,7 +101,7 @@ public final class CoordinationMemory {
             case "PREPARATION" -> "Demonstrate the remaining checks; execution is unavailable.";
             case "READY" -> CoordinationSupport.blockedDraft(storage)
                     ? "Clarify unsupported proposal terms before acceptance; repeated demonstrations cannot fix them."
-                    : "Awaiting your acceptance. Start accepts these terms; then an ON_CUE task needs a fresh cue.";
+                    : "Preparation is complete; no further demonstration is needed. Awaiting your acceptance. Start accepts these terms; then an ON_CUE task needs a fresh cue.";
             case "EXECUTION" -> "Pause, stop, revise, or report completion.";
             case "PAUSED" -> "Explicitly resume, revise or stop.";
             case "FINISHING" -> "No further action is allowed. Waiting for final response association and client playback; delivery is not yet confirmed.";

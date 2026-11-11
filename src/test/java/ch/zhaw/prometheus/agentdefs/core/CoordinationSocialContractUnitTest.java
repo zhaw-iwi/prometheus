@@ -12,6 +12,40 @@ import ch.zhaw.prometheus.model.social.SocialSituationChangeDetector;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 
 class CoordinationSocialContractUnitTest {
+    @ParameterizedTest
+    @CsvSource({"gt,1,more than 1 person", "eq,2,exactly 2 people", "lt,3,fewer than 3 people"})
+    void liveProposalCarriesTheExecutableCountInTheSpeakingRequest(String operator, String count, String description) {
+        var f = new CoordinationAgentUnitTest(); var proposal = socialProposal("humanCount", count);
+        proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("operator", operator);
+        proposal.addProperty("goal", "Offer a greeting"); proposal.getAsJsonObject("reactions").addProperty("goal", "Offer a greeting");
+        f.turn("PROPOSE", proposal, "Propose a count alternative without starting", f.live);
+        var initial = new ch.zhaw.prometheus.application.live.LiveContextSnapshot(f.agent.getId(), f.owner.epoch(), "before",
+                Instant.now(), java.util.List.of("state"), "Guide", java.util.List.of(), 0, java.util.Map.of());
+        var current = new ch.zhaw.prometheus.application.live.LiveContextSnapshot(f.agent.getId(), f.owner.epoch(), "after",
+                Instant.now(), initial.statePath(), "Guide", java.util.List.of(), 0, java.util.Map.of(), f.policy().liveActivityContext());
+        var delivery = new ch.zhaw.prometheus.application.live.LiveContextDelivery(initial); delivery.ready();
+        var spoken = delivery.plan(current, java.util.List.of()).commands().stream().filter(c -> c.type().equals("session.commentary.append")).toList();
+        assertEquals(1, spoken.size());
+        assertTrue(spoken.getFirst().content().contains(description + " visible"));
+        assertTrue(spoken.getFirst().content().contains("not a new arrival"));
+        assertTrue(spoken.getFirst().content().contains("Limit: 1"));
+        assertTrue(spoken.getFirst().content().contains("acceptance"));
+        assertFalse(TaskMemory.active(f.storage()));
+        assertFalse(f.storage().containsKey(ch.zhaw.prometheus.model.task.TaskResponse.KEY));
+        assertTrue(delivery.plan(current, java.util.List.of()).commands().stream().noneMatch(c -> c.type().equals("session.commentary.append")));
+    }
+    @ParameterizedTest
+    @CsvSource({"gt,1,more than 1 person", "eq,1,exactly 1 person", "lt,3,fewer than 3 people"})
+    void countAlternativeIsDisclosedFromExecutableTermsEvenWhenGoalIsVague(String operator, String count, String description) {
+        var f = new CoordinationAgentUnitTest(); var proposal = socialProposal("humanCount", count);
+        proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("operator", operator);
+        proposal.addProperty("goal", "Offer a greeting"); proposal.getAsJsonObject("reactions").addProperty("goal", "Offer a greeting");
+        var response = f.turn("PROPOSE", proposal, "Propose a count alternative", f.text);
+        assertTrue(response.getPayload().contains(description + " visible"));
+        assertTrue(response.getPayload().contains("not a new arrival"));
+        assertEquals("READY", CoordinationMemory.stage(f.storage()));
+        assertFalse(TaskMemory.active(f.storage()));
+    }
     static JsonObject socialProposal(String field, String value) {
         var proposal = CoordinationAgentUnitTest.sensor(false);
         proposal.addProperty("goal", field.equals("changeType") ? "Offer to return when another person enters" : "Offer once when at least two people are visible");

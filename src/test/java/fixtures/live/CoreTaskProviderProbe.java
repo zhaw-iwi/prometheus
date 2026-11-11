@@ -12,9 +12,12 @@ import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.policy.*;
 import ch.zhaw.prometheus.spi.*;
 
-/** Explicitly paid synthetic diagnostic (one request, or seven with confirmation cases). No database. */
+/** Explicitly paid synthetic diagnostic; optional confirmation or bounded Coordination cases. No database. */
 public final class CoreTaskProviderProbe {
     public static void main(String[] args) throws Exception {
+        if (args.length == 3 && "--allow-paid-provider".equals(args[0]) && "--coordination-cases".equals(args[2])) {
+            CoordinationProviderSmoke.run(Path.of(args[1])); return;
+        }
         if ((args.length != 2 && args.length != 3) || !"--allow-paid-provider".equals(args[0])
                 || args.length == 3 && !"--confirmation-cases".equals(args[2])) throw new IllegalArgumentException("Explicit paid opt-in and artifact path required");
         var values = new HashMap<String, Object>();

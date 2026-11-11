@@ -18,6 +18,7 @@ public final class CoordinationPerception {
                 : value.matches(".*\\b(gesichtsausdruck|facial expression|face expression)\\b.*") ? Event.TYPE_FACE_EMOTION : null;
         if (type == null) return null;
         if (value.matches(".*\\b(should|could|would|use|kannst|sollen|nutzen|verwenden)\\b.*")) return null;
+        if (value.matches(".*\\b(triggers?|rules?|agreement|agreed|proposal|task|auslöst|auslösen|regel|vereinbarung|aufgabe)\\b.*")) return null;
         // A proposal/control request is not turned into a perception question by mentioning a sensor.
         if (value.matches(".*\\b(start|stop|pause|resume|restart|when|whenever|wenn|sobald|erzähle|tell|propose)\\b.*")) return null;
         Event latest = null;

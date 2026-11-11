@@ -96,9 +96,12 @@ public class CoordinationUpdateAction extends Action {
                         + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. In reply.speech describe the required contribution in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
                         + (assent ? "\nInterpret this short reply ONLY against the completed utterance: " + new JsonPrimitive(invitation)
                                 + ". It is not automatically consent. Only KEEP or START of the unchanged saved proposal is permitted. A question about future activation or changing a proposal does not authorize starting now." : "")
-                        + DecorativeGestures.guidance(storage, now);
+                        + DecorativeGestures.guidance(storage, now)
+                        + CoordinationSocialContract.interpretationGuidance(text);
+                var messages = TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now);
+                messages.add(PromptMessage.system(CoordinationTaskContract.currentTurn(storage, text)));
                 String raw = runtime.languageModelGateway().infer(new InferenceRequest(InferencePurpose.EXTRACTION,
-                        TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT));
+                        messages, InferenceRequest.Output.JSON_OBJECT));
                 if (!runtime.taskContinuation().getAsBoolean() || !revision.equals(TaskMemory.text(storage, TaskMemory.REVISION, "0"))) return;
                 inferred = true;
                 rejection = "update_shape";
@@ -173,6 +176,8 @@ public class CoordinationUpdateAction extends Action {
             throw new IllegalArgumentException("An ordinary capability question grants no task operation");
         if (operation.equals("START") && CoordinationAcceptance.uncertainStart(text))
             throw new IllegalArgumentException("Starting requires present unquoted consent");
+        if (Set.of("START", "PROPOSE_AND_START", "RESTART").contains(operation) && CoordinationAcceptance.withholdsStart(text))
+            throw new IllegalArgumentException("An explicit instruction not to start cannot authorize activation");
         if (CoordinationTaskContract.sensorPromisesDialogue(proposed) || CoordinationTaskContract.insufficientDialogueBudget(proposed)
                 || operation.equals("START") && (CoordinationTaskContract.sensorPromisesDialogue(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))
                     || CoordinationTaskContract.insufficientDialogueBudget(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))))
@@ -351,7 +356,16 @@ public class CoordinationUpdateAction extends Action {
         if (!(operation.equals("START") && !action)) associationFacts +=
                 "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage);
         CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime, associationFacts);
+        if (live && Set.of("PROPOSE", "REPLACE").contains(operation)) {
+            var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
+            response.addProperty("proposalReview", true); storage.put(CoreTaskVoice.RESPONSE, response);
+        }
         if (live) TaskResponse.purpose(storage, action ? TaskResponse.Purpose.CONTRIBUTION : TaskResponse.Purpose.ARMING);
+        if (live && action && speech != null && !speech.isBlank()) {
+            // As with sensor contributions, judge the committed content, not future/past agreement steps
+            // or FINISHING's prohibition on authorizing another action. Capture is still not playback proof.
+            TaskResponse.contribution(storage, "One current task contribution is authorized. " + intent(speech), null);
+        }
         if (live && operation.equals("START") && !action) {
             var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
             response.addProperty("controlOnly", true); storage.put(CoreTaskVoice.RESPONSE, response);

@@ -1591,8 +1591,14 @@ or changes ordinary text/transcription/TTS generation.
 
 Application-owned `ExternalVoicePolicy` implementations may return false from
 `livePendingAcknowledgements()` to request silent waiting in common voice and
-task guidance. The default is true and preserves current core instructions.
-This changes model guidance only; it does not mute audio or establish silence.
+task guidance. Such sessions also request an 800 ms automatic delegation
+acknowledgment delay. A bounded control worker immediately sends an empty
+`session.thinking.append` with the delegation ID, without waiting for context
+projection or blocking the sideband receiver. Delegation IDs are deduplicated;
+unconfirmed commands are not retried. The default remains true.
+This uses the provider's [automatic acknowledgment cancellation](https://developers.openai.com/api/docs/guides/live-delegation).
+It does not mute audio, cancel speech already generated, or guarantee that Live
+will never speak independently. A provider append acknowledgment is not playback proof.
 
 `liveResolvedControlReply(transcript, history, owner)` lets an application resolve
 a short control reply from its current facts and completed session dialogue.
@@ -2120,6 +2126,14 @@ default single-candidate behavior is unchanged.
 Coordination records whether that occasion requests arming or an actual task
 contribution, so a cue-triggered action cannot be confused with initial ON_CUE
 activation during semantic verification. Capture still does not prove audibility.
+The verifier compares the requested communicative act: an equivalent question
+fulfils a requested question; feedback must actually evaluate the answer. Changed
+polarity, quantities, conditions, partial content or a promise to speak are not a
+match. Word-for-word comparison applies only to exact-word requirements. Related
+but insufficient speech remains AMBIGUOUS; genuinely different-topic speech is
+UNRELATED. Invalid identities/output still fail conservatively. The test-only
+response-verifier probe exercises labelled positive and negative examples with the
+configured provider; it does not authorize task progress or establish playback.
 While an armed sensor task waits quietly, new Coordination instances defer
 unsolicited sensory updates to Live. Backend sensing, history and cue matching
 continue. An authorized contribution or ordinary user turn restores selected
@@ -2152,8 +2166,9 @@ This diagnostic addition requires no schema or saved-graph migration. In every
 Coordination phase, requests such as "Help me", "I don't understand" or
 "Ich verstehe das nicht" receive state-aware guidance; other expressions of
 difficulty use the ordinary turn interpreter. Explanations preserve the agreement,
-preparation, run and contribution budget. They do not pause active sensing; ask
-explicitly to Pause or Stop. Known failures explain the rejected boundary without
+preparation, run and contribution budget. Concrete requests such as "Help me set
+up a task" use ordinary task negotiation. Help does not pause active sensing;
+ask explicitly to Pause or Stop. Known failures explain the rejected boundary without
 inventing an underlying cause. Pending Live task responses retain their identity,
 deadline and playback requirements: help adds quiet facts, never a replacement
 task contribution or an automatic replay. This is not an acoustic silence gate.
@@ -2168,6 +2183,13 @@ inference. Invalid optional expression styling may be omitted from an otherwise
 valid ordinary/control reply, while speech, hand motion and executable terms remain
 strict. Pending Live questions cannot replace a task response; request-time sensor
 facts are explicitly historical if delivery is delayed.
+
+Questions about the agreed trigger or task rules use task interpretation instead
+of being mistaken for a request to identify the currently visible sign. An
+explicit instruction not to start also blocks a combined propose-and-start
+operation. These are bounded language guards, not universal intent recognition.
+Successful preparation remains satisfied when the current sensor sample expires;
+READY guidance asks for acceptance, with a fresh execution cue needed afterwards.
 
 Agreement goals, roles and success criteria each allow up to 300 characters;
 the whole agreement remains bounded to 3000 UTF-8 bytes. A request for current
@@ -2193,11 +2215,16 @@ bounded dialogue alternative or an explicitly output-only reaction. Changing
 task form still requires an explicit replacement and renewed acceptance; no cue
 is silently removed. A supported dialogue riddle asks its question without the
 solution, then uses another authorized contribution for feedback. Both count
-towards the agreed limit. New proposals disclose the finite contribution/action
-cap, including requests phrased as "until stop". Natural-language quality and
+towards the agreed limit. Complete text proposals disclose the finite contribution/action
+cap, including requests phrased as "until stop"; Live is instructed to explain it.
+Natural-language quality and
 unseen wording remain bounded provider-acceptance concerns, not a scored-game
 guarantee. Existing saved tasks are not rewritten; unsupported answer attempts
 get specific recovery guidance while their agreement and budget are preserved.
+The turn interpreter receives the current user utterance and remaining dialogue
+budget explicitly after history and perception. Earlier questions remain context;
+they are not requests to answer again. Final contributions are instructed to omit
+another question or feedback invitation. This guidance still needs provider review.
 
 For social conditions, `arrival` means an empty scene becoming occupied; crossing
 the configured crowd threshold takes precedence. It does not mean another person
@@ -2206,10 +2233,34 @@ or regrouping, so they are not a generic additional-person predicate either.
 Coordination explains recognised mismatches and can propose an explicit measurable
 alternative, such as `obs.human.presence.humanCount > 1` (at least two visible
 people), for review before starting. A count threshold is not identity or proof
-of physical entry. Independent rules cannot silently become compound conditions
+of physical entry. Complete text proposals disclose the actual numeric count condition
+from their executable rules, even when the goal description is vague. The same
+count can already be present; it does not establish that somebody just joined.
+Ready Live count proposals put those executable terms, the action limit and the
+review-before-acceptance requirement into a single bounded speaking request when
+it fits. Longer proposals retain the full existing context path without truncating
+their terms. Proposal review neither starts the task nor creates a task contribution.
+Independent rules cannot silently become compound conditions
 or previous/current-count comparisons. Existing saved rules are not rewritten;
 known unsupported draft terms get clarification guidance rather than advice to
 repeat preparation or start unchanged. Detector event meanings are unchanged.
+
+Bounded real OpenAI text smoke checks for preparation/help/acceptance, riddle
+feedback/replacement and reviewed count alternatives are available through the
+existing provider probe; see [the test instructions](tests/gptlive/README.md).
+These checks use the real agent and gateway in memory. They do not establish
+Realtime speech delivery, database capacity or physical classroom acceptance.
+The same test instructions now include the three ES-08 real Live journeys with
+disposable local MySQL and browser-observed playback. Dialogue response capture
+compares the current committed contribution, following the sensor-response pattern;
+it still requires a semantic match and separate playback confirmation. Actual
+passes, retained failures and outstanding gates are recorded in
+[the escalation results](.agents/ESCALATION_RESULTS.md).
+ES-08 acceptance remains unmet. The revised verifier passes the labelled direct
+provider evaluation, but that alone does not establish reliable Live delivery.
+The integrated runs retain wording, capture and final-feedback failures; consult
+the results for which journey steps were actually reached. Physical trials remain
+unrun. Database capacity is deferred by the owner while deployment options are reviewed.
 
 A proposal may additionally request up to three **recognition demonstrations**,
 each checking one supported sensor field using `eq`, `lt` or `gt` and a confidence
@@ -2342,6 +2393,18 @@ progression. This adds a model round trip at task boundaries and does not prove
 physical playback. New Generic and Social Space instances opt into this contract
 through persisted `core.task.liveWording`; saved instances without the flag retain
 their original announcement contract. The original configuration prompt is unchanged.
+
+A complete native segment may span an early remark and a later confirmed response.
+Trusted transcript-part receipt times can select a complete sentence suffix after
+the response's creation boundary for checking. Earlier words and mid-sentence tails
+cannot establish delivery. The original full transcript and segment identity remain
+unchanged; a queued candidate retains its suffix offset within the original deadline.
+Receipt comparison permits the same outer whitespace trimming used by transcript
+ingress, while preserving internal characters, receipt timing and stored offsets.
+Ambiguous checks still fail conservatively, and Coordination still requires the
+client's separate playback receipt. Short Coordination task replies now carry their
+content and speaking instruction in one bounded commentary append, once per response
+identity. Long replies and other agents retain their existing context delivery path.
 
 For these new instances, `CoreTaskUpdateAction` commits validated decisions and
 nonverbal/motion output while `CoreTaskPolicy` supplies bounded task facts for Live

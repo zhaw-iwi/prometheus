@@ -4,6 +4,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
+import {escalationClips, runEscalation, acceptanceInvitation as acceptanceQuestion} from './escalation_journeys.mjs';
 const [permission, output] = process.argv.slice(2);
 const selection = process.argv.find(v => v.startsWith('--agent='))?.split('=')[1];
 const definitions = {coordination: 'core.coordination', live: 'core.live_multimodal', face: 'core.facial_expression_sensitivity',
@@ -13,8 +14,9 @@ const definitions = {coordination: 'core.coordination', live: 'core.live_multimo
 const taskJourney = selection === 'task' || selection === 'space-task';
 const coordinationJourney = selection === 'coordination';
 const coordinationScenario = process.argv.find(v => v.startsWith('--scenario='))?.split('=')[1] || 'baseline';
-// A direct question or an explicit acceptance instruction tells the visitor what to do; "ready" alone does not.
-const acceptanceQuestion = /\b(?:shall|would you like|want|wanna|accept|start|begin|ready|go ahead|proceed|try it)\b[^?]*\?|\bsay\s+["']?start["']?\s+to\s+accept\b/i;
+const escalation = coordinationJourney && !!escalationClips[coordinationScenario];
+const journeyStarted = Date.now();
+let visitorTurns = 0, finishing = false;
 const rpsJourney = selection === 'rps';
 const guessingJourney = selection?.endsWith('-guess');
 const gameJourney = rpsJourney || guessingJourney;
@@ -28,6 +30,10 @@ const key = process.env.OPENAI_API_KEY, token = process.env.PROMETHEUS_ADMIN_TOK
 if (!key || !token) throw Error('Missing provider/admin environment credentials');
 const report = {startedAt: new Date().toISOString(), selection, passed: false, turns: [],
   limitations: 'Synthetic audio/sensors; captions and received media do not prove physical audibility or movement.'};
+if (escalation) report.limits = {visitorTurns: 12, inferenceRequests: 24, completionTokensPerRequest: 2048,
+  inputBytesPerInference: 80000, reportedInferenceTokenCeiling: 200000, liveSessions: 1, liveSeconds: 360,
+  synthesizedClips: 12, synthesisCharacters: 6000, childWallSeconds: 420};
+report.scenario = coordinationScenario;
 const clips = {info: 'Hello Valerian. What is the SIRA Lab?',
   sense: selection === 'face' ? 'How does my facial expression look?' : 'How many people can you currently see?',
   ...(selection === 'live' ? {gesture: 'Please show me the paper hand sign.'} : {}),
@@ -80,17 +86,29 @@ if (guessingJourney) {
     replay: 'Let us play another round with the same roles.', solved: 'Is it a dog?'
   });
 }
+if (escalation) {
+  for (const name of Object.keys(clips)) delete clips[name];
+  Object.assign(clips, escalationClips[coordinationScenario]);
+  assert.ok(Object.keys(clips).length <= 12 && Object.values(clips).join('').length <= 6000, 'Synthetic input budget exceeded');
+}
 const cache = 'target/core-provider-audio'; fs.mkdirSync(cache, {recursive: true});
+report.synthesisRequests = 0;
+try {
 for (const [name, input] of Object.entries(clips)) {
   const body = JSON.stringify({model: 'gpt-4o-mini-tts', voice: 'alloy', input, response_format: 'pcm'});
   const file = path.join(cache, createHash('sha256').update(body).digest('hex') + '.pcm');
   if (!fs.existsSync(file)) {
+    ++report.synthesisRequests;
     const response = await fetch('https://api.openai.com/v1/audio/speech', {method: 'POST',
       headers: {Authorization: `Bearer ${key}`, 'Content-Type': 'application/json'}, body, signal: AbortSignal.timeout(60000)});
     if (!response.ok) throw Error(`Synthetic speech HTTP ${response.status}`);
     fs.writeFileSync(file, Buffer.from(await response.arrayBuffer()));
   }
   audio[name] = [...fs.readFileSync(file)];
+}
+} catch (error) {
+  report.error = 'Synthetic input preparation: ' + error.message;
+  fs.mkdirSync(path.dirname(output), {recursive: true}); fs.writeFileSync(output, JSON.stringify(report, null, 2)); throw error;
 }
 if (coordinationScenario === 'capture') audio.revision = [...audio.fragment, ...new Uint8Array(24000 * 2 * 1.2), ...audio.ending];
 if (coordinationScenario === 'recognition') {
@@ -106,6 +124,7 @@ let sensing = selection === 'face' ? {type: 'obs.emotion.face', data: {emotion: 
 async function freshSense() { return observe(sensing.type, {...sensing.data, ts: new Date().toISOString()}); }
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function api(route, method = 'GET', body, headers = scoped) {
+  if (escalation && !finishing && Date.now() - journeyStarted > 390000) throw Error('ES-08 journey time budget exhausted');
   const response = await fetch(base + route, {method, headers: {...headers, 'Content-Type': 'application/json'},
     body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(45000)});
   if (!response.ok) throw Error(`${method} ${route}: HTTP ${response.status}`);
@@ -131,6 +150,7 @@ async function capturedResponse(label) {
   }, 55000);
 }
 async function say(name) {
+  if (escalation && ++visitorTurns > 12) throw Error('ES-08 visitor turn budget exhausted');
   console.log(`Visitor: ${name}`);
   await page.evaluate(async ({bytes, name}) => {
     const view = new DataView(Uint8Array.from(bytes).buffer), samples = new Float32Array(bytes.length / 2);
@@ -619,7 +639,9 @@ try {
     assert.equal((await storage())['task.phase'], 'COMPLETED'); assert.equal((await storage())['task.actions'], 1);
     report.finalState = await api(agentPath + '/state');
   } else if (coordinationJourney) {
-    if (coordinationScenario === 'interaction') {
+    if (escalation) {
+      await runEscalation(coordinationScenario, {page, say, settled, captionsFrom, acceptanceQuestion, storage, observe, until, capturedResponse, api, agentPath, handle, report, wait});
+    } else if (coordinationScenario === 'interaction') {
       await coordinationInteraction();
     } else if (coordinationScenario === 'delivery') {
       await coordinationDelivery();
@@ -695,8 +717,12 @@ try {
   report.status = await api(`${agentPath}/live/sessions/${handle}`);
   assert.equal(report.status.state, 'attached');
   report.passed = true;
-} catch (error) { report.error = error.message; process.exitCode = 1; }
+} catch (error) {
+  report.error = error.message; process.exitCode = 1;
+  if (report.rubric) report.rubric.automatedAuthorityAndDeliveryChecks = 'FAIL';
+}
 finally {
+  finishing = true;
   clearInterval(heartbeat);
   if (agentPath) report.finalStorage = await storage().catch(error => ({error: error.message}));
   if (page) report.finalPlayback = await page.evaluate(() => {
@@ -712,7 +738,8 @@ finally {
     report.finalStatus = await api(`${agentPath}/live/sessions/${handle}`).catch(error => ({error: error.message}));
     report.ledger = await api(`${agentPath}/live/transcripts?sessionId=${handle}`).catch(error => ({error: error.message}));
     report.conversation = await api(agentPath + '/live/history').catch(error => ({error: error.message}));
-    await api(`${agentPath}/live/sessions/${handle}`, 'DELETE').catch(() => {});
+    await api(`${agentPath}/live/sessions/${handle}`, 'DELETE').then(() => { report.sessionCloseRequested = true; })
+      .catch(error => {report.sessionCloseError = error.message;});
   }
   if (page) report.events = await page.evaluate(() => logs).catch(() => []);
   await browser.close();

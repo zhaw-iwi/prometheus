@@ -8,6 +8,27 @@ import ch.zhaw.prometheus.model.coordination.*;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 
 class CoordinationTaskContractUnitTest {
+    @Test void currentTurnAndRemainingBudgetAreExplicitEvenWhenNativeAnswerPrecedesItsUserHistoryEntry() {
+        var f = new CoordinationAgentUnitTest(); var proposal = f.dialogue(); proposal.addProperty("dialogueLimit", 2);
+        f.propose(proposal, f.text); f.start(f.text);
+        f.agent.recordExternalSpeech("I see scissor.", new ch.zhaw.prometheus.model.event.SpeechProvenance(
+                ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, f.owner.sessionId(), f.owner.epoch(), "early-answer",
+                ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, java.util.List.of(), true));
+        f.agent.getEventHistory().appendEvent(ch.zhaw.prometheus.model.event.Event.observation(
+                ch.zhaw.prometheus.model.event.Event.TYPE_USER_UTTERANCE, "user", "What hand sign do you see now?"));
+        clearInvocations(f.gateway);
+        f.turn("STEP", null, "My answer is a piano", f.text);
+        var request = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+        verify(f.gateway).infer(request.capture());
+        var messages = request.getValue().messages();
+        assertTrue(messages.stream().anyMatch(m -> m.getContent().equals("I see scissor.")), "Retain native history");
+        assertTrue(messages.stream().anyMatch(m -> m.getContent().equals("What hand sign do you see now?")), "Retain earlier user history");
+        String current = messages.getLast().getContent();
+        var data = JsonParser.parseString(current.substring(current.lastIndexOf('\n') + 1)).getAsJsonObject();
+        assertEquals("My answer is a piano", data.get("currentUserTurn").getAsString());
+        assertEquals(1, data.get("remainingDialogueContributions").getAsInt());
+        assertEquals(2, f.storage().get(TaskMemory.ACTIONS).getAsInt());
+    }
     @Test void sensorAnswerLoopIsRejectedWithoutSavingOrStartingIt() {
         var f = new CoordinationAgentUnitTest(); var proposal = f.sensor(false);
         proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject()

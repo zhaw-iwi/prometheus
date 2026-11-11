@@ -29,6 +29,7 @@ class ScopedLiveSessionServiceUnitTest {
     ScopedLiveSessionService service;
     final LiveTranscriptIngressService ingress = mock(LiveTranscriptIngressService.class);
     final GenericTaskSessionLifecycleService taskLifecycle = mock(GenericTaskSessionLifecycleService.class);
+    boolean pendingAcknowledgements = true;
     @BeforeEach void setUp() {
         properties.setEnabled(true); properties.setCloseTimeoutMs(100); properties.setRequestTimeoutMs(100);
         when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:00:00Z"));
@@ -37,13 +38,37 @@ class ScopedLiveSessionServiceUnitTest {
         when(contexts.claim(anyString(), eq(agent), any())).thenAnswer(call -> {
             var epoch = UUID.randomUUID(); ownership.acquire(agent, new ch.zhaw.prometheus.model.policy.ExternalSpeech(call.getArgument(2), epoch));
             return Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
-                agent, epoch, "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0, java.util.Map.of("state", "Test instructions")));
+                agent, epoch, "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0, java.util.Map.of("state", "Test instructions"),
+                800, null, false, pendingAcknowledgements));
         });
         service = new ScopedLiveSessionService(demo, gateway, properties, contexts, ownership, clock);
         service.configureIngress(ingress);
         service.configureTaskLifecycle(taskLifecycle);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void quietPolicyCancelsEachAutomaticAcknowledgementWithoutBlockingTheSocket(boolean allowAcknowledgements) {
+        pendingAcknowledgements = allowAcknowledgements;
+        var session = start();
+        try {
+            assertEquals(allowAcknowledgements, gateway.lastRequest.pendingAcknowledgements());
+            var delegation = com.google.gson.JsonParser.parseString("{\"type\":\"session.delegation.created\",\"delegation\":{\"target\":\"client\",\"id\":\"delegation-1\"}}").getAsJsonObject();
+            gateway.receiver.accept(delegation); // Attachment may precede session startup.
+            assertTrue(gateway.sent.isEmpty());
+            gateway.receiver.accept(event("session.started"));
+            gateway.receiver.accept(delegation);
+            if (!allowAcknowledgements) {
+                org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(2)).until(() -> gateway.sent.size() == 1);
+                var quiet = gateway.sent.getFirst();
+                assertEquals("session.thinking.append", quiet.get("type").getAsString());
+                assertEquals("", quiet.get("content").getAsString());
+                assertEquals("delegation-1", quiet.get("delegation_id").getAsString());
+                assertTrue(quiet.has("event_id"));
+            } else assertTrue(gateway.sent.isEmpty());
+            assertEquals("attached", service.status("ABCDE", agent, session.handle()).orElseThrow().state());
+        } finally { service.shutdown(); }
+    }
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
     void contextWaitsForProviderStartupRegardlessOfAttachmentEventOrder(boolean duringAttach) {
@@ -173,9 +198,10 @@ class ScopedLiveSessionServiceUnitTest {
     static JsonObject event(String type) { JsonObject event = new JsonObject(); event.addProperty("type", type); return event; }
     static class FakeGateway implements LiveSessionGateway {
         int created; boolean failAttach, startedDuringAttach, ack = true;
-        final List<String> hangups = new ArrayList<>(); final List<JsonObject> sent = new ArrayList<>();
+        final List<String> hangups = new ArrayList<>(); final List<JsonObject> sent = new java.util.concurrent.CopyOnWriteArrayList<>();
+        Request lastRequest;
         Consumer<JsonObject> receiver; Runnable disconnected;
-        public Session create(Request request) { return new Session("live_" + ++created, "v=0 answer"); }
+        public Session create(Request request) { lastRequest = request; return new Session("live_" + ++created, "v=0 answer"); }
         public Connection attach(String id, Consumer<JsonObject> receiver, Runnable disconnected) {
             if (failAttach) throw new LiveProviderException("synthetic failure");
             this.receiver = receiver; this.disconnected = disconnected;
@@ -188,7 +214,7 @@ class ScopedLiveSessionServiceUnitTest {
                     sent.add(command);
                     if (!ack) return;
                     String type = command.get("type").getAsString();
-                    JsonObject response = event(type.equals("session.close") ? "session.closed" : type + "d");
+                    JsonObject response = event(type.equals("session.close") ? "session.closed" : type.endsWith(".append") ? type + "ed" : type + "d");
                     if (command.has("event_id")) response.add("client_event_id", command.get("event_id"));
                     receiver.accept(response);
                 }

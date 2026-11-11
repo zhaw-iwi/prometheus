@@ -10,10 +10,16 @@ import com.google.gson.JsonObject;
 /** Immutable selected evidence. No persistence entities escape to provider workers. */
 public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
         List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
-        long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity, boolean filterIsolatedInputActivity) {
+        long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity, boolean filterIsolatedInputActivity,
+        boolean pendingAcknowledgements) {
     public LiveContextSnapshot {
         statePath = List.copyOf(statePath); items = List.copyOf(items); guidance = Map.copyOf(guidance);
         LiveTranscriptSegmenter.validateUserSilence(userSilenceMs);
+    }
+    public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
+            List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
+            long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity, boolean filterIsolatedInputActivity) {
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, userSilenceMs, activity, filterIsolatedInputActivity, true);
     }
     public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
             List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,

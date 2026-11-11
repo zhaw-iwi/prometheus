@@ -13,6 +13,16 @@ import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationSupportUnitTest {
     @ParameterizedTest
+    @ValueSource(strings={"Please help me set up a dialogue task: draft an invitation with me. Propose it without starting.",
+            "Can you help me propose a dialogue task?", "Hilf mir eine Dialogaufgabe zu planen."})
+    void helpWithAConcreteProposalStillReachesTheTaskInterpreter(String request) {
+        var f = new CoordinationAgentUnitTest();
+        f.turn("PROPOSE", f.dialogue(), request, f.text);
+        assertEquals("READY", CoordinationMemory.stage(f.storage()));
+        verify(f.gateway).infer(any());
+        assertFalse(TaskMemory.active(f.storage()));
+    }
+    @ParameterizedTest
     @ValueSource(strings={"Pause the task, I need help", "I don't understand. Please pause", "Please pause and help me"})
     void explicitPauseInAHelpRequestTakesPriorityWithoutInference(String words) {
         var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(false), f.text); f.start(f.text);
@@ -47,7 +57,7 @@ class CoordinationSupportUnitTest {
                 CoordinationMemory.EVIDENCE, TaskMemory.ACTIONS, TaskMemory.REVISION, TaskMemory.PHASE);
         var before = new JsonObject();
         protectedKeys.forEach(key -> { if (f.storage().containsKey(key)) before.add(key, f.storage().get(key).deepCopy()); });
-        clearInvocations(f.gateway); var response = f.say("I don't understand", f.text);
+        clearInvocations(f.gateway); var response = f.say("I don't understand ", f.text);
         assertTrue(response.getPayload().contains(phase)); verifyNoInteractions(f.gateway);
         protectedKeys.forEach(key -> { if (before.has(key)) assertEquals(before.get(key), f.storage().get(key)); else assertFalse(f.storage().containsKey(key)); });
         assertEquals(phase, CoordinationMemory.stage(f.storage()));

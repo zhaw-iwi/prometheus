@@ -58,6 +58,15 @@ class CoordinationAgentIntegrationTest {
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
     }
+    @Test void deniedCombinedStartRemainsUnacceptedAfterReload() {
+        var scope = create();
+        turn(scope, "PROPOSE_AND_START", AGREEMENT, "Propose this invitation task, but do not start it");
+        var reloaded = memory(scope);
+        assertEquals("CONVERSATION", CoordinationMemory.stage(reloaded));
+        assertFalse(reloaded.containsKey(CoordinationMemory.AGREEMENT));
+        assertFalse(reloaded.containsKey(CoordinationMemory.RUN));
+        assertFalse(reloaded.containsKey(TaskMemory.ACTIONS));
+    }
     @Test void supportReloadsWithoutChangingAuthorityAndExistingPauseResumeRemainAvailable() {
         var scope = create(); turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation activity");
         var before = memory(scope).get(CoordinationMemory.DRAFT).deepCopy();

@@ -12,6 +12,7 @@ public final class CoordinationSupport {
     public static final String LIVE_HELP = "coordination.pendingHelp";
     public static final String GUIDANCE = "\nWhen the user is struggling, confused or reports unexpected behaviour, use operation SUPPORT with agreement:null. "
             + "The backend supplies the truthful explanation. Do not infer start/restart consent from a complaint. "
+            + "A request to help devise or propose a concrete task is task negotiation; the word help alone does not make it SUPPORT. "
             + "Explicit pause/stop/resume/restart requests still use their guarded operations.";
     private CoordinationSupport() {}
     public static boolean blockedDraft(Storage storage) {
@@ -20,12 +21,13 @@ public final class CoordinationSupport {
                 || CoordinationSocialContract.arrivalMismatch(draft, "");
     }
     public static boolean requested(String text) {
-        String value = text.toLowerCase(Locale.ROOT).replace('’', '\'');
+        String value = text.toLowerCase(Locale.ROOT).replace('’', '\'').strip();
         // A targeted direct-request fallback, not a sentiment classifier. Other wording uses normal inference.
         if (value.matches(".*\\b(don't|do not|not|kein|keine|nicht) (need |want |brauche )?help\\b.*")) return false;
         return value.matches(".*\\b(help me|i need help|i'm stuck|i am stuck|i don't understand|i do not understand|"
                 + "this isn't working|this is not working|something went wrong|why did that fail|what went wrong|"
-                + "ich verstehe (das )?nicht|ich brauche hilfe|das funktioniert nicht|hilf mir)\\b.*")
+                + "ich verstehe (das )?nicht|ich brauche hilfe|das funktioniert nicht|hilf mir)"
+                + "(?=$|[.!?;,\\r\\n]|\\s+please(?=$|[.!?;,])|\\s+and (?:please )?(?:stop|pause|resume)\\b).*")
                 || value.strip().matches("(please )?help[.!?]?");
     }
 

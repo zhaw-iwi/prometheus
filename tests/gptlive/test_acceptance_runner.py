@@ -10,6 +10,10 @@ RUNNER = Path(__file__).with_name('run_acceptance.py')
 
 
 class AcceptanceRunnerTest(unittest.TestCase):
+    def test_escalation_requires_real_live_transport(self):
+        for scenario in ('escalation-recovery', 'escalation-dialogue', 'escalation-social'):
+            self.run_rejected(['--paid-core', 'coordination-text', '--coordination-scenario', scenario], {},
+                              'requires the Live Coordination journey')
     def test_classroom_capacity_must_select_its_dedicated_test(self):
         self.run_rejected(['--classroom-capacity', '--java-tests', 'all'], {}, 'ClassroomCapacityIntegrationTest alone')
 

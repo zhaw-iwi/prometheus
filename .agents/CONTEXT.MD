@@ -210,8 +210,11 @@ sensor input, rendered output or confirmed action completion.
 
 Application-owned Live policies may disable pending-work acknowledgments through
 `ExternalVoicePolicy.livePendingAcknowledgements()` (default true). The adapter
-removes permission from common voice and task guidance when false. This is prompt
-guidance, not audio gating; default core wording remains identical.
+removes permission from common voice and task guidance when false. Such sessions
+also delay automatic delegation acknowledgments and send an immediate empty thinking
+update through a bounded worker to cancel them where timely. Neither mechanism is
+audio gating or a guarantee against independent native speech; append acknowledgments
+do not prove playback. Default core wording remains identical.
 
 As requested on 2026-10-30, all follow-up work on the recorded Coordination
 interaction and database load starts directly on `main`. This overrides the

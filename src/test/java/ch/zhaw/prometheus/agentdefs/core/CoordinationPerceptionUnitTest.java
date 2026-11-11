@@ -13,6 +13,18 @@ import ch.zhaw.prometheus.model.event.*;
 import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationPerceptionUnitTest {
+    @Test void questionsAboutAgreedTriggersAreNotMistakenForCurrentPerception() {
+        var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(false), f.text);
+        f.agent.getEventHistory().appendEvent(Event.observation(Event.TYPE_HAND_SIGN, "camera",
+                "{\"sign\":\"scissor\",\"confidence\":0.9,\"ts\":\"" + Instant.now() + "\"}"));
+        var draft = f.storage().get(CoordinationMemory.DRAFT).deepCopy();
+        clearInvocations(f.gateway);
+        doReturn(f.update("KEEP", null, "Rock triggers the agreed response; paper ends the task.")).when(f.gateway).infer(any());
+        var answer = f.say("Which hand sign triggers our task?", f.text);
+        assertTrue(answer.getPayload().contains("Rock triggers")); verify(f.gateway).infer(any());
+        assertEquals(draft, f.storage().get(CoordinationMemory.DRAFT));
+        assertEquals("READY", CoordinationMemory.stage(f.storage()));
+    }
     @ParameterizedTest
     @ValueSource(strings = {"CONVERSATION", "COORDINATION", "PREPARATION", "READY", "EXECUTION", "PAUSED", "FINISHING", "UNCERTAIN", "REFLECTION"})
     void freshHandQuestionsAreAnsweredWithoutInferenceOrTaskMutation(String phase) {

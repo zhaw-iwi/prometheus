@@ -41,7 +41,7 @@ def main():
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
-    parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction'], default='baseline')
+    parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
     if args.classroom_capacity and (args.paid_core or args.browser):
         parser.error('--classroom-capacity requires a separate offline run')
@@ -55,6 +55,9 @@ def main():
         parser.error('--coordination-scenario requires a paid Coordination journey')
     if args.coordination_scenario == 'interaction' and args.paid_core != 'coordination':
         parser.error('--coordination-scenario interaction requires the Live Coordination journey')
+    escalation = args.coordination_scenario.startswith('escalation-')
+    if escalation and args.paid_core != 'coordination':
+        parser.error('Escalation acceptance requires the Live Coordination journey')
     root = Path(__file__).resolve().parents[2]
     os.chdir(root)
     recovery_fixture = escalation_cases(root)
@@ -174,6 +177,12 @@ def main():
                 PROMETHEUS_SPEECH_URL='https://api.openai.com/v1/audio/speech',
                 PROMETHEUS_LIVE_SESSIONS_URL='https://api.openai.com/v1/live/sessions',
                 PROMETHEUS_LIVE_ENABLED='true', PROMETHEUS_LIVE_REQUEST_TIMEOUT_MS='30000')
+            if escalation:
+                env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='24', PROMETHEUS_PROVIDER_MAX_TOKENS='200000',
+                    PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
+                    OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000')
+                for purpose in ('BEHAVIOUR', 'NONVERBAL', 'DECISION', 'EXTRACTION', 'SUMMARY'):
+                    env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
             fixture_root = artifacts / 'provider-classes'

@@ -117,7 +117,7 @@ public class LiveContextProjection {
             var activity = external.liveActivityContext();
             basis.append(activity.facts());
             if (activity.continuation() != null) basis.append(activity.continuation().id())
-                    .append(activity.continuation().occasion()).append(activity.continuation().facts());
+                    .append(activity.continuation().occasion()).append(activity.continuation().facts()).append(activity.continuation().selfContained());
         }
         return snapshot(agent, hash(basis.toString()), now, instructions, candidates, Math.max(0, omitted), guidance);
     }
@@ -128,7 +128,8 @@ public class LiveContextProjection {
         return new LiveContextSnapshot(agent.getId(), agent.executionEpoch(), revision, now,
                 agent.getCurrentState().getActiveStatePath(), instructions, items, omitted,
                 guidance, userSilence, leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external ? external.liveActivityContext() : null,
-                leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveFilterIsolatedInputActivity());
+                leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveFilterIsolatedInputActivity(),
+                !(leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external) || external.livePendingAcknowledgements());
     }
     private static Instant observedAt(Event event) {
         if (ch.zhaw.prometheus.model.event.ObservationEvidence.supported(event.getType()))

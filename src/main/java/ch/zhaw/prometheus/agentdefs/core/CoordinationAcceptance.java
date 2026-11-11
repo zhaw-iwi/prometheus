@@ -33,4 +33,8 @@ final class CoordinationAcceptance {
         return text.contains("?") || text.stripLeading().matches("[\"'“‘].*")
                 || CoreTaskVoice.normalize(text).matches(".*\\b(not|dont|never|tomorrow|later|after|until|if|when|nicht|morgen|später|wenn|sobald)\\b.*");
     }
+    static boolean withholdsStart(String text) {
+        return CoreTaskVoice.normalize(text).matches(".*\\b(dont|do not|never)(?: \\w+){0,3} (start|begin|activate|run|restart)\\b.*"
+                + "|.*\\bnicht (starten|beginnen|anfangen)\\b.*");
+    }
 }
