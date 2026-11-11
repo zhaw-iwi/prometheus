@@ -12145,3 +12145,38 @@ Graph screenshot comparison was disabled because the repository has Windows-only
 baselines; no snapshots were changed. The hand-report desktop/mobile screenshots
 were inspected. Private application configuration and unrelated files are unchanged.
 No push or deployment is authorized for this integration.
+
+## Shared hand-pose acceptance fixture routing (2026-11-11)
+
+The hand-pose extension changes the runtime sensor-field section shared by Generic
+and Coordination extraction. The offline provider now recognizes that shared
+section without relying on its old exact heading and distinguishes Coordination
+by the declared agreement response contract. This prevents returning a Generic
+task update for a Coordination request, or generic speech instead of a task update.
+An actual scoped API regression creates each agent and checks that the offline
+provider's response persists the expected executable task/accepted agreement.
+
+All three LiveCockpitSmokeIntegrationTest cases passed against a fresh disposable
+schema on the clean main snapshot, including the new routing regression. Earlier
+full-main evidence remains **904 passing cases and one capacity skip** in
+`/tmp/prometheus-hand-integration-lgr_p302/main-full-suite-reports` and
+`main-full-java.log`; the follow-up is in `main-preview/target/surefire-reports`
+and `main-java.log`. Only test fixtures/tests and this record change. Push and
+deployment remain deferred.
+
+
+## Final local fixture promotion (2026-11-11)
+
+Carry the shared offline-provider follow-up from main `c8b2ec9` into agents after
+the hand-detection merge `528b6fb`. Both branches passed all three scoped Live smoke
+cases, including actual Generic task activation and Coordination agreement/control
+routing. This final step changes only tests/fixtures and the verification record.
+The full-suite evidence, corrected Gala suite and final smoke suite are retained
+separately. Replacing the affected suites with their final successful reports gives
+905 passing Java cases/one capacity skip on main and 1,280 passing Java cases/two
+capacity skips on agents; this is combined evidence, not a second full-suite run.
+JavaScript remains 213 passing on main and 214 on agents; hand/report Chrome cases
+and state-graph functional checks passed on both snapshots. Source/test snapshots
+match their final branch content. All disposable schemas/accounts were removed;
+the owned temporary loopback MySQL server was stopped. Private application
+configuration is unchanged. No push or deployment was performed.

@@ -38,6 +38,29 @@ class LiveCockpitSmokeIntegrationTest {
         return json.readTree(mvc.perform(post(url).header(ScopedDemoController.ACCESS_CODE_HEADER, code)
             .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsBytes(body))).andExpect(status().is2xxSuccessful()).andReturn().getResponse().getContentAsString());
     }
+    @Test void offlineProviderRoutesCurrentGenericAndCoordinationTaskContracts() throws Exception {
+        code = UUID.randomUUID().toString().replace("-", "").substring(0, 5);
+        var keys = List.of("core.generic_multimodal_behaviour", "core.coordination");
+        var access = admin.createAccessCode(code, true); admin.replaceAllowedAgentTypes(access.getId(), keys);
+        for (String key : keys) {
+            UUID id = UUID.fromString(postJson("/demo/agents", Map.of("agentDefinitionKey", key)).get("id").asText());
+            path = "/demo/agents/" + id;
+            try {
+                postJson(path + "/acknowledge", Map.of("type", Event.TYPE_USER_UTTERANCE, "actor", "user",
+                        "kind", "observation", "payload", "Start one fixture observation contribution now"));
+                var storage = agents.findById(id).orElseThrow().getStorage();
+                if (key.equals("core.coordination")) {
+                    assertTrue(storage.containsKey(ch.zhaw.prometheus.model.coordination.CoordinationMemory.AGREEMENT));
+                    assertEquals(1, storage.get(ch.zhaw.prometheus.model.task.TaskMemory.ACTIONS).getAsInt());
+                } else {
+                    assertTrue(storage.containsKey(ch.zhaw.prometheus.model.task.TaskMemory.SPEC));
+                    assertEquals("RUNNING", storage.get(ch.zhaw.prometheus.model.task.TaskMemory.PHASE).getAsString());
+                }
+            } finally {
+                mvc.perform(delete(path).header(ScopedDemoController.ACCESS_CODE_HEADER, code)).andExpect(status().isNoContent());
+            }
+        }
+    }
     @Test void liveMultimodalPersistsSeparatePoliciesAndExposesAllSensorsAndEmbodimentWithoutBackendSpeech() throws Exception {
         String key = ch.zhaw.prometheus.agentdefs.core.LiveMultimodal.KEY;
         code = UUID.randomUUID().toString().replace("-", "").substring(0, 5);
