@@ -40,6 +40,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     }
     @Override public String voiceInstructions() {
         return configuredInstructions() + ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.VOICE_GUIDANCE
+                + ch.zhaw.prometheus.model.coordination.CoordinationSocialContract.VOICE_GUIDANCE
                 + "\nThe backend coordinates both conversational and sensor-rule tasks. "
                 + "Answer ordinary conversation and capability/perception questions naturally from current facts. "
                 + "For a current hand-sign question, name the fresh recognised sign directly, for example 'I see a scissor sign'. "

@@ -207,6 +207,9 @@ regressions; (B) correct misleading preliminary proposal wording at its cause;
 the failed-attempt record and stop for a genuinely new owner scope decision.
 The shared receipt-selection commits through `057aa55` are incorporated first.
 Database capacity and physical trials remain separate from this behavioural scope.
+Steps A and B are implemented and regression-checked; the final prompt-size
+edge case and focused rerun are recorded in `ESCALATION_RESULTS.md`. Step C must
+review all native speech, including preliminary proposals, on the combined tree.
 
 ### ES-01 — Reproducible classroom cases and bounded recovery evidence
 

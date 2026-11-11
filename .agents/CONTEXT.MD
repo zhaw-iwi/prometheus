@@ -100,7 +100,9 @@ PROMETHEUS currently provides:
   bounded content-free rejection evidence and canonical pending-response identity;
   help preserves authority and explicit controls remain guarded. Supported dialogue
   and output-only sensor tasks stay distinct; first arrival is not extra-person
-  detection. Valerian service recovery keeps last-known views and performs scoped
+  detection. Native Coordination voice receives count/arrival and total-budget
+  limits before proposal negotiation; confirmed alternatives still need acceptance.
+  Valerian service recovery keeps last-known views and performs scoped
   read-only refresh without replaying uncertain mutations. Both Generic variants
   remain available. See README
   and `.agents/COORDINATION_RESULTS.md` for the bounded contract and verification;

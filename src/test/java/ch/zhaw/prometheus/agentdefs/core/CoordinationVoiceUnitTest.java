@@ -12,6 +12,16 @@ import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationVoiceUnitTest {
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
+    @Test void nativeVoiceKnowsSocialLimitsBeforeAnyProposalExists() {
+        assertFalse(f.storage().containsKey(ch.zhaw.prometheus.model.coordination.CoordinationMemory.DRAFT));
+        String instructions = new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().instructions(f.agent);
+        assertTrue(instructions.contains("not proof that someone joined"));
+        assertTrue(instructions.contains("total across the run"));
+        assertTrue(instructions.contains("explicitly reviewed visible-count alternative"));
+        f.storage().put(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.CORRECTION, new com.google.gson.JsonPrimitive(true));
+        assertDoesNotThrow(() -> new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().instructions(f.agent),
+                "Social limits and optional correction guidance must fit the existing instruction budget");
+    }
     @Test void confirmedQuestionIsPublishedOnceTogetherWithItsSpeakingInstruction() {
         f.propose(f.dialogue(), f.live);
         org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any()))

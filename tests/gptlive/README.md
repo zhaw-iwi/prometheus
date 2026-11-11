@@ -235,6 +235,9 @@ Live seconds, backend tokens and synthesis calls are separate measures.
 Review actual wording against the rubric in `journey.json`: truthful state and
 perception, visible supported terms, finite budgets, no premature/duplicate
 contribution or answer leak. An automated pass does not complete semantic review.
+Review preliminary native speech as well as the confirmed proposal: it must not
+promise detection of someone joining, or a new allowance for each person/cue,
+when the executable alternative is a visible-count threshold with a total limit.
 Never automatically rerun until success: retain every attempt and state the
 specific correction that justifies another run. Integrated evidence and unresolved
 checks are in [ESCALATION_RESULTS.md](../../.agents/ESCALATION_RESULTS.md); physical

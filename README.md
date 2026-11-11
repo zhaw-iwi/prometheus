@@ -2195,6 +2195,11 @@ legacy Coordination instances retain 800 ms assistant capture. The existing
 45-second response and 60-second final-playback deadlines are unchanged. This
 bounded acoustic grouping does not prove semantic completeness; response matching
 and separate browser playback evidence are still required.
+Native Coordination speech receives social cue limits before a proposal exists:
+visible counts do not prove someone joined, and action limits apply across the
+whole run. A supported count alternative must be described and accepted explicitly.
+This guidance does not guarantee that the provider remains silent while processing;
+acceptance reviews include preliminary speech as well as confirmed proposals.
 Database/transport unavailability still requires client-side recovery. Roadmap and verification:
 `.agents/PLAN_ESCALATION.md` and `.agents/ESCALATION_RESULTS.md`.
 Recognisable direct hand/face questions use fresh supplied observations locally,

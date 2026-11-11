@@ -1,5 +1,41 @@
 # Coordination escalation and classroom reliability evidence
 
+## ES-08 continuation B — early social capability guidance (2026-11-11)
+
+The backend already knew that arrival is empty-to-occupied and that an extra
+person requires an explicitly reviewed count alternative. Native startup speech
+did not have those limits before the backend produced a proposal. Coordination
+now supplies that distinction, accurate numeric terms and the run-wide action
+limit in its existing voice guidance. No new state, transport or per-turn request
+was added. The new regression failed before the change (`proposal-before.log`).
+
+The existing 16,000-byte instruction bound remains. An initial wording exceeded
+it; shorter wording passed ordinary cases, and an additional optional-correction
+case then exposed a remaining overrun. The final wording fits both. This checks
+prompt availability and bounds, not probabilistic speech compliance. Preliminary
+native speech is explicitly included in the Live semantic-review rubric.
+Provider acknowledgment cancellation cannot stop independent or already generated
+speech; see [the official acknowledgment guidance](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run).
+No audio-buffering/muting architecture was added in this step.
+
+Verification on top of continuation A:
+
+- Full disposable-MySQL suite: **891 cases, 889 passed, one intentional capacity
+  skip, one prompt-size failure** described above. Artifact
+  `target/gptlive-acceptance-019460a91b` preserves its log and JUnit XML.
+- After shortening, **all 46 affected Java cases passed** (Coordination voice,
+  social contract and Live context projection), including optional correction
+  guidance. **Three real-app browser cases passed**: delayed cue/Reflection,
+  durable scoped conversation, and persisted state/monitor SSE. Artifact
+  `target/gptlive-acceptance-2687ebd4e0` retains logs, XML and screenshots.
+  The recorded-conversation and RPS-result screenshots were visually inspected;
+  content and controls remained readable. Owned app/schema/account/MySQL cleanup
+  completed after both invocations. The whole suite was not repeated after the
+  final wording-only shortening; the affected cases were.
+- **193 Node and 11 runner checks passed; packaging and whitespace checks passed.**
+  Local command logs: `target/es08-continuation-20261111/`. No paid journey was
+  used to select the wording. Real Live acceptance is the next step; ES-08 is open.
+
 ## ES-08 continuation A — bounded assistant sentence assembly (2026-11-11)
 
 Started from clean `main`, incorporated the subsequent shared receipt-selection

@@ -6,6 +6,10 @@ import ch.zhaw.prometheus.model.social.SocialSituationChangeDetector;
 
 /** Task interpretation must respect the detector's categories, not their colloquial names. */
 public final class CoordinationSocialContract {
+    /** Native speech needs these limits before the backend has interpreted a proposal. */
+    public static final String VOICE_GUIDANCE = "\nA count is not proof that someone joined. Arrival means empty-to-occupied. "
+            + "Never promise extra-person detection, even before a proposal. Await an explicitly reviewed visible-count alternative: "
+            + "state its number, not joining, and get acceptance. Limits are total across the run, not per person/cue.";
     public static final String GUIDANCE = "\nSocial detector semantics: " + SocialSituationChangeDetector.CHANGE_ARRIVAL
             + " means zero visible people to someone present, except that crossing the configured crowd threshold takes precedence. "
             + SocialSituationChangeDetector.CHANGE_CROWD_DETECTED + " means crossing that threshold; "

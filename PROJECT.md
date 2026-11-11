@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- ES-08 continuation B (2026-11-11): native Coordination startup guidance now
+  includes count/arrival limits and total action budgets before proposal review.
+  The instruction bound remains unchanged. Full local-MySQL regression passed
+  889 cases, skipped capacity and exposed one prompt-size edge case; after its
+  wording-only fix, all 46 affected cases and three real-app browser cases passed.
+  Also passed 193 Node, 11 preflight, packaging and whitespace checks. Exact
+  sequence is in `.agents/ESCALATION_RESULTS.md`. Three real Live journeys and
+  semantic review remain; physical trials are unrun and capacity stays deferred.
+
 - ES-08 continuation A (2026-11-11): delivery-aware Coordination uses a bounded
   2.4-second observed assistant-silence window to keep nearby feedback sentences
   together before verification. User interruption/overlap, muted/old input,
