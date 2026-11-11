@@ -2285,8 +2285,11 @@ passes, retained failures and outstanding gates are recorded in
 [the escalation results](.agents/ESCALATION_RESULTS.md).
 ES-08 acceptance remains unmet. The revised verifier passes the labelled direct
 provider evaluation, but that alone does not establish reliable Live delivery.
-The integrated runs retain wording, capture and final-feedback failures; consult
-the results for which journey steps were actually reached. Physical trials remain
+The latest three Live attempts still fail full acceptance: early arming speech,
+a changed riddle clue, and Stop described as Pause. The social count proposal and
+one welcome with confirmed playback did succeed. Approval before audible speech
+is a proposed next scope requiring an owner latency/playback decision; it is not
+implemented. Consult the results for exact coverage. Physical trials remain
 unrun. Database capacity is deferred by the owner while deployment options are reviewed.
 
 A proposal may additionally request up to three **recognition demonstrations**,

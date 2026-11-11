@@ -1,5 +1,94 @@
 # Coordination escalation and classroom reliability evidence
 
+## ES-08 continuation C — three bounded Live attempts (2026-11-11)
+
+**ES-08 remains incomplete. All three attempts failed whole-journey acceptance.**
+The combined code checkpoint was `4c787cc`, including assembly commit `2424691`.
+Each used the real local application, disposable loopback MySQL, real OpenAI Live,
+synthetic visitor audio/sensors and the production browser playback observer.
+No failed run was retried. Semantic review includes preliminary native speech,
+not only the associated final response. Each artifact has `journey.json`,
+`provider.jsonl`, logs and a manually assessed `semantic-review.json`.
+
+### Actual findings
+
+1. **Recovery — `target/gptlive-acceptance-c6d15c8a41`: FAIL.** Correct proposal,
+   rock preparation, help before/after preparation and protected-state assertions
+   passed. The perception turn nevertheless said "I see a rock sign" before
+   "I see a scissor sign", despite fresh scissors being supplied: the lexical
+   check accepted the correction, but semantic review rejects the initial error.
+   After acceptance, the only arming sentence began "Got it, it's active...".
+   Its first trusted receipt was `15:06:33.247Z`, the response was created at
+   `15:06:33.708145400Z`, and the confirmed commentary was sent at `15:06:34.498Z`.
+   There was no eligible complete sentence beginning after response creation.
+   The original 45-second deadline ended UNCERTAIN and paused the task with zero
+   actions. No welcome, final playback or return step was reached. The authority
+   fence behaved correctly; acoustic grouping cannot authorize earlier speech.
+2. **Dialogue — `target/gptlive-acceptance-d0c0646196`: FAIL.** A two-contribution
+   dialogue proposal and acceptance succeeded without revealing the solution.
+   Backend question: "What has many keys but cannot open a single door?" Native
+   question: "Here we go. I have keys, but no locks; what am I?" A single complete
+   segment was checked and the verifier returned AMBIGUOUS. This is a recognizable
+   variant, but the changed clue does not explicitly preserve the door-opening
+   condition; it is not verified faithful delivery. The task paused with one
+   consumed contribution and no replay. Help, unfinished-answer support, final
+   feedback assembly/playback and replacement were **not reached**. Do not label
+   the acoustic fix as real-Live feedback acceptance based on this run.
+3. **Social — `target/gptlive-acceptance-6f3bd05d2d`: FAIL, with a confirmed welcome.**
+   Spoken proposal explicitly denied newcomer detection, disclosed "more than
+   one person is visible" and "One welcome total", and required acceptance.
+   This is positive evidence for continuation B. A count of one did nothing;
+   two triggered "Welcome, everyone." Exactly one contribution reached
+   PLAYBACK_CONFIRMED/Reflection. Restart created a new run and fresh budget;
+   pause/resume preserved it. Stop correctly persisted COMPLETED/CANCELLED with
+   zero actions in that second run, but native speech said "Okay, pausing it here"
+   and "Paused and outcome recorded. What's next?" Backend facts explicitly
+   contained CANCELLED and prohibited further actions. This is a real spoken
+   control mismatch, not a matcher defect. Restart also mixed "propose the same
+   terms again" with an already-running fresh task. No whole-journey pass.
+
+The assembly regression and earlier offline checks remain valid. The live
+remaining failures concern speaking before authority, stale preliminary
+perception, changed task wording and incorrect control confirmations. Neither
+retroactive association, a longer timeout, weaker verification nor retrying for
+a luckier result would establish the required contract.
+
+### Configuration, bounds, usage and cleanup
+
+This device's ignored backend default was `gpt-5.2`; run-only environment
+overrides reproduced the home comparison settings: all inference routes
+`gpt-5.6-luna`/effort `none`, Live `gpt-live-1`/`willow`. Recorded inference spans
+confirm the route and effort. No private or production configuration changed.
+These are application models, not a claim about the coding agent's model.
+
+Per run: 12 visitor turns, 24 backend requests, 2,048 completion tokens/request,
+80,000 input bytes/request, further-inference cutoff at 200,000 reported tokens,
+one 360-second Live session, 12 synthesis clips/6,000 characters and a 420-second
+child timeout. The final inference may cross the token threshold. The same
+previously authorized bounds were declared before each invocation.
+
+| Scenario | Backend requests | Prompt / completion tokens | Last reported Live seconds | New synthesis requests |
+| --- | ---: | ---: | ---: | ---: |
+| Recovery | 1 | 5,227 / 308 | 133 | 5 |
+| Dialogue | 3 | 11,273 / 362 | 43 | 4 |
+| Social | 6 | 17,082 / 645 | 149 | 5 |
+
+Total reported backend usage: **10 requests / 34,897 tokens**. Last Live usage
+updates are not complete billing totals; synthesis and Live usage are separate.
+All three requested session closure and the runner confirmed owned app, random
+schema/account and private MySQL cleanup. Recovery additionally recorded
+`context_injection_incomplete` during teardown after the primary failure.
+No physical trial, deployment, remote database write or capacity investigation.
+
+The authorized A/B/C sequence is now recorded, but the acceptance milestone is
+not complete. Further implementation stops at the new product/architecture
+decision in `PLAN_ESCALATION.md`: whether to add a bounded approval stage before
+native speech becomes audible, accepting latency and a separate playback path.
+Current playback code observes audio that is already playing; it cannot prevent
+an incorrect utterance from being heard. The provider also distinguishes
+[acknowledgment cancellation](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run)
+from [checking buffered speech before playback](https://developers.openai.com/api/docs/guides/voice-server-controls?api=live#check-speech-before-playback).
+
 ## ES-08 continuation B — early social capability guidance (2026-11-11)
 
 The backend already knew that arrival is empty-to-occupied and that an extra

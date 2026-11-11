@@ -75,6 +75,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- ES-08 continuation C (2026-11-11): one bounded real Live attempt per scenario
+  on `4c787cc`; **zero complete journey passes** after semantic review. Recovery
+  spoke before authority and initially misidentified a sign; dialogue changed
+  the riddle clue and paused on AMBIGUOUS; social correctly negotiated the count
+  alternative and confirmed one welcome's playback, but described Stop as Pause.
+  Backend cancellation/budget/ownership guards held. Artifacts, usage and cleanup
+  are recorded in `.agents/ESCALATION_RESULTS.md`. No automatic retry. ES-08 is
+  incomplete; a new owner decision about approval before audible speech and its
+  latency is recorded in `.agents/PLAN_ESCALATION.md`. No deployment; physical
+  trials unrun and database capacity deferred.
+
 - ES-08 continuation B (2026-11-11): native Coordination startup guidance now
   includes count/arrival limits and total action budgets before proposal review.
   The instruction bound remains unchanged. Full local-MySQL regression passed

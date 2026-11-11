@@ -7,7 +7,31 @@ reconciliation and current verification. The investigation below remains valid;
 ES-08 is still incomplete, and capacity remains deferred. The office's distinct
 factual-feedback failure is retained separately, not resolved by delivery matching.
 
-## Current checkpoint
+## Latest office continuation
+
+Shared changes through `057aa55` were incorporated before continuation work.
+`2424691` adds bounded assistant sentence assembly; `4c787cc` supplies social
+limits to native speech before proposal negotiation. Both are pushed to main.
+Offline verification and the resolved prompt-size edge case are recorded in the
+newest `ESCALATION_RESULTS.md` sections; do not infer a full-suite rerun after the
+final wording-only shortening.
+
+Three new bounded Live attempts on that combined tree all failed full acceptance:
+recovery `c6d15c8a41`, dialogue `d0c0646196`, social `6f3bd05d2d` under ignored
+`target/gptlive-acceptance-*`. Each retains a semantic review. The social proposal
+correctly disclosed count semantics and one welcome reached confirmed playback,
+but Stop was spoken as Pause. Recovery began arming speech before response
+authority; dialogue changed the required clue and failed verification before the
+feedback step. Do not weaken authority/verification or retry unchanged for luck.
+
+**Next step requires an owner decision**, described in `PLAN_ESCALATION.md`:
+whether to add approval before native speech becomes audible, accepting latency
+and changes to playback. No such architecture has been implemented. ES-08 remains
+incomplete; database capacity stays deferred, physical trials are unrun and no
+deployment occurred. The original home investigation below remains historical
+evidence, not a directive to repeat its completed fixes.
+
+## Original home checkpoint
 
 The owner requested committing and pushing all current work to GitHub so that a
 new Codex session on another device can continue. Work is on `main`, based on

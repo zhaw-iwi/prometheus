@@ -211,6 +211,44 @@ Steps A and B are implemented and regression-checked; the final prompt-size
 edge case and focused rerun are recorded in `ESCALATION_RESULTS.md`. Step C must
 review all native speech, including preliminary proposals, on the combined tree.
 
+**Continuation outcome:** A/B are committed as `2424691` / `4c787cc`. C ran each
+scenario once on the combined tree; all three failed full semantic acceptance.
+The social count proposal and one welcome/playback succeeded, but Stop was spoken
+as Pause. Recovery exposed speech before response authority and incorrect initial
+perception; dialogue changed the riddle clue and failed association before feedback.
+See the newest evidence section. Do not rerun these unchanged scenarios for luck.
+
+### New owner decision — approval before audible Coordination speech
+
+**Proposed next scope; not yet authorized or implemented.** The slim capture and
+guidance changes cannot guarantee that independently generated Live speech waits
+for backend authority or preserves confirmed meaning. The decision is whether to
+accept added response latency and a change to playback, rather than treating this
+as another prompt-only adjustment. Recommendation: investigate and implement a
+bounded approval stage before task/control/perception speech is audible.
+
+If chosen, keep the current state machine, agreement and contribution authority.
+`public/live/client.js` currently plays the remote track immediately;
+`public/live/playback-cue.js` observes it after the fact. The new path must buffer
+bounded original audio with receipt identities, release only a complete approved
+span, and observe actual playback separately. Existing `TaskResponse`,
+`LiveTaskResponseService`, session/epoch/revision ownership and original deadlines
+remain authoritative. Discarded/unplayed speech must not masquerade as delivered
+conversation. A rejected unheard candidate needs an explicit bounded recovery
+contract; uncertain already-played output must never be replayed automatically.
+Keep raw receipts for diagnosis and preserve ordinary conversation without adding
+a parallel task engine. Do not silently broaden the current final-playback cue
+into a universal speech-authorization token.
+
+Testable outcomes: no early control/perception/task audio reaches the user; wrong
+Stop/Pause wording and changed required clues are withheld; valid approved speech
+plays once and advances only after observed playback. Interruption, mute, close,
+stale owners/revisions, missing receipts, size/deadline limits and late approvals
+fail conservatively. Prove these with deterministic audio/receipt unit cases,
+disposable-MySQL authority/reload tests, a production-browser playback smoke and
+the three separately authorized bounded Live journeys. Measure the added latency.
+Until this decision, ES-08 stays incomplete; no deployment or new paid retries.
+
 ### ES-01 — Reproducible classroom cases and bounded recovery evidence
 
 **Depends on:** none.
@@ -426,6 +464,12 @@ sanitized incident evidence before reset/deletion; enabling external log drains
 or adding a durable research archive is a separate rollout decision.
 
 ### ES-08 — Integrated OpenAI Live acceptance and operator handoff
+
+**Latest continuation:** assembly and early social guidance are implemented; the
+three new Live attempts all failed full acceptance. One social welcome reached
+confirmed playback, but control wording and early/changed speech remain. A new
+playback/latency decision is pending above. Earlier positive evidence below is
+historical coverage, not acceptance of the current three-journey contract.
 
 **2026-11-10 review:** integrated local MySQL, browser and real Live evidence is
 now recorded in `ESCALATION_RESULTS.md`, with retained failed attempts and an
