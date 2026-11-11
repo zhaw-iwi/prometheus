@@ -136,6 +136,24 @@ class LiveContextProjectionUnitTest {
         assertTrue(narrowed.items().isEmpty());
         assertNotEquals(expired.revision(), narrowed.revision());
     }
+
+    @Test void fingerPoseReadingsAndStatesReachLiveContextAndExpireWithoutBecomingGameSigns() {
+        Agent agent = new MultimodalBehaviour().createAgent();
+        append(agent, Event.TYPE_HAND_POSE, """
+                {"hands":[{"handedness":"left","fingers":{"thumb":0.1,"index":0.75,"middle":null},
+                "fingerStates":{"thumb":"straight","index":"bent","middle":null}}]}
+                """, NOW, leaf(agent).getName());
+        var fresh = projection(NOW).project(agent).items().stream()
+                .filter(item -> Event.TYPE_HAND_POSE.equals(item.type())).findFirst().orElseThrow();
+        assertEquals("fresh", fresh.freshness());
+        assertTrue(fresh.text().contains("index=0.750")); assertTrue(fresh.text().contains("middle=unknown"));
+        assertTrue(fresh.text().contains("States: thumb=straight index=bent middle=unknown"));
+        assertEquals(NOW.plusSeconds(15), fresh.expiresAt());
+        var expired = projection(NOW.plusSeconds(15)).project(agent).items().stream()
+                .filter(item -> Event.TYPE_HAND_POSE.equals(item.type())).findFirst().orElseThrow();
+        assertEquals("expired", expired.freshness()); assertFalse(expired.text().contains("index=0.750"));
+        assertFalse(expired.text().contains("index=bent"));
+    }
     @Test void encounterStartsWithFreshSelectedWeatherButNeverPriorVisitorEvidence() {
         Agent agent = new MultimodalBehaviour().createAgent(); String name = leaf(agent).getName();
         Event weather = append(agent, Event.TYPE_WEATHER_CURRENT,

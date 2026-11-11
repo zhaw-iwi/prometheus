@@ -245,6 +245,45 @@ class GenericMultimodalTaskUnitTest {
         String prompt = request.getValue().messages().stream().map(PromptMessage::getContent).reduce("", String::concat);
         assertTrue(prompt.contains("obs.hand.sign: observed=")); assertTrue(prompt.contains("\"sign\":\"paper\""));
     }
+    @Test void fingerPoseInformsPerceptionWithoutTriggeringUnconfiguredInference() {
+        assertTrue(agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_POSE));
+        assertNull(agent.acknowledge(Event.observation(Event.TYPE_HAND_POSE, "user",
+                "{\"hands\":[{\"handedness\":\"right\",\"fingers\":{\"index\":0.75}}],\"ts\":\"" + Instant.now() + "\"}"), runtime));
+        verifyNoInteractions(gateway);
+        when(gateway.infer(any())).thenReturn(update("KEEP", "null", "Your index finger appears bent."));
+        say("How bent is my index finger?");
+        var request = ArgumentCaptor.forClass(InferenceRequest.class); verify(gateway).infer(request.capture());
+        String prompt = request.getValue().messages().stream().map(PromptMessage::getContent).reduce("", String::concat);
+        assertTrue(prompt.contains("obs.hand.pose: observed=")); assertTrue(prompt.contains("index=0.750"));
+        assertTrue(TaskSpec.observationTypes().contains(Event.TYPE_HAND_POSE));
+    }
+
+    @Test void configuredFingerPatternArmsThenReactsToNumericObservations() {
+        var task = fixtures.behaviour.HandPoseFixture.task();
+        when(gateway.infer(any())).thenReturn(update("ACTIVATE", task.toString(), "Waiting for the finger pattern"));
+        say("Start the agreed finger-bend task now");
+        assertEquals(0, memory().get(TaskMemory.ACTIONS).getAsInt());
+        var request = ArgumentCaptor.forClass(InferenceRequest.class); verify(gateway).infer(request.capture());
+        assertTrue(request.getValue().messages().stream().anyMatch(m -> m.getContent().contains("Hand-pose rule extension")));
+        arm(Instant.EPOCH); clearInvocations(gateway);
+        when(gateway.infer(any())).thenReturn("{\"speech\":\"One dry joke\"}");
+        assertNotNull(agent.acknowledge(fixtures.behaviour.HandPoseFixture.pose(Instant.now(), fixtures.behaviour.HandPoseFixture.matchingHand()), runtime));
+        assertEquals(1, memory().get(TaskMemory.ACTIONS).getAsInt()); verify(gateway).infer(any());
+    }
+
+    @Test void classifiedFingerPatternUsesTheSameTaskLifecycleAndCurrentPerception() {
+        var task = fixtures.behaviour.HandPoseFixture.stateTask();
+        when(gateway.infer(any())).thenReturn(update("ACTIVATE", task.toString(), "Waiting for the agreed finger states"));
+        say("Start when my middle finger is straight and the other agreed fingers are bent");
+        assertEquals(0, memory().get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals(task, memory().get(TaskMemory.SPEC)); arm(Instant.EPOCH); clearInvocations(gateway);
+        when(gateway.infer(any())).thenReturn("{\"speech\":\"One agreed response\"}");
+        assertNotNull(agent.acknowledge(fixtures.behaviour.HandPoseFixture.pose(Instant.now(), fixtures.behaviour.HandPoseFixture.classifiedHand()), runtime));
+        assertEquals(1, memory().get(TaskMemory.ACTIONS).getAsInt());
+        var request = ArgumentCaptor.forClass(InferenceRequest.class); verify(gateway).infer(request.capture());
+        assertTrue(request.getValue().messages().stream().anyMatch(m -> m.getContent().contains("States: thumb=unknown index=bent middle=straight")));
+    }
+
     @Test void legacyLiveCueWaitsForCompletedNativeSpeechAndProducesAnIntentExactlyOnce() {
         memory().remove("core.task.liveWording");
         var owner = new ExternalSpeech(UUID.randomUUID(), agent.executionEpoch()); var live = runtime.withExternalSpeech(owner);

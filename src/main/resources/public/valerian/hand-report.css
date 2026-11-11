@@ -1,0 +1,27 @@
+.hand-report-body { display: grid; gap: .75rem; min-height: 0; }
+.finger-pose-hand + .finger-pose-hand { margin-top: .75rem; }
+.finger-pose-row { display: grid; grid-template-columns: 4rem minmax(0, 1fr) 3.5rem; gap: .5rem; align-items: center; }
+.finger-pose-row meter { width: 100%; }
+.finger-pose-row output { grid-column: 3; text-align: right; font-variant-numeric: tabular-nums; }
+.hand-report .signal-report-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem .65rem; }
+.hand-report .signal-report-title { grid-column: 1; grid-row: 1; min-width: 0; }
+.hand-report .status-pill { grid-column: 1 / -1; grid-row: 2; justify-self: start; max-width: 100%; white-space: normal; }
+.hand-report .signal-report-head > button { grid-column: 2; grid-row: 1; width: 30px; height: 30px; padding: 0; }
+.hand-report[data-hand-report-mode="docked"] [data-hand-report-action="dock"],
+.hand-report[data-hand-report-mode="floating"] [data-hand-report-action="expand"] { display: none; }
+.hand-report[data-hand-report-mode="floating"] {
+  position: fixed; z-index: 1035; width: 460px; max-width: calc(100vw - 16px);
+  min-width: min(320px, calc(100vw - 16px)); min-height: min(12rem, calc(100dvh - 16px));
+  max-height: calc(100dvh - 16px); display: flex; flex-direction: column;
+  background: #fff; box-shadow: 0 12px 40px rgba(0, 0, 0, .25);
+  resize: both; overflow: hidden;
+}
+[data-theme="dark"] .hand-report[data-hand-report-mode="floating"] { background: #121b1e; }
+.hand-report[data-hand-report-mode="floating"] .signal-report-head { flex-shrink: 0; }
+.hand-report[data-hand-report-mode="floating"] .hand-report-body { overflow: auto; }
+.hand-report[data-hand-report-mode="floating"] .signal-report-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hand-report[data-hand-report-mode="floating"] [data-hand-report-drag] { cursor: move; touch-action: none; user-select: none; }
+.hand-report [data-hand-report-drag]:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 3px; }
+@media (max-width: 991px) {
+  .hand-report[data-hand-report-mode="floating"] { max-height: 45dvh; min-height: min(12rem, 45dvh); }
+}

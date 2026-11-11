@@ -155,9 +155,11 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             requests.add(request);
             if (secondVisitor) assertNoFirstVisitor(request.messages().stream()
                     .map(PromptMessage::getContent).reduce("", (left, right) -> left + "\n" + right));
-            if (request.messages().getFirst().getContent().startsWith("Determine whether the captured assistant speech")) {
-                var response = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
-                response.remove("confirmedTaskFacts"); response.remove("capturedSpeech"); response.addProperty("verdict", "MATCH");
+            var check = responseCheckData(request);
+            if (check != null) {
+                var response = new JsonObject();
+                for (String field : List.of("responseId", "revision", "segmentId")) response.add(field, check.get(field));
+                response.addProperty("verdict", "MATCH");
                 return response.toString();
             }
             String answer = scripted.poll();
@@ -603,7 +605,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertFalse(history().stream().filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
                     .anyMatch(event -> JsonParser.parseString(event.getPayload()).getAsJsonObject().has("nv")));
             assertTrue(requests.stream().filter(request -> request.purpose() == InferencePurpose.EXTRACTION)
-                    .filter(request -> !request.messages().getFirst().getContent().startsWith("Determine whether the captured assistant speech"))
+                    .filter(request -> responseCheckData(request) == null)
                     .allMatch(request -> request.messages().getFirst().getContent().contains("only inside reply")));
             verifyNoInteractions(speech);
         } finally {
@@ -755,6 +757,14 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     }
     private static String control(String operation) {
         return "{\"operation\":\"" + operation + "\",\"gesture\":\"NONE\",\"expression\":\"attentive\",\"gaze\":\"toward_user\"}";
+    }
+    private static JsonObject responseCheckData(InferenceRequest request) {
+        if (request.purpose() != InferencePurpose.EXTRACTION || request.output() != InferenceRequest.Output.JSON_OBJECT) return null;
+        try {
+            var data = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+            return data.keySet().containsAll(java.util.Set.of("responseId", "revision", "segmentId", "confirmedTaskFacts", "capturedSpeech"))
+                    ? data : null;
+        } catch (JsonParseException | IllegalStateException notResponseData) { return null; }
     }
     private String update(String operation, String spec, String speech) {
         return TaskReplyFixture.update(operation, spec, speech, compact);

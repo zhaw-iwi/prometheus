@@ -1439,12 +1439,12 @@
             </div>
             <div class="card-body">
               <div class="video-shell mb-3"
-                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.hand.pose">
                 <video id="camera_video" autoplay playsinline muted data-testid="camera-video"></video>
                 <canvas id="overlay_canvas" data-testid="overlay-canvas"></canvas>
               </div>
               <div class="mb-2"
-                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.hand.pose">
                 <label class="form-label metric-label" for="camera_device_select">Camera</label>
                 <div class="input-group input-group-sm" data-testid="camera-device-input-group">
                   <select id="camera_device_select" class="form-select" data-testid="camera-device">
@@ -1458,12 +1458,12 @@
                 </div>
               </div>
               <div id="camera_device_status" class="text-muted small mb-3"
-                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign"
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.hand.pose"
                 data-testid="camera-device-status">
                 Camera uses browser default.
               </div>
               <div class="d-flex gap-2 mb-3"
-                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
+                data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.hand.pose">
                 <button id="start_camera" class="btn btn-primary flex-fill" type="button" data-testid="start-camera">
                   <i class="bi bi-camera-video me-2"></i>Start
                 </button>
@@ -1481,7 +1481,7 @@
 
               <div class="accordion" id="sensing_accordion">
                 <div class="accordion-item"
-                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
+                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.hand.pose">
                   <h2 class="accordion-header">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse"
                       data-bs-target="#sensor_toggles" aria-expanded="true">
@@ -1491,7 +1491,7 @@
                   <div id="sensor_toggles" class="accordion-collapse collapse show" data-bs-parent="#sensing_accordion">
                     <div class="accordion-body">
                       <div class="form-check form-switch"
-                        data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
+                        data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.hand.pose">
                         <input id="sensor_emit_enabled" class="form-check-input" type="checkbox"
                           data-testid="sensor-emit-enabled">
                         <label class="form-check-label" for="sensor_emit_enabled">Emit camera observations</label>
@@ -1510,16 +1510,19 @@
                           data-testid="sensor-social-enabled">
                         <label class="form-check-label" for="sensor_social_enabled">Social context</label>
                       </div>
-                      <div class="form-check form-switch" data-profile-observations="obs.hand.sign">
+                      <div class="form-check form-switch" data-profile-observations="obs.hand.sign obs.hand.pose">
                         <input id="sensor_hand_enabled" class="form-check-input" type="checkbox"
                           data-testid="sensor-hand-enabled">
                         <label class="form-check-label" for="sensor_hand_enabled">Hand sign</label>
+                      </div>
+                      <div class="mt-2" data-profile-observations="obs.hand.sign obs.hand.pose">
+                        <div class="small text-muted mt-1">MediaPipe reports RPS signs and each finger from 0 (straight) to 1 (fully bent), for up to two hands. Below 0.4 is straight, above 0.55 is bent; the middle range is neutral. Camera emission sends each reading to agents that support it. The confidence threshold applies only to named signs.</div>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div class="accordion-item"
-                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
+                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.hand.pose">
                   <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                       data-bs-target="#sensor_config">
@@ -1530,7 +1533,7 @@
                     <div class="accordion-body">
                       <div class="row g-2">
                         <div class="col-6"
-                          data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign">
+                          data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.hand.pose">
                           <label class="form-label metric-label" for="emit_interval_ms">Emit ms</label>
                           <input id="emit_interval_ms" class="form-control form-control-sm" type="number" min="250"
                             step="250" value="2500" data-testid="emit-interval-ms">
@@ -1699,7 +1702,7 @@
                   </div>
                 </div>
                 <div class="accordion-item"
-                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.weather.current obs.weather.forecast">
+                  data-profile-observations="obs.emotion.face obs.human.presence obs.social.grouping obs.social.context obs.hand.sign obs.hand.pose obs.weather.current obs.weather.forecast">
                   <h2 class="accordion-header">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
                       data-bs-target="#sensed_signals">
@@ -1894,62 +1897,98 @@
                             </div>
                           </div>
                         </div>
-                        <div class="metric-row" data-profile-observations="obs.hand.sign">
+                        <div class="metric-row" data-profile-observations="obs.hand.sign obs.hand.pose">
                           <span class="metric-label">Hand Sign</span>
                           <strong id="hand_sign_value" data-testid="hand-sign-value">-</strong>
                         </div>
-                        <div class="signal-report-panel" data-profile-observations="obs.hand.sign"
-                          data-testid="hand-sign-report">
-                          <div class="signal-report-head">
-                            <span class="signal-report-title">
-                              <i class="bi bi-hand-index-thumb"></i>
-                              Hand Sign Report
-                            </span>
-                            <span id="hand_sign_status" class="status-pill is-idle"
-                              data-testid="hand-sign-status">No sign</span>
+                        <div id="hand_report_home" data-profile-observations="obs.hand.sign obs.hand.pose">
+                          <div id="hand_report_placeholder" class="surface-panel small" hidden>
+                            Hand Sign Report is expanded.
+                            <button type="button" class="btn btn-outline-ink btn-sm mt-2"
+                              data-hand-report-action="dock">Restore report</button>
                           </div>
-                          <div class="hand-report-main">
-                            <div id="hand_report_visual" class="hand-report-stage"
-                              data-testid="hand-report-visual">-</div>
-                            <div class="emotion-report-values">
-                              <div class="signal-report-row">
-                                <span class="metric-label">Sign</span>
-                                <strong id="hand_report_label" class="signal-report-value"
-                                  data-testid="hand-report-label">-</strong>
+                          <section id="hand_report" class="signal-report-panel hand-report" data-hand-report-mode="docked"
+                            data-profile-observations="obs.hand.sign obs.hand.pose" aria-labelledby="hand_report_title"
+                            data-testid="hand-sign-report">
+                            <div class="signal-report-head">
+                              <span id="hand_report_title" class="signal-report-title" data-hand-report-drag>
+                                <i class="bi bi-hand-index-thumb"></i>
+                                Hand Sign Report
+                              </span>
+                              <span id="hand_sign_status" class="status-pill is-idle"
+                                data-testid="hand-sign-status">No sign</span>
+                              <button type="button" class="btn btn-outline-ink btn-sm" data-hand-report-action="expand"
+                                aria-label="Expand hand sign report" title="Expand hand sign report"
+                                aria-controls="hand_report" aria-expanded="false" data-testid="expand-hand-report">
+                                <i class="bi bi-arrows-fullscreen"></i>
+                              </button>
+                              <button type="button" class="btn btn-outline-ink btn-sm" data-hand-report-action="dock"
+                                aria-label="Restore hand sign report" title="Restore hand sign report"
+                                data-testid="restore-hand-report"><i class="bi bi-fullscreen-exit"></i></button>
+                            </div>
+                            <div class="hand-report-body">
+                              <div id="hand_sign_report_details" class="hand-report-main">
+                                <div id="hand_report_visual" class="hand-report-stage"
+                                  data-testid="hand-report-visual">-</div>
+                                <div class="emotion-report-values">
+                                  <div class="signal-report-row">
+                                    <span class="metric-label">Sign</span>
+                                    <strong id="hand_report_label" class="signal-report-value"
+                                      data-testid="hand-report-label">-</strong>
+                                  </div>
+                                  <div class="signal-report-row">
+                                    <span class="metric-label">Confidence</span>
+                                    <strong id="hand_report_confidence" class="signal-report-value"
+                                      data-testid="hand-report-confidence">0%</strong>
+                                  </div>
+                                  <div class="signal-meter" aria-label="Hand sign confidence">
+                                    <div id="hand_report_confidence_meter" class="signal-meter-fill"
+                                      data-testid="hand-report-confidence-meter"></div>
+                                  </div>
+                                </div>
                               </div>
-                              <div class="signal-report-row">
-                                <span class="metric-label">Confidence</span>
-                                <strong id="hand_report_confidence" class="signal-report-value"
-                                  data-testid="hand-report-confidence">0%</strong>
+                              <div id="hand_pose_report" data-testid="hand-pose-report" hidden>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                  <strong class="small">Finger poses</strong>
+                                  <span id="hand_pose_status" class="status-pill is-idle" data-testid="hand-pose-status">No hands</span>
+                                </div>
+                                <p class="small text-muted mb-2">Finger bend: <strong>0 straight · 1 fully bent</strong></p>
+                                <p class="small text-muted mb-2">Below 0.4: straight · 0.4–0.55: neutral · above 0.55: bent</p>
+                                <div id="hand_pose_hands" data-testid="hand-pose-hands"></div>
+                                <p class="small text-muted mt-2 mb-0">Estimates from hand landmarks. Hidden fingers may be inferred; — means unavailable. Left/right is estimated, not a person’s identity.</p>
                               </div>
-                              <div class="signal-meter" aria-label="Hand sign confidence">
-                                <div id="hand_report_confidence_meter" class="signal-meter-fill"
-                                  data-testid="hand-report-confidence-meter"></div>
+                              <div class="signal-report-grid">
+                                <div class="signal-report-stat">
+                                  <span class="metric-label">Source</span>
+                                  <strong id="hand_report_source" class="signal-report-value"
+                                    data-testid="hand-report-source">-</strong>
+                                </div>
+                                <div class="signal-report-stat">
+                                  <span class="metric-label">Mode</span>
+                                  <strong id="hand_report_mode" class="signal-report-value"
+                                    data-testid="hand-report-mode">-</strong>
+                                </div>
+                                <div class="signal-report-stat">
+                                  <span class="metric-label">Model label</span>
+                                  <strong id="hand_report_canned" class="signal-report-value"
+                                    data-testid="hand-report-canned">-</strong>
+                                </div>
+                                <div class="signal-report-stat">
+                                  <span class="metric-label">Stability</span>
+                                  <strong id="hand_report_stability" class="signal-report-value"
+                                    data-testid="hand-report-stability">-</strong>
+                                </div>
+                                <div class="signal-report-stat">
+                                  <span class="metric-label">Detector</span>
+                                  <strong id="hand_report_detector" class="signal-report-value" data-testid="hand-report-detector">-</strong>
+                                </div>
+                                <div class="signal-report-stat">
+                                  <span class="metric-label">Inference</span>
+                                  <strong id="hand_report_inference" class="signal-report-value" data-testid="hand-report-inference">-</strong>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          <div class="signal-report-grid">
-                            <div class="signal-report-stat">
-                              <span class="metric-label">Source</span>
-                              <strong id="hand_report_source" class="signal-report-value"
-                                data-testid="hand-report-source">-</strong>
-                            </div>
-                            <div class="signal-report-stat">
-                              <span class="metric-label">Mode</span>
-                              <strong id="hand_report_mode" class="signal-report-value"
-                                data-testid="hand-report-mode">-</strong>
-                            </div>
-                            <div class="signal-report-stat">
-                              <span class="metric-label">MediaPipe</span>
-                              <strong id="hand_report_canned" class="signal-report-value"
-                                data-testid="hand-report-canned">-</strong>
-                            </div>
-                            <div class="signal-report-stat">
-                              <span class="metric-label">Stability</span>
-                              <strong id="hand_report_stability" class="signal-report-value"
-                                data-testid="hand-report-stability">-</strong>
-                            </div>
-                          </div>
+                          </section>
                         </div>
                         <div class="metric-row" data-profile-observations="obs.weather.current obs.weather.forecast">
                           <span class="metric-label">Weather</span>
@@ -2720,6 +2759,8 @@
   <script src="/valerian/state-view.js"></script>
   <link rel="stylesheet" href="/valerian/state-graph.css">
   <script src="/valerian/state-graph.js"></script>
+  <link rel="stylesheet" href="/valerian/hand-report.css">
+  <script src="/valerian/hand-report.js"></script>
   <script src="script.js"></script>
   <script type="module" src="/valerian/service-recovery.js"></script>
 </body>

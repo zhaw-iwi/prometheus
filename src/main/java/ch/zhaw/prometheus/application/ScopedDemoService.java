@@ -54,7 +54,7 @@ public class ScopedDemoService {
 
     public record ObservationResult(int status, ResponseView response) {}
     private static final Set<String> SENSOR_TYPES = Set.of(Event.TYPE_FACE_EMOTION, Event.TYPE_HUMAN_PRESENCE,
-            Event.TYPE_SOCIAL_GROUPING, Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_HAND_SIGN,
+            Event.TYPE_SOCIAL_GROUPING, Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_HAND_SIGN, Event.TYPE_HAND_POSE,
             Event.TYPE_WEATHER_CURRENT, Event.TYPE_WEATHER_FORECAST);
 
     public List<ObservationResult> acknowledgeObservations(String code, UUID id, List<EventRequest> requests) {

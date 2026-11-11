@@ -29,6 +29,7 @@ public class PromptMessageAssembler {
                 new FaceEmotionPromptEventContentAdapter(),
                 new SocialSituationChangePromptEventContentAdapter(),
                 new SocialContextPromptEventContentAdapter(),
+                new HandPosePromptEventContentAdapter(),
                 new WeatherPromptEventContentAdapter(),
                 new DefaultPayloadPromptEventContentAdapter()),
                 List.of(new NonverbalSummaryPromptContextAugmenter()), true, AgentEmbodiment.COCKPIT.personaName());

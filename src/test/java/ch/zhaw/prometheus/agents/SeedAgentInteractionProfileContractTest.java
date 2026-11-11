@@ -135,11 +135,20 @@ class SeedAgentInteractionProfileContractTest {
 
     @Test
     void keyMultimodalCapabilitiesRemainDeclared() {
+        AgentInteractionProfile facial = new FacialExpressionSensitivity().createAgent().getInteractionProfile();
+        assertWeatherSupport(facial);
+        assertTrue(facial.supportsObservation(AgentInteractionProfile.OBS_FACE_EMOTION));
+        assertTrue(facial.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
+
         AgentInteractionProfile socialContext = new SocialContextSensitivity().createAgent().getInteractionProfile();
+        assertWeatherSupport(socialContext);
+        assertTrue(socialContext.supportsObservation(AgentInteractionProfile.OBS_HUMAN_PRESENCE));
+        assertTrue(socialContext.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
         assertTrue(socialContext.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_CONTEXT));
         assertTrue(socialContext.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
 
         AgentInteractionProfile rps = new RockScissorPaper().createAgent().getInteractionProfile();
+        assertWeatherSupport(rps);
         assertTrue(rps.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
         assertTrue(rps.supportsBehaviourModality(AgentInteractionProfile.MODALITY_DISPLAY));
         assertTrue(rps.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
@@ -158,7 +167,7 @@ class SeedAgentInteractionProfileContractTest {
     void reusableTdsrFixturesExposeSpecializedCapabilities() {
         AgentInteractionProfile gestureProfile = AgentFixtures.gigiTdsrGuessingGameWithGestures()
                 .getInteractionProfile();
-        assertTdsrWeatherSupport(gestureProfile);
+        assertWeatherSupport(gestureProfile);
         assertTrue(gestureProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
         assertTrue(gestureProfile.supportsBehaviourModality(
                 AgentInteractionProfile.MODALITY_NONVERBAL_FACIAL_EXPRESSION));
@@ -166,19 +175,19 @@ class SeedAgentInteractionProfileContractTest {
 
         AgentInteractionProfile socialProfile = AgentFixtures.gigiTdsrSocialContextSensitivity()
                 .getInteractionProfile();
-        assertTdsrWeatherSupport(socialProfile);
+        assertWeatherSupport(socialProfile);
         assertTrue(socialProfile.supportsObservation(AgentInteractionProfile.OBS_HUMAN_PRESENCE));
         assertTrue(socialProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
         assertTrue(socialProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
 
         AgentInteractionProfile rpsProfile = AgentFixtures.gigiTdsrRockScissorPaper().getInteractionProfile();
-        assertTdsrWeatherSupport(rpsProfile);
+        assertWeatherSupport(rpsProfile);
         assertTrue(rpsProfile.supportsObservation(AgentInteractionProfile.OBS_HAND_SIGN));
         assertTrue(rpsProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN));
         assertTrue(rpsProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_DISPLAY));
 
         AgentInteractionProfile tourProfile = AgentFixtures.gigiTdsrTourConversation().getInteractionProfile();
-        assertTdsrWeatherSupport(tourProfile);
+        assertWeatherSupport(tourProfile);
         assertTrue(tourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_SPEECH));
         assertTrue(tourProfile.supportsBehaviourModality(AgentInteractionProfile.MODALITY_NONVERBAL_GESTURE));
         assertTrue(tourProfile.supportsBehaviourModality(
@@ -188,7 +197,7 @@ class SeedAgentInteractionProfileContractTest {
 
         AgentInteractionProfile socialTourProfile = AgentFixtures.gigiTdsrTourConversationSocialContextSensitivity()
                 .getInteractionProfile();
-        assertTdsrWeatherSupport(socialTourProfile);
+        assertWeatherSupport(socialTourProfile);
         assertTrue(socialTourProfile.supportsObservation(AgentInteractionProfile.OBS_HUMAN_PRESENCE));
         assertTrue(socialTourProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_GROUPING));
         assertTrue(socialTourProfile.supportsObservation(AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE));
@@ -229,7 +238,7 @@ class SeedAgentInteractionProfileContractTest {
         }
     }
 
-    private static void assertTdsrWeatherSupport(AgentInteractionProfile profile) {
+    private static void assertWeatherSupport(AgentInteractionProfile profile) {
         assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_USER_UTTERANCE));
         assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_CURRENT));
         assertTrue(profile.supportsObservation(AgentInteractionProfile.OBS_WEATHER_FORECAST));

@@ -45,7 +45,7 @@ public final class CoordinationSupport {
                 var evidence = CoordinationMemory.evidence(storage);
                 var missing = java.util.stream.IntStream.range(0, draft.checks().size())
                         .filter(i -> !evidence.has(Integer.toString(i)))
-                        .mapToObj(i -> draft.checks().get(i).value().toString()).toList();
+                        .mapToObj(i -> draft.checks().get(i).description()).toList();
                 yield "The proposal is not active. Remaining recognition checks: " + missing
                         + ". Demonstrate those observations; recognition alone will not start the task.";
             }

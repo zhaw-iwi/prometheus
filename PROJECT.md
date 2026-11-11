@@ -82,6 +82,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Hand-detection integration (2026-11-11): integrate feature/hand-detection into
+  main, then agents, with local merge commits only. Preserve calibrated capture
+  time across the combined sign/pose inference and independent deliveries, newer
+  Coordination recovery and response confirmation, state graphs and shared
+  playback receipt support. Finger-pose checks now work with the newer support
+  and visible-count contracts; compact capability wording retains the existing
+  Live instruction budget. Main passed 904 Java tests (one capacity skip) and
+  213 JavaScript checks. Agents passed 214 JavaScript and 15 offline browser checks;
+  full Java coverage and the corrected Gala journey are recorded below.
+
 - Gala/application branch split (2026-11-11): shared playback receipt support is
   committed on main (`057aa55`) and merged into agents (`a8572b4`). The games-only
   Gala definition, its catalog/graph/prompts and countdown receipt selection stay
@@ -283,6 +293,14 @@ and regulation diagnostics remain future work.
   tests, 18 static browser cases, HTTP/SSE journeys in both Live modes and packaging.
   Its push triggers the existing Heroku workflow. Plan: `.agents/PLAN_STATE_GRAPH.md`;
   verification and status: `.agents/STATE_GRAPH_RESULTS.md`.
+- MediaPipe hand detection (2026-11-05), on feature/hand-detection: one
+  GestureRecognizer inference supplies highest-confidence RPS plus numeric and
+  classified finger readings for up to two hands. Scoped events share a frame
+  timestamp and retain independent capability checks, delivery clocks and status.
+  The movable/resizable report shows both; Generic/Coordination tasks and
+  preparation checks support bounded same-hand finger conditions. Cutoffs remain
+  below 0.4 straight, above 0.55 bent, inclusive middle neutral. Physical webcam
+  accuracy and real-provider acceptance remain open.
 
 - Recorded-interaction deployment integration (2026-10-30): main `43bd0729`
   is merged into agents, preserving the deployment catalog, Gala journeys and
@@ -12040,3 +12058,90 @@ removed its schema/account. Syntax and whitespace checks passed. Evidence is in
 and the `agents-preview/target/surefire-reports` directory.
 Physical audibility, real-provider timing and robot trials remain unverified.
 The split authorizes local commits only; no push or deployment is included.
+
+## MediaPipe hand-detection branch (2026-11-05)
+
+Extracted the MediaPipe work from feature/hagrid-hand-sign-poc onto the shared
+main base 9b525f9. One two-hand GestureRecognizer result drives RPS selection and
+all finger bend values/states. The expandable report is shared support code.
+Event/profile admission, bounded prompt context, freshness, same-hand task rules,
+Coordination preparation and Live confirmation gates move with the detector.
+Numeric-only and legacy recognizer history remain readable. Unavailable fingers
+remain null; neutral includes 0.4 and 0.55. No camera images or landmarks are sent.
+
+Model-specific worker code, weights, exports, dependencies, extended named-sign
+buttons and acceptance tests remain on the original branch. This branch has no
+ONNX Runtime Web dependency. The existing MediaPipe CDN model loads on demand.
+
+Verification: 197 Java tests in 22 suites, 42 Node checks and 11 offline Chrome
+cases passed independently on this branch. Coverage includes classified/numeric
+same-hand rules, Coordination preparation, scoped sign/pose delivery and races,
+two-hand RPS selection, both capability subsets, legacy history and report
+layout/lifecycle. Media/model/API outputs are simulated; physical accuracy is
+unverified. Whitespace and JavaScript syntax checks passed.
+
+
+## Local hand-detection integration (2026-11-11)
+
+The owner authorized merging feature/hand-detection (`80d1ce5`) into main and then
+main into agents, without pushing. The four feature commits add combined two-hand
+MediaPipe sign/pose sensing, numeric and classified finger readings, the movable
+report, scoped pose events, and same-hand task/preparation conditions.
+
+The main merge preserves newer Coordination preparation/acceptance, bounded
+recovery, source-time validation, state-graph assets and receipt-scoped playback.
+Integration checks exposed scalar-only assumptions in visible-count review and
+preparation support; both now use pose-compatible descriptions/guards. Compact
+hand-capability wording keeps the existing 16,000-byte Live instruction ceiling.
+The combined detector captures calibrated server time before inference and keeps
+it across separate sign/pose requests, including delayed sign acknowledgement.
+Unavailable or invalidated timing blocks delivery without refreshing the sample.
+The feature's three-confident-frame rule remains enforced after threshold tuning.
+
+Verification on the clean main snapshot: **904 Java tests passed in 177 suites,
+with one existing classroom-capacity test intentionally skipped; 213 JavaScript
+checks passed; 11 offline hand/report Chrome cases and four state-graph functional
+Chrome cases passed.** The first Java run exposed the integration issues above;
+the full rerun passed after correction. The first browser launch needed installed
+Chrome explicitly selected in an artifact-only config. Graph screenshot comparison
+was disabled for the functional rerun because stored baselines are Windows-only;
+no baselines were created or changed in the repository. Hand tests retain layout
+and viewport assertions. Source/test files were verified identical to the tested
+snapshot. Logs and reports are under
+`/tmp/prometheus-hand-integration-lgr_p302/main-preview/target`, `main-java.log`,
+`main-browser.log` and `main-graph-browser.log`.
+
+The offline runner used an owned loopback MySQL server and removed each disposable
+schema/account. Private application configuration was excluded from test snapshots
+and remains unchanged. No production database, paid provider or physical camera/
+robot trial was used. Existing saved profiles are not migrated; create a new
+supported agent instance for pose-event delivery. These are local merge commits;
+push and deployment are explicitly deferred.
+
+
+## Hand-detection promotion to agents (2026-11-11)
+
+Merge locally verified main `8c85335` into agents, preserving Gala definitions,
+round/capture identities, receipt selection and embodiment/persona support. Resolve
+only the project-record insertions and profile-test weather-helper name, retaining
+both reusable and application-specific capability assertions.
+
+The complete agents run covered 1,281 Java cases in 215 suites: 1,277 passed, two
+capacity/soak cases were intentionally skipped, and two parameterizations of the
+same Gala encounter journey timed out. Investigation found a stale fake-provider
+route tied to obsolete verifier prose. The fixture now recognizes the typed
+response-check payload and returns exactly the required identity/verdict fields;
+production verification and deadlines are unchanged. All ten cases in that journey
+suite passed on a fresh disposable schema after correction. Combined final suite
+evidence therefore covers **1,279 passing Java cases and two capacity skips**.
+The full-suite reports and corrected journey reports remain separate under
+`/tmp/prometheus-hand-integration-lgr_p302/agents-full-suite-reports` and
+`agents-journey-reports`; logs are `agents-full-java.log` and `agents-journey-java.log`.
+
+All **214 JavaScript checks** and **15 offline Chrome cases** passed on the agents
+snapshot. The latter cover both-hand sign/pose delivery, capability subsets, local
+readings/history, report layout/lifecycle and state-graph functional assertions.
+Graph screenshot comparison was disabled because the repository has Windows-only
+baselines; no snapshots were changed. The hand-report desktop/mobile screenshots
+were inspected. Private application configuration and unrelated files are unchanged.
+No push or deployment is authorized for this integration.

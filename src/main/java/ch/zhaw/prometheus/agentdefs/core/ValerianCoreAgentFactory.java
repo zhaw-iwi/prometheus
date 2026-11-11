@@ -351,6 +351,7 @@ final class ValerianCoreAgentFactory {
                         AgentInteractionProfile.OBS_SOCIAL_CONTEXT,
                         AgentInteractionProfile.OBS_SOCIAL_SITUATION_CHANGE,
                         AgentInteractionProfile.OBS_HAND_SIGN,
+                        AgentInteractionProfile.OBS_HAND_POSE,
                         AgentInteractionProfile.OBS_WEATHER_CURRENT,
                         AgentInteractionProfile.OBS_WEATHER_FORECAST),
                 physicalBehaviourModalities(),

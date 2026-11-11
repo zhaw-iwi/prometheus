@@ -139,6 +139,11 @@ public class TaskDecision extends Decision {
                     reason[0] = "invalid_observation"; return false;
                 }
             }
+            if (rule.handPose() != null) {
+                boolean match = rule.handPose().matches(object);
+                if (!match) reason[0] = "condition_not_met";
+                return match;
+            }
             if (object.has("facePresent") && !object.get("facePresent").getAsBoolean() && !rule.field().equals("facePresent")) { reason[0] = "face_missing"; return false; }
             double confidence = object.has("confidence") ? object.get("confidence").getAsDouble()
                     : object.has("avgDetectionConfidence") ? object.get("avgDetectionConfidence").getAsDouble() : 0;
