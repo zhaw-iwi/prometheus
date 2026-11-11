@@ -90,6 +90,13 @@ and regulation diagnostics remain future work.
   Java checks, 194 JavaScript checks and 12 acceptance-runner preflight tests.
   Existing Gala working changes are preserved for restoration after the merge.
 
+- Shared playback receipt selection (2026-11-11): optional bounded receipt spans
+  now belong to the reusable Live contract. Trusted transcript ingress carries
+  native receipt IDs; the shared browser validates their complete-segment mapping
+  and observed playback. Older callers retain whole-segment evidence. Application
+  policies choose their own spans. Passed 226 focused Java/API/persistence checks
+  and all 193 JavaScript checks on main, using a disposable loopback database.
+
 - Coordination office/home consolidation (2026-11-11): integrated home checkpoint
   `02df87b` with preserved office ES-08 work. Retained unfinished-answer SUPPORT
   recovery, tests, operator checklist and distinct office failure evidence;
@@ -11897,3 +11904,32 @@ The initial timing diagnostic remains in `timing-diagnostic.log`. The pre-merge
 Gala stash and byte-for-byte temporary backup are retained for review. No push,
 deployment, paid provider calls, production database writes or physical robot
 trials are part of this integration.
+
+## Shared playback receipt selection (2026-11-11)
+
+Move reusable receipt-selection support into main before integrating application
+consumers. `LiveSpeechPart` retains the native caption receipt identity;
+`LivePlaybackCue` exposes an optional immutable, bounded selection; durable
+transcript ingress propagates identities; the shared playback observer validates
+ordered contiguous selections against complete assistant transcript mappings.
+Missing or empty selections keep the whole-segment contract and existing callers
+retain their constructors. Captions, audio overlap, quiet, interruption, expiry
+and stalled/muted output remain required evidence. Application policies choose
+which receipts matter; no event-specific definition or recognition logic is added
+to the reusable catalog.
+
+Generic model, API-serialization and browser regressions accompany the contract.
+The previously verified Coordination timestamp-fixture correction was carried
+back to main separately so branch verification uses one coherent clock.
+
+Verification passed on main: **226 Java tests in 24 suites**, including scoped
+API serialization, durable transcript ingress, speech persistence and core RPS
+persistence, plus **193 JavaScript checks**. The offline runner created and removed
+its own schema/account on an owned temporary loopback MySQL server. A clean export
+excluded ignored application configuration; providers remained synthetic. Syntax
+and whitespace checks passed. Evidence is retained under
+`/tmp/prometheus-branch-split-20261111-l2ckgq8q/main-java.log`, `main-js.log` and
+`main-preview/target/surefire-reports`.
+
+No schema migration or physical playback guarantee is introduced. This branch
+split includes local commits only; no push or deployment is authorized.

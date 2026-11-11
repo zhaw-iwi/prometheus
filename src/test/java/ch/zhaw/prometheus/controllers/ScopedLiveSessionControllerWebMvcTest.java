@@ -56,6 +56,17 @@ class ScopedLiveSessionControllerWebMvcTest {
         mvc.perform(get(path() + "/" + handle + "/updates").header(ScopedDemoController.ACCESS_CODE_HEADER, "ABCDE"))
                 .andExpect(status().isUnauthorized());
     }
+    @Test void combinedUpdatesExposeTheApplicationApprovedReceiptSelection() throws Exception {
+        var cue = new ch.zhaw.prometheus.model.policy.LivePlaybackCue(UUID.randomUUID(), "mixed-response",
+                java.time.Instant.now().plusSeconds(30), java.util.List.of("schere", "stein", "papier"));
+        when(service.updates("ABCDE", agent, handle, 7)).thenReturn(Optional.of(
+                new ScopedLiveSessionService.UpdatesView(null, 7, null, cue)));
+        mvc.perform(get(path() + "/" + handle + "/updates").param("transcriptRevision", "7")
+                .header(ScopedDemoController.ACCESS_CODE_HEADER, "ABCDE"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.playbackCue.segmentId").value("mixed-response"))
+                .andExpect(jsonPath("$.playbackCue.receiptIds.length()").value(3))
+                .andExpect(jsonPath("$.playbackCue.receiptIds[0]").value("schere"));
+    }
     @Test void typedSessionHidesProviderIdentityAndRejectsArbitraryConfiguration() throws Exception {
         when(service.create(eq("ABCDE"), eq(agent), any())).thenReturn(Optional.of(
                 new ScopedLiveSessionService.SessionView(handle, "v=0 answer", "gpt-live-1", "marin", true)));

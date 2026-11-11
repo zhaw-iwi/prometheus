@@ -2039,12 +2039,19 @@ The cockpit polls once per second using
 `GET /demo/agents/{agentId}/live/sessions/{handle}/updates?transcriptRevision=-1`.
 The response contains `status`, `transcriptRevision`, `transcripts`, and optional
 `playbackCue`. A policy may opt in to execution after captured speech and local
-playback settling: the cue has `id`, nullable `segmentId` (pending capture), and
-`expiresAt`. The shared Live client begins observing the received track on attachment,
+playback settling: the cue has `id`, nullable `segmentId` (pending capture),
+`expiresAt`, and optional `receiptIds`. Missing or empty `receiptIds` require the
+complete segment's receipts. A nonempty selection contains at most 32 distinct
+native receipt identities in contiguous ledger order; the client rejects invalid
+or foreign selections.
+The shared Live client begins observing the received track on attachment,
 without rerouting or recording audio. It retains at most 65 seconds of content-free
 sample/receipt timing, 1,024 caption identities and 64 complete segment mappings.
 The confirmed segment's existing ledger `receiptIds` bind local captions to the
-observed speech and subsequent 500 ms quiet period. A late cue or semantic
+observed speech and subsequent 500 ms quiet period. Selected countdown receipts
+must all be observed; retained prefix receipts from that same complete segment
+may establish continuous audio onset without requiring missing prefix receipts.
+A late cue or semantic
 association can use that retained evidence within the original delivery deadline;
 unrelated session speech cannot substitute for the matching segment. Caption/audio
 overlap is conservative (250 ms before the first caption to one second after the
