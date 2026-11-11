@@ -1,5 +1,56 @@
 # Coordination escalation and classroom reliability evidence
 
+## ES-08 continuation A — bounded assistant sentence assembly (2026-11-11)
+
+Started from clean `main`, incorporated the subsequent shared receipt-selection
+and test-clock commits through `057aa55`, then reproduced the home feedback split.
+The deterministic baseline closed "That's it, a piano!" after 800 ms, before the
+explanation 1.4 seconds later. The new regression failed before the change;
+`target/es08-continuation-20261111/assembly-before.log` retains that result.
+
+Delivery-aware Coordination policies now opt into a 2,400 ms **observed assistant
+silence** boundary through the existing session snapshot/capture path. Nearby
+sentences stay in one native segment with their original receipt IDs/times. No
+completed history is rewritten and no second semantic inference/retry is added.
+Default/legacy policies retain 800 ms; user capture remains at its existing setting.
+Fresh user audio/transcript closes the assembly boundary: nonoverlapping speech
+with the original minimum observed quiet may complete; overlap/interruption stays
+incomplete. Delayed older input and muted input cannot cut the current response.
+Coverage gaps, close, receipt/character bounds and the original 30-second maximum
+open duration remain. Response verification still has 45 seconds, final playback
+60 seconds, and the existing owner/revision/session fences. AMBIGUOUS is unchanged.
+
+This is bounded acoustic assembly, not proof that every generated answer is
+semantically finished. A longer pause may still split an answer; missing or
+incorrect content still fails verification. Physical/noisy-room behavior is not
+established. The provider's continuous audio and absence of an output-done event
+are documented in [the Live event guide](https://developers.openai.com/api/docs/guides/voice-websockets?api=live#send-and-receive-events).
+
+Verification:
+
+- **88 focused Java cases passed** in segmenter, capture, context projection,
+  scoped sessions, Coordination voice and TaskResponse tests. Covers the exact
+  split pattern, original receipts, repeated receipt suppression, interruption,
+  muted/old/overlapping input, coverage/close/time bounds, policy opt-in and existing
+  response identity/deadlines. Command: `mvnw.cmd -q -Dtest=LiveTranscriptSegmenterUnitTest,LiveTranscriptCaptureServiceUnitTest,LiveContextProjectionUnitTest,ScopedLiveSessionServiceUnitTest,CoordinationVoiceUnitTest,TaskResponseUnitTest test`.
+  Final log: `target/es08-continuation-20261111/assembly-focused-final.log`.
+- **38 local-MySQL cases and three real-app browser cases passed** in artifact
+  `target/gptlive-acceptance-7d1a686f48`, through the owned local helper. Selection:
+  Coordination agent/delivery, transcript ingress/claim, speech/receipt durability,
+  task-voice persistence, core RPS and Social Space smoke. Browser cases cover
+  delayed playback to Reflection, durable scoped conversation and real state/SSE.
+  The fake provider now supplies three seconds of measured assistant quiet, rather
+  than ending synthetic PCM after one second. This run preceded the final narrow
+  muted-input guard, which is covered by the final unit run above. Combined final
+  regression follows the proposal correction before paid acceptance.
+- **193 Node tests** and **11 runner preflight checks** passed. No paid provider
+  run yet; no physical trial, deployment or capacity investigation. Owned local
+  schema/account/app/MySQL cleanup was reported by the runner.
+
+The assistant-assembly implementation is ready for the next authorized step.
+ES-08 acceptance remains open. Next: make social-condition limits available to
+native speech before a proposal, then review the three bounded real Live journeys.
+
 ## Office/home consolidation (2026-11-11)
 
 The home checkpoint `02df87b` is the integration base. The office's 19 changed or

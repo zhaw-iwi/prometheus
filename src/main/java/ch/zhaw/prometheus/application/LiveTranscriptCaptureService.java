@@ -55,7 +55,11 @@ public class LiveTranscriptCaptureService {
     }
     public Capture open(UUID agent, ExternalSpeech owner, Supplier<List<String>> state, Consumer<String> failure,
             long userSilenceMs, boolean filterIsolatedInputActivity) {
-        Capture capture = new Capture(agent, owner, state, failure, userSilenceMs, filterIsolatedInputActivity);
+        return open(agent, owner, state, failure, userSilenceMs, filterIsolatedInputActivity, LiveTranscriptSegmenter.SILENCE_MS);
+    }
+    public Capture open(UUID agent, ExternalSpeech owner, Supplier<List<String>> state, Consumer<String> failure,
+            long userSilenceMs, boolean filterIsolatedInputActivity, long assistantSilenceMs) {
+        Capture capture = new Capture(agent, owner, state, failure, userSilenceMs, filterIsolatedInputActivity, assistantSilenceMs);
         if (captures.putIfAbsent(owner.sessionId(), capture) != null) throw new IllegalStateException("Capture already open");
         return capture;
     }
@@ -85,9 +89,10 @@ public class LiveTranscriptCaptureService {
         private final java.util.ArrayDeque<Trace> traces = new java.util.ArrayDeque<>();
         private long dropped;
         private int queueHighWater;
-        Capture(UUID agent, ExternalSpeech owner, Supplier<List<String>> state, Consumer<String> failure, long userSilenceMs, boolean filterIsolatedInputActivity) {
+        Capture(UUID agent, ExternalSpeech owner, Supplier<List<String>> state, Consumer<String> failure, long userSilenceMs,
+                boolean filterIsolatedInputActivity, long assistantSilenceMs) {
             this.agent = agent; this.owner = owner; this.state = state; this.failure = failure;
-            this.segmenter = new LiveTranscriptSegmenter(owner.sessionId(), userSilenceMs);
+            this.segmenter = new LiveTranscriptSegmenter(owner.sessionId(), userSilenceMs, assistantSilenceMs);
             this.inputActivity = filterIsolatedInputActivity ? new LivePcmActivity.OnsetFilter() : null;
         }
         public synchronized void receive(JsonObject event) {
@@ -105,6 +110,7 @@ public class LiveTranscriptCaptureService {
                     var activity = LivePcmActivity.measure(pcm);
                     if (activity.voiced()) lastVoiceAt = now;
                     if (speaker == Speaker.USER && inputActivity != null) activity = inputActivity.measure(pcm, now);
+                    if (speaker == Speaker.USER && activity.voiced()) completed(segmenter.userActivity(now));
                     segmenter.audio(speaker, activity.samples(), activity.trailingQuietSamples(), activity.voiced(), now);
                 } else if (type.equals("session.input_transcript.delta") || type.equals("session.output_transcript.delta")) {
                     Speaker speaker = type.contains("input_") ? Speaker.USER : Speaker.ASSISTANT;
@@ -117,7 +123,8 @@ public class LiveTranscriptCaptureService {
                     if (seen.size() >= LiveTranscriptSegmenter.MAX_RECEIPTS) throw new IllegalStateException("Receipt capacity reached");
                     Fragment fragment = new Fragment(id, speaker, number(event, "start_ms"), number(event, "end_ms"), now,
                             ++sequence, event.get("delta").getAsString());
-                    List<Segment> ready = segmenter.fragment(fragment); seen.add(id); fragmentStates.put(id, List.copyOf(state.get()));
+                    List<Segment> ready = segmenter.fragment(fragment, speaker != Speaker.USER || !muted);
+                    seen.add(id); fragmentStates.put(id, List.copyOf(state.get()));
                     trace("receipt_queued", id, null, null, fragment.startMs(), fragment.endMs());
                     enqueue(() -> {
                         boolean saved = ingress.receipt(agent, owner, fragment);

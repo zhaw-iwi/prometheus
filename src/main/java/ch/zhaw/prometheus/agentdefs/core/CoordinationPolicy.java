@@ -18,6 +18,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     protected CoordinationPolicy() {}
     public CoordinationPolicy(Storage storage, String instructions) { super(storage, instructions); }
     @Override public long liveUserSilenceMs() { return 2000; }
+    @Override public long liveAssistantSilenceMs() { return CoordinationDelivery.enabled(storage()) ? 2400 : 800; }
     @Override public String livePlaybackCompletionEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.PLAYED : null; }
     @Override public String liveSessionEndEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.ENDED : null; }
     @Override public String liveSessionClaimEventType() { return CoordinationDelivery.finishing(storage()) ? CoordinationDelivery.ENDED : null; }

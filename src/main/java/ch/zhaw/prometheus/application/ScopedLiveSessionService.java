@@ -131,6 +131,7 @@ public class ScopedLiveSessionService {
                     Map.entry("build", build != null && build.matches("[a-fA-F0-9]{40,64}") ? build : "unknown"),
                     Map.entry("silenceMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.SILENCE_MS),
                     Map.entry("userSilenceMs", lease.context.userSilenceMs()),
+                    Map.entry("assistantSilenceMs", lease.context.assistantSilenceMs()),
                     Map.entry("filterIsolatedInputActivity", lease.context.filterIsolatedInputActivity()),
                     Map.entry("pendingAcknowledgements", lease.context.pendingAcknowledgements()),
                     Map.entry("latenessMs", ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.LATENESS_MS),
@@ -144,7 +145,7 @@ public class ScopedLiveSessionService {
             if (captures != null) lease.capture = captures.open(agentId,
                     new ch.zhaw.prometheus.model.policy.ExternalSpeech(lease.handle, lease.context.epoch()),
                     () -> lease.context.statePath(), codeName -> { lease.captureProblem = codeName; failed(lease, codeName); },
-                    lease.context.userSilenceMs(), lease.context.filterIsolatedInputActivity());
+                    lease.context.userSilenceMs(), lease.context.filterIsolatedInputActivity(), lease.context.assistantSilenceMs());
             lease.provider = gateway.create(new LiveSessionGateway.Request(request.sdp(), voice,
                     lease.context.instructions(),
                     lease.context.startupInput(), lease.context.pendingAcknowledgements()));

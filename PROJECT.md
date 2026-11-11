@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- ES-08 continuation A (2026-11-11): delivery-aware Coordination uses a bounded
+  2.4-second observed assistant-silence window to keep nearby feedback sentences
+  together before verification. User interruption/overlap, muted/old input,
+  original capture/response/playback limits and receipt identities are covered;
+  other/legacy policies retain 800 ms. Passed 88 focused Java, 38 local-MySQL,
+  three browser, 193 Node and 11 runner checks; exact sequencing/limits are in
+  `.agents/ESCALATION_RESULTS.md`. Real Live acceptance remains pending the next
+  proposal correction and three-journey review. Capacity remains deferred.
+
 - Shared playback receipt selection (2026-11-11): optional bounded receipt spans
   now belong to the reusable Live contract. Trusted transcript ingress carries
   native receipt IDs; the shared browser validates their complete-segment mapping

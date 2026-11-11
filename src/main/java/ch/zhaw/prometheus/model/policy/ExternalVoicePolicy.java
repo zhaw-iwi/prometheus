@@ -21,6 +21,8 @@ public interface ExternalVoicePolicy {
     }
     /** Session-fixed quiet interval for backend user-turn capture, not provider speech generation. */
     default long liveUserSilenceMs() { return 800; }
+    /** Session-fixed assistant sentence assembly; completion still needs observed quiet and current authority. */
+    default long liveAssistantSilenceMs() { return 800; }
     /** Opt-in occupied-encounter grace for camera dropouts; Stop and access checks remain immediate. */
     default long liveDepartureGraceMs() { return 0; }
     /** Opt-in rejection of isolated input activity spikes for backend capture only. */

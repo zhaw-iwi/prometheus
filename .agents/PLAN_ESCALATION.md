@@ -200,6 +200,14 @@ still require a separately recorded operator trial.
 
 ## Milestones
 
+**Authorized continuation (2026-11-11):** complete ES-08 in three focused steps:
+(A) bounded assistant sentence assembly with interruption/authority/playback
+regressions; (B) correct misleading preliminary proposal wording at its cause;
+(C) run and semantically review the three bounded real Live journeys. Preserve
+the failed-attempt record and stop for a genuinely new owner scope decision.
+The shared receipt-selection commits through `057aa55` are incorporated first.
+Database capacity and physical trials remain separate from this behavioural scope.
+
 ### ES-01 — Reproducible classroom cases and bounded recovery evidence
 
 **Depends on:** none.

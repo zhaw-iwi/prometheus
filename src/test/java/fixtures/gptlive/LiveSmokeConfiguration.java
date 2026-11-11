@@ -140,7 +140,9 @@ public class LiveSmokeConfiguration {
             transcript.addProperty("delta", text); transcript.addProperty("start_ms", offset); transcript.addProperty("end_ms", offset + 500);
             call.captions.add(transcript.deepCopy());
             call.receive.accept(transcript);
-            for (int i = 1; i <= 10; i++) {
+            // Supply measured quiet for the longest supported assistant assembly window.
+            // Stopping synthetic PCM at one second would test a coverage gap, not completion.
+            for (int i = 1; i <= (prefix.equals("output") ? 30 : 10); i++) {
                 int chunk = i;
                 audio.schedule(() -> {
                     if (call.closed) return;

@@ -2185,6 +2185,16 @@ same support path, preserving the task budget and any in-flight response. This
 cannot restore words omitted by the Live provider; review the admitted transcript
 and complete/correct it explicitly. Final dialogue feedback excludes appended
 reflection invitations; a separate reflection turn follows confirmed delivery.
+Delivery-aware Coordination Live sessions assemble nearby assistant sentences
+until 2.4 seconds of observed audio silence. This avoids checking an initial
+feedback sentence before its explanation arrives. A fresh user turn ends the
+assembly boundary: already observed nonoverlapping quiet may complete the prior
+segment; interruption/overlap leaves it incomplete. Missing audio, session closure
+and the original 30-second capture limit remain conservative. Other agents and
+legacy Coordination instances retain 800 ms assistant capture. The existing
+45-second response and 60-second final-playback deadlines are unchanged. This
+bounded acoustic grouping does not prove semantic completeness; response matching
+and separate browser playback evidence are still required.
 Database/transport unavailability still requires client-side recovery. Roadmap and verification:
 `.agents/PLAN_ESCALATION.md` and `.agents/ESCALATION_RESULTS.md`.
 Recognisable direct hand/face questions use fresh supplied observations locally,

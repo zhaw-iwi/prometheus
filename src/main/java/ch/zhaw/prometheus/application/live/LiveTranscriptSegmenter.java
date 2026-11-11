@@ -26,7 +26,7 @@ public final class LiveTranscriptSegmenter {
     private static final Comparator<Fragment> ORDER = Comparator.comparing(Fragment::startMs, Comparator.nullsLast(Long::compare))
             .thenComparing(Fragment::endMs, Comparator.nullsLast(Long::compare)).thenComparingLong(Fragment::sequence);
     private final UUID session;
-    private final long userSilenceMs;
+    private final long userSilenceMs, assistantSilenceMs;
     private final EnumMap<Speaker, Track> tracks = new EnumMap<>(Speaker.class);
     private final LinkedHashSet<String> received = new LinkedHashSet<>();
     private boolean closed;
@@ -39,15 +39,26 @@ public final class LiveTranscriptSegmenter {
         this(session, SILENCE_MS);
     }
     public LiveTranscriptSegmenter(UUID session, long userSilenceMs) {
+        this(session, userSilenceMs, SILENCE_MS);
+    }
+    public LiveTranscriptSegmenter(UUID session, long userSilenceMs, long assistantSilenceMs) {
         validateUserSilence(userSilenceMs);
+        validateAssistantSilence(assistantSilenceMs);
         this.session = session;
         this.userSilenceMs = userSilenceMs;
+        this.assistantSilenceMs = assistantSilenceMs;
         for (Speaker speaker : Speaker.values()) tracks.put(speaker, new Track());
     }
     static void validateUserSilence(long value) {
         if (value < SILENCE_MS || value > 3000) throw new IllegalArgumentException("User silence must be 800 to 3000 ms");
     }
+    static void validateAssistantSilence(long value) {
+        if (value < SILENCE_MS || value > 3000) throw new IllegalArgumentException("Assistant silence must be 800 to 3000 ms");
+    }
     public synchronized List<Segment> fragment(Fragment fragment) {
+        return fragment(fragment, true);
+    }
+    public synchronized List<Segment> fragment(Fragment fragment, boolean userInputAllowed) {
         if (closed) throw new IllegalStateException("Transcript capture is closed");
         if (fragment.eventId() == null || !fragment.eventId().matches("[A-Za-z0-9_:.\\-]{1,200}")
                 || fragment.speaker() == null || fragment.text() == null || fragment.text().length() > MAX_CHARACTERS)
@@ -60,12 +71,20 @@ public final class LiveTranscriptSegmenter {
                 && fragment.endMs() >= fragment.startMs() && fragment.endMs() <= 3_600_000;
         if (validTime && fragment.startMs() <= track.frozenEnd)
             return List.of(segment(fragment.speaker(), List.of(fragment), Closure.LATE, "late_after_commit"));
+        List<Segment> boundary = List.of();
+        Track assistant = tracks.get(Speaker.ASSISTANT);
+        if (userInputAllowed && fragment.speaker() == Speaker.USER && validTime && !assistant.fragments.isEmpty()) {
+            long first = assistant.fragments.stream().map(Fragment::startMs).filter(java.util.Objects::nonNull).min(Long::compare).orElse(Long.MAX_VALUE);
+            long end = assistant.fragments.stream().map(Fragment::endMs).filter(java.util.Objects::nonNull).max(Long::compare).orElse(Long.MAX_VALUE);
+            // A delayed fragment from before this speech is not a new interruption.
+            if (fragment.endMs() >= first) boundary = assistantBoundary(fragment.receivedMs(), fragment.startMs() > end);
+        }
         if (track.fragments.isEmpty()) { track.first = fragment.receivedMs(); track.uncertainty = null; }
         if (track.fragments.size() >= MAX_FRAGMENTS || track.fragments.stream().mapToInt(f -> f.text().length()).sum()
                 + fragment.text().length() > MAX_CHARACTERS) throw new IllegalStateException("Open transcript capacity reached");
         track.fragments.add(fragment); track.last = fragment.receivedMs(); track.silenceSamples = 0;
         if (!validTime) track.uncertainty = "missing_or_invalid_provider_timing";
-        return List.of();
+        return boundary;
     }
     /** PCM is 24 kHz mono; raw samples are not retained. Call once per received chunk. */
     public synchronized void audio(Speaker speaker, int samples, boolean voiced, long receivedMs) {
@@ -88,6 +107,17 @@ public final class LiveTranscriptSegmenter {
         if (!tracks.get(speaker).fragments.isEmpty()) tracks.get(speaker).uncertainty = reason;
     }
     public synchronized boolean hasOpenSegment() { return tracks.values().stream().anyMatch(track -> !track.fragments.isEmpty()); }
+    /** A fresh human turn ends the opt-in assembly window; it never completes overlapping speech. */
+    public synchronized List<Segment> userActivity(long nowMs) { return assistantBoundary(nowMs, true); }
+    private List<Segment> assistantBoundary(long nowMs, boolean nonOverlapping) {
+        Track track = tracks.get(Speaker.ASSISTANT);
+        if (closed || assistantSilenceMs == SILENCE_MS || track.fragments.isEmpty()) return List.of();
+        boolean complete = nonOverlapping && track.uncertainty == null && nowMs - track.first <= MAX_OPEN_MS
+                && track.silenceSamples >= SILENCE_MS * 24 && nowMs - track.last >= LATENESS_MS
+                && nowMs - track.audioAt <= MAX_AUDIO_GAP_MS;
+        return List.of(finish(Speaker.ASSISTANT, track, complete ? Closure.COMPLETE : Closure.INCOMPLETE,
+                complete ? "observed_silence" : "user_interrupted"));
+    }
     public synchronized List<Segment> interrupt(Speaker speaker, String reason) {
         Track track = tracks.get(speaker);
         return track.fragments.isEmpty() ? List.of() : List.of(finish(speaker, track, Closure.INCOMPLETE, reason));
@@ -103,7 +133,7 @@ public final class LiveTranscriptSegmenter {
             if (nowMs - track.first > MAX_OPEN_MS) {
                 result.add(finish(entry.getKey(), track, Closure.INCOMPLETE, "activity_or_transcript_timeout"));
             } else if (!(entry.getKey() == Speaker.USER && userActivityPending)
-                    && track.silenceSamples >= (entry.getKey() == Speaker.USER ? userSilenceMs : SILENCE_MS) * 24
+                    && track.silenceSamples >= (entry.getKey() == Speaker.USER ? userSilenceMs : assistantSilenceMs) * 24
                     && nowMs - track.last >= LATENESS_MS
                     && nowMs - track.audioAt <= MAX_AUDIO_GAP_MS) {
                 result.add(finish(entry.getKey(), track, track.uncertainty == null ? Closure.COMPLETE : Closure.INCOMPLETE,

@@ -91,7 +91,10 @@ PROMETHEUS currently provides:
   associated speech and scoped playback confirmation; uncertain delivery never
   automatically replays work. The browser retains bounded receipt-linked playback
   observations across delayed cues/association; fresh control cues precede provider
-  append acknowledgements. Bounded content-free journals explain transitions;
+  append acknowledgements. Delivery-aware Coordination sessions opt into bounded
+  assistant sentence assembly before verification; user interruption, original
+  capture/response deadlines and separate playback evidence remain authoritative.
+  Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
   admission and task controls. Cross-phase support uses the shared user action,
   bounded content-free rejection evidence and canonical pending-response identity;
