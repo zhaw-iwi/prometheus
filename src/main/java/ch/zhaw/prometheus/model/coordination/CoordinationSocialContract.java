@@ -29,7 +29,7 @@ public final class CoordinationSocialContract {
     public static String proposalCondition(CoordinationAgreement proposal) {
         if (proposal == null || proposal.reactions() == null) return "";
         var conditions = proposal.reactions().rules().stream()
-                .filter(rule -> rule.field().equals("humanCount") || rule.field().equals("currentHumanCount"))
+                .filter(rule -> "humanCount".equals(rule.field()) || "currentHumanCount".equals(rule.field()))
                 .map(rule -> (switch (rule.operator()) { case "gt" -> "more than "; case "lt" -> "fewer than "; default -> "exactly "; })
                         + rule.value().getAsString() + (rule.value().getAsDouble() == 1 ? " person visible" : " people visible")).distinct().toList();
         return conditions.isEmpty() ? "" : " Visible-person conditions: " + String.join("; ", conditions)

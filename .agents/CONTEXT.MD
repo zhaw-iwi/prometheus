@@ -68,7 +68,7 @@ agent/client contract and must be updated when capabilities change.
 ### Event families
 
 Current external observation types include user utterances, facial emotion,
-human presence, social grouping, rich social context, hand signs, and current
+human presence, social grouping, rich social context, hand signs, numeric hand poses, and current
 or forecast weather. Their constants and exact names are authoritative in
 `model/event/Event.java` and documented for clients in `README.md`.
 

@@ -16,7 +16,7 @@ public final class ObservationEvidence {
     private static final Map<String, Long> TTL = Map.of(
             Event.TYPE_FACE_EMOTION, 15L, Event.TYPE_HUMAN_PRESENCE, 15L, Event.TYPE_SOCIAL_GROUPING, 15L,
             Event.TYPE_SOCIAL_CONTEXT, 15L, Event.TYPE_SOCIAL_SITUATION_CHANGE, 30L, Event.TYPE_HAND_SIGN, 15L,
-            Event.TYPE_WEATHER_CURRENT, 600L, Event.TYPE_WEATHER_FORECAST, 21600L);
+            Event.TYPE_WEATHER_CURRENT, 600L, Event.TYPE_WEATHER_FORECAST, 21600L, Event.TYPE_HAND_POSE, 15L);
     public static boolean supported(String type) { return TTL.containsKey(type); }
     public static long ttl(String type) { return TTL.getOrDefault(type, 15L); }
     public static Instant observed(Event event) {

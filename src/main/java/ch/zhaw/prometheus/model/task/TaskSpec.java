@@ -25,8 +25,20 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
     public TaskSpec(String goal, int maxActions, List<Rule> rules) { this(goal, maxActions, rules, true); }
     public enum Effect { ACT, WAIT, COMPLETE }
     public record Rule(String eventType, String field, String operator, JsonPrimitive value,
-            String action, Effect effect, double minConfidence, int samples, int cooldownSeconds) {
+            String action, Effect effect, double minConfidence, int samples, int cooldownSeconds, HandPoseCondition handPose) {
+        public Rule(String eventType, String field, String operator, JsonPrimitive value,
+                String action, Effect effect, double minConfidence, int samples, int cooldownSeconds) {
+            this(eventType, field, operator, value, action, effect, minConfidence, samples, cooldownSeconds, null);
+        }
         public boolean complete() { return effect == Effect.COMPLETE; }
+        public String conditionDescription() {
+            return eventType + (handPose == null ? "." + field + " " + operator + " " + value : " " + handPose.description());
+        }
+        public String conditionKey() {
+            return handPose == null ? conditionDescription()
+                    : eventType + "/" + handPose.handedness() + "/" + handPose.all().stream()
+                        .sorted(Comparator.comparing(HandPoseCondition.Comparison::finger)).toList();
+        }
     }
     private static final Gson JSON = new Gson();
     public static final Map<String, Set<String>> FIELDS = Map.of(
@@ -38,6 +50,13 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
             Event.TYPE_HAND_SIGN, Set.of("sign"),
             Event.TYPE_WEATHER_CURRENT, Set.of("temperature_c", "condition", "precipitation_mm", "is_day", "cloud_cover"),
             Event.TYPE_WEATHER_FORECAST, Set.of("days.0.condition", "days.0.temperature_min_c", "days.0.temperature_max_c", "days.0.precipitation_mm"));
+
+    public static Set<String> observationTypes() {
+        var types = new HashSet<>(FIELDS.keySet()); types.add(Event.TYPE_HAND_POSE); return Set.copyOf(types);
+    }
+    public static String triggerInstructions() {
+        return "\nSupported trigger fields (scalar rules): " + FIELDS + HandPoseCondition.instructions();
+    }
 
     public static TaskSpec parse(JsonElement raw) {
         try {
@@ -60,23 +79,31 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
             for (var item : array) {
                 var rule = item.getAsJsonObject();
                 boolean legacy = !rule.has("effect");
-                exact(rule, Set.of("eventType", "field", "operator", "value", "action", legacy ? "complete" : "effect", "minConfidence", "samples", "cooldownSeconds"));
-                String type = string(rule, "eventType", 80), field = string(rule, "field", 80), op = string(rule, "operator", 8);
-                if (!FIELDS.getOrDefault(type, Set.of()).contains(field) || !Set.of("eq", "lt", "gt").contains(op)) throw new IllegalArgumentException();
-                var value = rule.get("value").getAsJsonPrimitive();
-                if (value.toString().length() > 100 || (!op.equals("eq") && (!value.isNumber() || !Double.isFinite(value.getAsDouble())))) throw new IllegalArgumentException();
-                boolean textual = Set.of("emotion", "changeType", "sign", "condition", "days.0.condition").contains(field);
-                boolean bool = Set.of("facePresent", "is_day").contains(field);
-                if (textual ? !value.isString() || !op.equals("eq") : bool ? !value.isBoolean() || !op.equals("eq")
-                        : !value.isNumber() || !Double.isFinite(value.getAsDouble())) throw new IllegalArgumentException();
+                String type = string(rule, "eventType", 80), field = null, op = null;
+                JsonPrimitive value = null; HandPoseCondition handPose = null;
+                if (type.equals(Event.TYPE_HAND_POSE)) {
+                    exact(rule, Set.of("eventType", "handPose", "action", "effect", "minConfidence", "samples", "cooldownSeconds"));
+                    handPose = HandPoseCondition.parse(rule.get("handPose"));
+                } else {
+                    exact(rule, Set.of("eventType", "field", "operator", "value", "action", legacy ? "complete" : "effect", "minConfidence", "samples", "cooldownSeconds"));
+                    field = string(rule, "field", 80); op = string(rule, "operator", 8);
+                    if (!FIELDS.getOrDefault(type, Set.of()).contains(field) || !Set.of("eq", "lt", "gt").contains(op)) throw new IllegalArgumentException();
+                    value = rule.getAsJsonPrimitive("value");
+                    if (value.toString().length() > 100 || (!op.equals("eq") && (!value.isNumber() || !Double.isFinite(value.getAsDouble())))) throw new IllegalArgumentException();
+                    boolean textual = Set.of("emotion", "changeType", "sign", "condition", "days.0.condition").contains(field);
+                    boolean bool = Set.of("facePresent", "is_day").contains(field);
+                    if (textual ? !value.isString() || !op.equals("eq") : bool ? !value.isBoolean() || !op.equals("eq")
+                            : !value.isNumber() || !Double.isFinite(value.getAsDouble())) throw new IllegalArgumentException();
+                }
                 if (!rule.get("minConfidence").getAsJsonPrimitive().isNumber()) throw new IllegalArgumentException();
                 double confidence = rule.get("minConfidence").getAsDouble();
                 if (!Double.isFinite(confidence) || confidence < 0 || confidence > 1) throw new IllegalArgumentException();
+                if (handPose != null && confidence != 0) throw new IllegalArgumentException("Finger bend has no detection confidence");
                 if (legacy && !rule.get("complete").getAsJsonPrimitive().isBoolean()) throw new IllegalArgumentException();
                 Effect effect = legacy ? (rule.get("complete").getAsBoolean() ? Effect.COMPLETE : Effect.ACT)
                         : Effect.valueOf(string(rule, "effect", 12));
-                rules.add(new Rule(type, field, op, value.deepCopy(), string(rule, "action", 300), effect,
-                        confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60)));
+                rules.add(new Rule(type, field, op, value == null ? null : value.deepCopy(), string(rule, "action", 300), effect,
+                        confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60), handPose));
             }
             return new TaskSpec(goal, max, List.copyOf(rules), sessionBound, firstAction);
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid task configuration; use supported observations and bounded rules"); }
@@ -91,7 +118,7 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
     public TaskSpec executable() {
         var conditions = new HashSet<String>();
         for (var rule : rules) {
-            if (!conditions.add(rule.eventType() + "/" + rule.field() + "/" + rule.operator() + "/" + rule.value()))
+            if (!conditions.add(rule.conditionKey()))
                 throw new IllegalArgumentException("Conflicting task conditions");
             // Average confidence of detected people says nothing about an empty observed scene.
             if (rule.eventType().equals(Event.TYPE_HUMAN_PRESENCE) && Set.of("humanCount", "trackedCount").contains(rule.field())

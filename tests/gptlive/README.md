@@ -151,7 +151,8 @@ HTTP/SSE and real Bootstrap behaviour remain unchanged. Camera/provider boundari
 remain synthetic, and optional external fonts may use browser fallbacks.
 
 Run from a configured checkout with Java/Maven, Node/Playwright, Python and
-`pymysql` available. MySQL must be on localhost. The runner reads administrative
+`pymysql[rsa]` available (install with `python -m pip install 'pymysql[rsa]'`).
+MySQL must be on localhost. The runner reads administrative
 credentials from ignored `src/main/resources/application-test.properties`, or from
 `GPTLIVE_MYSQL_ADMIN_URL`, `GPTLIVE_MYSQL_ADMIN_USER` and
 `GPTLIVE_MYSQL_ADMIN_PASSWORD`. Do not put credentials in command arguments.
