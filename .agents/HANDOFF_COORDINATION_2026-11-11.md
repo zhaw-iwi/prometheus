@@ -1,5 +1,12 @@
 # Coordination continuation handoff — 2026-11-11
 
+**Office consolidation update:** this home-session checkpoint is now integrated
+with the retained office work. Read
+`CONSOLIDATION_COORDINATION_2026-11-11.md` and the newest results section for the
+reconciliation and current verification. The investigation below remains valid;
+ES-08 is still incomplete, and capacity remains deferred. The office's distinct
+factual-feedback failure is retained separately, not resolved by delivery matching.
+
 ## Current checkpoint
 
 The owner requested committing and pushing all current work to GitHub so that a

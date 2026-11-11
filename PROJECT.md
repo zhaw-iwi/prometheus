@@ -75,6 +75,22 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Coordination office/home consolidation (2026-11-11): integrated home checkpoint
+  `02df87b` with preserved office ES-08 work. Retained unfinished-answer SUPPORT
+  recovery, tests, operator checklist and distinct office failure evidence;
+  preserved the newer verifier/receipt/atomic-delivery implementation. The Live
+  harness now reviews the identified final contribution separately from later
+  Reflection and includes unfinished-answer recovery. A merge regression caught
+  overlong arming facts; guidance was shortened within the existing atomic bound.
+  Verification: **876 full-suite Java cases plus two new fixture checks passed;
+  190 Node, 11 preflight and three real-app browser checks passed; package passed.**
+  The capacity test was intentionally skipped. Browser verification also exposed
+  and repaired an obsolete prompt-based fake-provider route; production matching
+  remains unchanged. No paid provider rerun was made during consolidation.
+  ES-08 remains incomplete, physical trials NOT RUN, capacity deferred. See
+  `.agents/CONSOLIDATION_COORDINATION_2026-11-11.md` for the goal/outcome assessment
+  and `.agents/ESCALATION_RESULTS.md` for actual verification. No deployment.
+
 - Coordination behavioural follow-up (2026-11-11): the response verifier has a
   labelled direct-provider evaluation (36/36 final checks), count proposals
   carry executable terms in a bounded speaking request, and task interpretation
@@ -101,7 +117,8 @@ and regulation diagnostics remain future work.
   fixture invitation matcher needed repair, and the verifier rejected a valid
   riddle paraphrase after one complete question. Final-feedback delivery remains
   unverified. Physical acceptance and the earlier classroom capacity gate remain
-  open. Evidence: `.agents/ESCALATION_RESULTS.md`. Uncommitted for owner review.
+  open. Evidence: `.agents/ESCALATION_RESULTS.md`. Included in home checkpoint
+  `02df87b`; this is the earlier verification record.
 
 - Escalation ES-08 integrated audit (2026-11-10): re-read all seven milestones,
   added bounded real Live/local-MySQL journeys and operator handoff, and repaired
@@ -112,7 +129,7 @@ and regulation diagnostics remain future work.
   dialogue speech and uncertain final delivery. ES-08 acceptance remains unmet;
   the repeated 472,687 Questions/hour capacity projection also blocks classroom
   rollout. Physical trials NOT RUN. Full attempts, usage and limits:
-  `.agents/ESCALATION_RESULTS.md`. Changes await owner review; no deployment.
+  `.agents/ESCALATION_RESULTS.md`. Included in home checkpoint `02df87b`; no deployment.
 
 - Coordination review (2026-11-10, after ES-07): bounded real OpenAI text probes
   exposed help-prefix interception and repeated extra-person/arrival

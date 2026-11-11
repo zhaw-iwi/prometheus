@@ -192,7 +192,10 @@ python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordinatio
 Recovery covers recognition, difficulty before/after preparation, fresh perception,
 natural acceptance, one cue and confirmed final delivery, then return. Dialogue
 covers a riddle question/answer/feedback, help and ordinary questions, followed by
-explicit replacement and renewed acceptance. Social covers a reviewed count
+an unfinished-answer completion request, explicit replacement and renewed acceptance.
+The final-feedback rubric reads the associated transcript segment and recorded
+suffix offset, keeping any later Reflection turn separate; all native captions
+remain available for semantic review. Social covers a reviewed count
 alternative, matching/nonmatching cues and explicit restart/pause/resume/stop.
 Each journey fails on an unmet check and retains native transcripts, task state,
 provider evidence and playback diagnostics under its ignored artifact directory.
@@ -215,7 +218,8 @@ contribution or answer leak. An automated pass does not complete semantic review
 Never automatically rerun until success: retain every attempt and state the
 specific correction that justifies another run. Integrated evidence and unresolved
 checks are in [ESCALATION_RESULTS.md](../../.agents/ESCALATION_RESULTS.md); physical
-operator trials are in [CORE_AGENTS.md](CORE_AGENTS.md). Physical audibility,
+operator trials are in [CORE_AGENTS.md](CORE_AGENTS.md) and the
+[escalation operator checklist](../../.agents/ESCALATION_OPERATOR.md). Physical audibility,
 camera accuracy and robot movement remain separate gates. Database capacity is
 deferred for the current behavioural milestone by the owner's 2026-11-11 scope update.
 

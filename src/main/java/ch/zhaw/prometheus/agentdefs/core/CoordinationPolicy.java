@@ -55,7 +55,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "A complete proposal still needs acceptance. Required preparation is verified from observations, never a verbal claim. "
                 + "Preparation evidence remains satisfied until the proposal or Live session changes. READY means accept next, never repeat preparation; a fresh execution cue is needed only after acceptance. "
                 + "In an active dialogue task, wait for the backend's confirmed next contribution before delivering that task step. "
-                + "ON_CUE activation waits for a fresh subsequent cue. Describe recognition limits and action bounds in ordinary language. "
+                + "ON_CUE activation waits for a fresh subsequent cue; this does not mean a sign was missed or recognition failed. Describe recognition limits and action bounds in ordinary language. "
                 + "A reflection is an account of evidence and the person's experience, not proof of learning, feelings or physical execution. "
                 + "An exhausted budget or cancellation is not achieved success. Revisions need a new agreement. "
                 + "FINISHING permits only the final identified contribution, then silence until delivery is confirmed. "

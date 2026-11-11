@@ -9,6 +9,16 @@ Passing local and direct-provider checks do not close the integrated Live failur
 Physical trials NOT RUN.
 Actual verification and limitations: `ESCALATION_RESULTS.md`.
 
+**2026-11-11 consolidation:** office and home work are reconciled on `main`.
+See `CONSOLIDATION_COORDINATION_2026-11-11.md` for provenance, retained differences
+and the goal/outcome assessment. Office unfinished-answer recovery and its tests
+are retained alongside the home verifier/delivery repairs. Historical office Live
+attempts are in `ESCALATION_OFFICE_2026-11-10.md`; its earlier halt/status and
+runner instructions are superseded. Factual feedback quality remains a separate
+concern: matching speech to a committed response does not prove that response
+correct. ES-08 remains incomplete; this consolidation does not begin a new engine
+or count as real-provider acceptance.
+
 **2026-11-11 owner scope update:** finish the response-verifier and spoken-proposal
 reliability work, then run the three complete Live journeys. Database capacity is
 deferred while a different deployment environment is considered; the Heroku query

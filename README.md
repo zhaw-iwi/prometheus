@@ -2173,6 +2173,11 @@ inventing an underlying cause. Pending Live task responses retain their identity
 deadline and playback requirements: help adds quiet facts, never a replacement
 task contribution or an automatic replay. This is not an acoustic silence gate.
 Reset and a new Live conversation discard pending help; no graph rewrite is needed.
+Clear unfinished answers such as "My answer is" request completion through the
+same support path, preserving the task budget and any in-flight response. This
+cannot restore words omitted by the Live provider; review the admitted transcript
+and complete/correct it explicitly. Final dialogue feedback excludes appended
+reflection invitations; a separate reflection turn follows confirmed delivery.
 Database/transport unavailability still requires client-side recovery. Roadmap and verification:
 `.agents/PLAN_ESCALATION.md` and `.agents/ESCALATION_RESULTS.md`.
 Recognisable direct hand/face questions use fresh supplied observations locally,

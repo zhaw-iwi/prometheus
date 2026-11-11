@@ -1,5 +1,79 @@
 # Coordination escalation and classroom reliability evidence
 
+## Office/home consolidation (2026-11-11)
+
+The home checkpoint `02df87b` is the integration base. The office's 19 changed or
+untracked files were preserved in a verified local backup, retained stash and
+`backup/office-es08-20261111` branch before fast-forwarding `main`. Reconciliation
+and reassessment: `CONSOLIDATION_COORDINATION_2026-11-11.md`. Distinct historical
+office attempts, including the incorrect piano/Enter-key feedback, are retained
+in `ESCALATION_OFFICE_2026-11-10.md`; their old halt/status and runner settings are
+not current instructions.
+
+The consolidated implementation retains the home verifier, receipt-aware capture,
+atomic speech updates, current-turn context, acceptance/perception guards and
+modular bounded Live harness. Office unfinished-answer SUPPORT handling and its
+five added cases are restored. Proposal/arming guidance avoids invented supplied
+lines and false failed-recognition claims. The operator checklist is now tracked.
+The home harness gains office unfinished-answer coverage and final-feedback review
+of the identified segment, respecting the new suffix offset and leaving later
+Reflection speech separate. All captions remain available for broader review.
+
+Retained regression failures and correction:
+
+- Restored Capture tests against the home checkpoint: **9 cases, five failures,
+  zero errors**. The failures establish why the office guard is still needed.
+  Log: `target/consolidation-20261111/capture-before-merge.log`.
+- First full merged-tree local-MySQL run: **877 cases, 875 passed, one failed,
+  one opt-in capacity skip, zero errors** (`gptlive-acceptance-8ad43b2831`). The
+  longer office arming facts exceeded the home's 340-byte atomic update bound;
+  `CoordinationVoiceUnitTest` correctly detected loss of the self-contained
+  speaking request. Shortened the facts, preserving the bound and test. All
+  **21 Capture/Voice cases then passed**, including the five restored failures
+  (`target/consolidation-20261111/capture-voice-after-merge.log`). Original full-run
+  JUnit XML, summary and failure log remain in its artifact directory.
+
+Verification after the arming correction:
+
+- Full Java suite on disposable loopback MySQL: **876 passed, zero failures/errors,
+  one opt-in capacity test skipped** (877 cases, 172 suites). Artifact
+  `target/gptlive-acceptance-15bfc67fc0` retains copied JUnit XML and its summary.
+  Command through this device's owned-MySQL adapter:
+  `python target/run_playback_mysql.py --java-tests all --browser --browser-mode enabled --browser-grep "Coordination reaches Reflection|real scoped cockpit|state view tracks a persisted transition"`.
+  The Java phase passed; the combined command failed in the browser phase below.
+- That first browser phase passed two cases and failed the Coordination playback
+  case before it received a playback cue. The retained trace shows complete
+  `First fixture observation.` speech, but no association. The fake provider
+  matched an obsolete verifier prompt sentence; the home prompt rewrite made it
+  return a generic behavior response instead of verdict JSON. Updated only the
+  test fixture to recognize the structured response-check payload. Two new fixture
+  cases use the real `TaskResponse.Check.request()` and verify MATCH/UNRELATED,
+  including response identity; both pass. No production verifier or playback
+  requirement was relaxed.
+- All Node tests: **190 passed**, including three new contribution-selection
+  cases. **11 runner preflight checks**, both journey syntax checks, Maven
+  packaging and whitespace checks pass. Logs:
+  `target/consolidation-20261111/*-final.log`, `package.log`.
+
+- Corrected browser rerun: **three passed**, using real local HTTP/MySQL/SSE,
+  scripted provider media and the production playback observer. It covers delayed
+  playback to Coordination Reflection, scoped durable conversation, and persisted
+  transitions in the state view. Artifact `target/gptlive-acceptance-15b27f1148`
+  also retains the two new fixture unit results. Command: the same adapter/browser
+  flags above, with `--java-tests LiveSmokeConfigurationTest`. Inspected the
+  persisted-conversation and state-popup screenshots. This is a focused browser
+  smoke, not a new full desktop/narrow/theme visual matrix or real OpenAI trial.
+- Both full-suite runs and the browser repair run report removal of their owned
+  disposable schemas/accounts and stopped application/MySQL processes. Final
+  process inspection found no owned fixture JVM or private MySQL server remaining.
+  No configured application schema or production database was targeted.
+
+No paid OpenAI or physical trial was run during consolidation. The merged
+prompt/fixture combination therefore has no new integrated Live acceptance claim.
+The home direct-provider evaluation below remains historical evidence for its
+verifier. It does not independently validate factual feedback. ES-08 remains
+incomplete; capacity/environment work remains deferred. No deployment is included.
+
 ## Verifier, proposal and integrated follow-up (2026-11-11)
 
 **ES-08 is not yet accepted. Database capacity is deferred by the owner.** This

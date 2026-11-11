@@ -93,7 +93,13 @@ PROMETHEUS currently provides:
   observations across delayed cues/association; fresh control cues precede provider
   append acknowledgements. Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
-  admission and task controls. Both Generic variants remain available. See README
+  admission and task controls. Cross-phase support uses the shared user action,
+  bounded content-free rejection evidence and canonical pending-response identity;
+  help preserves authority and explicit controls remain guarded. Supported dialogue
+  and output-only sensor tasks stay distinct; first arrival is not extra-person
+  detection. Valerian service recovery keeps last-known views and performs scoped
+  read-only refresh without replaying uncertain mutations. Both Generic variants
+  remain available. See README
   and `.agents/COORDINATION_RESULTS.md` for the bounded contract and verification;
 - persisted explicit state-machine agents with policies, transitions, actions,
   storage, event history, reset, and scheduled evaluation;

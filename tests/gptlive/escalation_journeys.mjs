@@ -7,6 +7,18 @@ export const conversationReturn = /\b(?:conversation|chat(?:ting)?|talk(?:ing)?)
 export const visibleCountAlternative = /at least (?:two|2)|more than (?:one|1)|(?:two|2) people|you(?:'re| are) already in (?:view|the scene).{0,50}a second person is visible/i;
 export const positiveFeedback = /\b(?:correct|right|exactly|yes|fits perfectly)\b/i;
 
+// Review the associated contribution, not a later, separately authorized Reflection turn.
+// Receipt-aware capture may have checked only a complete sentence suffix of this segment.
+export function capturedContribution(memory, ledger) {
+  const response = memory['task.response'];
+  assert.equal(response?.status, 'CAPTURED');
+  const segment = ledger.find(item => item.segmentId === response.segment && item.speaker === 'ASSISTANT');
+  assert.equal(segment?.status, 'COMPLETE', 'The associated assistant segment must exist and be complete');
+  const offset = response.speechOffset ?? 0;
+  assert.ok(Number.isInteger(offset) && offset >= 0 && offset < segment.text.length, 'Invalid captured speech offset');
+  return {segment: segment.segmentId, text: segment.text.slice(offset)};
+}
+
 export const escalationClips = {
   'escalation-recovery': {
     proposal: 'Please help me set up a workshop welcome task. I show rock and judge whether your greeting is useful. After I accept and then show a fresh rock sign, give one short welcome to the workshop. First verify rock recognition. One contribution. Propose it without starting.',
@@ -18,7 +30,7 @@ export const escalationClips = {
   'escalation-dialogue': {
     proposal: 'Propose one riddle round about an object with keys that cannot open a door. I will guess the object and judge your feedback. Ask only the question first, then give feedback after I answer. Two contributions, no sensors or preparation. Do not reveal the answer or start yet.',
     accept: "Let's start.", help: "I'm stuck. Is our task still running?", sense: 'What hand sign do you see now?',
-    answer: 'My answer is a piano.',
+    fragment: 'My answer is', answer: 'My answer is a piano.',
     replace: 'Replace this with a new dialogue riddle round about something that gets wetter as it dries. Same roles, two contributions, question then feedback, no sensors or preparation. Propose only; wait for my acceptance.',
     stop: 'Stop the task.'
   },
@@ -40,7 +52,7 @@ export async function runEscalation(scenario, h) {
   function unchanged(before, after) {
     for (const key of protectedKeys) assert.deepEqual(after[key], before[key], `${key} changed during an ordinary/help turn`);
   }
-  async function turn(name, expected) {
+  async function turn(name, expected, expectedUserText) {
     const before = await storage(), index = await page.evaluate(() => logs.length);
     const ledgerPath = `${agentPath}/live/transcripts?sessionId=${h.handle}`;
     const seen = new Set((await api(ledgerPath)).map(segment => segment.segmentId));
@@ -54,6 +66,10 @@ export async function runEscalation(scenario, h) {
           throw Error(`Visitor turn ${name}: ${segment.status}/${segment.reason}`);
         return admitted.length && admitted.every(segment => segment.status === 'COMPLETE');
       }, 55000);
+      if (expectedUserText) {
+        const admitted = (await api(ledgerPath)).filter(segment => segment.speaker === 'USER' && !seen.has(segment.segmentId));
+        assert.match(admitted.map(segment => segment.text).join(' '), expectedUserText, 'Check the actually admitted visitor words');
+      }
       answer = await settled(index, typeof expected === 'function' ? expected(await storage()) : expected);
     }
     catch (error) {
@@ -139,10 +155,16 @@ export async function runEscalation(scenario, h) {
     const before = await storage(), help = await turn('help', /active|running|answer|pause|stop/i);
     unchanged(before, help.memory); assert.doesNotMatch(help.answer, /piano|keyboard/i, 'Help must not reveal the solution');
     await freshQuestion();
+    const beforeFragment = await storage(), fragment = await turn('fragment', /finish|complete|go on/i, /my answer is/i);
+    unchanged(beforeFragment, fragment.memory);
+    assert.deepEqual(fragment.memory['task.response'], beforeFragment['task.response']);
+    assert.doesNotMatch(fragment.answer, /piano|keyboard/i, 'Incomplete-answer support must not supply the solution');
     const index = await page.evaluate(() => logs.length); await say('answer');
     const feedback = await delivered(index, /piano/i, 2);
-    assert.match(feedback.answer, positiveFeedback); assert.doesNotMatch(feedback.answer, /incorrect|wrong/i);
-    assert.doesNotMatch(feedback.answer, /\?|another round|would you like|feedback.{0,30}welcome/i,
+    const contribution = capturedContribution(feedback.memory, await api(`${agentPath}/live/transcripts?sessionId=${h.handle}`));
+    report.finalFeedbacks = [contribution];
+    assert.match(contribution.text, positiveFeedback); assert.doesNotMatch(contribution.text, /incorrect|wrong/i);
+    assert.doesNotMatch(contribution.text, /\?|another round|would you like|feedback.{0,30}welcome/i,
       'Final contribution must not append another question or invitation');
     assert.equal(feedback.memory['coordination.outcome'], 'LIMIT_REACHED');
     const oldRun = feedback.memory['coordination.run'], revision = await turn('replace', h.acceptanceQuestion);

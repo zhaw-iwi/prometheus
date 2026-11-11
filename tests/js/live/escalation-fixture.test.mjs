@@ -1,6 +1,38 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {acceptanceInvitation, conversationReturn, visibleCountAlternative, positiveFeedback} from '../../gptlive/escalation_journeys.mjs';
+import {acceptanceInvitation, conversationReturn, visibleCountAlternative, positiveFeedback, capturedContribution} from '../../gptlive/escalation_journeys.mjs';
+
+test('final feedback review selects its captured segment and leaves later reflection separate', () => {
+  const memory = {'task.response': {status: 'CAPTURED', segment: 'feedback'}};
+  const ledger = [
+    {segmentId: 'feedback', speaker: 'ASSISTANT', status: 'COMPLETE', text: 'Correct, a piano.'},
+    {segmentId: 'reflection', speaker: 'ASSISTANT', status: 'COMPLETE', text: 'How was that?'}
+  ];
+  assert.deepEqual(capturedContribution(memory, ledger), {segment: 'feedback', text: 'Correct, a piano.'});
+  ledger[0].text += ' Would you like another round?';
+  assert.match(capturedContribution(memory, ledger).text, /Would you like another round\?$/,
+    'An invitation inside the actual contribution must remain visible to the rubric');
+});
+
+test('final feedback review respects the persisted receipt-aware suffix offset', () => {
+  const early = 'Checking that now. ', feedback = 'Correct, a piano.';
+  const memory = {'task.response': {status: 'CAPTURED', segment: 'merged', speechOffset: early.length}};
+  assert.equal(capturedContribution(memory, [
+    {segmentId: 'merged', speaker: 'ASSISTANT', status: 'COMPLETE', text: early + feedback}
+  ]).text, feedback);
+});
+
+test('final feedback review rejects absent, incomplete or unassociated speech and invalid offsets', () => {
+  const response = {status: 'CAPTURED', segment: 'feedback'};
+  const segment = {segmentId: 'feedback', speaker: 'ASSISTANT', status: 'COMPLETE', text: 'Correct.'};
+  const review = (r, s) => capturedContribution({'task.response': r}, s);
+  assert.throws(() => review(response, []));
+  assert.throws(() => review({...response, status: 'CHECKING'}, [segment]));
+  assert.throws(() => review(response, [{...segment, speaker: 'USER'}]));
+  assert.throws(() => review(response, [{...segment, status: 'PARTIAL'}]));
+  for (const speechOffset of [-1, .5, segment.text.length])
+    assert.throws(() => review({...response, speechOffset}, [segment]));
+});
 
 test('acceptance pacing recognises natural invitations and rejects preliminary speech', () => {
   for (const text of ['Shall we start it now?', 'Say “start”, and we will try it.',

@@ -31,8 +31,8 @@ public class CoordinationUpdateAction extends Action {
         String revision = TaskMemory.text(storage, TaskMemory.REVISION, "0");
         CoordinationMemory.remove(storage, CoordinationSupport.LIVE_HELP);
         // Acoustic completion is not semantic completeness. These clear fragments cannot authorize a change.
-        if (CoreTaskVoice.normalize(text).matches("(a|an|the)( dry)?|(please )?(tell me|make it|change it to|can you|i want)( a| an| the)?")) {
-            answer("Please finish that request; the agreement and state are unchanged.", runtime); return;
+        if (CoreTaskVoice.normalize(text).matches("(a|an|the)( dry)?|(please )?(tell me|make it|change it to|can you|i want)( a| an| the)?|(my|the) answer is|i think it is|(meine|die) antwort ist")) {
+            answerSupport("Please finish that request; the agreement and state are unchanged.", runtime); return;
         }
         SensoryRemarks.userTurn(storage, events);
         if (runtime.externalSpeech() == null) CoordinationMemory.remove(storage, TaskResponse.KEY, CoreTaskVoice.RESPONSE);
@@ -335,13 +335,13 @@ public class CoordinationUpdateAction extends Action {
         if (operation.equals("KEEP") || operation.equals("REFLECT")) { CoreTaskVoice.clearAnswered(storage); return; }
         String facts = switch (operation) {
             case "PROPOSE" -> "Proposal saved, not active. Explain the goal, roles, success criterion and limits without performing the task. "
-                    + "Refer to the supplied action text without quoting it, even as a future-tense example. " + proposalNextStep(storage);
+                    + "Refer to the agreed action without quoting it or inventing a supplied literal line, even as a future-tense example. " + proposalNextStep(storage);
             case "REPLACE" -> "A replacement proposal was saved and the earlier task is not executing. Explain the changed terms without performing them. " + CoordinationMemory.proposalPrompt(storage);
             case "START" -> action ? "Task accepted. Give its first agreed contribution now. " + intent(speech)
                     : "Task accepted and armed. Confirm only that you are waiting for a fresh cue: "
                         + accepted.reactions().rules().stream().filter(rule -> rule.effect() == TaskSpec.Effect.ACT)
                             .map(rule -> rule.value().toString()).collect(java.util.stream.Collectors.joining(", "))
-                        + ". Do not perform any part of the future action, including a joke or perception estimate. Do not say done.";
+                        + ". Do not perform the future action, joke or perception estimate. Preparation is satisfied; waiting for a new cue does not mean recognition failed. The future task is not completed.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
             case "COMPLETE" -> "The user's completion report ended the task. Reflect on available evidence; this is not independently measured success.";
             case "STOP" -> "No further task actions are authorized. The recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".";
