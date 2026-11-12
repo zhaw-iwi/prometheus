@@ -58,10 +58,12 @@ class CoreRpsRoundUnitTest {
         assertEquals("rps_stale_sign", CoreRpsRound.rejection(storage, history(sign(id(), NOW.minusMillis(1), 1)), owner, now));
         assertEquals("rps_stale_sign", CoreRpsRound.rejection(storage, history(sign(id(), now.plusSeconds(3), 1)), owner, now));
         assertEquals("rps_stale_sign", CoreRpsRound.rejection(storage, history(sign(id(), NOW, 1)), owner, NOW.plusSeconds(15)));
-        assertEquals("rps_low_confidence", CoreRpsRound.rejection(storage, history(sign(id(), now, .69)), owner, now));
+        assertEquals("rps_low_confidence", CoreRpsRound.rejection(storage, history(sign(id(), now, -.01)), owner, now));
         assertEquals("rps_low_confidence", CoreRpsRound.rejection(storage, history(sign(id(), now, 1.1)), owner, now));
         assertEquals("rps_out_of_order", CoreRpsRound.rejection(storage, history(sign(id(), now, .1), sign(id(), now.minusMillis(1), 1)), owner, now));
-        var data = JsonParser.parseString(sign(id(), now, .9).getPayload()).getAsJsonObject(); data.addProperty("source", "valerian.hand.camera");
+        for (double confidence : new double[] {0, .64, .699, 1})
+            assertNull(CoreRpsRound.rejection(storage, history(sign(id(), now, confidence)), owner, now));
+        var data = JsonParser.parseString(sign(id(), now, .64).getPayload()).getAsJsonObject(); data.addProperty("source", "valerian.hand.camera");
         data.addProperty("stabilityFrames", 2);
         assertEquals("rps_unstable_sign", CoreRpsRound.rejection(storage, history(Event.observation(Event.TYPE_HAND_SIGN, "sensor", data.toString())), owner, now));
         data.addProperty("stabilityFrames", 3);

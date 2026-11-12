@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Core RPS confidence control (2026-11-12): the client's configured hand
+  confidence threshold governs emission, without an additional backend 0.70
+  floor. Core RPS validates numeric confidence in [0, 1] and retains capture
+  identity, freshness, ordering and three-sample camera stability. A bundled
+  cockpit regression sends paper at 0.64 with a 0.60 setting. The event-specific
+  Gala/Swiss counterpart remains on agents. Restart the backend and hard-refresh
+  the cockpit; no schema migration or agent recreation is needed. All five Core
+  RPS Java checks and 29 bundled hand-sensing assertion bodies passed on main.
+
 - Shared Live countdown support (2026-11-12): optional acknowledgement-aware
   playback cues retain audio while complete input is classified by the backend;
   empty complete user transcripts are durably ignored without a user event.

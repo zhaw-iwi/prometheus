@@ -200,7 +200,8 @@ minimum is reserved for an explicitly requested task requirement. **Sensing →
 Configuration**, beneath **Hand send conf**, shows additional preparation/execution
 minimums from the proposed or saved task; changing the client setting does not
 rewrite those terms. Existing saved thresholds remain effective until explicitly
-revised. Scored activities such as RPS retain their own recognition requirements.
+revised. RPS also uses the client's configured confidence threshold, while retaining
+its capture, freshness and camera stability requirements.
 Live and Generic task perception expire hand readings after 15 seconds without
 a fresh observation. The telemetry export omits sensor payloads; check the
 diagnostic activity log for `ack obs.hand.sign` when tracing camera ingress.
@@ -1942,8 +1943,9 @@ policy type. Existing policy rows and agent instances need no conversion.
 New Core Rock Scissor Paper instances persist a unique round/capture ID and keep
 their dedicated result/replay states. Observations must echo `display.captureId`,
 have a fresh source timestamp at or after capture opening (15-second TTL,
-two-second future skew), and confidence at least 0.7. Camera observations also
-require three stable frames. Old/malformed/duplicate rounds never decide a winner.
+two-second future skew), and numeric confidence in [0, 1]. The client's configured
+confidence threshold governs emission without an additional game minimum. Camera
+observations also require three stable frames. Old/malformed/duplicate rounds never decide a winner.
 The existing cockpit attaches IDs to camera and manual signs and resets the
 held-sign cooldown once per opening. The last 16 results are retained; reset clears
 rounds and counters. Existing saved RPS graphs retain their previous semantics.

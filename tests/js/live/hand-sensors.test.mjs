@@ -93,6 +93,18 @@ function fixture({ poseSupported = false, signSupported = true } = {}) {
   };
 }
 
+test("RPS capture uses the configured confidence and still requires three qualifying samples", async () => {
+  const f = fixture();
+  f.element("hand_confidence_threshold").value = "0.60";
+  f.context.updateHandCapture({ awaitingUserSign: true, captureId: "paper-capture" });
+  await f.frame("Open_Palm", .64); await f.frame("Open_Palm", .64);
+  assert.equal(f.requests.length, 0);
+  await f.frame("Open_Palm", .64);
+  const data = JSON.parse(JSON.parse(f.requests[0].body).payload);
+  assert.equal(data.sign, "paper"); assert.equal(data.confidence, .64);
+  assert.equal(data.stabilityFrames, 3); assert.equal(data.captureId, "paper-capture");
+});
+
 test("generic finger readings use their own timestamped scoped event and publish no named sign", async () => {
   const f = fixture({ poseSupported: true });
   f.element("emit_interval_ms").value = "2500";
