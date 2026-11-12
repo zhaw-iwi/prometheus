@@ -42,6 +42,14 @@ public interface ExternalVoicePolicy {
     default boolean liveFilterIsolatedInputActivity() { return false; }
     /** Opt-in admission only when this exact input is guaranteed not to change task/activity control. */
     default boolean liveNonMutatingAcknowledgement(String transcript) { return false; }
+    /** Opt in to post-admission acknowledgement classification through ordinary application control. */
+    default boolean liveContextualAcknowledgements() { return false; }
+    /**
+     * Post-admission evidence for this exact input, classified by ordinary application control.
+     * Called under the turn lock; local validation only, never inference or I/O.
+     * The caller also rechecks the original playback cue, deadline and speech owner.
+     */
+    default boolean liveNonMutatingAcknowledgement(ch.zhaw.prometheus.model.event.Event input, ExternalSpeech owner) { return false; }
     /** Resolve a short control reply from current application facts and completed session dialogue.
      * Ingress still requires a preceding, non-overlapping assistant segment from the current owner.
      * This does not authorize an action: ordinary acknowledgement/actions validate it again.

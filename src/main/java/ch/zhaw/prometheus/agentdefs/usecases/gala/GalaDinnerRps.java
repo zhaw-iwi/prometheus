@@ -20,13 +20,13 @@ final class GalaDinnerRps {
             INTRO_AT = PREFIX + "rps_intro_at", DEADLINE = PREFIX + "rps_intro_deadline",
             SESSION_ID = PREFIX + "rps_session", EPOCH = PREFIX + "rps_epoch", SEGMENT = PREFIX + "rps_countdown_segment",
             RECEIPTS = PREFIX + "rps_countdown_receipts", SEGMENTS = PREFIX + "rps_countdown_segments",
-            LEAD_IN = PREFIX + "rps_ready_lead_in";
+            LEAD_IN = PREFIX + "rps_ready_lead_in", ACK_INPUT = PREFIX + "rps_acknowledged_input";
     private GalaDinnerRps() {}
 
     static String countdownInstructions(boolean leadIn) {
         return leadIn
-                ? "Use the current conversation language. German: Say Bereit? once as a short lead-in, pause briefly, then say Schere, Stein, Papier. "
-                    + "English: say Ready? once, pause briefly, then say Rock, Paper, Scissors (no Shoot). "
+                ? "Use the current conversation language. German: Say \"Mach dich bereit.\" once as a short lead-in, pause briefly, then say Schere, Stein, Papier. "
+                    + "English: say \"Get ready.\" once, pause briefly, then say Rock, Paper, Scissors (no Shoot). "
                     + "Use three steady, unhurried beats, roughly one second per word, with audible pauses. "
                     + "Continue automatically; a brief Ja/Yes/Okay is an acknowledgement, not an interruption or a new start. "
                     + "Do not answer it or restart counting. Stop/wait requests still interrupt. "
@@ -44,6 +44,7 @@ final class GalaDinnerRps {
         put(storage, INTRO_AT, now.toString()); put(storage, DEADLINE, now.plusSeconds(30).toString());
         put(storage, SESSION_ID, owner.sessionId().toString()); put(storage, EPOCH, owner.epoch().toString());
         remove(storage, SEGMENT); remove(storage, RECEIPTS); remove(storage, SEGMENTS);
+        remove(storage, ACK_INPUT);
         remove(storage, GalaDinnerCountdown.PENDING); remove(storage, CAPTURE_ID);
         boolean preparation = GalaDinnerRpsPreparation.enabled(storage);
         continueRequest(storage, preparation
@@ -144,6 +145,7 @@ final class GalaDinnerRps {
         var cue = cue(storage, now);
         if (cue == null || cue.expired(now) || cue.segmentId() == null || !cue.id().toString().equals(intro) || !owned(storage, owner)) return null;
         put(storage, PHASE, "WAITING"); remove(storage, SEGMENT); remove(storage, RECEIPTS); remove(storage, SEGMENTS);
+        remove(storage, ACK_INPUT);
         GalaDinnerAction.openCapture(storage, now);
         // Same speaking occasion already counted. No second invitation or repeated countdown.
         for (String key : List.of(CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES, CONTINUATION_OCCASION)) remove(storage, key);
@@ -161,8 +163,26 @@ final class GalaDinnerRps {
         return owner != null && owner.sessionId().toString().equals(text(storage, SESSION_ID, ""))
                 && owner.epoch().toString().equals(text(storage, EPOCH, ""));
     }
+    static boolean acknowledging(Storage storage, ExternalSpeech owner, Instant now) {
+        return "RPS".equals(mode(storage)) && List.of("INTRO", "SPOKEN").contains(text(storage, PHASE, ""))
+                && !storage.containsKey(EXIT_REQUEST) && owned(storage, owner) && !expired(storage, now) && present(storage, now);
+    }
+    static void acknowledgeInput(Storage storage, Event input) {
+        if (input.sourcePosition() == null) return;
+        var evidence = new JsonObject();
+        evidence.addProperty("round", text(storage, INTRO, ""));
+        evidence.addProperty("position", input.sourcePosition());
+        storage.put(ACK_INPUT, evidence);
+    }
+    static boolean acknowledgedInput(Storage storage, Event input, ExternalSpeech owner, Instant now) {
+        if (!acknowledging(storage, owner, now) || !storage.containsKey(ACK_INPUT) || input.sourcePosition() == null
+                || !Event.TYPE_USER_UTTERANCE.equals(input.getType()) || !Event.ACTOR_USER.equals(input.getActor())) return false;
+        var evidence = storage.get(ACK_INPUT).getAsJsonObject();
+        return text(storage, INTRO, "").equals(evidence.get("round").getAsString())
+                && input.sourcePosition() == evidence.get("position").getAsLong();
+    }
     static void clear(Storage storage) {
         for (String key : List.of(PHASE, INTRO, INTRO_AT, DEADLINE, SESSION_ID, EPOCH, SEGMENT, RECEIPTS, SEGMENTS,
-                GalaDinnerCountdown.PENDING, LEAD_IN)) remove(storage, key);
+                GalaDinnerCountdown.PENDING, LEAD_IN, ACK_INPUT)) remove(storage, key);
     }
 }

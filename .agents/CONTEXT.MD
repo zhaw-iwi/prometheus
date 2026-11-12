@@ -444,10 +444,14 @@ playback settling. Approximate timing is sufficient; this is not a physical
 speaker/robot synchronization guarantee. Preparation expires after 30 seconds.
 New/resumed rounds persist an opaque
 capture ID in the opening/result display; camera/manual observations must echo it.
-Resumption keeps the chosen sign but opens fresh capture. Timestamp, confidence
+Declining exit confirmation keeps the chosen sign but opens fresh capture. Timestamp, confidence
 and camera stability checks still apply; old IDs cannot affect observation ordering.
 The cockpit preserves stability/cooldown on duplicate openings and retains the
 original ID across delayed HTTP. Generic uncorrelated displays remain supported.
+Conversation turns admitted during departure grace retain their control displays.
+A fresh presence recovery republishes an active RPS preparation/waiting capture
+with its existing ID, source boundary and recognition progress, without replaying
+speech or hand motion. Paused, unreleased countdown and closed captures stay guarded.
 See README and GI-24 results for client refresh, persistence and physical limits.
 
 GI-01 (Milestone 227) delivers dynamic guidance additions/removals, including task
@@ -525,6 +529,15 @@ annotations for task control. A neutral WAIT operation preserves games; original
 transcripts remain auditable. Complete neutral acknowledgements in active games
 now bypass classification and preserve their target/round unless an exit decision is pending. Explicit no-reveal
 give-up has narrow local handling; reception/task acceptance is unchanged.
+Gala/Swiss multi-state countdowns additionally use the existing control inference
+to classify complete contextual positive support, without a fixed positive-word
+vocabulary. Only explicit `COUNTDOWN_ACK` preserves pending speech, freshness and
+the original round deadline. Its post-admission evidence names the exact input
+history position and round; ingress rechecks cue, expiry and speech owner before
+publishing the durable acknowledgement reason. Questions, mixed stop/wait,
+negation, uncertain/failed inference and foreign/expired rounds cannot release
+playback. Common Ja/Yeah/Okay replies retain their local fast path. Backend restart
+is sufficient for existing multi-state graphs; no schema change is needed.
 Unrelated game requests now enter a persisted exit-confirmation phase: target/sign
 and original question remain, hand results suspend, yes exits without reveal and no
 resumes. Explicit Stop/close/idle cleanup still applies. RPS requests its committed

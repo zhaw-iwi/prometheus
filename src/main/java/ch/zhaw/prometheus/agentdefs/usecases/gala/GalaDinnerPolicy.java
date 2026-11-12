@@ -63,6 +63,11 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         return !coCreatedTasksEnabled() && GalaDinnerInput.countdownAcknowledgement(storage, speech)
                 || GalaDinnerInput.nonMutatingAcknowledgement(storage, speech, java.time.Instant.now());
     }
+    @Override public boolean liveNonMutatingAcknowledgement(ch.zhaw.prometheus.model.event.Event input,
+            ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
+        return !coCreatedTasksEnabled() && GalaDinnerRps.acknowledgedInput(storage, input, owner, java.time.Instant.now());
+    }
+    @Override public boolean liveContextualAcknowledgements() { return !coCreatedTasksEnabled(); }
     @Override public boolean liveResolvedControlReply(String transcript, EventHistory history,
             ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
         return activitiesEnabled() && GalaDinnerRounds.replay(storage, history, owner,

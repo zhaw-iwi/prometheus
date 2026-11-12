@@ -76,7 +76,7 @@ class GalaDinnerCountdownReceiptUnitTest {
 
     @Test void englishCountdownSelectsFreshReceiptsAndRequiresPlaybackBeforeCapture() {
         round(true);
-        assertTrue(capture(List.of(part("ready", "Ready? ", 1000), part("rock", "Rock,", 2000),
+        assertTrue(capture(List.of(part("ready", "Get ready. ", 1000), part("rock", "Rock,", 2000),
                 part("paper", " Paper,", 3000), part("s1", " Scis", 4000), part("s2", "sors.", 4100))));
         var cue = GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(10));
         assertEquals(List.of("rock", "paper", "s1", "s2"), cue.receiptIds());
@@ -88,7 +88,7 @@ class GalaDinnerCountdownReceiptUnitTest {
     @ParameterizedTest @ValueSource(booleans = {true, false})
     void slowCountdownBridgesThreeCompleteNativeSegmentsAndKeepsEveryReceipt(boolean english) {
         round(true);
-        var words = english ? List.of("Rock", "Paper", "Scissors.") : List.of("Schere", "Stein", "Papier.");
+        var words = english ? List.of("Get ready. Rock", "Paper", "Scissors.") : List.of("Mach dich bereit. Schere", "Stein", "Papier.");
         assertFalse(capture("first", List.of(part("one", words.get(0), 1000)), true));
         assertFalse(capture("second", List.of(part("two", words.get(1), 2500)), true));
         assertFalse(memory.containsKey(CAPTURE_ID));

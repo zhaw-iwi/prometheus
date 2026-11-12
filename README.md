@@ -623,10 +623,11 @@ then waits for backend-confirmed starting facts before introducing the game.
 Proposal acceptance remains specific to co-created tasks.
 
 The Gala and Swiss Robotics Day **multi-state games** variants first say
-"Bereit?", pause briefly, then automatically count "Schere … Stein … Papier" on
-three slower, steady beats (roughly one second per word). This lead-in requires
-no reply. Pacing is voice guidance; exact spoken pauses are not guaranteed.
-In English, the corresponding wording is "Ready?" followed by
+"Mach dich bereit.", pause briefly, then automatically count
+"Schere … Stein … Papier" on three slower, steady beats (roughly one second per
+word). This lead-in requires no reply. Pacing is voice guidance; exact spoken
+pauses are not guaranteed.
+In English, the corresponding wording is "Get ready." followed by
 "Rock … Paper … Scissors", without an extra "Shoot". The shared recognizer
 accepts either complete sequence with the existing ownership, freshness and
 playback checks; changing the spoken language does not require a different
@@ -639,6 +640,16 @@ commands and incomplete audio remain ineligible for playback completion.
 A short "Ja", "Yes", "Yeah", "Yep" or "Okay" preserves the round, countdown identity and speech
 freshness boundary without another inference or countdown. Stop/wait requests
 and mixed replies such as "Ja, stopp" retain interruption semantics.
+Other complete positive replies, such as "Wunderbar", "Das klingt prima" or
+"That sounds wonderful", use the existing control inference in the context of
+the active countdown. Only an explicit `COUNTDOWN_ACK` result preserves its
+freshness boundary, pending speech fragments and original deadline. This is
+whole-utterance classification, not a fixed positive-word list. Questions,
+negation, stop/wait requests, mixed or uncertain replies cannot authorize playback.
+The accepted input is bound to its exact history position and current round;
+ingress rechecks the same cue, deadline and speech owner before recording
+`countdown_acknowledgement`. Restart the updated backend; saved instances need
+no graph or schema migration for this change.
 
 These variants opt into `playbackCue.allowAcknowledgements`. The browser holds
 completion while input receipts are pending; only a complete, backend-classified
@@ -701,6 +712,11 @@ To operate the entrance demonstration:
 5. A zero-person camera sample starts a **two-second grace**, including audio/input.
    A brief dropout preserves the same session, game and task budget. New sensor
    actions and ambient comments wait for visible presence; missed cues are not replayed.
+   RPS capture displays for accepted conversation turns remain deliverable during
+   this grace. A fresh visible-presence sample republishes an active preparation
+   or playing capture with the same ID and recognised signs, without repeating
+   speech or robot hand motion. Exit confirmation, countdown and closed activities
+   cannot be reopened by that status refresh.
    Repeated zeros do not extend the deadline. Sustained absence stops local media
    and closes Live; that close clears the backend encounter. A second backend timer
    must not erase a resumed game behind a slow positive acknowledgement.
@@ -879,12 +895,13 @@ quoted examples are not covered by this narrow rule.
   configured confidence threshold. Camera samples require three
   stable frames. Each newly started/resumed capture also requires the exact
   `captureId` from the opening display, even for manual observations. Wrong/missing
-  IDs cannot finish the round or affect its observation ordering. Resumption keeps
-  Gigi's chosen sign but issues a new ID. Results carry the accepted ID and close
-  capture. Create a fresh Gala instance and refresh both cockpits for the new
-  countdown contract; old clients cannot release a new countdown. External
-  clients must acknowledge playback and echo capture IDs. Spoken signs do not finish the
-  round. Live must wait for the backend result.
+  IDs cannot finish the round or affect its observation ordering. Declining exit
+  confirmation keeps Gigi's chosen sign but issues a new ID. Brief camera-dropout
+  recovery retains the existing capture ID and timestamp boundary. Results carry
+  the accepted ID and close capture. Create a fresh Gala instance and refresh
+  both cockpits for the new countdown contract; old clients cannot release a new
+  countdown. External clients must acknowledge playback and echo capture IDs.
+  Spoken signs do not finish the round. Live must wait for the backend result.
 - Guessing persists a person from four maintained fact cards and supplies the selected
   name/card to Live as quiet activity data. Live answers yes/no questions, distinguishes
   missing facts from incomplete/nonbinary questions, and explains rules directly.

@@ -71,6 +71,6 @@ final class GalaDinnerCountdown {
     }
     private static boolean prefix(String text) {
         String words = text.toLowerCase(Locale.ROOT).replaceAll("[\\p{P}\\p{S}]+", " ").replaceAll("\\s+", " ").trim();
-        return words.matches("(?:ready )?rock(?: paper)?|(?:bereit )?schere(?: stein)?");
+        return words.matches("(?:(?:get )?ready )?rock(?: paper)?|(?:(?:mach dich )?bereit )?schere(?: stein)?");
     }
 }

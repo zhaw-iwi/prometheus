@@ -40,6 +40,61 @@ class GalaDinnerReceptionIntegrationTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            SwissRoboticsDayReceptionMultiStateGames.KEY, SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY})
+    void preparationCaptureIsPublishedDuringGraceAndRecoveredWithPersistedProgress(String key) {
+        String code = UUID.randomUUID().toString().substring(0, 5);
+        var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
+        UUID id = demo.createAgent(code, key, AgentEmbodiment.ROBOT.name()).getID();
+        group(code, id, 1);
+        UUID session = UUID.randomUUID();
+        contexts.claim(code, id, session).orElseThrow();
+        try {
+            when(language.infer(any())).thenReturn(answer("START_RPS", ""));
+            group(code, id, 0);
+            var opening = demo.acknowledge(code, id, new EventRequest(Event.TYPE_USER_UTTERANCE, "user",
+                    Event.KIND_OBSERVATION, "Schere Stein Papier bitte"), OutputProfile.FULL_PLAN).orElseThrow().getResponseEvent();
+            assertNotNull(opening);
+            var display = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(opening.getPayload()).getDisplay().getAsJsonObject();
+            String capture = display.get("captureId").getAsString();
+            assertTrue(display.get("awaitingUserSign").getAsBoolean());
+            var stored = agents.findById(id).orElseThrow();
+            assertTrue(stored.getEventHistory().toList().stream().anyMatch(event -> event.getPayload().equals(opening.getPayload())));
+            String started = stored.getStorage().get("gala.started").getAsString();
+
+            group(code, id, 1); hand(code, id, "rock", capture); group(code, id, 0);
+            long published = agents.findById(id).orElseThrow().getEventHistory().toList().stream()
+                    .filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())).count();
+            var recovered = demo.acknowledge(code, id, new EventRequest(Event.TYPE_SOCIAL_GROUPING, "sensor",
+                    Event.KIND_OBSERVATION, "{\"humanCount\":1,\"ts\":\"" + Instant.now() + "\"}"),
+                    OutputProfile.FULL_PLAN).orElseThrow().getResponseEvent();
+            assertNotNull(recovered);
+            var plan = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(recovered.getPayload());
+            assertNull(plan.getSpeech()); assertNull(plan.getMotion());
+            assertEquals(capture, plan.getDisplay().getAsJsonObject().get("captureId").getAsString());
+            assertEquals("[\"rock\"]", plan.getDisplay().getAsJsonObject().get("recognisedSigns").toString());
+            stored = agents.findById(id).orElseThrow();
+            assertEquals(started, stored.getStorage().get("gala.started").getAsString());
+            var behaviours = stored.getEventHistory().toList().stream()
+                    .filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())).toList();
+            assertEquals(published + 1, behaviours.size());
+            assertEquals(recovered.getPayload(), behaviours.getLast().getPayload());
+            for (String sign : List.of("paper", "scissor")) {
+                var data = new com.google.gson.JsonObject(); data.addProperty("sign", sign); data.addProperty("confidence", .64);
+                data.addProperty("source", "valerian.hand.camera"); data.addProperty("stabilityFrames", 3);
+                data.addProperty("captureId", capture); data.addProperty("ts", Instant.now().toString());
+                demo.acknowledge(code, id, new EventRequest(Event.TYPE_HAND_SIGN, "sensor", Event.KIND_OBSERVATION,
+                        data.toString()), OutputProfile.FULL_PLAN);
+            }
+            stored = agents.findById(id).orElseThrow();
+            assertEquals("Swiss Robotics Day rock-scissor-paper countdown", stored.getCurrentState().getName());
+            assertTrue(stored.getStorage().get("gala.rps_prepared").getAsBoolean());
+            verify(language, times(1)).infer(any());
+        } finally { ownership.release(id, session); }
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.MethodSource("tutorialVariants")
     void tutorialProgressPlaybackAndFreshCaptureSurvivePersistence(String key, String embodiment) {
         boolean english = SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY.equals(key);
@@ -88,6 +143,20 @@ class GalaDinnerReceptionIntegrationTest {
                 assertEquals(beforeCue, contexts.snapshot(code, id).orElseThrow().activity().playbackCue());
                 assertEquals(beforeInput, agents.findById(id).orElseThrow().getStorage().get("gala.last_input"));
                 verifyNoInteractions(language);
+                when(language.infer(any())).thenReturn(answer("COUNTDOWN_ACK", ""));
+                var positive = new LiveTranscriptSegmenter.Fragment("positive-ready", LiveTranscriptSegmenter.Speaker.USER,
+                        400L, 600L, Instant.now().toEpochMilli(), 1, english ? "That sounds wonderful" : "Wunderbar");
+                assertTrue(ingress.receipt(id, owner, positive));
+                var contextual = ingress.commit(id, owner, new LiveTranscriptSegmenter.Segment(UUID.randomUUID(),
+                        LiveTranscriptSegmenter.Speaker.USER, List.of(positive), LiveTranscriptSegmenter.Closure.COMPLETE,
+                        "observed_silence", positive.receivedMs(), positive.receivedMs()), prepared.getCurrentState().getActiveStatePath()).orElseThrow();
+                assertEquals("COMPLETE", contextual.status());
+                assertEquals("countdown_acknowledgement", contextual.reason());
+                assertNotNull(contextual.eventId());
+                assertEquals(beforeCue, contexts.snapshot(code, id).orElseThrow().activity().playbackCue());
+                assertEquals(beforeInput, agents.findById(id).orElseThrow().getStorage().get("gala.last_input"));
+                verify(language, times(1)).infer(any());
+                when(language.infer(any())).thenReturn(answer("START_RPS", ""));
             }
             String segment = UUID.randomUUID().toString();
             assertTrue(recording.record(id, owner, segment, english ? "Ready? Rock … Paper … Scissors."
@@ -156,6 +225,20 @@ class GalaDinnerReceptionIntegrationTest {
                 assertEquals("COMPLETE", ingress.commit(id, owner, first, waiting.getCurrentState().getActiveStatePath()).orElseThrow().status());
                 assertTrue(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_countdown_pending"));
                 assertNull(contexts.snapshot(code, id).orElseThrow().activity().playbackCue().segmentId());
+                var beforeInput = agents.findById(id).orElseThrow().getStorage().get("gala.last_input").deepCopy();
+                var pending = agents.findById(id).orElseThrow().getStorage().get("gala.rps_countdown_pending").deepCopy();
+                when(language.infer(any())).thenReturn(answer("COUNTDOWN_ACK", ""));
+                var positive = new LiveTranscriptSegmenter.Fragment("split-positive", LiveTranscriptSegmenter.Speaker.USER,
+                        1400L, 1600L, Instant.now().toEpochMilli(), words.length, "Wunderbar");
+                assertTrue(ingress.receipt(id, owner, positive));
+                var positiveSegment = new LiveTranscriptSegmenter.Segment(UUID.randomUUID(), LiveTranscriptSegmenter.Speaker.USER,
+                        List.of(positive), LiveTranscriptSegmenter.Closure.COMPLETE, "observed_silence", positive.receivedMs(), positive.receivedMs());
+                var acknowledged = ingress.commit(id, owner, positiveSegment, waiting.getCurrentState().getActiveStatePath()).orElseThrow();
+                assertEquals("countdown_acknowledgement", acknowledged.reason());
+                assertEquals(acknowledged, ingress.commit(id, owner, positiveSegment, List.of()).orElseThrow());
+                assertEquals(beforeInput, agents.findById(id).orElseThrow().getStorage().get("gala.last_input"));
+                assertEquals(pending, agents.findById(id).orElseThrow().getStorage().get("gala.rps_countdown_pending"));
+                when(language.infer(any())).thenReturn(answer("START_RPS", ""));
             }
             var segment = new LiveTranscriptSegmenter.Segment(segmentId, LiveTranscriptSegmenter.Speaker.ASSISTANT,
                     split ? fragments.subList(3, fragments.size()) : fragments, LiveTranscriptSegmenter.Closure.COMPLETE,

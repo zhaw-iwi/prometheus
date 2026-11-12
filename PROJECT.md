@@ -82,6 +82,43 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- RPS countdown lead-in wording (2026-11-12): all Gala/Swiss multi-state games
+  variants now use "Mach dich bereit." in German and "Get ready." in English.
+  Split-countdown recognition accepts the new lead-ins with the first countdown
+  word. Verification passed 39 focused unit checks across all three variants,
+  including split speech and playback gating. Restart the backend; no graph or
+  schema migration is needed. Real-provider/audio trials were not run.
+
+- RPS capture presence recovery (2026-11-12): fixed the reported session's
+  27 `rps_wrong_capture` rejections after a short camera dropout at game start.
+  Conversation turns accepted during departure grace now retain their control
+  display. A fresh positive presence sample republishes the active preparation
+  or waiting capture with the same ID, source boundary and recognised signs,
+  without repeating speech or robot hand motion. Exit confirmation, countdown,
+  closed sessions and stale observations remain guarded. Verification passed
+  258 unit checks and 35 disposable-MySQL integration checks, including German/
+  English persisted capture recovery and completion with camera confidence 0.64.
+  All 10 existing standalone hand-capture assertion bodies passed through a
+  temporary sequential harness. The disposable schema/account were removed.
+  Restart the backend; no schema migration, saved-graph recreation or client
+  changes are required. Physical camera/robot trials remain manual.
+
+- Contextual countdown acknowledgements (2026-11-12): Gala/Swiss multi-state
+  games classify complete positive support such as "Wunderbar" and "That sounds
+  wonderful" through the existing per-turn control inference. An explicit
+  `COUNTDOWN_ACK` preserves the active round, pending fragments, freshness and
+  original deadline. Common Ja/Yeah/Okay replies keep the local fast path.
+  Post-admission evidence binds the exact input history position to its round;
+  Live ingress rechecks the same cue/deadline/owner before publishing the durable
+  acknowledgement classification. Mixed stop/wait, questions, negation, uncertain
+  or failed classification cannot release playback. Restart the backend; no
+  saved-graph or schema migration is needed. Verification passed 248 focused
+  unit checks and 33 disposable-MySQL integration checks, including German/
+  English durable acknowledgement, split-countdown reload/deduplication and
+  shared Coordination delivery. The temporary schema/account were removed;
+  no real-provider or physical-device trials were run. The independent
+  early-native-countdown race remains outside this change.
+
 - Gala/Swiss RPS confidence control (2026-11-12): preparation and playing
   captures now rely on the cockpit's configured hand confidence threshold,
   without an additional backend 0.70 floor. Confidence must remain numeric in
