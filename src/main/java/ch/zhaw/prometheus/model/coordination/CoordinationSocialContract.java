@@ -39,16 +39,6 @@ public final class CoordinationSocialContract {
         return conditions.isEmpty() ? "" : " Visible-person conditions: " + String.join("; ", conditions)
                 + ". These check the supplied count, not a new arrival or a person's identity.";
     }
-    /** Essential executable terms travel with the invitation, not only as background JSON. */
-    public static String liveProposalReview(CoordinationAgreement proposal) {
-        String condition = proposalCondition(proposal);
-        if (condition.isEmpty()) return "";
-        return "Proposed count alternative." + condition
-                + " Limit: " + proposal.reactions().maxActions() + " action(s) in total. Awaiting acceptance, not active. "
-                + (proposal.reactions().firstAction() == ch.zhaw.prometheus.model.task.TaskSpec.FirstAction.ON_CUE
-                    ? "After acceptance, a fresh matching cue is required. " : "Acceptance starts the agreed immediate first action. ")
-                + "Do you accept these terms?";
-    }
     public static boolean extraPerson(String text) {
         return text.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").matches(".*\\b(another person|additional person|extra person|someone else|jemand anderes|weitere person|andere person)\\b.*");
     }

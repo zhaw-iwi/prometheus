@@ -8,6 +8,55 @@ import org.junit.jupiter.params.provider.CsvSource;
 import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.*;
 
 class LiveTranscriptSegmenterUnitTest {
+    @ParameterizedTest @CsvSource({"0,COMPLETE", "800,INCOMPLETE"})
+    void reflectedMediaRangesDistinguishArrivalDelayFromDroppedAudio(int mediaGap, Closure expected) {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);
+        capture.audio(Speaker.ASSISTANT, 24000, 0, true, 1000, 0L, 1000L);
+        capture.fragment(fragment("timed", Speaker.ASSISTANT, 0, 2000 + mediaGap, 1000, "A complete review."));
+        // Three seconds of network delay, but a continuous media range unless frames really went missing.
+        capture.audio(Speaker.ASSISTANT, 24000, 0, true, 4000, 1000L + mediaGap, 2000L + mediaGap);
+        for (int i = 0; i < 24; i++)
+            capture.audio(Speaker.ASSISTANT, 2400, 2400, false, 4100 + i * 100,
+                    2000L + mediaGap + i * 100, 2100L + mediaGap + i * 100);
+        var result = capture.poll(6400).getFirst();
+        assertEquals(expected, result.closure());
+        assertEquals(mediaGap == 0 ? "observed_silence" : "audio_coverage_gap", result.reason());
+    }
+    @Test void oldMediaGapsCannotPoisonANewFullyCoveredUtteranceAndDuplicatePcmCannotCloseIt() {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);
+        capture.audio(Speaker.ASSISTANT, 2400, 2400, false, 100, 0L, 100L);
+        capture.audio(Speaker.ASSISTANT, 24000, 0, true, 5000, 5000L, 6000L);
+        capture.fragment(fragment("new", Speaker.ASSISTANT, 5000, 6000, 5000, "New confirmed reply."));
+        for (int i = 0; i < 30; i++) capture.audio(Speaker.ASSISTANT, 2400, 2400, false, 5100 + i * 100, 0L, 100L);
+        assertTrue(capture.poll(8100).isEmpty());
+        for (int i = 0; i < 24; i++)
+            capture.audio(Speaker.ASSISTANT, 2400, 2400, false, 8200 + i * 100, 6000L + i * 100, 6100L + i * 100);
+        assertEquals(Closure.COMPLETE, capture.poll(10500).getFirst().closure());
+    }
+    @Test void invalidReflectedTimingCannotClaimCoverage() {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID());
+        capture.fragment(fragment("invalid", Speaker.ASSISTANT, 0, 200, 1000, "Reply."));
+        capture.audio(Speaker.ASSISTANT, 2400, 2400, false, 1000, 0L, 1000L);
+        for (int i = 0; i < 8; i++)
+            capture.audio(Speaker.ASSISTANT, 2400, 2400, false, 1100 + i * 100, i * 100L, (i + 1) * 100L);
+        var result = capture.poll(1800).getFirst();
+        assertEquals(Closure.INCOMPLETE, result.closure()); assertEquals("invalid_audio_timing", result.reason());
+    }
+    @ParameterizedTest @CsvSource({"ASSISTANT,true,COMPLETE", "ASSISTANT,false,INCOMPLETE", "USER,true,COMPLETE", "USER,false,INCOMPLETE"})
+    void delayedAudioMustActuallyCatchUpBeforeSilenceCanCloseTheSegment(Speaker speaker, boolean catchesUp, Closure expected) {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);
+        capture.fragment(fragment("review", speaker, 1000, 2000, 1000, "Ready. Shall we start?"));
+        capture.audio(speaker, 2400, true, 1000);
+        // One second passes before a 200-ms chunk arrives. A reliable stream may
+        // deliver its remaining buffered samples together, but missing samples may not be invented.
+        capture.audio(speaker, 4800, true, 2000);
+        if (catchesUp) for (int i = 0; i < 4; i++) capture.audio(speaker, 4800, true, 2000);
+        for (int i = 1; i <= 24; i++) capture.audio(speaker, 2400, false, 2000 + i * 100);
+        var result = capture.poll(4400).getFirst();
+        assertEquals(expected, result.closure());
+        assertEquals(catchesUp ? "observed_silence" : "audio_coverage_gap", result.reason());
+        assertEquals("Ready. Shall we start?", result.text());
+    }
     @Test void aShortFeedbackPauseKeepsTheEvaluationAndExplanationInOneCandidate() {
         var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);
         capture.fragment(fragment("evaluation", Speaker.ASSISTANT, 88000, 88800, 1000, "That's it, a piano!"));

@@ -12,9 +12,16 @@ public final class LiveAudioDiagnostics {
     private final ArrayDeque<Window> recent = new ArrayDeque<>();
     private long start = -1, end, input, output, voicedInput, voicedOutput, dropped;
     private int inputPeak, outputPeak;
+    private long silentInputSamples, lastInputAt = -1;
 
     public synchronized LivePcmActivity observe(boolean incoming, byte[] pcm, long now) {
         var activity = LivePcmActivity.measure(pcm);
+        if (incoming) {
+            if (lastInputAt >= 0 && now - lastInputAt > pcm.length / 48L + LiveTranscriptSegmenter.MAX_AUDIO_GAP_MS)
+                silentInputSamples = 0;
+            silentInputSamples = activity.peakRms() == 0 ? Math.min(144000, silentInputSamples + activity.samples()) : 0;
+            lastInputAt = now;
+        }
         if (start >= 0 && now - start >= 1000) {
             if (recent.size() == 128) { recent.removeFirst(); dropped++; }
             recent.addLast(window());
@@ -31,5 +38,12 @@ public final class LiveAudioDiagnostics {
         var windows = new ArrayList<>(recent);
         if (start >= 0) windows.add(window());
         return new Status(List.copyOf(windows), dropped);
+    }
+    /** Reject only isolated protocol-like fragments over sustained measured silence.
+     * Ordinary words, recent voice, absent audio and gaps retain normal admission. */
+    public synchronized boolean silentStructuralFragment(String text, long now) {
+        return text != null && text.length() <= 32 && text.matches("[\\p{L}\\p{N}\\s:;,\\[\\]{}\"']+")
+                && text.matches(".*[\\[\\]{}:].*") && text.replaceAll("[^\\p{L}\\p{N}]", "").length() <= 2
+                && silentInputSamples >= 120000 && lastInputAt >= 0 && now >= lastInputAt && now - lastInputAt <= 500;
     }
 }

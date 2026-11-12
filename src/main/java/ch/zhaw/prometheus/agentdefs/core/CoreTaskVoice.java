@@ -27,7 +27,7 @@ final class CoreTaskVoice {
                 || owner == null) return false;
         Instant boundary = Instant.parse(storage.get(INVITATION).getAsString());
         var p = event.speechProvenance();
-        if (p == null || !p.complete() || p.origin() != SpeechProvenance.Origin.NATIVE || p.segmentId() == null
+        if (p == null || !p.complete() || !p.realized() || p.segmentId() == null
                 || !owner.sessionId().equals(p.sessionId()) || !owner.epoch().equals(p.epoch())) return false;
         String speech = BehaviourPlan.fromJson(event.getPayload()).getSpeech();
         if (!parts.isEmpty()) {
@@ -59,7 +59,7 @@ final class CoreTaskVoice {
     static String normalize(String value) { return value.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N} ]", "").trim().replaceAll(" +", " "); }
     static boolean acknowledgement(String text) { return normalize(text).matches("please|thanks|thank you|great|nice|cool|got it|understood|all right|alright|bitte|danke|verstanden|alles klar"); }
     static void clearAnswered(Storage storage) {
-        if (!Set.of("PENDING", "CHECKING").contains(TaskResponse.status(storage)) && storage.containsKey(RESPONSE)) storage.remove(RESPONSE);
+        if (!Set.of("PENDING", "CHECKING", "REJECTED").contains(TaskResponse.status(storage)) && storage.containsKey(RESPONSE)) storage.remove(RESPONSE);
     }
     static boolean assent(String text) { return normalize(text).matches("yes|yeah|yep|sure|ok|okay|yes please|ja|ja gerne|gern|gerne"); }
     static boolean deferredQuestion(String question) {
@@ -85,7 +85,7 @@ final class CoreTaskVoice {
             if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())) continue;
             if (event.getCreatedDate() == null || event.getCreatedDate().isBefore(after)) return null;
             var p = event.speechProvenance();
-            if (owner != null && (p == null || p.origin() != SpeechProvenance.Origin.NATIVE || !p.complete()
+            if (owner != null && (p == null || !p.realized() || !p.complete()
                     || !owner.sessionId().equals(p.sessionId()) || !owner.epoch().equals(p.epoch())
                     || !storage.containsKey(SPOKEN_PROMPT) || !storage.get(SPOKEN_PROMPT).getAsString().equals(p.segmentId()))) return null;
             String speech = BehaviourPlan.fromJson(event.getPayload()).getSpeech();

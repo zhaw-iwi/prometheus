@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -131,6 +132,8 @@ public class OpenAILiveSessionGateway implements LiveSessionGateway {
         private final int timeout;
         private final StringBuilder fragment = new StringBuilder();
         private final AtomicBoolean closed = new AtomicBoolean();
+        // JDK WebSocket permits only one pending text/binary send. Keep inbound callbacks free.
+        private final ReentrantLock textSend = new ReentrantLock();
         private volatile WebSocket socket;
         private long heartbeatAt, pingSequence;
         private boolean pingPending;
@@ -173,11 +176,19 @@ public class OpenAILiveSessionGateway implements LiveSessionGateway {
         private void fail() { if (closed.compareAndSet(false, true)) { if (socket != null) socket.abort(); disconnected.run(); } }
         @Override public void send(JsonObject event) {
             if (!isOpen()) throw new LiveProviderException("Live sideband disconnected");
-            try { socket.sendText(event.toString(), true).get(timeout, TimeUnit.MILLISECONDS); }
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
+            boolean acquired = false;
+            try {
+                acquired = textSend.tryLock(timeout, TimeUnit.MILLISECONDS);
+                long remaining = deadline - System.nanoTime();
+                if (!acquired || remaining <= 0) throw new java.util.concurrent.TimeoutException();
+                if (!isOpen()) throw new LiveProviderException("Live sideband disconnected");
+                socket.sendText(event.toString(), true).get(remaining, TimeUnit.NANOSECONDS);
+            }
             catch (Exception failure) {
                 if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
                 fail(); throw new LiveProviderException("Live command failed");
-            }
+            } finally { if (acquired) textSend.unlock(); }
         }
         @Override public boolean isOpen() { return socket != null && !closed.get(); }
         @Override public void close() { if (closed.compareAndSet(false, true) && socket != null) socket.abort(); }

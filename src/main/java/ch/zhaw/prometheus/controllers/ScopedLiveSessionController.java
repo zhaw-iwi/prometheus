@@ -94,6 +94,12 @@ public class ScopedLiveSessionController {
         if (request == null) throw new IllegalArgumentException("Missing speech candidate");
         return ResponseEntity.of(service.approveSpeech(code, agentId, handle, request.segmentId()));
     }
+    @PostMapping("/demo/agents/{agentId}/live/sessions/{handle}/speech-synthesis/{responseId}")
+    public ResponseEntity<ch.zhaw.prometheus.application.LiveCommittedSpeechService.Result> synthesizeSpeech(
+            @PathVariable UUID agentId, @PathVariable UUID handle, @PathVariable UUID responseId,
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
+        return ResponseEntity.of(service.synthesizeSpeech(code, agentId, handle, responseId));
+    }
     @PostMapping("/demo/agents/{agentId}/live/sessions/{handle}/speech-approvals/{approvalId}/{operation:release|played}")
     public ResponseEntity<Boolean> approvedSpeech(@PathVariable UUID agentId, @PathVariable UUID handle, @PathVariable UUID approvalId,
             @PathVariable String operation,

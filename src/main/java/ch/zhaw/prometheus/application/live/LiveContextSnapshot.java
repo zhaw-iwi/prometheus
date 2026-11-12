@@ -11,7 +11,14 @@ import com.google.gson.JsonObject;
 public record LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
         List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
         long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity, boolean filterIsolatedInputActivity,
-        boolean pendingAcknowledgements, long assistantSilenceMs, boolean speechApprovalRequired) {
+        boolean pendingAcknowledgements, long assistantSilenceMs, boolean speechApprovalRequired, boolean committedSpeechOutput) {
+    public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
+            List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
+            long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity, boolean filterIsolatedInputActivity,
+            boolean pendingAcknowledgements, long assistantSilenceMs, boolean speechApprovalRequired) {
+        this(agentId, epoch, revision, builtAt, statePath, instructions, items, omitted, guidance, userSilenceMs,
+                activity, filterIsolatedInputActivity, pendingAcknowledgements, assistantSilenceMs, speechApprovalRequired, false);
+    }
     public LiveContextSnapshot(UUID agentId, UUID epoch, String revision, Instant builtAt,
             List<String> statePath, String instructions, List<Item> items, int omitted, Map<String, String> guidance,
             long userSilenceMs, ch.zhaw.prometheus.model.policy.LiveActivityContext activity, boolean filterIsolatedInputActivity,

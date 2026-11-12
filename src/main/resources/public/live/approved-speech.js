@@ -45,6 +45,7 @@ export class ApprovedSpeechPlayer {
     });
   }
   receipt(event) { if (!this.closed) this.buffer.caption(event, this.context.currentTime * 1000); }
+  inputTranscript() { this.interrupt(); }
   interrupt() {
     if (this.closed) return;
     this.buffer.interrupt(); this.observer.interrupt(); this.current = null;
@@ -91,6 +92,11 @@ export class ApprovedSpeechPlayer {
           this.attempts.set(segment.segmentId, {after: performance.now() + 3000}); return;
         }
         this.attempts.set(segment.segmentId, {done: true});
+        if (approval.status === 'CORRECTING') {
+          this.buffer.take(candidate);
+          this.status('The unheard draft was rejected. Checking one correction of the same response.');
+          this.diagnostic({phase: 'speech_approval', outcome: 'correcting', segmentId: segment.segmentId}); return;
+        }
         if (approval.status !== 'APPROVED') {
           this.buffer.take(candidate);
           this.withheld('Speech could not be confirmed. Ask for help or use Pause or Stop.');

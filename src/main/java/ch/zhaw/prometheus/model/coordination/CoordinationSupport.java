@@ -11,6 +11,7 @@ import com.google.gson.JsonObject;
 public final class CoordinationSupport {
     public static final String LIVE_HELP = "coordination.pendingHelp";
     public static final String GUIDANCE = "\nWhen the user is struggling, confused or reports unexpected behaviour, use operation SUPPORT with agreement:null. "
+            + "Questions about whether preparation is complete or another demonstration is needed also use SUPPORT; do not invent an extra check or reorder acceptance and the fresh execution cue. "
             + "The backend supplies the truthful explanation. Do not infer start/restart consent from a complaint. "
             + "A request to help devise or propose a concrete task is task negotiation; the word help alone does not make it SUPPORT. "
             + "Explicit pause/stop/resume/restart requests still use their guarded operations.";
@@ -24,6 +25,8 @@ public final class CoordinationSupport {
         String value = text.toLowerCase(Locale.ROOT).replace('’', '\'').strip();
         // A targeted direct-request fallback, not a sentiment classifier. Other wording uses normal inference.
         if (value.matches(".*\\b(don't|do not|not|kein|keine|nicht) (need |want |brauche )?help\\b.*")) return false;
+        // A readiness question remains explicit even if Live omits a preceding expression of confusion.
+        if (value.matches("(?:^|.*[.!?]\\s*)do i (?:need|have) to (?:demonstrate|repeat (?:the )?(?:check|demonstration)) again[.!?]?")) return true;
         return value.matches(".*\\b(help me|i need help|i'm stuck|i am stuck|i don't understand|i do not understand|"
                 + "this isn't working|this is not working|something went wrong|why did that fail|what went wrong|"
                 + "ich verstehe (das )?nicht|ich brauche hilfe|das funktioniert nicht|hilf mir)"
@@ -33,6 +36,7 @@ public final class CoordinationSupport {
 
     public static String explain(Storage storage, Instant now) {
         String stage = CoordinationMemory.stage(storage);
+        var agreement = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
         String next = switch (stage) {
             case "CONVERSATION" -> "No task is active. Tell me your goal; we can agree a small supported task.";
             case "COORDINATION" -> {
@@ -41,21 +45,17 @@ public final class CoordinationSupport {
                         ? "We need the goal, roles and success criterion before starting." : draft.questions().getFirst());
             }
             case "PREPARATION" -> {
-                var draft = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
-                var evidence = CoordinationMemory.evidence(storage);
-                var missing = java.util.stream.IntStream.range(0, draft.checks().size())
-                        .filter(i -> !evidence.has(Integer.toString(i)))
-                        .mapToObj(i -> draft.checks().get(i).value().toString()).toList();
-                yield "The proposal is not active. Remaining recognition checks: " + missing
-                        + ". Demonstrate those observations; recognition alone will not start the task.";
+                yield "Before starting, demonstrate " + remainingPreparation(storage)
+                        + " for recognition, then accept the ready proposal.";
             }
             case "READY" -> "The proposal and preparation are ready; no further demonstration is needed. Say Start to accept the saved proposal."
                     + (CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT).reactions() != null
                     && CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT).reactions().firstAction()
                         == ch.zhaw.prometheus.model.task.TaskSpec.FirstAction.ON_CUE
                     ? " After acceptance, show a fresh matching cue." : "");
-            case "EXECUTION" -> "The accepted task is active. We can review its terms; say Pause or Stop if you want to suspend it."
-                    + " Asking for help does not pause independent sensor reactions.";
+            case "EXECUTION" -> "The task is active. We can review its terms. Say Pause to pause it, or Stop to end it."
+                    + (agreement != null && agreement.reactions() != null
+                        ? " Asking for help does not pause independent sensor reactions." : "");
             case "PAUSED" -> "The task is paused and its progress is preserved. Say Resume to continue, or Stop to end it.";
             case "FINISHING" -> "The final contribution is awaiting speech association or playback confirmation. No further task action is authorized."
                     + " Wait for delivery to settle; do not repeat it automatically.";
@@ -77,7 +77,17 @@ public final class CoordinationSupport {
         };
         String diagnostic = failure == null ? "" : " The last update was not applied because " + reason
                 + ". The task agreement and preparation were preserved.";
-        return "Current coordination state: " + stage + ". " + next + diagnostic;
+        return next + diagnostic;
+    }
+
+    public static String remainingPreparation(Storage storage) {
+        var draft = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
+        if (draft == null) return "";
+        var evidence = CoordinationMemory.evidence(storage);
+        return java.util.stream.IntStream.range(0, draft.checks().size())
+                .filter(i -> !evidence.has(Integer.toString(i)))
+                .mapToObj(i -> draft.checks().get(i).value().getAsString())
+                .collect(java.util.stream.Collectors.joining(", "));
     }
 
     public static void pending(Storage storage, ExternalSpeech owner, Instant now, String explanation) {

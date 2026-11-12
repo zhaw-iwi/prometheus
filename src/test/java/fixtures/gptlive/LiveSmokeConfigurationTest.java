@@ -9,7 +9,7 @@ import ch.zhaw.prometheus.model.task.TaskResponse;
 
 class LiveSmokeConfigurationTest {
     @ParameterizedTest
-    @CsvSource({"First fixture observation.,MATCH", "Different fixture speech.,UNRELATED"})
+    @CsvSource({"First fixture observation.,MATCH", "Different fixture speech.,UNRELATED", "Incorrect fixture observation.,AMBIGUOUS"})
     void browserProviderRecognisesTheRealResponseCheckWithoutDependingOnPromptWording(String speech, String verdict) {
         try (var provider = new LiveSmokeConfiguration.Provider()) {
             var check = new TaskResponse.Check(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 1,

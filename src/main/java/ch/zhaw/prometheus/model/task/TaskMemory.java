@@ -118,7 +118,8 @@ public final class TaskMemory {
     public static List<PromptMessage> messages(EventHistory events, String instructions, PromptMessageAssembler assembler, Instant now) {
         var result = new ArrayList<>(assembler.compose(new EventHistory(), instructions));
         var dialogue = events.toList().stream().filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType())
-                || Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())).toList();
+                || Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
+                .filter(event -> !ConversationProjection.isUnplayed(event)).toList();
         for (var event : dialogue.subList(Math.max(0, dialogue.size() - 20), dialogue.size())) {
             // Backend intents are relevant task dialogue even before native speech arrives.
             String content = Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())

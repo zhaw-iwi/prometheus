@@ -1,5 +1,49 @@
 # GPT-Live acceptance
 
+## Coordination committed Speech acceptance
+
+Fresh Coordination Live sessions select committed Speech output (Alloy at normal
+speed, using the configured Speech model) and retain real Live user input. The
+three ES-08 scenarios run through the production `CommittedSpeechPlayer`, scoped
+synthesis/release/played endpoints, real state machine and disposable MySQL.
+Native output/captions remain diagnostic only. The earlier native correction
+fixtures remain historical evidence, not the current Coordination playback route.
+
+Run `--paid-core coordination --coordination-scenario escalation-recovery`,
+`escalation-dialogue` and `escalation-social` separately with the existing runner.
+Existing per-run input/backend/session caps remain unchanged. Committed output has
+an additional explicit ceiling of 12 Speech calls and 6,000 input characters;
+`ProviderCaptureBudgetTest` checks enforcement. `speech-provider.jsonl` records
+counts/characters/voice. Every returned PCM clip is retained under
+`synthesized-speech/` with SHA-256, committed text and duration in `journey.json`.
+These are distinct from native receipts and from `trial.speech_played` callbacks.
+Do not mutate the raw journey rubric from PENDING to a semantic verdict.
+
+Optional independent audio-text evidence can be produced locally:
+
+```powershell
+# In a separate local environment, outside application dependencies:
+python -m pip install faster-whisper==1.2.1 av==16.1.0
+python tests/gptlive/review_synthesized_audio.py target/gptlive-acceptance-<id>
+```
+
+This downloads `small.en` once and uses CPU int8, beam 5 and no text prompt.
+`audio-review.json` retains hashes, expected wording and ASR text, always marked
+PENDING_SEMANTIC_REVIEW. Review meaning separately, accounting for ASR errors;
+neither local ASR nor a playback callback establishes physical speaker audibility.
+The tool's primary documentation is [faster-whisper](https://github.com/SYSTRAN/faster-whisper).
+
+Focused offline checks:
+
+```powershell
+python tests/gptlive/run_acceptance.py --java-tests LiveCommittedSpeechServiceUnitTest,CommittedSpeechIntegrationTest,ProviderCaptureBudgetTest --browser --live-only --browser-grep 'approval player captures real WebRTC|Coordination (reaches|preserves)|real scoped cockpit'
+```
+
+The browser uses real Web Audio/output observation with a one-second PCM tone
+after 750ms of leading silence, and covers normal Reflection plus lost playback acknowledgement without
+replay. MySQL checks retain synthesis/release after reload, exclude native drafts,
+and establish proposal consent only after observed synthesized playback.
+
 ## Playback cue receipt selection
 
 Shared playback cues can select a contiguous span of a complete assistant
@@ -39,10 +83,12 @@ ownership, expiry, interruption and muted/stalled-output rejection retain their
 contracts. Early countdown recovery and interrupted-cue recovery are separate
 pending steps; these checks do not establish physical audibility.
 
-## Approval before Coordination playback
+## Retained native approval coverage
 
-Coordination requires the production `ApprovedSpeechPlayer` and the session
-handshake `speechApproval: true`. The real-provider journey uses that player:
+The earlier Coordination route used `ApprovedSpeechPlayer` and the session
+handshake `speechApproval: true`. Its native capture/approval regressions remain
+covered; current Coordination journeys use `CommittedSpeechPlayer` as described
+above. For native-output evidence,
 `session.output_transcript.delta` remains raw generated evidence, while
 `trial.speech_played` alone supplies assertions about delivered speech. Reports
 retain buffer timing/RMS/count diagnostics without recording audio. Task semantic
@@ -68,6 +114,28 @@ hidden/stalled output, mismatched receipts, missing audio and size/deadline limi
 fail conservatively. No uncertain output is automatically replayed. Physical
 audibility and real caption/audio skew remain separate acceptance questions;
 see `.reng/HUMAN_TEST.md` and the latest escalation results.
+
+The bounded correction regression uses a valid semantic rejection of the first
+unheard Coordination task draft, followed by one checked replacement. It asserts
+unchanged response identity/deadline and one contribution, no release of the
+rejected draft, and Reflection only after observed replacement playback. The
+synthetic sideband supplies PCM lead-in, voiced coverage of the transcript's media interval and complete quiet coverage for each
+utterance, matching the production capture requirement. A separate real local WebRTC test still
+checks the remote capture/audio path.
+
+```powershell
+python tests/gptlive/run_acceptance.py --java-tests TaskResponseCorrectionUnitTest,LiveSpeechApprovalServiceUnitTest,CoordinationDeliveryIntegrationTest --browser --browser-mode enabled --live-only --browser-grep 'approval player captures real WebRTC|Coordination (reaches|corrects)'
+```
+
+Provider errors, malformed checks, release uncertainty and a second rejection
+remain terminal for automatic correction. Unit tests also exercise concurrent
+requests, interruptions, late candidates, owner/revision changes and lost approval
+windows after persisted release. These offline checks do not complete ES-08;
+the capped dialogue, recovery and social journeys still need semantic review.
+Proposal reviews and confirmed support require post-commit native generation:
+an early acknowledgement must not spend their check/correction. The latest native-output failures
+and the deferred alternative are documented in the escalation results and
+[speech-delivery decision note](../../.agents/ES08_SPEECH_DELIVERY_DECISION.md).
 
 ## Observation timing
 
@@ -245,14 +313,28 @@ Recovery covers recognition, difficulty before/after preparation, fresh percepti
 natural acceptance, one cue and confirmed final delivery, then return. Dialogue
 covers a riddle question/answer/feedback, help and ordinary questions, followed by
 an unfinished-answer completion request, explicit replacement and renewed acceptance.
-The final-feedback rubric reads the associated transcript segment and recorded
+The final-feedback rubric requires factual review of the actual heard question,
+answer and feedback together. It permits correct positive or negative evaluation;
+positive words alone do not establish correctness. It reads the associated transcript segment and recorded
 suffix offset, keeping any later Reflection turn separate; all native captions
 remain available for semantic review. Social covers a reviewed count
 alternative, matching/nonmatching cues and explicit restart/pause/resume/stop.
 Each journey fails on an unmet check and retains native transcripts, task state,
 provider evidence and playback diagnostics under its ignored artifact directory.
+Capture diagnostics include timed/untimed output-chunk counts. Reflected sideband
+media ranges, when supplied, establish coverage across a transcript independently
+of arrival jitter; real range gaps remain incomplete. Untimed compatibility/input
+uses received-sample coverage. Neither path proves browser or physical playback.
 Visitor-turn assertions wait for durable transcript processing, not just quiet
-captions. Final completion still requires real browser playback observation.
+captions. Final completion still requires real browser playback observation and
+the actual final HTTP acknowledgement for the current delivery ID and segment.
+Both the direct and approval player adapters record that acknowledgement. The
+escalation fixtures use Onyx for the synthetic visitor and Willow for Live;
+`journey.json` records the synthesis model/voice. Assistant transcripts never
+substitute for missing visitor transcripts or establish consent.
+The ES-08 heard-response wait allows 65 seconds to observe the existing
+45-second verification and 60-second playback limits. It does not extend either
+production deadline or the session/child caps below.
 
 Per invocation: at most 12 scripted visitor turns, 24 backend inference requests,
 2,048 completion tokens per request, 80,000 UTF-8 input bytes per inference, one
@@ -267,9 +349,12 @@ Live seconds, backend tokens and synthesis calls are separate measures.
 Review actual wording against the rubric in `journey.json`: truthful state and
 perception, visible supported terms, finite budgets, no premature/duplicate
 contribution or answer leak. An automated pass does not complete semantic review.
-Review preliminary native speech as well as the confirmed proposal: it must not
-promise detection of someone joining, or a new allowance for each person/cue,
-when the executable alternative is a visible-count threshold with a total limit.
+Review preliminary native drafts as well as heard replies. With approval enabled,
+retain rejected drafts as audit evidence and verify they never played; an allowed
+task or ordinary correction must preserve identity, budget and deadlines and play at most once.
+Heard proposals must not promise detection of someone joining, or a new allowance
+for each person/cue, when the executable alternative is a visible-count threshold
+with a total limit. A rejected draft is not evidence of a heard promise or delivery.
 Never automatically rerun until success: retain every attempt and state the
 specific correction that justifies another run. Integrated evidence and unresolved
 checks are in [ESCALATION_RESULTS.md](../../.agents/ESCALATION_RESULTS.md); physical
@@ -356,7 +441,9 @@ For speech-association failures, `fixtures.live.TaskResponseProviderProbe` evalu
 the production `TaskResponse.Check` against the labelled synthetic cases in
 `src/test/resources/coordination/response-verification-cases.json`. It includes
 question paraphrases, full/partial/contradictory feedback, arming, count-condition
-drift, exact words and instruction-like captured text. It uses the same configuration
+drift, exact words and instruction-like captured text. The 26 cases also include
+a complete ready-proposal review and negative activation, cue, role and preparation
+contrasts. It uses the same configuration
 precedence and private key setup as the probe above, with no database or voice session.
 
 ```powershell
@@ -365,9 +452,9 @@ $responseProbeClasspath = 'target/test-classes;target/classes;' + (Get-Content t
 java -cp $responseProbeClasspath fixtures.live.TaskResponseProviderProbe --allow-paid-provider target/response-verifier.json --repeat=2
 ```
 
-Omit `--repeat=2` for one pass. Maximums are 36 requests, 512 completion tokens per
+Omit `--repeat=2` for one pass. Maximums are 52 requests, 512 completion tokens per
 request, 12,000 input bytes per request, 30 seconds per request and four minutes
-overall. A 30,000 reported-token threshold prevents subsequent requests (the last
+overall. A 60,000 reported-token threshold prevents subsequent requests (the last
 request can cross it). There are no provider retries. Exact-word matches use the
 production fast path and are identified separately. Errors stop spending and retain
 the partial report; classification failures retain every result and return nonzero.

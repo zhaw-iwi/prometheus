@@ -32,7 +32,7 @@ public class CoordinationUpdateAction extends Action {
         CoordinationMemory.remove(storage, CoordinationSupport.LIVE_HELP);
         // Acoustic completion is not semantic completeness. These clear fragments cannot authorize a change.
         if (CoreTaskVoice.normalize(text).matches("(a|an|the)( dry)?|(please )?(tell me|make it|change it to|can you|i want)( a| an| the)?|(my|the) answer is|i think it is|(meine|die) antwort ist")) {
-            answerSupport("Please finish that request; the agreement and state are unchanged.", runtime); return;
+            answerSupport("Please finish that request.", runtime); return;
         }
         SensoryRemarks.userTurn(storage, events);
         if (runtime.externalSpeech() == null) CoordinationMemory.remove(storage, TaskResponse.KEY, CoreTaskVoice.RESPONSE);
@@ -82,6 +82,7 @@ public class CoordinationUpdateAction extends Action {
             } else if (support && !command.matches(".*\\b(stop|pause|resume|restart|return|stoppe|pausiere|fortsetzen|neustart)\\b.*")) {
                 operation = "SUPPORT"; reply = BehaviourPlan.speechOnly(CoordinationSupport.explain(storage, now));
             } else {
+                boolean selectedStart = CoordinationMemory.ready(storage) && CoordinationAcceptance.explicit(text);
                 String prompt = getPolicy().describe() + "\n" + CoordinationMemory.facts(storage)
                         + CoordinationSupport.GUIDANCE
                         + CoordinationTaskContract.GUIDANCE
@@ -93,13 +94,19 @@ public class CoordinationUpdateAction extends Action {
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
                         + "\nLatest user reflection (their report, not a measured outcome): " + (storage.containsKey(CoordinationMemory.REVIEW) ? storage.get(CoordinationMemory.REVIEW) : "none")
                         + "\nSupported sensor fields: " + TaskSpec.FIELDS
-                        + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. In reply.speech describe the required contribution in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
+                        + (runtime.externalSpeech() == null ? "" : storage.containsKey(LiveCommittedSpeech.ENABLED)
+                                && storage.get(LiveCommittedSpeech.ENABLED).getAsBoolean()
+                            ? "\nThe application synthesizes reply.speech verbatim. Supply complete actual words to speak, at most 350 characters, never directions or a description of a future utterance. Use supported nonverbal/motion normally."
+                            : "\nLive owns spoken wording. In reply.speech describe the required contribution in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
                         + (assent ? "\nInterpret this short reply ONLY against the completed utterance: " + new JsonPrimitive(invitation)
                                 + ". It is not automatically consent. Only KEEP or START of the unchanged saved proposal is permitted. A question about future activation or changing a proposal does not authorize starting now." : "")
                         + DecorativeGestures.guidance(storage, now)
                         + CoordinationSocialContract.interpretationGuidance(text);
                 var messages = TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now);
-                messages.add(PromptMessage.system(CoordinationTaskContract.currentTurn(storage, text)));
+                messages.add(PromptMessage.system(CoordinationTaskContract.currentTurn(storage, text, events, runtime.externalSpeech())));
+                if (selectedStart) messages.add(PromptMessage.system("The backend has selected START of the unchanged ready proposal from explicit acceptance. "
+                        + "Supply its first agreed contribution in reply.speech; for a riddle, ask the question without its solution. "
+                        + "Return operation START and agreement null. Do not ask for acceptance again or treat this as a later STEP."));
                 String raw = runtime.languageModelGateway().infer(new InferenceRequest(InferencePurpose.EXTRACTION,
                         messages, InferenceRequest.Output.JSON_OBJECT));
                 if (!runtime.taskContinuation().getAsBoolean() || !revision.equals(TaskMemory.text(storage, TaskMemory.REVISION, "0"))) return;
@@ -110,6 +117,17 @@ public class CoordinationUpdateAction extends Action {
                 operation = update.get("operation").getAsString();
                 rejection = "agreement_shape";
                 proposed = update.get("agreement").isJsonNull() ? null : CoordinationAgreement.parse(update.get("agreement"));
+                // A redundant exact echo on RESTART carries no new terms. Never normalize a changed agreement.
+                if (operation.equals("RESTART") && proposed != null && storage.containsKey(CoordinationMemory.AGREEMENT)
+                        && proposed.json().equals(storage.get(CoordinationMemory.AGREEMENT))) proposed = null;
+                if (selectedStart) {
+                    // Explicit acceptance owns activation. A first contribution labelled STEP
+                    // by inference cannot turn a ready proposal into a rejected control update.
+                    // Other operations or replacement terms still fail closed.
+                    if (!Set.of("START", "STEP").contains(operation) || proposed != null)
+                        throw new IllegalArgumentException("Expected the first contribution for the selected start");
+                    operation = "START";
+                }
                 rejection = "reply_shape";
                 reply = controlReply(operation, update.get("reply"));
             }
@@ -174,7 +192,7 @@ public class CoordinationUpdateAction extends Action {
         if (CoreTaskVoice.normalize(text).matches("what can you do|what are your capabilities|who are you|was kannst du|wer bist du")
                 && !Set.of("KEEP", "SUPPORT").contains(operation))
             throw new IllegalArgumentException("An ordinary capability question grants no task operation");
-        if (operation.equals("START") && CoordinationAcceptance.uncertainStart(text))
+        if (Set.of("START", "RESTART").contains(operation) && CoordinationAcceptance.uncertainStart(text))
             throw new IllegalArgumentException("Starting requires present unquoted consent");
         if (Set.of("START", "PROPOSE_AND_START", "RESTART").contains(operation) && CoordinationAcceptance.withholdsStart(text))
             throw new IllegalArgumentException("An explicit instruction not to start cannot authorize activation");
@@ -202,7 +220,7 @@ public class CoordinationUpdateAction extends Action {
             case "START" -> { if (!CoordinationMemory.ready(storage)) throw new IllegalArgumentException("Preparation incomplete"); }
             case "STEP" -> {
                 if (accepted != null && accepted.reactions() != null) throw new UnsupportedDialogue();
-                if (storage.containsKey(TaskResponse.KEY) && Set.of("PENDING", "CHECKING").contains(TaskResponse.status(storage)))
+                if (storage.containsKey(TaskResponse.KEY) && Set.of("PENDING", "CHECKING", "REJECTED").contains(TaskResponse.status(storage)))
                     throw new PendingResponse();
                 if (!TaskMemory.active(storage) || accepted == null || accepted.reactions() != null || storage.containsKey(CoordinationMemory.DRAFT))
                     throw new IllegalArgumentException("No active dialogue task");
@@ -334,8 +352,10 @@ public class CoordinationUpdateAction extends Action {
         if (action || DecorativeGestures.requested(singleEvent(event))) storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
         if (operation.equals("KEEP") || operation.equals("REFLECT")) {
             CoreTaskVoice.clearAnswered(storage);
-            if (live && CoordinationSpeechApproval.enabled(storage) && speech != null && !speech.isBlank())
+            if (live && CoordinationSpeechApproval.enabled(storage) && speech != null && !speech.isBlank()) {
                 CoreTaskVoice.response(storage, "Answer the current user turn: " + speech + " No task change or contribution is authorized.", false, false, runtime);
+                CoordinationSpeechApproval.words(storage, speech);
+            }
             return;
         }
         String facts = switch (operation) {
@@ -356,14 +376,38 @@ public class CoordinationUpdateAction extends Action {
             case "DISCARD" -> "The draft was discarded. The previous agreement retains its recorded outcome; only an unfinished, paused task can resume.";
             default -> throw new IllegalStateException("Unsupported coordination continuation");
         };
+        boolean preparationRequest = live && Set.of("PROPOSE", "REPLACE").contains(operation)
+                && "PREPARATION".equals(CoordinationMemory.stage(storage)) && !CoordinationSupport.blockedDraft(storage);
+        if (preparationRequest) facts = (operation.equals("REPLACE")
+                ? "The replacement proposal is saved; the previous task is not executing. " : "The proposal is saved and not active. ")
+                + "Please demonstrate " + CoordinationSupport.remainingPreparation(storage)
+                + " for recognition; we will review the terms before acceptance.";
         if (action && Set.of("COMPLETED", "FINISHING").contains(TaskMemory.phase(storage))) facts += " The action budget is exhausted; do not claim that this proves success.";
         String associationFacts = "CURRENT requested response: " + facts;
         if (!(operation.equals("START") && !action)) associationFacts +=
                 "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage);
         CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime, associationFacts);
+        if (live) {
+            String words = switch (operation) {
+                case "PROPOSE", "REPLACE" -> preparationRequest ? facts : CoordinationMemory.ready(storage)
+                        && !CoordinationSupport.blockedDraft(storage)
+                        ? (operation.equals("REPLACE") ? "This replaces the earlier task. " : "")
+                            + CoordinationTaskContract.spokenProposalReview(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))
+                        : CoordinationMemory.proposalPrompt(storage);
+                case "START" -> action ? speech : "The task is accepted and armed. I am waiting for a fresh matching cue.";
+                case "STEP" -> speech;
+                default -> facts;
+            };
+            CoordinationSpeechApproval.words(storage, words);
+        }
         if (live && Set.of("PROPOSE", "REPLACE").contains(operation)) {
             var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
-            response.addProperty("proposalReview", true); storage.put(CoreTaskVoice.RESPONSE, response);
+            response.addProperty(preparationRequest ? "supportOnly" : "proposalReview", true); storage.put(CoreTaskVoice.RESPONSE, response);
+        }
+        if (live && operation.equals("RETURN_TO_CONVERSATION")) {
+            // A leftover Reflection draft cannot spend the new transition's approval attempt.
+            var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
+            response.addProperty("supportOnly", true); storage.put(CoreTaskVoice.RESPONSE, response);
         }
         if (live) TaskResponse.purpose(storage, action ? TaskResponse.Purpose.CONTRIBUTION : TaskResponse.Purpose.ARMING);
         if (live && action && speech != null && !speech.isBlank()) {
@@ -401,11 +445,14 @@ public class CoordinationUpdateAction extends Action {
     private static EventHistory singleEvent(Event event) { var history = new EventHistory(); history.appendEvent(event); return history; }
     private void answer(String text, PolicyRuntime runtime) {
         getStorage().put(TaskMemory.REPLY, runtime.externalSpeech() == null ? BehaviourPlan.speechOnly(text).toJsonObject() : new JsonObject());
-        if (runtime.externalSpeech() != null) CoreTaskVoice.response(getStorage(), text, false, false, runtime, CoordinationMemory.facts(getStorage()));
+        if (runtime.externalSpeech() != null) {
+            CoreTaskVoice.response(getStorage(), text, false, false, runtime, CoordinationMemory.facts(getStorage()));
+            CoordinationSpeechApproval.words(getStorage(), text);
+        }
     }
     private void answerSupport(String text, PolicyRuntime runtime) {
         if (runtime.externalSpeech() != null && (CoordinationDelivery.finishing(getStorage())
-                || Set.of("PENDING", "CHECKING").contains(TaskResponse.status(getStorage())))) {
+                || Set.of("PENDING", "CHECKING", "REJECTED").contains(TaskResponse.status(getStorage())))) {
             getStorage().put(TaskMemory.REPLY, new JsonObject());
             CoordinationSupport.pending(getStorage(), runtime.externalSpeech(), Instant.now(), text);
             return;

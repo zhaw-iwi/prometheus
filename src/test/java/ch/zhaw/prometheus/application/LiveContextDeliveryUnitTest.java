@@ -38,6 +38,89 @@ class LiveContextDeliveryUnitTest {
     static LiveContextSnapshot snapshot(String revision, String instructions, LiveContextSnapshot.Item... items) {
         return new LiveContextSnapshot(AGENT, EPOCH, revision, Instant.EPOCH, List.of("state"), instructions, List.of(items), 0, java.util.Map.of("state", instructions));
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"quiet", "expired", "replaced", "closed", "legacy"})
+    void approvalOccasionWaitsForAnExistingDraftWithoutRepeatedReadsOrExtendingItsDeadline(String outcome) {
+        var contexts = mock(LiveAgentContextService.class); var captures = mock(LiveTranscriptCaptureService.class);
+        var now = new AtomicLong(); var busy = new AtomicBoolean(true); Clock clock = mock(Clock.class);
+        when(clock.millis()).thenAnswer(call -> now.get());
+        var initial = snapshot("r0", "Guide"); var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        var original = UUID.randomUUID(); var selected = new AtomicReference<>(original);
+        when(captures.assistantBusy(owner)).thenAnswer(call -> busy.get());
+        when(contexts.refresh(AGENT, owner)).thenAnswer(call -> {
+            var occasion = new ch.zhaw.prometheus.model.policy.LiveActivityContext.Continuation(selected.get(),
+                    ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST, "The committed response", Instant.EPOCH.plusSeconds(10), false, true);
+            var current = new LiveContextSnapshot(AGENT, EPOCH, selected.get().toString(), Instant.ofEpochMilli(now.get()),
+                    initial.statePath(), "Guide", List.of(), 0, initial.guidance(), 2000,
+                    new ch.zhaw.prometheus.model.policy.LiveActivityContext("Background facts", occasion), false, true, 2400, !outcome.equals("legacy"));
+            return Optional.of(new LiveAgentContextService.Update(current, List.of()));
+        });
+        var bridge = new LiveContextBridgeService(contexts, clock); bridge.transcripts(captures);
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>(); var applied = new AtomicInteger();
+        var session = bridge.open(initial, owner, sent::add, ignored -> applied.incrementAndGet(), reason -> fail(reason));
+        try {
+            session.ready();
+            if (!outcome.equals("legacy")) {
+                await().atMost(Duration.ofSeconds(3)).until(() -> session.status().state().equals("waiting_for_quiet"));
+                assertTrue(sent.isEmpty()); assertEquals(original, session.speechRequestId());
+                now.set(1000); bridge.refresh();
+                await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> verify(captures, atLeast(2)).assistantBusy(owner));
+                verify(contexts, times(1)).refresh(AGENT, owner);
+                if (outcome.equals("closed")) {
+                    session.close(); now.set(10000); bridge.refresh(); assertTrue(sent.isEmpty()); return;
+                }
+                if (outcome.equals("replaced")) {
+                    selected.set(UUID.randomUUID()); bridge.changed(new AgentCommitted(AGENT, EPOCH, selected.get()));
+                    await().atMost(Duration.ofSeconds(3)).untilAsserted(() -> verify(contexts, times(2)).refresh(AGENT, owner));
+                }
+                now.set(outcome.equals("expired") ? 10000 : 2000);
+                if (!outcome.equals("expired")) busy.set(false);
+                bridge.refresh();
+            }
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            var spoken = sent.stream().filter(c -> c.type().equals("session.commentary.append")).toList();
+            assertEquals(outcome.equals("expired") ? 0 : 1, spoken.size());
+            if (!spoken.isEmpty()) {
+                assertEquals(selected.get(), spoken.getFirst().sourceId());
+                assertEquals(Instant.EPOCH.plusSeconds(10), spoken.getFirst().expiresAt());
+            }
+        } finally { bridge.shutdown(); }
+    }
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans = {true, false})
+    void correctionIsExplicitBoundedOnceOnlyAndNeverReplayedOnTransportRestart(boolean compact) {
+        var initial = snapshot("r0", "Guide"); var delivery = new LiveContextDelivery(initial); delivery.ready();
+        var id = UUID.randomUUID();
+        var correction = new ch.zhaw.prometheus.model.policy.LiveActivityContext.Continuation(id,
+                ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST,
+                "x".repeat(compact ? 340 : 900), Instant.EPOCH.plusSeconds(5), false, compact, true);
+        var current = new LiveContextSnapshot(AGENT, EPOCH, "r1", Instant.EPOCH, initial.statePath(), "Guide", List.of(), 0,
+                initial.guidance(), new ch.zhaw.prometheus.model.policy.LiveActivityContext("Committed response", correction));
+        var commands = delivery.plan(current, List.of()).commands();
+        var spoken = commands.stream().filter(c -> c.type().equals("session.commentary.append")).toList();
+        assertEquals(1, spoken.size()); assertTrue(spoken.getFirst().content().toLowerCase().contains("correct"));
+        assertTrue(commands.stream().allMatch(c -> c.content().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= LiveContextDelivery.MAX_APPEND_BYTES));
+        assertTrue(delivery.plan(current, List.of()).commands().stream().noneMatch(c -> c.type().equals("session.commentary.append")));
+        var restarted = new LiveContextDelivery(current); restarted.ready();
+        assertTrue(restarted.plan(current, List.of()).commands().isEmpty());
+    }
+    @Test void correctionNotificationsKeepPlaybackBoundToTheOriginalResponse() {
+        var id = UUID.randomUUID(); var response = UUID.randomUUID(); var initial = snapshot("r0", "Guide");
+        var continuation = new ch.zhaw.prometheus.model.policy.LiveActivityContext.Continuation(id,
+                ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST, "Committed words", Instant.MAX,
+                false, true, true, response);
+        var current = new LiveContextSnapshot(AGENT, EPOCH, "r1", Instant.EPOCH, initial.statePath(), "Guide", List.of(), 0,
+                initial.guidance(), new ch.zhaw.prometheus.model.policy.LiveActivityContext("Current facts", continuation));
+        var bridge = new LiveContextBridgeService(mock(LiveAgentContextService.class));
+        try {
+            var session = bridge.open(current, new ExternalSpeech(UUID.randomUUID(), EPOCH), ignored -> {}, ignored -> {}, ignored -> {});
+            assertEquals(response, session.speechRequestId());
+            bridge.changed(new AgentCommitted(AGENT, EPOCH, id, true, response));
+            assertEquals(response, session.speechRequestId());
+            UUID replacement = UUID.randomUUID(); bridge.changed(new AgentCommitted(AGENT, EPOCH, replacement));
+            assertEquals(replacement, session.speechRequestId());
+            session.close(); assertNull(session.speechRequestId());
+        } finally { bridge.shutdown(); }
+    }
     @Test void selfContainedReplyIsOneBoundedCommentaryAndAnExpiredReplyCannotBeSpoken() {
         var initial = snapshot("r0", "Guide");
         var delivery = new LiveContextDelivery(initial); delivery.ready();

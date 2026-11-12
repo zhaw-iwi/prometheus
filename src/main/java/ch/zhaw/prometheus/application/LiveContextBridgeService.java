@@ -43,7 +43,7 @@ public class LiveContextBridgeService {
     }
     @EventListener public void changed(AgentCommitted event) {
         sessions.values().stream().filter(session -> session.agent.equals(event.agentId())).forEach(session -> {
-            if (event.activityKnown()) session.currentOccasion.set(new OccasionIdentity(event.narrationId()));
+            if (event.activityKnown()) session.currentOccasion.set(new OccasionIdentity(event.narrationId(), event.speechRequestId()));
             if (!session.owner.epoch().equals(event.epoch())) session.fail("agent_epoch_changed");
             else if (event.narrationId() != null) session.announcement(event.narrationId());
             else session.request();
@@ -69,7 +69,11 @@ public class LiveContextBridgeService {
     @Scheduled(fixedDelay = 1000) public void refresh() { sessions.values().forEach(Session::refreshIfDue); }
     @PreDestroy public void shutdown() { sessions.values().forEach(Session::close); workers.shutdownNow(); }
 
-    private record OccasionIdentity(UUID id) {}
+    private record OccasionIdentity(UUID id, UUID responseId) {}
+    private static OccasionIdentity occasion(ch.zhaw.prometheus.model.policy.LiveActivityContext activity) {
+        var continuation = activity == null ? null : activity.continuation();
+        return continuation == null ? new OccasionIdentity(null, null) : new OccasionIdentity(continuation.id(), continuation.responseId());
+    }
 
     public final class Session {
         private final UUID agent;
@@ -89,18 +93,19 @@ public class LiveContextBridgeService {
         private volatile String state = "starting", revision;
         private volatile ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue;
         private volatile long nextRefreshAt = Long.MAX_VALUE, nextCommitReadAt;
+        private volatile UUID waitingOccasion;
+        private long quietDeadline;
         private long dropped;
         Session(LiveContextSnapshot initial, ExternalSpeech owner, Consumer<Command> send,
                 Consumer<LiveContextSnapshot> applied, Consumer<String> failure) {
             agent = initial.agentId(); this.owner = owner; delivery = new LiveContextDelivery(initial);
-            currentOccasion.set(new OccasionIdentity(initial.activity() == null || initial.activity().continuation() == null
-                    ? null : initial.activity().continuation().id()));
+            currentOccasion.set(occasion(initial.activity()));
             revision = initial.revision(); this.send = send; this.applied = applied; this.failure = failure;
             playbackCue = initial.activity() == null ? null : initial.activity().playbackCue();
         }
         /** Current control evidence, independent of provider append acknowledgements. */
         public ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue() { return closed.get() ? null : playbackCue; }
-        public UUID speechRequestId() { return closed.get() ? null : currentOccasion.get().id(); }
+        public UUID speechRequestId() { return closed.get() ? null : currentOccasion.get().responseId(); }
         public void ready() { delivery.ready(); ready = true; state = "ready"; request(); }
         public void receive(JsonObject event) {
             if (closed.get() || !event.has("type") || !"session.delegation.created".equals(event.get("type").getAsString())) return;
@@ -130,6 +135,7 @@ public class LiveContextBridgeService {
             // this caller scheduling from an obsolete, already-due deadline.
             if (closed.get() || !ready || !running.compareAndSet(false, true)) return;
             long now = clock.millis();
+            if (waitingOccasion != null && !urgent.get() && now < nextCommitReadAt) { running.set(false); return; }
             boolean deadline = now >= Math.min(nextRefreshAt, delegations.nextDeadline());
             if (!urgent.get() && !deadline && (!dirty.get() || now < nextCommitReadAt)) { running.set(false); return; }
             try { workers.execute(this::run); }
@@ -159,6 +165,10 @@ public class LiveContextBridgeService {
                 dirty.set(false);
                 urgent.set(false);
                 if (closed.get()) return;
+                if (waitingOccasion != null && waitingOccasion.equals(currentOccasion.get().id())
+                        && clock.millis() < quietDeadline && transcripts != null && transcripts.assistantBusy(owner)) {
+                    waitForQuiet(waitingOccasion, quietDeadline); return;
+                }
                 // Faster append ACKs must not turn each fragment/sensor commit into a graph read.
                 // Deferred work remains dirty; no worker sleeps while waiting for this window.
                 nextCommitReadAt = clock.millis() + 5000;
@@ -168,10 +178,16 @@ public class LiveContextBridgeService {
                 var activity = fresh.context().activity();
                 playbackCue = activity == null ? null : activity.playbackCue();
                 // A newer post-commit notification must win over the snapshot being read.
-                currentOccasion.compareAndSet(priorOccasion, new OccasionIdentity(activity == null || activity.continuation() == null
-                        ? null : activity.continuation().id()));
+                currentOccasion.compareAndSet(priorOccasion, occasion(activity));
                 if (closed.get()) return;
                 scheduleRefresh(fresh.context());
+                var continuation = activity == null ? null : activity.continuation();
+                if (fresh.context().speechApprovalRequired() && !fresh.context().committedSpeechOutput() && continuation != null && !continuation.interruptible()
+                        && !continuation.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))
+                        && transcripts != null && transcripts.assistantBusy(owner)) {
+                    waitForQuiet(continuation.id(), continuation.expiresAt().toEpochMilli()); return;
+                }
+                waitingOccasion = null;
                 var batch = delivery.plan(fresh.context(), fresh.narrations());
                 var deferred = transmitAll(batch.commands());
                 if (closed.get()) return;
@@ -193,6 +209,14 @@ public class LiveContextBridgeService {
                 fail("context_delivery_unconfirmed");
             }
             finally { running.set(false); refreshIfDue(); }
+        }
+        private void waitForQuiet(UUID occasion, long deadline) {
+            if (!occasion.equals(waitingOccasion)) trace("speaking_occasion_waiting_for_quiet", null, List.of(occasion));
+            waitingOccasion = occasion; quietDeadline = deadline;
+            // The existing scheduler checks capture in memory; no worker sleeps and
+            // no repeated graph read occurs until quiet, supersession or original expiry.
+            nextCommitReadAt = nextRefreshAt = Math.min(clock.millis() + 1000, deadline);
+            state = "waiting_for_quiet";
         }
         private void transmit(Command command) {
             transmit(command, command.sourceId() == null ? List.of() : List.of(command.sourceId()));

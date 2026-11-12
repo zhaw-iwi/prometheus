@@ -9,6 +9,7 @@ import java.net.http.WebSocket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -22,6 +23,61 @@ import com.sun.net.httpserver.HttpServer;
 import ch.zhaw.prometheus.spi.OpenAIProperties;
 
 class LiveSessionGatewayUnitTest {
+    @Test void concurrentCommandsWaitForThePreviousTextSendWithoutBlockingInboundEvents() throws Exception {
+        var socket = mock(WebSocket.class);
+        var firstSend = new CompletableFuture<WebSocket>();
+        var firstStarted = new CountDownLatch(1);
+        var received = new CompletableFuture<JsonObject>();
+        when(socket.sendText(any(), eq(true))).thenAnswer(call -> {
+            firstStarted.countDown(); return firstSend;
+        }).thenReturn(CompletableFuture.completedFuture(socket));
+        var disconnected = new AtomicBoolean();
+        var sideband = new OpenAILiveSessionGateway.Sideband(received::complete, () -> disconnected.set(true), 3000);
+        sideband.onOpen(socket);
+        try (var workers = Executors.newFixedThreadPool(3)) {
+            var first = workers.submit(() -> sideband.send(new JsonObject()));
+            assertTrue(firstStarted.await(1, TimeUnit.SECONDS));
+            var secondStarted = new CountDownLatch(1);
+            var second = workers.submit(() -> { secondStarted.countDown(); sideband.send(new JsonObject()); });
+            assertTrue(secondStarted.await(1, TimeUnit.SECONDS));
+            assertThrows(TimeoutException.class, () -> second.get(100, TimeUnit.MILLISECONDS));
+            verify(socket, times(1)).sendText(any(), eq(true));
+            workers.submit(() -> sideband.onText(socket, "{\"type\":\"session.ack\"}", true)).get(1, TimeUnit.SECONDS);
+            assertEquals("session.ack", received.get(1, TimeUnit.SECONDS).get("type").getAsString());
+            firstSend.complete(socket);
+            first.get(1, TimeUnit.SECONDS); second.get(1, TimeUnit.SECONDS);
+            verify(socket, times(2)).sendText(any(), eq(true));
+            assertFalse(disconnected.get()); assertTrue(sideband.isOpen());
+        } finally { firstSend.complete(socket); sideband.close(); }
+    }
+
+    @Test void closePreventsAQueuedCommandFromSendingAndStalledSendRemainsBounded() throws Exception {
+        var socket = mock(WebSocket.class);
+        var pending = new CompletableFuture<WebSocket>();
+        var sending = new CountDownLatch(1);
+        when(socket.sendText(any(), eq(true))).thenAnswer(call -> { sending.countDown(); return pending; });
+        var sideband = new OpenAILiveSessionGateway.Sideband(ignored -> {}, () -> {}, 1000);
+        sideband.onOpen(socket);
+        try (var workers = Executors.newFixedThreadPool(2)) {
+            var first = workers.submit(() -> sideband.send(new JsonObject()));
+            assertTrue(sending.await(1, TimeUnit.SECONDS));
+            var second = workers.submit(() -> sideband.send(new JsonObject()));
+            assertThrows(TimeoutException.class, () -> second.get(100, TimeUnit.MILLISECONDS));
+            sideband.close(); pending.complete(socket); first.get(1, TimeUnit.SECONDS);
+            assertInstanceOf(LiveProviderException.class, assertThrows(ExecutionException.class,
+                    () -> second.get(1, TimeUnit.SECONDS)).getCause());
+            verify(socket, times(1)).sendText(any(), eq(true)); verify(socket).abort();
+        } finally { pending.complete(socket); sideband.close(); }
+
+        var stalled = mock(WebSocket.class);
+        when(stalled.sendText(any(), eq(true))).thenReturn(new CompletableFuture<>());
+        var disconnected = new AtomicBoolean();
+        var bounded = new OpenAILiveSessionGateway.Sideband(ignored -> {}, () -> disconnected.set(true), 50);
+        bounded.onOpen(stalled);
+        assertTimeoutPreemptively(java.time.Duration.ofSeconds(2),
+                () -> assertThrows(LiveProviderException.class, () -> bounded.send(new JsonObject())));
+        assertTrue(disconnected.get()); assertFalse(bounded.isOpen()); verify(stalled).abort();
+    }
     @Test void heartbeatTimesOutSilentTransportButAcceptsMatchingPongWithoutSpeech() {
         var socket = mock(WebSocket.class); var lost = new AtomicBoolean();
         var payload = new AtomicReference<java.nio.ByteBuffer>();

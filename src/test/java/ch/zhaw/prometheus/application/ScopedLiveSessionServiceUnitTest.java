@@ -31,6 +31,7 @@ class ScopedLiveSessionServiceUnitTest {
     final GenericTaskSessionLifecycleService taskLifecycle = mock(GenericTaskSessionLifecycleService.class);
     boolean pendingAcknowledgements = true;
     boolean approvalRequired;
+    boolean committedOutput;
     @BeforeEach void setUp() {
         properties.setEnabled(true); properties.setCloseTimeoutMs(100); properties.setRequestTimeoutMs(100);
         when(clock.instant()).thenReturn(Instant.parse("2026-09-27T00:00:00Z"));
@@ -40,13 +41,35 @@ class ScopedLiveSessionServiceUnitTest {
             var epoch = UUID.randomUUID(); ownership.acquire(agent, new ch.zhaw.prometheus.model.policy.ExternalSpeech(call.getArgument(2), epoch));
             return Optional.of(new ch.zhaw.prometheus.application.live.LiveContextSnapshot(
                 agent, epoch, "revision", Instant.parse("2026-09-27T00:00:00Z"), List.of("test"), "Test instructions", List.of(), 0, java.util.Map.of("state", "Test instructions"),
-                800, null, false, pendingAcknowledgements, 800, approvalRequired));
+                800, null, false, pendingAcknowledgements, 800, approvalRequired, committedOutput));
         });
         service = new ScopedLiveSessionService(demo, gateway, properties, contexts, ownership, clock);
         service.configureIngress(ingress);
         service.configureTaskLifecycle(taskLifecycle);
     }
     ScopedLiveSessionService.SessionView start() { return service.create("ABCDE", agent, new LiveSessionRequest("v=0 offer", "marin")).orElseThrow(); }
+    @Test void committedOutputRoutesSilentStructuralNoiseToAuditButPreservesRealVoice() {
+        committedOutput = true;
+        var captures = mock(LiveTranscriptCaptureService.class);
+        var capture = mock(LiveTranscriptCaptureService.Capture.class);
+        when(captures.open(any(), any(), any(), any(), anyLong(), anyBoolean(), anyLong())).thenReturn(capture);
+        when(capture.close()).thenReturn(java.util.concurrent.CompletableFuture.completedFuture(null));
+        service.configureCaptures(captures);
+        try {
+            start();
+            var audio = event("session.input_audio.append");
+            audio.addProperty("audio", java.util.Base64.getEncoder().encodeToString(new byte[9600]));
+            for (long at = 200; at <= 5000; at += 200) {
+                when(clock.millis()).thenReturn(at); gateway.receiver.accept(audio);
+            }
+            var fragment = event("session.input_transcript.delta"); fragment.addProperty("event_id", "noise"); fragment.addProperty("delta", "t: {\"");
+            gateway.receiver.accept(fragment);
+            verify(capture).receive(fragment, "input_fragment_without_audio");
+            byte[] voice = new byte[9600]; java.util.Arrays.fill(voice, (byte)64);
+            audio.addProperty("audio", java.util.Base64.getEncoder().encodeToString(voice)); gateway.receiver.accept(audio);
+            gateway.receiver.accept(fragment); verify(capture).receive(fragment, null);
+        } finally { service.shutdown(); }
+    }
     @Test void approvalRequiredPolicyRejectsLegacyPlayersBeforeOpeningProviderMedia() {
         approvalRequired = true;
         try {

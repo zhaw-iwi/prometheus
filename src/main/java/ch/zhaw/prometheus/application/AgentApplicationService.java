@@ -94,11 +94,14 @@ public class AgentApplicationService {
         Event latest = history.isEmpty() ? null : history.getLast();
         UUID narration = latest != null && ch.zhaw.prometheus.model.event.ConversationProjection.isIntent(latest)
                 && BehaviourPlan.fromJson(latest.getPayload()).getSpeech() != null ? latest.getId() : null;
+        UUID speechRequest = narration;
         if (narration == null && agent.getCurrentState().ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external) {
             var activity = external.liveActivityContext();
-            if (activity != null && activity.continuation() != null) narration = activity.continuation().id();
+            if (activity != null && activity.continuation() != null) {
+                narration = activity.continuation().id(); speechRequest = activity.continuation().responseId();
+            }
         }
-        var event = new AgentCommitted(agent.getId(), agent.executionEpoch(), narration);
+        var event = new AgentCommitted(agent.getId(), agent.executionEpoch(), narration, true, speechRequest);
         AfterCommit.run(() -> applicationEvents.publishEvent(event));
     }
 

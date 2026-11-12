@@ -5,6 +5,7 @@ import { LiveCaptions } from "./captions.js";
 import { LiveAudioMonitor } from "./audio-diagnostics.js";
 import { LivePlaybackObserver } from "./playback-cue.js";
 import { ApprovedSpeechPlayer } from "./approved-speech.js";
+import { CommittedSpeechPlayer } from "./committed-speech.js";
 
 export class LiveClient {
   constructor({ audio, fetch = globalThis.fetch.bind(globalThis), createPeer = () => new RTCPeerConnection(),
@@ -133,7 +134,7 @@ export class LiveClient {
             run.approval.receipt(event); return;
           }
           if (run.captions.receive(event)) {
-            if (event.type === 'session.input_transcript.delta') {if (run.approval) run.approval.interrupt(); else run.playback.interrupt();}
+            if (event.type === 'session.input_transcript.delta') {if (run.approval) run.approval.inputTranscript(event); else run.playback.interrupt();}
             if (event.type === 'session.output_transcript.delta') run.playback.caption(event.event_id);
             this.onCaptions(run.captions.snapshot());
           }
@@ -152,7 +153,8 @@ export class LiveClient {
       run.pendingDiagnostics = [];
       if (this.current !== run) { await this.finalize(run); return; }
       if (session.speechApprovalRequired) {
-        run.approval = new ApprovedSpeechPlayer({audio: this.audio,
+        const Player = session.committedSpeechOutput ? CommittedSpeechPlayer : ApprovedSpeechPlayer;
+        run.approval = new Player({audio: this.audio,
           api: (suffix, options) => this.api(run, `sessions/${run.handle}/${suffix}`, options),
           diagnostic: value => this.diagnostic(run, value),
           withheld: detail => { if (this.current === run) this.status("Active", detail, {muted: run.muted}); },

@@ -2,16 +2,27 @@
 import assert from 'node:assert/strict';
 
 // Wait for a usable invitation, not preliminary speech or "ready" on its own.
-export const acceptanceInvitation = /\b(?:shall|would you like|want|wanna|accept|start|begin|ready|go ahead|proceed|try it)\b[^?]*\?|\bsay\s+["'“‘]?start\b|\b(?:we can|we will|we['’]ll|ready to)\s+(?:start|begin|proceed)\s+(?:when|whenever|once)\s+you\s+(?:say (?:so|go|start)|accept|(?:are|feel) ready)\b/i;
+export const acceptanceInvitation = /\b(?:shall|would you like|want|wanna|accept|start|begin|ready|go ahead|proceed|try it)\b[^?]*\?|\bsay (?:if|when) you want (?:me|us) to (?:start|begin)\b|\bsay\s+["'“‘]?start\b|\b(?:we can|we will|we['’]ll|ready to)\s+(?:start|begin|proceed)\s+(?:when|whenever|once)\s+you\s+(?:say (?:so|go|start)|accept|(?:are|feel) ready)\b/i;
 export const conversationReturn = /\b(?:conversation|chat(?:ting)?|talk(?:ing)?)\b/i;
 export const visibleCountAlternative = /at least (?:two|2)|more than (?:one|1)|(?:two|2) people|you(?:'re| are) already in (?:view|the scene).{0,50}a second person is visible/i;
-export const positiveFeedback = /\b(?:correct|right|exactly|yes|fits perfectly)\b/i;
+// This checks for an evaluation only. Its factual polarity is reviewed against the actual heard question.
+export const feedbackEvaluation = /\b(?:correct|incorrect|right|wrong|exactly|yes|fits perfectly|not quite|does not fit|doesn't fit)\b|\b(?:fits|matches)\b.{0,80}\bbut not\b/i;
+// A setup may reuse a clue word. Count actual questions; semantic review still checks their meaning.
+export function assertOneQuestion(text) {
+  assert.equal((text.match(/\?/g) || []).length, 1, 'One authorized riddle question must not be repeated in native speech');
+}
 
 // Review the associated contribution, not a later, separately authorized Reflection turn.
 // Receipt-aware capture may have checked only a complete sentence suffix of this segment.
-export function capturedContribution(memory, ledger) {
+export function capturedContribution(memory, ledger, synthesized = []) {
   const response = memory['task.response'];
   assert.equal(response?.status, 'CAPTURED');
+  if (response.origin === 'SYNTHESIZED') {
+    const speech = synthesized.find(item => item.segmentId === response.segment && item.origin === 'SYNTHESIZED');
+    assert.equal(speech?.played, true, 'Synthesized output requires separate persisted playback evidence');
+    assert.equal(response.played, true); assert.ok(speech.text);
+    return {segment: speech.segmentId, text: speech.text, origin: 'SYNTHESIZED'};
+  }
   const segment = ledger.find(item => item.segmentId === response.segment && item.speaker === 'ASSISTANT');
   assert.equal(segment?.status, 'COMPLETE', 'The associated assistant segment must exist and be complete');
   const offset = response.speechOffset ?? 0;
@@ -50,7 +61,7 @@ export async function runEscalation(scenario, h) {
   const {page, say, settled, storage, observe, until, capturedResponse, api, agentPath, report, wait} = h;
   report.rubric = {automatedAuthorityAndDeliveryChecks: 'PENDING', semanticReview: 'PENDING',
     checks: ['truthful recovery and perception', 'visible supported terms and finite budget', 'no premature or duplicate contribution',
-      'no answer leak or unsupported promise', 'native speech agrees with durable task state'], physicalAcceptance: 'NOT RUN'};
+      'no answer leak or unsupported promise', 'played speech agrees with durable task state'], physicalAcceptance: 'NOT RUN'};
   const count = memory => memory['task.actions'] || 0;
   const protectedKeys = ['coordination.draft', 'coordination.agreement', 'coordination.run', 'coordination.evidence', 'task.actions', 'task.phase', 'task.revision'];
   function unchanged(before, after) {
@@ -118,7 +129,9 @@ export async function runEscalation(scenario, h) {
     }
     const memory = await storage(); assert.equal(count(memory), expectedCount);
     assert.equal(memory['coordination.delivery']?.status, 'PLAYBACK_CONFIRMED');
-    assert.ok(await page.evaluate(() => logs.some(e => e.type === 'trial.playback_ack' && e.accepted === true)));
+    const delivery = memory['coordination.delivery'];
+    await until('accepted final playback acknowledgement', () => page.evaluate(({id, segment}) =>
+      logs.some(e => e.type === 'trial.playback_ack' && e.accepted === true && e.cueId === id && e.segmentId === segment), delivery), 5000);
     report.deliveries ||= []; report.deliveries.push({answer, memory}); return {answer, memory};
   }
 
@@ -141,6 +154,8 @@ export async function runEscalation(scenario, h) {
     assert.equal(Object.keys((await storage())['coordination.evidence']).length, 1);
     assert.equal(count(await storage()), 0); await freshQuestion();
     const ready = await storage(), readyHelp = await turn('helpReady', /ready|accept|start/i); unchanged(ready, readyHelp.memory);
+    assert.match(readyHelp.answer, /no (?:further|additional|more) demonstration|already.{0,40}(?:passed|complete)/i,
+      'Completed preparation must not require another demonstration before acceptance');
     const armed = await arm(); assert.deepEqual(armed['coordination.agreement'], draft); await cueWindow();
     const index = await page.evaluate(() => logs.length);
     await observe('obs.hand.sign', {sign: 'rock', confidence: .93, ts: new Date().toISOString()});
@@ -154,8 +169,7 @@ export async function runEscalation(scenario, h) {
     const question = await turn('accept', /keys|door/i); await capturedResponse('riddle question association');
     assert.equal(count(question.memory), 1); assert.equal(question.memory['task.phase'], 'RUNNING');
     assert.doesNotMatch(question.answer, /piano|keyboard/i, 'Question must withhold its solution');
-    assert.equal((question.answer.match(/\bkeys\b/gi) || []).length, 1,
-      'One authorized riddle question must not be repeated in native speech');
+    assertOneQuestion(question.answer);
     const before = await storage(), help = await turn('help', /active|running|answer|pause|stop/i);
     unchanged(before, help.memory); assert.doesNotMatch(help.answer, /piano|keyboard/i, 'Help must not reveal the solution');
     await freshQuestion();
@@ -165,9 +179,11 @@ export async function runEscalation(scenario, h) {
     assert.doesNotMatch(fragment.answer, /piano|keyboard/i, 'Incomplete-answer support must not supply the solution');
     const index = await page.evaluate(() => logs.length); await say('answer');
     const feedback = await delivered(index, /piano/i, 2);
-    const contribution = capturedContribution(feedback.memory, await api(`${agentPath}/live/transcripts?sessionId=${h.handle}`));
+    const contribution = capturedContribution(feedback.memory, await api(`${agentPath}/live/transcripts?sessionId=${h.handle}`), await h.synthesizedSpeech());
     report.finalFeedbacks = [contribution];
-    assert.match(contribution.text, positiveFeedback); assert.doesNotMatch(contribution.text, /incorrect|wrong/i);
+    assert.match(contribution.text, feedbackEvaluation);
+    report.feedbackReview = {question: question.answer, answer: 'My answer is a piano.', feedback: contribution.text,
+      factualAssessment: 'PENDING semantic review against all clues; positive feedback is not automatically correct'};
     assert.doesNotMatch(contribution.text, /\?|another round|would you like|feedback.{0,30}welcome/i,
       'Final contribution must not append another question or invitation');
     assert.equal(feedback.memory['coordination.outcome'], 'LIMIT_REACHED');

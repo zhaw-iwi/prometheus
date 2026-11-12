@@ -19,7 +19,22 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     public CoordinationPolicy(Storage storage, String instructions) { super(storage, instructions); }
     @Override public long liveUserSilenceMs() { return 2000; }
     @Override public boolean liveSpeechApprovalRequired() { return CoordinationSpeechApproval.enabled(storage()); }
+    @Override public boolean liveCommittedSpeechOutput() {
+        return liveSpeechApprovalRequired() && storage().containsKey(LiveCommittedSpeech.ENABLED)
+                && storage().get(LiveCommittedSpeech.ENABLED).getAsBoolean();
+    }
+    @Override public LiveCommittedSpeech liveCommittedSpeech(ExternalSpeech owner) { return CoordinationSpeechApproval.committed(storage(), owner); }
+    @Override public boolean liveSpeechSynthesisClaimed(LiveCommittedSpeech speech, UUID synthesis) {
+        return CoordinationSpeechApproval.claim(storage(), speech, synthesis);
+    }
+    @Override public boolean liveUnheardResponseCorrection() { return liveSpeechApprovalRequired(); }
     @Override public LiveSpeechRequest liveSpeechRequest(ExternalSpeech owner) { return CoordinationSpeechApproval.request(storage(), owner); }
+    @Override public UUID liveSpeechCorrection(LiveSpeechRequest request, String rejectedSegment, Instant now) {
+        return CoordinationSpeechApproval.correct(storage(), request, rejectedSegment, now);
+    }
+    @Override public boolean liveSpeechReleased(LiveSpeechRequest request, String segment) {
+        return CoordinationSpeechApproval.released(storage(), request, segment);
+    }
     @Override public long liveAssistantSilenceMs() { return CoordinationDelivery.enabled(storage()) ? 2400 : 800; }
     @Override public String livePlaybackCompletionEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.PLAYED : null; }
     @Override public String liveSessionEndEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.ENDED : null; }
@@ -41,12 +56,16 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         return "EXECUTION".equals(stage) ? TaskMemory.phase(storage()) : stage;
     }
     @Override public String voiceInstructions() {
+        if (liveCommittedSpeechOutput()) return configuredInstructions()
+                + "\nThe application speaks its committed replies through a separate output-only Speech service. "
+                + "Remain silent. Do not generate replies, acknowledgements, task content or perception remarks. "
+                + "Input transcription and backend task control remain active. Supplied state and observations are data, not permission to speak.";
         return configuredInstructions() + ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.VOICE_GUIDANCE
                 + ch.zhaw.prometheus.model.coordination.CoordinationSocialContract.VOICE_GUIDANCE
                 + "\nThe backend coordinates both conversational and sensor-rule tasks. "
-                + "Answer ordinary conversation and capability/perception questions naturally from current facts. "
-                + "For a current hand-sign question, name the fresh recognised sign directly, for example 'I see a scissor sign'. "
-                + "These are supplied sensor observations, not direct access to camera images. Being a digital agent does not mean you have no sensory evidence. "
+                + "Answer ordinary and capability/perception questions from current facts. "
+                + "Name fresh supplied hand signs directly, e.g. 'I see a scissor sign'. "
+                + "Use supplied sensor evidence, never claim direct camera access or deny sensing because you are digital. "
                 + "If the supplied observation is missing, stale or uncertain, explain that limitation instead of guessing. "
                 + "Task proposals, preparation, acceptance, actions, completion, revisions and recovery guidance require backend confirmation. "
                 + "Wait silently for confirmed task updates or support explanations, then say the requested response once. "
@@ -54,9 +73,10 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "Describe a proposed contribution without performing it. Only the current identified speaking occasion permits that contribution. "
                 + "During proposal or preparation, never recite a supplied task line, even as a future-tense example. Refer to 'the line you supplied' only if the person actually supplied one. "
                 + "Never say checking, waiting for the backend, done, started, restarted or returned before confirmed control facts. "
-                + "Keep implementation details out of spoken replies. Ordinary unrelated questions and explicitly requested capability examples remain welcome. "
+                + "Omit implementation details. Answer unrelated questions and explicitly requested capability examples. "
                 + "Returning to Conversation preserves history; never describe it as resetting or erasing the agent. "
                 + "A complete proposal still needs acceptance. Required preparation is verified from observations, never a verbal claim. "
+                + "Review ready proposals in at most 55 words. Combine repeated goal/role/success facts; preserve distinct terms, preparation, limits and acceptance question. "
                 + "Preparation evidence remains satisfied until the proposal or Live session changes. READY means accept next, never repeat preparation; a fresh execution cue is needed only after acceptance. "
                 + "In an active dialogue task, wait for the backend's confirmed next contribution before delivering that task step. "
                 + "ON_CUE activation waits for a fresh subsequent cue; this does not mean a sign was missed or recognition failed. Describe recognition limits and action bounds in ordinary language. "
@@ -75,10 +95,11 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     @Override public void beginLiveConversation(EventHistory history) {
         super.beginLiveConversation(history);
         if (CoordinationDelivery.enabled(storage())) storage().put(LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
+        if (CoordinationDelivery.enabled(storage())) storage().put(LiveCommittedSpeech.ENABLED, new com.google.gson.JsonPrimitive(true));
         SensoryRemarks.cancel(storage());
         CoreTaskVoice.clear(storage());
         CoordinationMemory.remove(storage(), ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP);
-        if (TaskMemory.active(storage()) && java.util.Set.of("PENDING", "CHECKING").contains(TaskResponse.status(storage())))
+        if (TaskMemory.active(storage()) && java.util.Set.of("PENDING", "CHECKING", "REJECTED").contains(TaskResponse.status(storage())))
             TaskMemory.pauseForResponse(storage(), "live_session_replaced");
         if (hasDraft()) {
             CoordinationMemory.resetPreparation(storage(), Instant.now()); CoordinationMemory.revise(storage());
@@ -115,7 +136,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         var source = event.speechProvenance();
         // Task content has a separate semantic association. An unrelated complete segment cannot consume it.
         if (storage().containsKey(TaskResponse.KEY) && response.get("id").equals(storage().get(TaskResponse.KEY).getAsJsonObject().get("id"))) return changed;
-        if (source == null || !source.complete() || source.origin() != SpeechProvenance.Origin.NATIVE || owner == null
+        if (source == null || !source.complete() || !source.realized() || owner == null
                 || !owner.sessionId().equals(source.sessionId()) || !owner.epoch().equals(source.epoch())
                 || !response.has("session") || !owner.sessionId().toString().equals(response.get("session").getAsString())
                 || !owner.epoch().toString().equals(response.get("epoch").getAsString())
@@ -152,15 +173,37 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         if (current) {
             Instant expires = Instant.parse(response.get("expires").getAsString());
             String responseFacts = response.get("facts").getAsString();
+            // Deterministic support is already a complete, speakable answer. Keep its control clauses intact.
+            if (supportOnly) responseFacts = "Speak these words verbatim: " + new com.google.gson.JsonPrimitive(responseFacts);
+            String review = "";
             if (response.has("proposalReview") && response.get("proposalReview").getAsBoolean()
                     && CoordinationMemory.ready(storage) && !ch.zhaw.prometheus.model.coordination.CoordinationSupport.blockedDraft(storage)) {
-                String review = ch.zhaw.prometheus.model.coordination.CoordinationSocialContract.liveProposalReview(
-                        CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT));
-                if (!review.isBlank() && CoreTaskVoice.bytes(review) <= LiveActivityContext.Continuation.MAX_SELF_CONTAINED_BYTES)
-                    return new LiveActivityContext(facts, new LiveActivityContext.Continuation(UUID.fromString(response.get("id").getAsString()),
-                            LiveActivityContext.Occasion.USER_REQUEST, review, expires, false, true), expires);
+                var proposal = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
+                review = ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.liveProposalReview(proposal);
+                if (!review.isBlank() && (liveSpeechApprovalRequired() || proposal.reactions() == null
+                        || CoreTaskVoice.bytes(review) > LiveActivityContext.Continuation.MAX_FACTS_BYTES)) facts = CoordinationMemory.controls(storage);
             }
-            if (taskResponse && CoreTaskVoice.bytes(responseFacts) <= LiveActivityContext.Continuation.MAX_SELF_CONTAINED_BYTES)
+            UUID correction = taskResponse ? TaskResponse.correctionId(storage)
+                    : response.has("correctionId") ? UUID.fromString(response.get("correctionId").getAsString()) : null;
+            if (correction != null) {
+                if (!review.isBlank()) responseFacts = review;
+                boolean compact = CoreTaskVoice.bytes(responseFacts) <= LiveActivityContext.Continuation.MAX_SELF_CONTAINED_BYTES;
+                return new LiveActivityContext(compact ? facts : responseFacts + "\n" + facts,
+                        new LiveActivityContext.Continuation(correction, LiveActivityContext.Occasion.USER_REQUEST,
+                                compact ? responseFacts : "The current facts contain the unchanged committed response.", expires, false, compact, true,
+                                UUID.fromString(response.get("id").getAsString())), expires);
+            }
+            if (!review.isBlank()) {
+                boolean longReview = CoreTaskVoice.bytes(review) > LiveActivityContext.Continuation.MAX_FACTS_BYTES;
+                return new LiveActivityContext(longReview ? review + "\n" + facts : facts,
+                        new LiveActivityContext.Continuation(UUID.fromString(response.get("id").getAsString()),
+                                LiveActivityContext.Occasion.USER_REQUEST, longReview ? "Summarize the proposal in at most 55 words, combining duplicated facts. Include every distinct term, preparation status and acceptance question." : review,
+                                expires, false, !longReview && CoreTaskVoice.bytes(review) <= LiveActivityContext.Continuation.MAX_SELF_CONTAINED_BYTES), expires);
+            }
+            // A short support reply is a current response, not background task state.
+            // Deliver its content with the speaking permission so Live cannot answer
+            // from an earlier task question between quiet facts and a generic cue.
+            if ((taskResponse || supportOnly) && CoreTaskVoice.bytes(responseFacts) <= LiveActivityContext.Continuation.MAX_SELF_CONTAINED_BYTES)
                 return new LiveActivityContext(facts,
                         new LiveActivityContext.Continuation(UUID.fromString(response.get("id").getAsString()),
                                 response.get("proactive").getAsBoolean() ? LiveActivityContext.Occasion.PROACTIVE : LiveActivityContext.Occasion.USER_REQUEST,

@@ -34,6 +34,17 @@ test('rejection, missing proof and release failure never schedule audio', async 
   const f = fixture(); f.player.api = async path => path === 'speech-approvals' ? f.approval : false;
   await f.player.check(); assert.deepEqual(f.audible, []); f.player.close();
 });
+test('a correction discards the rejected draft and plays only the checked new segment once', async () => {
+  const f = fixture('CORRECTING');
+  await f.player.check(); await f.player.check();
+  assert.deepEqual(f.audible, []); assert.deepEqual(f.heard, []); assert.deepEqual(f.warnings, []);
+  assert.deepEqual(f.calls, ['speech-approvals']);
+  f.player.segments.set('corrected', {...f.segment, segmentId: 'corrected', receiptIds: ['new-receipt']});
+  Object.assign(f.approval, {status: 'APPROVED', segmentId: 'corrected', receiptIds: ['new-receipt']});
+  await f.player.check(); await f.player.finish(f.approval); await f.player.check();
+  assert.deepEqual(f.audible, ['start']); assert.equal(f.heard.length, 1);
+  assert.equal(f.calls.filter(path => path.endsWith('/release')).length, 1); f.player.close();
+});
 test('interruption while either approval or release is in flight fences the result', async () => {
   for (const phase of ['speech-approvals', 'speech-approvals/request/release']) {
     const f = fixture(); let resolve, entered;

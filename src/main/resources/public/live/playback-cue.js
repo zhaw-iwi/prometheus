@@ -118,9 +118,10 @@ export class LivePlaybackObserver {
   caption(id) { if (!this.closed) this.gate.caption(id); }
   /** A buffered clip has known receipts before audio starts; bind them at observed onset,
    * after the media element has begun progressing, not during its initial silent stall. */
-  scheduled(cue, segment) {
+  scheduled(cue, segment, onsetWaitMs = 500) {
+    if (!Number.isFinite(onsetWaitMs) || onsetWaitMs < 500 || onsetWaitMs > 45000) throw Error('Invalid onset bound');
     this.gate.reset(); this.gate.update(cue, [segment]);
-    this.onset = {ids: [...segment.receiptIds], deadline: performance.now() + 500};
+    this.onset = {ids: [...segment.receiptIds], deadline: performance.now() + onsetWaitMs};
   }
   update(cue, segments) {
     if (this.closed) return;

@@ -54,7 +54,9 @@ test("approval player captures real WebRTC while withholding unapproved audio", 
   expect(result.peak).toBeGreaterThan(.02); expect(result.heard).toBe(1); expect(result.approvalCalls).toBe(4);
 });
 
-test("Coordination reaches Reflection after approved buffered speech and observed playback", async ({ page, context, request }, info) => {
+for (const lostCompletion of [false, true]) {
+test(lostCompletion ? "Coordination preserves uncertain delivery after a lost synthesized playback acknowledgement"
+  : "Coordination reaches Reflection after committed Speech and observed playback", async ({ page, context, request }, info) => {
   test.skip(!enabled || !process.env.PROMETHEUS_ADMIN_TOKEN, "Use the enabled isolated acceptance runner.");
   const headers = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
   const code = Math.random().toString(36).slice(2, 7).toUpperCase();
@@ -72,50 +74,58 @@ test("Coordination reaches Reflection after approved buffered speech and observe
     await page.keyboard.press('Escape'); await page.getByTestId('gptlive-tab').click();
     const opening = page.waitForResponse(r => r.url().endsWith('/live/sessions') && r.status() === 201);
     await page.getByTestId('gptlive-start').click(); const session = await (await opening).json();
+    expect(session.committedSpeechOutput).toBe(true);
     await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
     await page.waitForFunction(() => window.__smokeUpdateHeld);
+    const releases = [];
+    page.on('request', r => {if (r.method() === 'POST' && /\/speech-approvals\/[^/]+\/release$/.test(r.url())) releases.push(r.url());});
+    const memory = async () => Object.fromEntries((await (await request.get(path + '/storage', {headers:scoped})).json())
+      .map(entry => [entry.key, JSON.parse(entry.value)]));
+    if (lostCompletion) await page.route('**/speech-approvals/*/played', route => route.abort());
     expect((await request.post(path + '/acknowledge', {headers:scoped, data:{type:'obs.user_utterance', actor:'user', kind:'observation',
       payload:'Start one fixture observation contribution now'}})).ok()).toBe(true);
-    let cue;
-    await expect.poll(async () => {
-      cue = (await (await request.get(`${path}/live/sessions/${session.handle}/updates`, {headers:scoped})).json()).playbackCue;
-      return !!cue?.segmentId;
-    }).toBe(true);
+    await expect.poll(async () => (await memory())['task.response']?.status).toBe('PENDING');
+    const original = (await memory())['task.response'];
     await expect(page.getByTestId('activity-label')).toHaveText('Finishing the response');
-    const provider = await (await request.get('/__live-fixture/latest')).json();
-    const caption = provider.captions.map(JSON.parse).find(value => value.delta === 'First fixture observation.');
-    expect(caption).toBeTruthy();
-    // Exercise the production analyser/gate and LiveClient callback. Only media is
-    // synthetic; every application request, ledger, transition and SSE remains real.
-    await page.evaluate(caption => {window.__smokeReceive(caption); window.__smokeGain.gain.value = .15;}, caption);
-    await page.waitForTimeout(600);
-    await page.evaluate(() => {window.__smokeGain.gain.value = 0;});
+    // The native remote stream is audible only in the synthetic provider. It must
+    // never reach conversation or consume this response while synthesis is held.
+    await page.evaluate(() => {window.__smokeGain.gain.value = .15;});
+    await page.waitForTimeout(600); await page.evaluate(() => {window.__smokeGain.gain.value = 0;});
     await expect(page.getByTestId('gptlive-history')).not.toContainText('First fixture observation.');
-    await page.waitForTimeout(11000); // Hold the candidate across delayed authority/ledger polling, inside its original deadline.
-    await expect(page.getByTestId('activity-label')).toHaveText('Finishing the response');
-    const acknowledgement = page.waitForResponse(r => r.url().endsWith(`/playback-cues/${cue.id}`) && r.request().method() === 'POST');
-    await page.evaluate(() => window.__smokeReleaseUpdates());
-    const result = await acknowledgement;
-    expect(await result.json()).toBe(true);
-    await expect(page.getByTestId('activity-label')).toHaveText('Reflecting on the task');
-    await expect(page.getByTestId('gptlive-history')).toContainText('First fixture observation.');
-    await page.getByTestId('gptlive-panel').screenshot({path: info.outputPath('approved-coordination-playback.png')});
-    await expect.poll(() => page.evaluate(() => window.PrometheusActivity.snapshot().journals.at(-1)?.recent.some(
-      e => e.stage === 'coordination' && e.details.beforePhase === 'READY' && e.details.phase === 'FINISHING'
-        || e.stage === 'coordination' && e.details.phase === 'FINISHING' && Number.isFinite(e.details.sourcePosition)))).toBe(true);
+    await page.waitForTimeout(3000);
+    expect((await memory())['task.actions']).toBe(1);
+    const finished = page.waitForRequest(r => r.url().endsWith(`/speech-approvals/${original.id}/played`), {timeout:25000});
+    const released = page.waitForResponse(r => r.url().endsWith(`/speech-approvals/${original.id}/release`));
+    await page.evaluate(() => window.__smokeReleaseUpdates()); await released;
+    // A delayed/provider-only caption is not new microphone activity. The real
+    // input worklet still owns immediate barge-in; server admission is checked separately.
+    await page.evaluate(() => window.__smokeReceive({type:'session.input_transcript.delta', event_id:'silent_fragment',
+      start_ms:126600, end_ms:126800, delta:'t: {"'}));
+    await finished;
+    if (lostCompletion) {
+      await expect(page.getByTestId('gptlive-detail')).toContainText('completion could not be confirmed');
+      await page.waitForTimeout(2000);
+      expect((await memory())['coordination.delivery'].status).toBe('PENDING');
+      await expect(page.getByTestId('gptlive-history')).not.toContainText('First fixture observation.');
+    } else {
+      await expect(page.getByTestId('activity-label')).toHaveText('Reflecting on the task');
+      await expect(page.getByTestId('gptlive-history')).toContainText('First fixture observation.');
+      expect((await memory())['coordination.delivery'].status).toBe('PLAYBACK_CONFIRMED');
+      const history = await (await request.get(path + '/live/history', {headers:scoped})).json();
+      expect(history.filter(e => e.provenance?.origin === 'SYNTHESIZED' && e.provenance.playbackConfirmed)).toHaveLength(1);
+      await page.getByTestId('gptlive-panel').screenshot({path: info.outputPath('committed-coordination-playback.png')});
+    }
+    expect(releases).toHaveLength(1); expect((await memory())['task.actions']).toBe(1);
     const timeline = await page.evaluate(() => window.PrometheusActivity.snapshot());
-    expect(JSON.stringify(timeline)).not.toContain('Start one fixture observation contribution now');
     expect(timeline.coverage.physicalAudibility).toBe('not_measured');
-    await expect.poll(() => page.evaluate(() => window.PrometheusActivity.snapshot().journals.at(-1)?.recent.some(
-      e => e.stage === 'coordination' && e.details.beforePhase === 'FINISHING' && e.details.phase === 'REFLECTION'
-        && e.details.taskOutcome === 'LIMIT_REACHED' && Number.isFinite(e.details.sourcePosition)))).toBe(true);
     await page.getByTestId('gptlive-stop').click();
   } finally {
-    await info.attach('approval-diagnostics', {contentType: 'application/json', body: Buffer.from(JSON.stringify(
+    await info.attach('speech-diagnostics', {contentType: 'application/json', body: Buffer.from(JSON.stringify(
       await page.evaluate(async () => (await import('/live/diagnostics.js')).liveDiagnostics.snapshot()).catch(() => ({}))))});
     await request.delete(path, {headers:scoped});
   }
 });
+}
 test("real scoped cockpit, durable Live conversation and legacy feature-off speech", async ({ page, context, request }, info) => {
   test.skip(!process.env.PROMETHEUS_ADMIN_TOKEN || !process.env.PROMETHEUS_LIVE_EXPECT_ENABLED, "Use the isolated acceptance runner.");
   const headers = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
@@ -148,7 +158,7 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
     expect(history.some(event => event.type === "resp.behaviour_plan" && JSON.parse(event.payload).speech)).toBe(true);
     const speech = await (await request.get(path + "/behaviours/latest/speech", { headers: scoped })).json();
     const audio = await request.post(`${path}/behaviours/${speech.eventId}/speech?format=pcm`, { headers: scoped });
-    expect(audio.ok()).toBe(true); expect((await audio.body()).length).toBe(4800);
+    expect(audio.ok()).toBe(true); expect((await audio.body()).length).toBe(48000);
     expect((await (await request.get("/__live-fixture/latest")).json()).ttsCalls).toBe(1);
     await page.locator('[data-column-panel="interaction"]').screenshot({ path: info.outputPath("feature-off-text.png") });
   } else {

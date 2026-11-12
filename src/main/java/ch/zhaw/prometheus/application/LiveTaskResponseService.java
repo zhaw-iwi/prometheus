@@ -44,25 +44,34 @@ public class LiveTaskResponseService {
     void prepare(Agent agent, ExternalSpeech owner, Event speech, Instant started, List<LiveSpeechPart> parts) {
         if (!(agent.getCurrentState().ownPolicy() instanceof TaskPolicy policy) || !policy.storage().containsKey(TaskResponse.KEY)) return;
         if (expire(agent, owner)) return;
+        if (policy instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveCommittedSpeechOutput()) return;
         if (policy.liveIncompleteResponseIsFailure() && TaskResponse.incomplete(policy.storage(), owner, speech, started, clock.instant())) {
             recover(agent, owner, "response_capture_incomplete"); return;
         }
-        TaskResponse.claim(policy.storage(), owner, speech, started, clock.instant(), policy.liveUnrelatedResponseAllowance(), parts)
+        // Approval releases whole clips. A pre-commit suffix cannot reserve that
+        // response and block a later fully authorized, independently captured clip.
+        var responseParts = policy instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external
+                && external.liveSpeechApprovalRequired() ? List.<LiveSpeechPart>of() : parts;
+        TaskResponse.claim(policy.storage(), owner, speech, started, clock.instant(), policy.liveUnrelatedResponseAllowance(), responseParts)
                 .ifPresent(check -> schedule(agent, owner, policy, check));
     }
     private void schedule(Agent agent, ExternalSpeech owner, TaskPolicy policy, TaskResponse.Check check) {
         UUID id = agent.getId();
         var work = new PreparedAction(check.id(), policy.storage().getID(), Map.of(TaskResponse.KEY, policy.storage().get(TaskResponse.KEY).toString()), model -> {
-            var verdict = TaskResponse.Verdict.AMBIGUOUS;
+            Optional<TaskResponse.Verdict> verdict = Optional.empty();
             // A restarted/lost worker is never replayed. The persisted CHECKING claim expires instead.
             if (clock.instant().isBefore(check.deadline()) && ownership.taskWorkAllowed(id, owner)) {
-                try { verdict = check.exactlyMatches() ? TaskResponse.Verdict.MATCH : check.verdict(model.infer(check.request())); }
+                try { verdict = check.exactlyMatches() ? Optional.of(TaskResponse.Verdict.MATCH) : check.verifiedVerdict(model.infer(check.request())); }
                 catch (RuntimeException failure) { /* One failure has one uncertain outcome, never a retry. */ }
             }
-            return Map.of(TaskResponse.KEY, verdict.name());
+            return Map.of(TaskResponse.KEY, verdict.map(Enum::name).orElse("UNVERIFIABLE"));
         });
         BackgroundActionExecutor.Reservation job;
-        try { job = workers.reserve(work, gateway, (ignored, values, versions) -> finish(id, owner, check, TaskResponse.Verdict.valueOf(values.get(TaskResponse.KEY)))); }
+        try { job = workers.reserve(work, gateway, (ignored, values, versions) -> {
+            String result = values.get(TaskResponse.KEY);
+            return finish(id, owner, check, "UNVERIFIABLE".equals(result) ? TaskResponse.Verdict.AMBIGUOUS : TaskResponse.Verdict.valueOf(result),
+                    !"UNVERIFIABLE".equals(result));
+        }); }
         catch (RuntimeException full) {
             TaskResponse.finish(policy.storage(), owner, check, false, clock.instant());
             recover(agent, owner, "response_check_unavailable"); return;
@@ -75,14 +84,15 @@ public class LiveTaskResponseService {
             @Override public void afterCompletion(int status) { job.close(); }
         });
     }
-    private String finish(UUID id, ExternalSpeech owner, TaskResponse.Check check, TaskResponse.Verdict verdict) {
+    private String finish(UUID id, ExternalSpeech owner, TaskResponse.Check check, TaskResponse.Verdict verdict, boolean verified) {
         return turns.serialized(id, () -> transaction.execute(status -> {
             var agent = agents.findById(id).orElse(null);
             if (agent == null || !owner.equals(ownership.current(agent)) || !ownership.taskWorkAllowed(id, owner)
                     || !(agent.getCurrentState().ownPolicy() instanceof TaskPolicy policy)) return "obsolete";
-            if (!TaskResponse.finish(policy.storage(), owner, check, verdict, clock.instant())) return "obsolete";
+            if (!TaskResponse.finish(policy.storage(), owner, check, verdict, clock.instant(), verified && policy.liveUnheardResponseCorrection())) return "obsolete";
             boolean captured = TaskResponse.captured(policy.storage(), owner);
             boolean pending = "PENDING".equals(TaskResponse.status(policy.storage()));
+            boolean rejected = "REJECTED".equals(TaskResponse.status(policy.storage()));
             if (pending) TaskResponse.takeCandidate(policy.storage(), owner).ifPresent(candidate ->
                 agent.getEventHistory().toList().stream().filter(e -> {
                     var p = e.speechProvenance();
@@ -90,7 +100,7 @@ public class LiveTaskResponseService {
                             && owner.sessionId().equals(p.sessionId()) && owner.epoch().equals(p.epoch());
                 }).findFirst().ifPresent(e -> TaskResponse.claimCandidate(policy.storage(), owner, e, candidate, clock.instant(), policy.liveUnrelatedResponseAllowance())
                         .ifPresent(next -> schedule(agent, owner, policy, next))));
-            else if (!captured) recover(agent, owner, "response_association_uncertain");
+            else if (!captured && !rejected) recover(agent, owner, "response_association_uncertain");
             agents.saveAndFlush(agent);
             var activity = policy instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external ? external.liveActivityContext() : null;
             boolean playbackReady = captured && activity != null && activity.playbackCue() != null;
@@ -99,7 +109,7 @@ public class LiveTaskResponseService {
                 if (playbackReady) events.publishEvent(new ExternalSpeechRecordingService.PlaybackReady(id, owner));
                 monitor.publish(agent);
             });
-            return captured ? "response_captured" : pending ? "response_unrelated" : "response_uncertain";
+            return captured ? "response_captured" : pending ? "response_unrelated" : rejected ? "response_rejected" : "response_uncertain";
         }));
     }
     /** Existing context refresh supplies deadlines; this adds no polling or query. Caller saves the loaded agent. */
