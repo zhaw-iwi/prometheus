@@ -83,7 +83,6 @@ ownership, expiry, interruption and muted/stalled-output rejection retain their
 contracts. Early countdown recovery and interrupted-cue recovery are separate
 pending steps; these checks do not establish physical audibility.
 
-
 ## Retained native approval coverage
 
 The earlier Coordination route used `ApprovedSpeechPlayer` and the session

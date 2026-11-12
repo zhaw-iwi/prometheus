@@ -155,10 +155,10 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             requests.add(request);
             if (secondVisitor) assertNoFirstVisitor(request.messages().stream()
                     .map(PromptMessage::getContent).reduce("", (left, right) -> left + "\n" + right));
-            var check = responseCheckData(request);
-            if (check != null) {
+            if (deliveryVerification(request)) {
+                var input = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
                 var response = new JsonObject();
-                for (String field : List.of("responseId", "revision", "segmentId")) response.add(field, check.get(field));
+                for (String key : List.of("responseId", "revision", "segmentId")) response.add(key, input.get(key));
                 response.addProperty("verdict", "MATCH");
                 return response.toString();
             }
@@ -605,7 +605,7 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
             assertFalse(history().stream().filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
                     .anyMatch(event -> JsonParser.parseString(event.getPayload()).getAsJsonObject().has("nv")));
             assertTrue(requests.stream().filter(request -> request.purpose() == InferencePurpose.EXTRACTION)
-                    .filter(request -> responseCheckData(request) == null)
+                    .filter(request -> !deliveryVerification(request))
                     .allMatch(request -> request.messages().getFirst().getContent().contains("only inside reply")));
             verifyNoInteractions(speech);
         } finally {
@@ -701,6 +701,13 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
         return history().stream().filter(ConversationProjection::isIntent)
                 .filter(e -> BehaviourPlan.fromJson(e.getPayload()).getSpeech() != null).count();
     }
+    private static boolean deliveryVerification(InferenceRequest request) {
+        if (request.purpose() != InferencePurpose.EXTRACTION || request.messages().isEmpty()) return false;
+        try {
+            var input = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
+            return input.keySet().containsAll(List.of("responseId", "revision", "segmentId", "confirmedTaskFacts", "capturedSpeech"));
+        } catch (RuntimeException notVerificationData) { return false; }
+    }
     private void nativeSpeech(Encounter encounter, String text) {
         boolean pending = loaded().getStorage().containsKey(TaskResponse.KEY);
         assertTrue(recording.record(id, encounter.owner(), UUID.randomUUID().toString(), text,
@@ -757,14 +764,6 @@ class GalaDinnerReceptionJourneySmokeIntegrationTest {
     }
     private static String control(String operation) {
         return "{\"operation\":\"" + operation + "\",\"gesture\":\"NONE\",\"expression\":\"attentive\",\"gaze\":\"toward_user\"}";
-    }
-    private static JsonObject responseCheckData(InferenceRequest request) {
-        if (request.purpose() != InferencePurpose.EXTRACTION || request.output() != InferenceRequest.Output.JSON_OBJECT) return null;
-        try {
-            var data = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
-            return data.keySet().containsAll(java.util.Set.of("responseId", "revision", "segmentId", "confirmedTaskFacts", "capturedSpeech"))
-                    ? data : null;
-        } catch (JsonParseException | IllegalStateException notResponseData) { return null; }
     }
     private String update(String operation, String spec, String speech) {
         return TaskReplyFixture.update(operation, spec, speech, compact);

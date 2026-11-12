@@ -82,6 +82,22 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- ES-08 deployment-branch integration (2026-11-12): merge accepted main
+  `0801746d` into agents `0f668d12`, preserving the application/Gala catalogue,
+  embodiment/persona handling, production settings and agents-push Heroku
+  workflow. Both documentation conflicts retain the relevant records from each
+  branch. Runtime changes merged without conflicts.
+  The merged tree passed **1,390 Java tests with two intentional capacity skips**
+  (1,392 cases; zero failures/errors), **219 Node tests**, **12 runner preflight
+  checks**, **five focused browser checks** (three mode-specific skips), packaging
+  and whitespace checks. The browser covered real WebRTC, committed playback to
+  Reflection, uncertain delivery after lost acknowledgement and feature-off
+  behavior. Disposable MySQL/app resources were removed; evidence is retained in
+  `target/gptlive-acceptance-37e61998af` and `target/es08-agents-*-20261112.log`.
+  No further paid trials were needed; physical trials remain NOT RUN and capacity
+  remains deferred. Pushing this merge triggers the existing `valerian` deployment;
+  GitHub Actions and Heroku release status establish the rollout result separately.
+
 - Shared Live countdown support (2026-11-12): optional acknowledgement-aware
   playback cues retain audio while complete input is classified by the backend;
   empty complete user transcripts are durably ignored without a user event.
