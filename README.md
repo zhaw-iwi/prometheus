@@ -1654,16 +1654,26 @@ The cockpit polls once per second using
 The response contains `status`, `transcriptRevision`, `transcripts`, and optional
 `playbackCue`. A policy may opt in to execution after captured speech and local
 playback settling: the cue has `id`, nullable `segmentId` (pending capture),
-`expiresAt`, and optional `receiptIds`. Missing or empty `receiptIds` require the
-complete segment's receipts. A nonempty selection contains at most 32 distinct
-native receipt identities in contiguous ledger order; the client rejects invalid
-or foreign selections.
+`expiresAt`, optional `receiptIds`, and ordered `segmentIds` (at most three,
+ending at `segmentId`). Missing `segmentIds` means the single `segmentId`.
+Missing or empty `receiptIds` require the complete single segment's receipts.
+A nonempty selection contains at most 32 distinct native receipt identities in
+contiguous order across the selected complete segments. Every selected segment
+must contribute receipts and observed voice; the client rejects invalid or foreign
+selections.
+Policies may opt into `playbackCue.allowAcknowledgements` (default false).
+The client holds completion until every input receipt has a durable backend
+classification: `COMPLETE`/`countdown_acknowledgement` or
+`IGNORED`/`empty_transcript` preserves playback evidence. Complete whitespace-only
+user transcripts create no user event. Incomplete, late, mixed or unconfirmed input
+cannot authorize playback completion. Default cues interrupt immediately on input.
+
 The shared Live client begins observing the received track on attachment,
 without rerouting or recording audio. It retains at most 65 seconds of content-free
 sample/receipt timing, 1,024 caption identities and 64 complete segment mappings.
 The confirmed segment's existing ledger `receiptIds` bind local captions to the
 observed speech and subsequent 500 ms quiet period. Selected countdown receipts
-must all be observed; retained prefix receipts from that same complete segment
+must all be observed; retained prefix receipts from the selected complete segments
 may establish continuous audio onset without requiring missing prefix receipts.
 A late cue or semantic
 association can use that retained evidence within the original delivery deadline;

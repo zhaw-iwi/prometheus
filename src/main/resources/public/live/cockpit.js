@@ -132,7 +132,7 @@ export class LiveCockpit {
       try { const plan = JSON.parse(event.payload); return plan.speech ? [{ role: "assistant", text: plan.speech,
         label: event.provenance?.complete === false ? "Incomplete capture" : "" }] : []; } catch (_) { return []; }
     }).slice(-20);
-    for (const item of this.ledger.slice().reverse().filter(value => value.status !== "COMPLETE" && !value.eventId))
+    for (const item of this.ledger.slice().reverse().filter(value => value.status !== "COMPLETE" && value.status !== "IGNORED" && !value.eventId))
       entries.push({ role: item.speaker === "USER" ? "user" : "assistant", text: item.text,
         label: ({ CLARIFICATION: "Clarification needed · not applied", INCOMPLETE: "Incomplete · not applied", LATE: "Late fragment · not applied", FAILED: "Processing failed · not retried", PENDING: "Processing outcome pending" })[item.status] || "Not applied" });
     for (const entry of entries.slice(-20)) {

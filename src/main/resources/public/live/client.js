@@ -134,7 +134,7 @@ export class LiveClient {
             run.approval.receipt(event); return;
           }
           if (run.captions.receive(event)) {
-            if (event.type === 'session.input_transcript.delta') {if (run.approval) run.approval.inputTranscript(event); else run.playback.interrupt();}
+            if (event.type === 'session.input_transcript.delta') {if (run.approval) run.approval.inputTranscript(event); else run.playback.input(event.event_id);}
             if (event.type === 'session.output_transcript.delta') run.playback.caption(event.event_id);
             this.onCaptions(run.captions.snapshot());
           }

@@ -75,6 +75,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Shared Live countdown support (2026-11-12): optional acknowledgement-aware
+  playback cues retain audio while complete input is classified by the backend;
+  empty complete user transcripts are durably ignored without a user event.
+  Bounded ordered selections can span up to three complete native speech segments.
+  Default interruption and Coordination's approved/committed Speech routing remain.
+  This reusable contract is kept on main; Gala/Swiss event policies stay on agents.
+  Combined main verification passed 1,039 Java tests with one intentional capacity
+  skip, plus 161 Live/hand/state-graph JavaScript assertion bodies via a temporary
+  sequential harness. A disposable local MySQL schema/account was removed after
+  the run. No paid provider or physical-device trials were run. No push/deployment.
+
 - Local branch synchronization (2026-11-12): merge remote main's completed ES-08
   committed-Speech work and poster assets with the local hand-detection history.
   At the owner's request, Coordination retains its remote scalar sensing contract:

@@ -73,6 +73,15 @@ class LiveTranscriptIngressIntegrationTest {
         assertEquals("INCOMPLETE", ingress.commit(agentId, owner, segment(unfinished, Closure.INCOMPLETE), List.of("game")).orElseThrow().status());
         Fragment late = fragment("late", Speaker.USER, 0, "Actually no"); ingress.receipt(agentId, owner, late);
         assertEquals("LATE", ingress.commit(agentId, owner, segment(late, Closure.LATE), List.of("game")).orElseThrow().status());
+        for (Closure closure : List.of(Closure.COMPLETE, Closure.INCOMPLETE, Closure.LATE)) {
+            Fragment empty = fragment("empty-" + closure, Speaker.USER, 2400, " \t ");
+            assertTrue(ingress.receipt(agentId, owner, empty));
+            var ignored = ingress.commit(agentId, owner, segment(empty, closure), List.of("game")).orElseThrow();
+            assertEquals(closure == Closure.COMPLETE ? "IGNORED" : "LATE", ignored.status());
+            if (closure == Closure.COMPLETE) assertEquals("empty_transcript", ignored.reason());
+            assertNull(ignored.eventId());
+            assertEquals(ignored, ingress.commit(agentId, owner, segment(empty, closure), List.of()).orElseThrow());
+        }
         assertEquals(1, rounds()); verifyNoInteractions(gateway); oldIngress = ingress;
         assertEquals(acceptedActionVersion, actionVersion());
     }

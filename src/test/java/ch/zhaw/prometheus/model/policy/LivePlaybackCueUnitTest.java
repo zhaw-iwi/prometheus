@@ -25,4 +25,19 @@ class LivePlaybackCueUnitTest {
                 List.of("x".repeat(201)), java.util.stream.IntStream.range(0, 33).mapToObj(i -> "id-" + i).toList()))
             assertThrows(IllegalArgumentException.class, () -> new LivePlaybackCue(id, "speech", expires, invalid));
     }
+
+    @Test void multipleSegmentsAreBoundedOrderedImmutableAndRequireReceiptSelection() {
+        var source = new ArrayList<>(List.of("rock", "last"));
+        var cue = new LivePlaybackCue(id, "last", expires, List.of("one", "two"), true, source);
+        source.clear();
+        assertEquals(List.of("rock", "last"), cue.segmentIds());
+        assertThrows(UnsupportedOperationException.class, () -> cue.segmentIds().clear());
+        assertEquals(List.of("speech"), new LivePlaybackCue(id, "speech", expires).segmentIds());
+        for (var segments : List.of(List.<String>of(), List.of("last", "last"), List.of("last", "wrong"),
+                List.of("one", "two", "three", "last"), List.of("bad id", "last")))
+            assertThrows(IllegalArgumentException.class,
+                    () -> new LivePlaybackCue(id, "last", expires, List.of("one"), true, segments));
+        assertThrows(IllegalArgumentException.class,
+                () -> new LivePlaybackCue(id, "last", expires, List.of(), true, List.of("first", "last")));
+    }
 }
