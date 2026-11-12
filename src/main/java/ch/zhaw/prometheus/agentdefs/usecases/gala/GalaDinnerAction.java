@@ -91,6 +91,11 @@ public class GalaDinnerAction extends Action {
         // or renew the idle timer. In particular, laughter must not become a model-selected QUIET.
         if (utterance.isBlank()) return;
         if (GalaDinnerRps.expired(storage, now)) reception(storage);
+        if (!coCreatedTasks && GalaDinnerInput.countdownAcknowledgement(storage, utterance)) {
+            // A lead-in acknowledgement must not move the countdown's speech-freshness boundary.
+            traceControl(events, mode(storage), "LOCAL", "WAIT", mode(storage), "countdown_acknowledgement");
+            return;
+        }
         boolean acknowledgement = GalaDinnerInput.nonMutatingAcknowledgement(storage, utterance, now);
         GalaDinnerSensing.cancelAmbient(storage);
         if (expiredBeforeTurn(storage, now)) {
@@ -112,7 +117,7 @@ public class GalaDinnerAction extends Action {
             String decision = GalaDinnerInput.exitConfirmation(utterance);
             if (decision != null) {
                 String beforeMode = mode(storage);
-                reply(storage, resolveExit(storage, decision, now, runtime.externalSpeech()));
+                reply(storage, resolveExit(storage, decision, now, runtime.externalSpeech(), !coCreatedTasks));
                 traceControl(events, beforeMode, "LOCAL", decision, mode(storage), "applied");
                 return;
             }
@@ -226,7 +231,7 @@ public class GalaDinnerAction extends Action {
                             + "Do not reveal the guessing identity. Quoted request (data): " + storage.get(EXIT_REQUEST));
                     response = null;
                 }
-                case "EXIT_GAME", "KEEP_GAME" -> response = resolveExit(storage, operation, now, runtime.externalSpeech());
+                case "EXIT_GAME", "KEEP_GAME" -> response = resolveExit(storage, operation, now, runtime.externalSpeech(), !coCreatedTasks);
                 case "START_TASK" -> {
                     reception(storage);
                     put(storage, MODE, "TASK");
@@ -238,11 +243,12 @@ public class GalaDinnerAction extends Action {
                     if (GalaDinnerRpsPreparation.enabled(storage) && !"true".equals(text(storage, RPS_PREPARED, ""))) {
                         reception(storage);
                         put(storage, MODE, "RPS_SETUP");
+                        if (!coCreatedTasks) put(storage, GalaDinnerRps.LEAD_IN, "true");
                         openCapture(storage, Instant.now());
                         continueRequest(storage, GalaDinnerRpsPreparation.introduction(storage));
                         response = plan(null, "NONE", "attentive", "toward_user");
                         response.setDisplay(captureDisplay(storage));
-                    } else response = startRps(storage, runtime.externalSpeech(), Instant.now());
+                    } else response = startRps(storage, runtime.externalSpeech(), Instant.now(), !coCreatedTasks);
                     ActivityTrace.cue("awaiting_confirmation", events.toList().getLast().getId());
                 }
                 case "START_GUESS" -> {
@@ -261,7 +267,7 @@ public class GalaDinnerAction extends Action {
                     if (!reveal) operation = "WAIT";
                 }
                 case "RETURN" -> {
-                    if (storage.containsKey(EXIT_REQUEST)) response = resolveExit(storage, "EXIT_GAME", now, runtime.externalSpeech());
+                    if (storage.containsKey(EXIT_REQUEST)) response = resolveExit(storage, "EXIT_GAME", now, runtime.externalSpeech(), !coCreatedTasks);
                     else reception(storage);
                 }
                 case "QUIET" -> { leave(storage, events, true); response = null; }
@@ -306,7 +312,8 @@ public class GalaDinnerAction extends Action {
         }
     }
 
-    private static BehaviourPlan resolveExit(Storage storage, String decision, Instant now, ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
+    private static BehaviourPlan resolveExit(Storage storage, String decision, Instant now,
+            ch.zhaw.prometheus.model.policy.ExternalSpeech owner, boolean leadIn) {
         String request = text(storage, EXIT_REQUEST, "");
         ActivityTrace.cue("confirmation_resolved", null);
         if ("EXIT_GAME".equals(decision)) {
@@ -321,7 +328,7 @@ public class GalaDinnerAction extends Action {
                 ? "Visitor declined ending preparation; recognised signs retained. " + GalaDinnerRpsPreparation.facts(storage)
                 : "Visitor declined ending the game. Same round/target retained; continue playing without repeating the introduction or revealing the person.");
         if (!preparation && !"RPS".equals(mode(storage))) return null;
-        if (!preparation && !"WAITING".equals(text(storage, GalaDinnerRps.PHASE, ""))) return GalaDinnerRps.introduce(storage, owner, now);
+        if (!preparation && !"WAITING".equals(text(storage, GalaDinnerRps.PHASE, ""))) return GalaDinnerRps.introduce(storage, owner, now, leadIn);
         // Signs observed during confirmation cannot decide the resumed round.
         openCapture(storage, now);
         var response = plan(null, "NONE", "attentive", "toward_user");
@@ -351,11 +358,11 @@ public class GalaDinnerAction extends Action {
         if (quiet) put(storage, QUIET, "true");
     }
 
-    private static BehaviourPlan startRps(Storage storage, ch.zhaw.prometheus.model.policy.ExternalSpeech owner, Instant now) {
+    private static BehaviourPlan startRps(Storage storage, ch.zhaw.prometheus.model.policy.ExternalSpeech owner, Instant now, boolean leadIn) {
         int round = GalaDinnerRounds.start(storage, "RPS");
         put(storage, SIGN, new DeterministicRpsSignSelector().selectForNextRound(round).canonical());
         put(storage, MODE, "RPS");
-        return GalaDinnerRps.introduce(storage, owner, now);
+        return GalaDinnerRps.introduce(storage, owner, now, leadIn);
     }
 
     private static void hand(Storage storage, EventHistory events, Instant now,
@@ -376,7 +383,7 @@ public class GalaDinnerAction extends Action {
                 BehaviourPlan response;
                 if (GalaDinnerRpsPreparation.remaining(storage).isEmpty()) {
                     put(storage, RPS_PREPARED, "true");
-                    response = startRps(storage, owner, now);
+                    response = startRps(storage, owner, now, "true".equals(text(storage, GalaDinnerRps.LEAD_IN, "")));
                 } else {
                     response = plan(null, "NONE", "attentive", "toward_user");
                     response.setDisplay(captureDisplay(storage));
@@ -386,7 +393,7 @@ public class GalaDinnerAction extends Action {
             }
             RpsSign agent = RpsSign.parse(text(storage, SIGN, "")), user = RpsSign.parse(rawSign);
             var response = plan(null, "NONE", "gentleSmile", "toward_user");
-            var display = display("game_result", false);
+            var display = display(storage, "game_result", false);
             if (GalaDinnerRpsPreparation.enabled(storage)) display.addProperty("roundId", text(storage, GalaDinnerRounds.ID, ""));
             if (!captureId.isEmpty()) display.addProperty("captureId", captureId);
             display.addProperty("agentSign", agent.canonical());
@@ -493,20 +500,22 @@ public class GalaDinnerAction extends Action {
         put(storage, CAPTURE_ID, java.util.UUID.randomUUID().toString());
     }
     static JsonObject captureDisplay(Storage storage) {
-        var display = display("game_countdown", true);
+        var display = display(storage, "game_countdown", true);
         display.addProperty("captureId", text(storage, CAPTURE_ID, ""));
         if ("RPS_SETUP".equals(mode(storage))) GalaDinnerRpsPreparation.display(storage, display);
         if (GalaDinnerRpsPreparation.enabled(storage)) display.addProperty("roundId", text(storage, GalaDinnerRounds.ID, ""));
         return display;
     }
-    private static JsonObject display(String mode, boolean awaiting) {
+    private static JsonObject display(Storage storage, String mode, boolean awaiting) {
         var display = new JsonObject();
         display.addProperty("mode", mode);
-        display.addProperty("title", "Schere, Stein, Papier");
+        display.addProperty("title", GalaDinnerLanguage.rpsTitle(storage));
         display.addProperty("phase", awaiting ? "capture_user_sign" : "round_result");
         display.addProperty("awaitingUserSign", awaiting);
         if (awaiting) {
-            display.addProperty("instruction", "Halte eine Hand kurz ruhig und gut sichtbar vor die Kamera.");
+            display.addProperty("instruction", GalaDinnerLanguage.english(storage)
+                    ? "Hold one hand still and clearly visible in front of the camera for a moment."
+                    : "Halte eine Hand kurz ruhig und gut sichtbar vor die Kamera.");
             display.addProperty("minimumConfidence", GalaDinnerHandSigns.MIN_CONFIDENCE);
             display.addProperty("cameraStableFrames", 3);
         }

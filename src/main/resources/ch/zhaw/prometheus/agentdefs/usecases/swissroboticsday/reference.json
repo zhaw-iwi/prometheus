@@ -1,0 +1,68 @@
+{
+  "recordedOn": "2026-11-11",
+  "sources": [
+    {
+      "id": "srd26-home",
+      "description": "Official Swiss Robotics Day 2026 homepage checked on 2026-11-11; admission status is a dated snapshot.",
+      "urls": ["https://swissroboticsday.ch/"]
+    },
+    {
+      "id": "srd26-about",
+      "description": "Official 2026 event purpose, organizer and organizing committee, checked on 2026-11-11.",
+      "urls": ["https://swissroboticsday.ch/srd26/about/"]
+    },
+    {
+      "id": "srd26-agenda",
+      "description": "Official 2026 agenda checked on 2026-11-11. Published programme only; not evidence of live progress or delays.",
+      "urls": ["https://swissroboticsday.ch/srd26/agenda/"]
+    },
+    {
+      "id": "srd26-venue",
+      "description": "Official 2026 venue and travel information checked on 2026-11-11. No live transport or accommodation availability was checked.",
+      "urls": ["https://swissroboticsday.ch/srd26/venue/"]
+    }
+  ],
+  "sections": [
+    {
+      "id": "event",
+      "title": "Swiss Robotics Day 2026 (SRD26)",
+      "sourceIds": ["srd26-home", "srd26-about"],
+      "facts": [
+        "Freitag, 13. November 2026 in Zürich. Eintägige Robotikausstellung für Industrie/Forschung; Austausch zwischen Unternehmen, Forschenden, Investor:innen, Ingenieur:innen und Studierenden.",
+        "Veranstalter 2026: ETH Zürich RobotX, unterstützt durch die Swiss Robotics Association (SRA). Organisationskomitee: Marco Hutter, Roland Siegwart, Cesar Cadena. Projektmanagement: Maria Trodella; Projektkoordination: Isabella De Nitti.",
+        "Stand 11.11.2026 ausverkauft; keine Anmeldung oder Tickets vor Ort. Zutritt nur mit Registrierung; persönlichen QR-Code aus der Bestätigungsmail mitbringen."
+      ]
+    },
+    {
+      "id": "programme",
+      "title": "Programm laut veröffentlichter Agenda",
+      "sourceIds": ["srd26-agenda"],
+      "facts": [
+        "Ab 08:30 Check-in/Badge und Infodesk im Eingangsbereich; 08:30–09:15 Kaffee; 09:15–09:30 Eröffnung mit Effy Vayena, Marco Hutter und Roland Siegwart.",
+        "Hauptbühne: 09:30–10:50 humanoide Arbeitskollegen; 10:50–11:30 Roboterlernen; 11:30–11:50 KI-Agenten/Robotik (Spencer Huang, NVIDIA); 11:50–12:10 Flugrobotik (Davide Falanga, Skydio); 12:10–12:15 Robotik/Illusion (Marco Tempest); 12:15–12:20 Vormittagsabschluss.",
+        "12:20–17:00 Ausstellung, über 100 Stände auf zwei Etagen; 12:20–13:15 Mittagsbuffet. 13:00–13:30 Swissmem/industrielle Robotik; 13:35–13:45 Startup-Pitches; 13:55–14:45 Panel über Startup-Erfolg und Scheitern.",
+        "Workshops: 14:30–15:30 Agile Robots/Physical AI im Bar2020 (Erdgeschoss); 14:30–16:00 NVIDIA/Isaac und Newton im Galerie/NVIDIA-Raum, Laptop empfohlen, nicht erforderlich. 15:00–16:00 Gespräche mit Investor:innen und Gründenden in zwei Galerieräumen.",
+        "15:00–15:10 Swiss Robotics Association; 15:20–15:30 Innovation Booster Robotics/Projekte 2025; 16:00–19:00 Networking mit Robotershows, Getränken und Essen im Hauptbühnenbereich.",
+        "Zeitangaben sind geplant, kein bestätigter Live-Fortschritt; weder einen festen Empfangszeitraum noch einen bereits begonnenen Programmpunkt unterstellen."
+      ]
+    },
+    {
+      "id": "venue",
+      "title": "Ort und Anreise",
+      "sourceIds": ["srd26-venue"],
+      "facts": [
+        "StageOne Event & Convention Center, Elias-Canetti-Strasse 146, 8050 Zürich, Schweiz. 6'000 m² Ausstellungsfläche und Konferenzräume; kurzer Fussweg ab Bahnhof Zürich Oerlikon, Ausgang Richtung Gleis 8/Max-Bill-Platz.",
+        "Vom Flughafen Zürich laut Veranstaltungsseite etwa fünf Minuten per S-Bahn nach Oerlikon. Keine Echtzeit-Verbindungen oder Fahrplangarantie.",
+        "Hotels mit Kontingenten/Rabatten laut Website, jeweils nach Verfügbarkeit: Mama Shelter Zurich, Courtyard by Marriott Zurich Nord, Acasa Suites und Hotel Sternen Oerlikon. Keine aktuelle Zimmerverfügbarkeit bekannt."
+      ]
+    },
+    {
+      "id": "practical_limits",
+      "title": "Auskunft vor Ort",
+      "sourceIds": ["srd26-agenda", "srd26-home"],
+      "facts": [
+        "Für aktuelle Änderungen, Wege und organisatorische Fragen den Infodesk im Eingangsbereich fragen. Kein bestätigter SIRA-/GIGI-Standplatz, keine Menü-/Allergenangaben und kein Wissen über den aktuellen Aufenthaltsort von Personen. Keine offizielle Veranstalterrolle für SIRA/GIGI behaupten."
+      ]
+    }
+  ]
+}

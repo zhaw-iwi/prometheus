@@ -36,6 +36,10 @@ final class GalaDinnerInput {
         String ending = "(?: spielen)?(?: bitte)?";
         if (value.matches(request + "(?:personen ?raten|das ratespiel|das personenratespiel)" + ending)) return "START_GUESS";
         if (value.matches(request + "(?:schere stein papier|stein schere papier)" + ending)) return "START_RPS";
+        String englishRequest = "(?:please )?(?:(?:let s|can we|could we|i (?:want|would like) to) (?:please )?)?(?:play )?";
+        if (value.matches(englishRequest + "(?:rock paper scissors)(?: please)?")) return "START_RPS";
+        if (value.matches(englishRequest + "(?:person guessing(?: game)?|(?:the )?(?:person )?guessing game|guess the person)(?: please)?"))
+            return "START_GUESS";
         return null;
     }
 
@@ -62,6 +66,13 @@ final class GalaDinnerInput {
         return !GalaDinnerMemory.recentOutcome(storage, now).isBlank()
                 || now.isBefore(GalaDinnerMemory.time(storage, GalaDinnerMemory.CONTINUATION_EXPIRES))
                 && GalaDinnerMemory.text(storage, GalaDinnerMemory.CONTINUATION_FACTS, "").startsWith("RPS round completed.");
+    }
+
+    static boolean countdownAcknowledgement(ch.zhaw.prometheus.model.Storage storage, String speech) {
+        return !storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
+                && "RPS".equals(GalaDinnerMemory.mode(storage))
+                && java.util.Set.of("INTRO", "SPOKEN").contains(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""))
+                && (acknowledgement(speech) || java.util.Set.of("ja", "ja bitte", "yes", "yeah", "yep").contains(normalize(speech)));
     }
 
     static boolean orderedCueSequence(String speech) {

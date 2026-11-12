@@ -14,6 +14,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionMultiStateGames;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation;
+import ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGames;
+import ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGamesEnglish;
 import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerGamesPolicy;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.model.AgentEmbodiment;
@@ -31,7 +33,8 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 @SpringBootTest(properties = "prometheus.runtime.tick.enabled=false")
 class GalaDinnerReceptionIntegrationTest {
     static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> tutorialVariants() {
-        return java.util.stream.Stream.of(GalaDinnerReceptionRpsPreparation.KEY, GalaDinnerReceptionMultiStateGames.KEY)
+        return java.util.stream.Stream.of(GalaDinnerReceptionRpsPreparation.KEY, GalaDinnerReceptionMultiStateGames.KEY,
+                        SwissRoboticsDayReceptionMultiStateGames.KEY, SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY)
                 .flatMap(key -> java.util.stream.Stream.of("ROBOT", "COCKPIT")
                         .map(embodiment -> org.junit.jupiter.params.provider.Arguments.of(key, embodiment)));
     }
@@ -39,6 +42,8 @@ class GalaDinnerReceptionIntegrationTest {
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.MethodSource("tutorialVariants")
     void tutorialProgressPlaybackAndFreshCaptureSurvivePersistence(String key, String embodiment) {
+        boolean english = SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY.equals(key);
+        String setting = english || SwissRoboticsDayReceptionMultiStateGames.KEY.equals(key) ? "Swiss Robotics Day" : "Gala";
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
@@ -49,7 +54,12 @@ class GalaDinnerReceptionIntegrationTest {
         var owner = new ExternalSpeech(session, startup.epoch());
         try {
             when(language.infer(any())).thenReturn(answer("START_RPS", ""));
-            say(code, id, "Schere Stein Papier bitte");
+            say(code, id, english ? "Let's play rock paper scissors" : "Schere Stein Papier bitte");
+            var tutorial = agents.findById(id).orElseThrow();
+            if (english) {
+                assertEquals("en", tutorial.getLanguageCode());
+                assertTrue(contexts.snapshot(code, id).orElseThrow().activity().continuation().facts().contains("First, a quick tutorial"));
+            }
             String preparationCapture = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
             for (String sign : List.of("rock", "paper", "scissor")) {
                 hand(code, id, sign, preparationCapture);
@@ -57,11 +67,31 @@ class GalaDinnerReceptionIntegrationTest {
                     assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.sign"));
             }
             var prepared = agents.findById(id).orElseThrow();
-            assertEquals("Gala rock-scissor-paper countdown", prepared.getCurrentState().getName());
+            assertEquals(setting + " rock-scissor-paper countdown", prepared.getCurrentState().getName());
             assertTrue(prepared.getStorage().get("gala.rps_prepared").getAsBoolean());
             assertFalse(prepared.getStorage().containsKey("gala.rps_capture_id"));
+            boolean leadIn = !GalaDinnerReceptionRpsPreparation.KEY.equals(key);
+            if (leadIn) {
+                var beforeInput = prepared.getStorage().get("gala.last_input").deepCopy();
+                var beforeCue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
+                assertTrue(beforeCue.allowAcknowledgements());
+                var yes = new LiveTranscriptSegmenter.Fragment("ready-yes", LiveTranscriptSegmenter.Speaker.USER,
+                        100L, 300L, Instant.now().toEpochMilli(), 0, english ? "Yeah" : "Ja");
+                assertTrue(ingress.receipt(id, owner, yes));
+                clearInvocations(language);
+                var acknowledged = ingress.commit(id, owner, new LiveTranscriptSegmenter.Segment(UUID.randomUUID(),
+                        LiveTranscriptSegmenter.Speaker.USER, List.of(yes), LiveTranscriptSegmenter.Closure.COMPLETE,
+                        "observed_silence", yes.receivedMs(), yes.receivedMs()), prepared.getCurrentState().getActiveStatePath()).orElseThrow();
+                assertEquals("COMPLETE", acknowledged.status());
+                assertEquals("countdown_acknowledgement", acknowledged.reason());
+                assertEquals(List.of("ready-yes"), acknowledged.receiptIds());
+                assertEquals(beforeCue, contexts.snapshot(code, id).orElseThrow().activity().playbackCue());
+                assertEquals(beforeInput, agents.findById(id).orElseThrow().getStorage().get("gala.last_input"));
+                verifyNoInteractions(language);
+            }
             String segment = UUID.randomUUID().toString();
-            assertTrue(recording.record(id, owner, segment, "Schere, Stein, Papier.", List.of(),
+            assertTrue(recording.record(id, owner, segment, english ? "Ready? Rock … Paper … Scissors."
+                    : leadIn ? "Bereit? Schere … Stein … Papier. Ich schaue auf Ihre Hand." : "Schere, Stein, Papier.", List.of(),
                     ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, true, Instant.now()).isPresent());
             var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
             assertEquals(segment, cue.segmentId());
@@ -73,8 +103,8 @@ class GalaDinnerReceptionIntegrationTest {
             assertEquals("RPS", agents.findById(id).orElseThrow().getStorage().get("gala.mode").getAsString());
             hand(code, id, "paper", capture);
             assertEquals("RECEPTION", agents.findById(id).orElseThrow().getStorage().get("gala.mode").getAsString());
-            say(code, id, "Noch einmal bitte");
-            assertEquals("Gala rock-scissor-paper countdown", agents.findById(id).orElseThrow().getCurrentState().getName());
+            say(code, id, english ? "Again please" : "Noch einmal bitte");
+            assertEquals(setting + " rock-scissor-paper countdown", agents.findById(id).orElseThrow().getCurrentState().getName());
             assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_capture_id"));
             assertFalse(contexts.snapshot(code, id).orElseThrow().activity().facts().contains("winner:"));
 
@@ -91,7 +121,9 @@ class GalaDinnerReceptionIntegrationTest {
         } finally { ownership.release(id, session); }
     }
 
-    @Test void mixedCountdownReceiptSelectionSurvivesDurableIngressReloadAndOnePlaybackAcknowledgement() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void mixedCountdownReceiptSelectionSurvivesDurableIngressReloadAndOnePlaybackAcknowledgement(boolean split) {
         String key = GalaDinnerReceptionMultiStateGames.KEY;
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
@@ -117,14 +149,26 @@ class GalaDinnerReceptionIntegrationTest {
                 assertTrue(ingress.receipt(id, owner, fragment)); fragments.add(fragment);
             }
             UUID segmentId = UUID.randomUUID();
+            UUID firstSegment = UUID.randomUUID();
+            if (split) {
+                var first = new LiveTranscriptSegmenter.Segment(firstSegment, LiveTranscriptSegmenter.Speaker.ASSISTANT,
+                        fragments.subList(2, 3), LiveTranscriptSegmenter.Closure.COMPLETE, "observed_silence", freshAt, freshAt);
+                assertEquals("COMPLETE", ingress.commit(id, owner, first, waiting.getCurrentState().getActiveStatePath()).orElseThrow().status());
+                assertTrue(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_countdown_pending"));
+                assertNull(contexts.snapshot(code, id).orElseThrow().activity().playbackCue().segmentId());
+            }
             var segment = new LiveTranscriptSegmenter.Segment(segmentId, LiveTranscriptSegmenter.Speaker.ASSISTANT,
-                    fragments, LiveTranscriptSegmenter.Closure.COMPLETE, "observed_silence", fragments.getFirst().receivedMs(), freshAt);
+                    split ? fragments.subList(3, fragments.size()) : fragments, LiveTranscriptSegmenter.Closure.COMPLETE,
+                    "observed_silence", split ? freshAt : fragments.getFirst().receivedMs(), freshAt);
             var committed = ingress.commit(id, owner, segment, waiting.getCurrentState().getActiveStatePath()).orElseThrow();
             assertEquals("COMPLETE", committed.status());
-            assertEquals(List.of(ids), committed.receiptIds());
+            assertEquals(split ? List.of("stein", "papier", "punctuation") : List.of(ids), committed.receiptIds());
             var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
             assertEquals(segmentId.toString(), cue.segmentId());
             assertEquals(List.of("schere", "stein", "papier"), cue.receiptIds());
+            assertEquals(split ? List.of(firstSegment.toString(), segmentId.toString()) : List.of(segmentId.toString()), cue.segmentIds());
+            assertTrue(cue.allowAcknowledgements());
+            assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_countdown_pending"));
             assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_capture_id"));
             assertEquals(committed.eventId(), ingress.commit(id, owner, segment, List.of()).orElseThrow().eventId());
             assertEquals(cue, contexts.snapshot(code, id).orElseThrow().activity().playbackCue());
@@ -139,8 +183,13 @@ class GalaDinnerReceptionIntegrationTest {
         } finally { ownership.release(id, session); }
     }
 
-    @Test void gamesOnlyCloneKeepsItsPolicyAndRejectsTasksAcrossReloadAndReset() {
-        String key = GalaDinnerReceptionMultiStateGames.KEY;
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {GalaDinnerReceptionMultiStateGames.KEY,
+            SwissRoboticsDayReceptionMultiStateGames.KEY, SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY})
+    void gamesOnlyCloneKeepsItsPolicyAndRejectsTasksAcrossReloadAndReset(String key) {
+        boolean english = SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY.equals(key);
+        boolean swiss = english || SwissRoboticsDayReceptionMultiStateGames.KEY.equals(key);
+        String setting = swiss ? "Swiss Robotics Day" : "Gala";
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
@@ -152,18 +201,29 @@ class GalaDinnerReceptionIntegrationTest {
             contexts.claim(code, id, session).orElseThrow();
             try {
                 when(language.infer(any())).thenReturn(answer("START_GUESS", ""));
-                say(code, id, "Personenraten bitte");
+                say(code, id, english ? "Person guessing please" : "Personenraten bitte");
                 var guessing = agents.findById(id).orElseThrow();
-                assertEquals("Gala guess the person", guessing.getCurrentState().getName());
+                assertEquals(setting + " guess the person", guessing.getCurrentState().getName());
                 assertInstanceOf(GalaDinnerGamesPolicy.class, guessing.getCurrentState().ownPolicy());
                 say(code, id, guessing.getStorage().get("gala.person").getAsString());
                 when(language.infer(any())).thenReturn(answer("START_TASK", ""));
-                say(code, id, "Wenn ich Papier zeige, erzähle einen Witz.");
+                say(code, id, english ? "When I show paper, tell a joke." : "Wenn ich Papier zeige, erzähle einen Witz.");
                 var loaded = agents.findById(id).orElseThrow();
-                assertEquals("Gala reception", loaded.getCurrentState().getName());
+                assertEquals(setting + " reception", loaded.getCurrentState().getName());
                 assertTrue(loaded.getStorage().keySet().stream().noneMatch(name -> name.startsWith("task.")));
                 for (var state : loaded.reachableStates()) assertInstanceOf(GalaDinnerGamesPolicy.class, state.ownPolicy());
                 assertFalse(new LiveVoicePolicyAdapter().instructions(loaded).contains("co-created"));
+                if (swiss) {
+                    String instructions = new LiveVoicePolicyAdapter().instructions(loaded);
+                    assertEquals(english ? "en" : "de", loaded.getLanguageCode());
+                    assertTrue(instructions.contains(english ? "English by default" : "German by default"));
+                    assertTrue(instructions.contains(english ? "Welcome to Swiss Robotics Day" : "Willkommen am Swiss Robotics Day"));
+                    assertTrue(instructions.contains("13. November 2026"));
+                    assertFalse(instructions.contains("Gala"));
+                    assertFalse(instructions.contains("Home of Innovation"));
+                    for (var state : loaded.reachableStates())
+                        assertInstanceOf(ch.zhaw.prometheus.agentdefs.usecases.gala.SwissRoboticsDayPolicy.class, state.ownPolicy());
+                }
                 assertFalse(loaded.listStates().contains("Gala co-created task"));
             } finally { ownership.release(id, session); }
             demo.reset(code, id);

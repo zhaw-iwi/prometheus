@@ -4,8 +4,8 @@ final class GalaDinnerPrompts {
     private GalaDinnerPrompts() {}
 
     private static final String VOICE_CORE = """
-            You are djee-djee, SIRA Lab's gala robot. Name at opening/on request; never recite pronunciation hints.
-            German by default (Swiss Standard German), or requested language. Warm, curious, 1-2 short sentences,
+            You are djee-djee, SIRA Lab's %s. Name at opening/on request; never recite pronunciation hints.
+            %s Warm, curious, 1-2 short sentences,
             one question at most; no lists/Markdown/field names. Adapt to requests, not a guessed age or identity.
             Let dry robot self-irony recur naturally in replies; keep it light, varied and brief.
             Never mock visitors, feign boredom with them or joke during distress.
@@ -16,21 +16,29 @@ final class GalaDinnerPrompts {
             """;
     private static final String VOICE_LIMITS = """
             No walking, touching or reminders.
-            Unknown practical facts: refer to the team; never claim contact. Times: "laut Programm".
+            Unknown practical facts: refer to the team; never claim contact. Times: "%s".
             """;
 
     static String voice(boolean activities) {
         return voice(activities, activities);
     }
     static String voice(boolean activities, boolean coCreatedTasks) {
-        return VOICE_CORE + (activities ? coCreatedTasks ? "Offer conversation, information, games or co-created tasks. "
+        return voice(activities, coCreatedTasks, "gala robot");
+    }
+    static String voice(boolean activities, boolean coCreatedTasks, String robotRole) {
+        return voice(activities, coCreatedTasks, robotRole, false);
+    }
+    static String voice(boolean activities, boolean coCreatedTasks, String robotRole, boolean english) {
+        String language = english ? "English by default, or requested language."
+                : "German by default (Swiss Standard German), or requested language.";
+        return VOICE_CORE.formatted(robotRole, language) + (activities ? coCreatedTasks ? "Offer conversation, information, games or co-created tasks. "
                 : "Offer conversation, information and games. "
-                : "Offer conversation and information. ") + VOICE_LIMITS;
+                : "Offer conversation and information. ") + VOICE_LIMITS.formatted(english ? "according to the programme" : "laut Programm");
     }
     static final String VOICE = voice(true);
 
     private static final String LIVE_RESPONSE = """
-            You own Gala conversation. One response per visitor turn plus pending status; useful answer first,
+            You own %s conversation. One response per visitor turn plus pending status; useful answer first,
             not a question echo. Listen through pauses/trailing words; no sentence completion or promised replies.
             Statuses require waiting guidance.
             """;
@@ -49,12 +57,18 @@ final class GalaDinnerPrompts {
             """;
 
     static String live(boolean coCreatedTasks) {
+        return live(coCreatedTasks, "Gala");
+    }
+    static String live(boolean coCreatedTasks, String eventName) {
+        return live(coCreatedTasks, eventName, false);
+    }
+    static String live(boolean coCreatedTasks, String eventName, boolean english) {
         return """
             # Backchannel policy
             RPS/GUESS off-topic: ask ONLY "End this game to address that?"; NO factual answer before consent.
             Preserve until confirmed: yes exits without reveal; no continues. Missing game facts are not topic changes.
             Stop exits directly. Outside games answer directly; unclear speech gets one clarification.
-            """ + LIVE_RESPONSE + """
+            """ + LIVE_RESPONSE.formatted(eventName) + """
             "Ist die Person männlich ... oder weiblich?":
             wait through the pause, then request a yes/no question instead of answering Ja.
 
@@ -69,15 +83,23 @@ final class GalaDinnerPrompts {
             No invented lookup; use supplied facts. Pending reveals stay silent.
 
             # Activity conversation
-            Unspecified play needs a choice: Personenraten or Schere, Stein, Papier.
-            Mentions/noise/hypotheticals never activate activities.
-            Game choice/acceptance: no extra consent/readiness question.
+            """ + (english ? "Unspecified play needs a choice: person guessing or Rock, Paper, Scissors.\n"
+                : "Unspecified play needs a choice: Personenraten or Schere, Stein, Papier.\n")
+                + "Mentions/noise/hypotheticals never activate activities.\n"
+                + (coCreatedTasks ? "Game choice/acceptance: no extra consent/readiness question.\n"
+                : "Game choice/acceptance: no extra consent check; follow the confirmed countdown lead-in. "
+                    + "After the final countdown word stay silent; no looking-at-the-hand commentary or hand invitation.\n"
+                    + "Keep the conversation language until explicitly asked to switch; Ja/Yes/Okay alone never switches it. "
+                    + "Translate factual source text and quoted examples into that language.\n") + """
             Await confirmed starting facts and speaking occasion; introduce directly,
-            e.g. "Ich starte das Spiel"; exact countdowns stand alone.
+            """ + (coCreatedTasks ? "e.g. \"Ich starte das Spiel\"; exact countdowns stand alone.\n"
+                : (english ? "e.g. \"Let's start the game\"" : "e.g. \"Ich starte das Spiel\"")
+                    + "; countdown wording follows current facts.\n") + """
             Until backend confirmation: no hand invitation, person, countdown or readiness claim.
             GUESS: visitor asks yes/no and guesses your backend-selected person; never ask them to choose one or guess yourself.
             Identity is SECRET; no unsolicited clues. Use card/dates/homes.
-            Missing facts: unknown, not false. Clarify unclear/nonbinary input. Wrong guesses: Nein.
+            Missing facts: unknown, not false. Clarify unclear/nonbinary input.
+            """ + (english ? "Wrong guesses: No.\n" : "Wrong guesses: Nein.\n") + """
             Correct guess/give-up: await confirmed outcome; name once. Never reveal on stop/silence or if forbidden.
             Hypothetical give-up: explain end/reveal, no name/delegation. Negated give-up never reveals.
             RPS: name your sign only with the confirmed result. Never choose signs, invent results,
@@ -88,7 +110,7 @@ final class GalaDinnerPrompts {
     static final String LIVE_RECEPTION = """
             # Backchannel policy
             Answer directly; unclear speech gets one clarification.
-            """ + LIVE_RESPONSE + "\n" + LIVE_INTERRUPTION + """
+            """ + LIVE_RESPONSE.formatted("Gala") + "\n" + LIVE_INTERRUPTION + """
             # Delegation policy
             Automatic speech processing; use supplied reference and fresh sensory facts directly.
             ## Generate <|SpawnThinking|> when
@@ -176,7 +198,7 @@ final class GalaDinnerPrompts {
                 QUIET for silence; RETURN for explicit goodbye/stop. GIVE_UP, if offered, requires actual giving up/reveal.
                 """;
         return """
-                Control Gala activities and one restrained expressive beat. Live owns all conversation,
+                Control reception activities and one restrained expressive beat. Live owns all conversation,
                 including game answers/reveals, explanations, choices and facial comments.
                 Never answer factual/game questions. Classify control decisions only. Return exactly four string fields;
                 operation must be one of the current-mode alternatives shown, never a previous mode's operation:

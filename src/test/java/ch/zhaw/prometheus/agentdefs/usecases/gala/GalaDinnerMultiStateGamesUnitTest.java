@@ -128,6 +128,60 @@ class GalaDinnerMultiStateGamesUnitTest {
         verify(gateway, times(2)).infer(any());
     }
 
+    @ParameterizedTest @ValueSource(strings = {"gala", "swiss-de", "swiss-en"})
+    void readyLeadInAndSlowCountdownSurviveYesWithoutRestartingOrMovingFreshness(String variant) {
+        var selected = switch (variant) {
+            case "swiss-de" -> new ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGames();
+            case "swiss-en" -> new ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGamesEnglish();
+            default -> definition;
+        };
+        var playing = selected.createAgent();
+        var storage = ((GalaDinnerPolicy) playing.getCurrentState().ownPolicy()).storage();
+        put(storage, COUNT, "1"); put(storage, SEEN, Instant.now().toString());
+        put(storage, RPS_PREPARED, "true");
+        when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_RPS", ""));
+        playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER,
+                variant.equals("swiss-en") ? "Let's play Rock, Paper, Scissors" : "Schere Stein Papier bitte"), runtime);
+        var policy = (GalaDinnerPolicy) playing.getCurrentState().ownPolicy();
+        String intro = text(storage, GalaDinnerRps.INTRO, ""), round = text(storage, GalaDinnerRounds.ID, "");
+        String lastInput = text(storage, LAST_INPUT, "");
+        Instant speechStarted = Instant.now();
+        for (String guidance : List.of(text(storage, CONTINUATION_FACTS, ""), policy.liveActivityContext().facts())) {
+            assertTrue(guidance.contains("Say Bereit? once"));
+            assertTrue(guidance.contains("say Ready? once"));
+            assertTrue(guidance.contains("roughly one second per word"));
+            assertTrue(guidance.contains("Continue automatically"));
+        }
+        clearInvocations(gateway);
+        for (String yes : List.of("Ja!", "Yes", "Yeah", "Yep!", "Ja, gerne", "Okay")) {
+            assertTrue(policy.liveNonMutatingAcknowledgement(yes));
+            playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, yes), runtime);
+            assertEquals(intro, text(storage, GalaDinnerRps.INTRO, ""));
+            assertEquals(round, text(storage, GalaDinnerRounds.ID, ""));
+            assertEquals(lastInput, text(storage, LAST_INPUT, ""));
+            assertFalse(storage.containsKey(CAPTURE_ID));
+        }
+        var owner = runtime.externalSpeech();
+        var speech = playing.recordExternalSpeech(variant.equals("swiss-en") ? "Ready? Rock … Paper … Scissors." : "Bereit? Schere … Stein … Papier.",
+                new ch.zhaw.prometheus.model.event.SpeechProvenance(
+                        ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
+                        "slow-countdown", ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, List.of(), true));
+        assertTrue(policy.liveSpeechCaptured(speech, owner, speechStarted, Instant.now()));
+        assertTrue(policy.liveActivityContext().playbackCue().allowAcknowledgements());
+        playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Ja"), runtime);
+        assertEquals("slow-countdown", policy.liveActivityContext().playbackCue().segmentId());
+        var playback = new Event(GalaDinnerPolicy.COUNTDOWN_PLAYED, "system", Event.KIND_SYSTEM, intro);
+        assertNotNull(playing.acknowledge(playback, runtime));
+        assertNull(playing.acknowledge(playback, runtime));
+        assertFalse(policy.liveNonMutatingAcknowledgement("Ja, stopp"));
+        assertFalse(policy.liveNonMutatingAcknowledgement("Yeah, stop"));
+        assertFalse(policy.liveNonMutatingAcknowledgement("Yep, wait"));
+        assertFalse(policy.liveNonMutatingAcknowledgement("Ja, wann ist Mittagessen?"));
+        put(storage, EXIT_REQUEST, "Andere Frage");
+        assertFalse(policy.liveNonMutatingAcknowledgement("Ja"));
+        verifyNoInteractions(gateway);
+    }
+
     private void assertReceptionWithoutTask() {
         assertEquals("Gala reception", agent.getCurrentState().getName());
         assertEquals("RECEPTION", mode(memory));

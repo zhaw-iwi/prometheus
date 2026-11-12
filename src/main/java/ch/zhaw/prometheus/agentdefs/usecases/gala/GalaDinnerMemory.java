@@ -87,8 +87,10 @@ final class GalaDinnerMemory {
     }
     static void clear(Storage storage) {
         boolean preparation = GalaDinnerRpsPreparation.enabled(storage);
+        boolean english = GalaDinnerLanguage.english(storage);
         TaskMemory.clear(storage);
         for (String key : storage.toMap().keySet()) if (key.startsWith(PREFIX)) storage.remove(key);
         if (preparation) GalaDinnerRpsPreparation.enable(storage);
+        if (english) GalaDinnerLanguage.configure(storage, "en");
     }
 }

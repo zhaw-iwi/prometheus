@@ -26,6 +26,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     Storage storage() { return storage; }
     boolean activitiesEnabled() { return true; }
     boolean coCreatedTasksEnabled() { return activitiesEnabled(); }
+    String eventName() { return "Gala"; }
+    String robotRole() { return "gala robot"; }
+    String referenceContext() { return GalaDinnerReference.context(activitiesEnabled(), coCreatedTasksEnabled()); }
     @Override public boolean supportsLiveState(State state) { return state.getClass() == GalaDinnerState.class; }
     @Override public String liveSessionEndEventType() { return LIVE_ENDED; }
     @Override public int liveHistoryStartIndex() {
@@ -47,16 +50,18 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public String voiceInstructions() {
         // Keep reference and behavioural guidance stable; the Live state section carries activity changes.
-        return GalaDinnerPrompts.voice(activitiesEnabled(), coCreatedTasksEnabled()) + "\n"
-                + (activitiesEnabled() ? GalaDinnerPrompts.live(coCreatedTasksEnabled())
+        return GalaDinnerPrompts.voice(activitiesEnabled(), coCreatedTasksEnabled(), robotRole(), GalaDinnerLanguage.english(storage)) + "\n"
+                + (activitiesEnabled() ? GalaDinnerPrompts.live(coCreatedTasksEnabled(), eventName(), GalaDinnerLanguage.english(storage))
                         + (coCreatedTasksEnabled() ? "\n" + GalaDinnerPrompts.TASK_VOICE : "") : GalaDinnerPrompts.LIVE_RECEPTION)
-                + "\n" + GalaDinnerReference.context(activitiesEnabled(), coCreatedTasksEnabled());
+                + "\n" + referenceContext();
     }
     @Override public long liveUserSilenceMs() { return 2000; }
     @Override public long liveDepartureGraceMs() { return GalaDinnerMemory.DEPARTURE_GRACE_MS; }
     @Override public boolean liveFilterIsolatedInputActivity() { return true; }
     @Override public boolean liveNonMutatingAcknowledgement(String transcript) {
-        return GalaDinnerInput.nonMutatingAcknowledgement(storage, GalaDinnerInput.speech(transcript), java.time.Instant.now());
+        String speech = GalaDinnerInput.speech(transcript);
+        return !coCreatedTasksEnabled() && GalaDinnerInput.countdownAcknowledgement(storage, speech)
+                || GalaDinnerInput.nonMutatingAcknowledgement(storage, speech, java.time.Instant.now());
     }
     @Override public boolean liveResolvedControlReply(String transcript, EventHistory history,
             ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
@@ -72,13 +77,14 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     }
     @Override public String livePendingGuidance() {
         if (!activitiesEnabled()) return "Answer from supplied facts. No waiting acknowledgments or invented lookup/progress.";
-        return "Pending game choice: e.g. 'Einen Moment bitte.' once; await introduction silently. "
+        return (GalaDinnerLanguage.english(storage) ? "Pending game choice: e.g. 'One moment please.' once; await introduction silently. "
+                : "Pending game choice: e.g. 'Einen Moment bitte.' once; await introduction silently. ")
                 + "Other delays: one brief status. No status for reference/guessing answers; "
                 + "no invented progress/filler. Results end waiting.";
     }
     @Override public LiveActivityContext liveActivityContext() {
         String mode = GalaDinnerMemory.mode(storage);
-        String facts = "Gala activity: " + mode + ". ";
+        String facts = eventName() + " activity: " + mode + ". ";
         if (java.util.Set.of("GUESS", "RPS", "RPS_SETUP").contains(mode))
             facts += "Game conversation rule: institution/programme questions require an exit choice FIRST, without a factual preface or research claim. ";
         if (storage.containsKey(GalaDinnerMemory.EXIT_REQUEST))
@@ -99,11 +105,13 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS paused for exit confirmation; no result computed."
                 : "WAITING".equals(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""))
-                ? "Countdown playback acknowledged; gesture requested once, physical execution unconfirmed. Awaiting a fresh camera hand sign; no result yet."
+                ? "Countdown playback acknowledged; gesture requested once, physical execution unconfirmed. "
+                    + "Awaiting a fresh camera hand sign; stay silent, no looking-at-the-hand commentary. No result yet."
                 : "SPOKEN".equals(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""))
                 ? "Countdown captured; waiting for local playback acknowledgement. Stay silent; do not repeat the countdown. No gesture/capture yet."
                 : GalaDinnerRpsPreparation.enabled(storage)
-                ? "RPS introduction: sign selected privately, no gesture/capture yet. Say exactly Schere, Stein, Papier. once, then listen."
+                ? "RPS introduction: sign selected privately, no gesture/capture yet. "
+                        + GalaDinnerRps.countdownInstructions(!coCreatedTasksEnabled())
                 : "RPS introduction: sign selected, no gesture/capture yet. Invite a hand and count one, two, three once on the confirmed occasion, then listen.";
         else if (coCreatedTasksEnabled() && "TASK".equals(mode)) {
             facts += "Task phase: " + ch.zhaw.prometheus.model.task.TaskMemory.phase(storage)
@@ -151,6 +159,9 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         var topicExpiry = GalaDinnerDialogue.refreshAt(storage, java.time.Instant.now());
         if (topicExpiry != null && (refresh == null || topicExpiry.isBefore(refresh))) refresh = topicExpiry;
         var playback = activitiesEnabled() ? GalaDinnerRps.cue(storage, java.time.Instant.now()) : null;
+        if (playback != null && !coCreatedTasksEnabled())
+            playback = new ch.zhaw.prometheus.model.policy.LivePlaybackCue(playback.id(), playback.segmentId(),
+                    playback.expiresAt(), playback.receiptIds(), true, playback.segmentIds());
         if (playback != null && (refresh == null || playback.expiresAt().isBefore(refresh))) refresh = playback.expiresAt();
         return new LiveActivityContext(facts, continuation, refresh, playback);
     }
@@ -166,10 +177,10 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway gateway) { return null; }
     @Override public String describe() {
-        return GalaDinnerPrompts.voice(activitiesEnabled(), coCreatedTasksEnabled()) + "\n"
-                + GalaDinnerReference.context(activitiesEnabled(), coCreatedTasksEnabled())
+        return GalaDinnerPrompts.voice(activitiesEnabled(), coCreatedTasksEnabled(), robotRole(), GalaDinnerLanguage.english(storage)) + "\n"
+                + referenceContext()
                 + "\nCurrent mode: " + GalaDinnerMemory.mode(storage);
     }
     @Override public String summarise(State state, EventHistory events, PromptMessageAssembler assembler,
-            LanguageModelGateway gateway) { return "Gala mode: " + GalaDinnerMemory.mode(storage); }
+            LanguageModelGateway gateway) { return eventName() + " mode: " + GalaDinnerMemory.mode(storage); }
 }

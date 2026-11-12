@@ -531,6 +531,8 @@ experiment-specific application definitions as Spring beans via
 | `usecases.gala_dinner_reception_single_state` | Reception-only GIGI backup with the same knowledge, persona and sensing; no games or co-created tasks. |
 | `usecases.gala_dinner_reception_rps_preparation` | Full Gala agent with a three-sign RPS recognition tutorial once per Live conversation. |
 | `usecases.gala_dinner_reception_multi_state_games` | Gala reception with multi-state RPS preparation and person guessing, without co-created tasks. |
+| `usecases.swiss_robotics_day_reception_multi_state_games` | Swiss Robotics Day 2026 reception with the same multi-state RPS preparation and person guessing, plus event-specific information. |
+| `usecases.swiss_robotics_day_reception_multi_state_games_en` | English-default Swiss Robotics Day reception, sharing the German entry's event facts and game implementation. |
 | `tdsr.aisha.*` | Arabic Invest Qatar stage-host agents using a versioned approved-answer catalog and semantic gestures. |
 | `tdsr.core.<language>.*` | TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`. |
 | `tdsr.shhd.<language>.*` | SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`. |
@@ -541,6 +543,43 @@ experiment-specific application definitions as Spring beans via
 
 These branch-specific definitions stay outside the generic main baseline
 catalog so `main` can remain the reusable PROMETHEUS framework line.
+
+### Swiss Robotics Day Reception
+
+**Gigi - Swiss Robotics Day with multi-state RPS and guessing game**
+(`usecases.swiss_robotics_day_reception_multi_state_games`) clones the Gala games
+variant for [Swiss Robotics Day 2026](https://swissroboticsday.ch/), held on
+13 November at StageOne Event & Convention Center in Zurich. It retains German
+by default, the GIGI persona, presence-controlled GPT-Live, sensing, multi-state
+RPS preparation/countdown/play, person guessing and return to reception.
+
+**Gigi - Swiss Robotics Day with multi-state RPS and guessing game (English)**
+(`usecases.swiss_robotics_day_reception_multi_state_games_en`) provides an
+English-default entry with an English greeting, tutorial and game display text.
+Both entries use the same state machine, policies, person cards, event reference
+and unchanged SIRA Lab/research facts. The default is persisted across reload and
+reset. Allow the English key for the access code and create a fresh instance
+after restarting the updated backend; existing instances are not converted.
+
+Speech can follow an explicitly requested language; short acknowledgements do
+not select a new language. Spoken language changes remain model guidance. The
+two entries give operators a predictable starting language without maintaining
+two copies of the games. Display text follows the entry's default language.
+
+The clone shares the original SML, IWI, SIRA Lab, research and robot-origin facts.
+Its greeting, state labels, profile tag and event reference use Swiss Robotics
+Day. Its separate [event reference](src/main/resources/ch/zhaw/prometheus/agentdefs/usecases/swissroboticsday/reference.json)
+contains dated official sources for the organizer, agenda, venue, travel and
+admission information, checked on 11 November 2026. The website currently reports
+the event sold out with no registration at the door. Published times do not
+establish live progress; the clone has no fixed Gala reception window. Unknown
+booth locations and practical details are referred to the entrance infodesk.
+Audit URLs remain outside model instructions.
+
+Allow the new catalog key for the access code, then create a fresh instance.
+The event policy persists across reload and reset. Existing Gala definitions and
+saved instances keep their event setting. The clone offers conversation,
+information and the two games; co-created tasks remain unavailable.
 
 ### Gala Dinner Reception
 
@@ -561,12 +600,16 @@ mutation. Allow the new key for the access code and create a fresh instance.
 Existing definitions and saved instances remain available.
 
 Every tutorial-variant round has a new identity and a private selected sign. Live
-is asked to say exactly "Schere, Stein, Papier."; matching complete native speech
+uses the countdown words "Schere, Stein, Papier."; matching complete native speech
 and the shared client playback acknowledgement release one gesture and a fresh
 camera capture. Tutorial observations and old-round results cannot decide the new
 round. The playback cue selects the native caption receipts containing the recognized
 countdown, so earlier captions in a mixed response need not survive an input reset.
-The full response must still be complete, with matching observed audio and quiet;
+Countdown words may span up to three consecutive complete native speech segments,
+with at most five seconds between their received fragments and 32 selected receipts.
+Only recognised countdown prefixes are retained; unrelated, incomplete, stale or
+interrupted speech cannot bridge them. The active round and its original deadline
+still apply. Each selected segment needs matching observed audio and quiet;
 input interruption still invalidates a known cue. Reload the cockpit after updating
 the backend to use this receipt selection; no database schema migration is needed.
 Missing playback expires after 30 seconds, including when scheduled ticks
@@ -575,8 +618,36 @@ robot execution confirmation. The original and reception-only definitions remain
 separately available, with the original's existing countdown flow.
 
 A clear game choice already gives consent. Live may say one brief pending status,
-then waits for backend-confirmed starting facts without another readiness question.
+then waits for backend-confirmed starting facts before introducing the game.
 Proposal acceptance remains specific to co-created tasks.
+
+The Gala and Swiss Robotics Day **multi-state games** variants first say
+"Bereit?", pause briefly, then automatically count "Schere … Stein … Papier" on
+three slower, steady beats (roughly one second per word). This lead-in requires
+no reply. Pacing is voice guidance; exact spoken pauses are not guaranteed.
+In English, the corresponding wording is "Ready?" followed by
+"Rock … Paper … Scissors", without an extra "Shoot". The shared recognizer
+accepts either complete sequence with the existing ownership, freshness and
+playback checks; changing the spoken language does not require a different
+game graph.
+After "Papier", Live is instructed to stay silent, without a hand invitation or
+"Ich schaue auf Ihre Hand" commentary. A complete, fresh native countdown may
+contain the observed harmless status tails "Okay, ich schaue" or "Ich schaue auf
+Ihre/deine/eure Hand" without losing its receipt selection. Follow-up questions,
+commands and incomplete audio remain ineligible for playback completion.
+A short "Ja", "Yes", "Yeah", "Yep" or "Okay" preserves the round, countdown identity and speech
+freshness boundary without another inference or countdown. Stop/wait requests
+and mixed replies such as "Ja, stopp" retain interruption semantics.
+
+These variants opt into `playbackCue.allowAcknowledgements`. The browser holds
+completion while input receipts are pending; only a complete, backend-classified
+`countdown_acknowledgement` transcript allows it to use the retained playback
+evidence. Complete whitespace-only user transcripts are durably classified
+`IGNORED`/`empty_transcript`, without a user event, and resolve pending playback
+input without cancelling the cue. Incomplete, late or otherwise unconfirmed input
+still cannot release the gesture.
+Default cues keep immediate input interruption. Update the backend and cockpit,
+hard-refresh and restart Live; no saved graph or schema migration is required.
 
 The optional backup is `GalaDinnerReceptionSingleState`, catalog key
 `usecases.gala_dinner_reception_single_state`, displayed as **GIGI - Gala Dinner

@@ -35,11 +35,17 @@ class GalaDinnerCountdownReceiptUnitTest {
         return new LiveSpeechPart(text, BOUNDARY.plusMillis(millis), id);
     }
     private boolean capture(List<LiveSpeechPart> parts) {
+        return capture(parts, true);
+    }
+    private boolean capture(List<LiveSpeechPart> parts, boolean complete) {
+        return capture("mixed-response", parts, complete);
+    }
+    private boolean capture(String segment, List<LiveSpeechPart> parts, boolean complete) {
         String words = parts.stream().map(LiveSpeechPart::text).collect(java.util.stream.Collectors.joining());
         var speech = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
                 new BehaviourPlan(words, null, null, null).toJsonObject().toString());
         speech.speechProvenance(new SpeechProvenance(SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
-                "mixed-response", SpeechProvenance.Association.NONE, List.of(), true));
+                segment, SpeechProvenance.Association.NONE, List.of(), complete));
         return GalaDinnerRps.captured(memory, speech, owner, parts.getFirst().receivedAt(), BOUNDARY.plusSeconds(9), parts);
     }
 
@@ -66,6 +72,102 @@ class GalaDinnerCountdownReceiptUnitTest {
                 part("s1", "Sche", 2000), part("s2", "re,", 2100), part("s3", " Stein,", 2500),
                 part("s4", " Pa", 2800), part("s5", "pier.", 2900))));
         assertEquals(List.of("s1", "s2", "s3", "s4", "s5"), GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(10)).receiptIds());
+    }
+
+    @Test void englishCountdownSelectsFreshReceiptsAndRequiresPlaybackBeforeCapture() {
+        round(true);
+        assertTrue(capture(List.of(part("ready", "Ready? ", 1000), part("rock", "Rock,", 2000),
+                part("paper", " Paper,", 3000), part("s1", " Scis", 4000), part("s2", "sors.", 4100))));
+        var cue = GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(10));
+        assertEquals(List.of("rock", "paper", "s1", "s2"), cue.receiptIds());
+        assertFalse(memory.containsKey(CAPTURE_ID));
+        assertNotNull(GalaDinnerRps.reveal(memory, owner, cue.id().toString(), BOUNDARY.plusSeconds(10)));
+        assertTrue(memory.containsKey(CAPTURE_ID));
+    }
+
+    @ParameterizedTest @ValueSource(booleans = {true, false})
+    void slowCountdownBridgesThreeCompleteNativeSegmentsAndKeepsEveryReceipt(boolean english) {
+        round(true);
+        var words = english ? List.of("Rock", "Paper", "Scissors.") : List.of("Schere", "Stein", "Papier.");
+        assertFalse(capture("first", List.of(part("one", words.get(0), 1000)), true));
+        assertFalse(capture("second", List.of(part("two", words.get(1), 2500)), true));
+        assertFalse(memory.containsKey(CAPTURE_ID));
+        assertNull(GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(3)).segmentId());
+        assertTrue(capture("third", List.of(part("three", words.get(2), 4000)), true));
+        var cue = GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(10));
+        assertEquals("third", cue.segmentId());
+        assertEquals(List.of("first", "second", "third"), cue.segmentIds());
+        assertEquals(List.of("one", "two", "three"), cue.receiptIds());
+        assertFalse(memory.containsKey(GalaDinnerCountdown.PENDING));
+        assertFalse(memory.containsKey(CAPTURE_ID));
+        assertNotNull(GalaDinnerRps.reveal(memory, owner, cue.id().toString(), BOUNDARY.plusSeconds(10)));
+        assertFalse(memory.containsKey(GalaDinnerRps.SEGMENTS));
+        assertNull(GalaDinnerRps.reveal(memory, owner, cue.id().toString(), BOUNDARY.plusSeconds(10)));
+    }
+
+    @Test void telemetryRetryWithRockThenPaperScissorsSurvivesStorageRehydration() {
+        round(true);
+        assertFalse(capture("ready", List.of(part("ready", "Ready?", 500)), true));
+        assertFalse(capture("rock", List.of(part("rock", "Rock.", 1000)), true));
+        var persisted = com.google.gson.JsonParser.parseString(memory.get(GalaDinnerCountdown.PENDING).toString());
+        memory.put(GalaDinnerCountdown.PENDING, persisted);
+        assertTrue(capture("last", List.of(part("paper", "Paper.", 2500), part("scissors", "Scissors.", 3500)), true));
+        var cue = GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(10));
+        assertEquals(List.of("rock", "last"), cue.segmentIds());
+        assertEquals(List.of("rock", "paper", "scissors"), cue.receiptIds());
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"input", "incomplete", "other_speech", "long_pause", "new_round", "quoted"})
+    void partialCountdownCannotCrossAnInterruptionFreshnessBoundaryOrRound(String barrier) {
+        round(true);
+        assertFalse(capture("first", List.of(part("rock", "Rock.", 1000)), true));
+        switch (barrier) {
+            case "input" -> put(memory, LAST_INPUT, BOUNDARY.plusSeconds(2).toString());
+            case "incomplete" -> assertFalse(capture("uncertain", List.of(part("uncertain", "Paper.", 2000)), false));
+            case "other_speech" -> assertFalse(capture("other", List.of(part("other", "Wait a moment.", 2000)), true));
+            case "quoted" -> assertFalse(capture("quote", List.of(part("quote", "\"Rock\"", 2000)), true));
+            case "new_round" -> { GalaDinnerRps.clear(memory); round(true); }
+            default -> { /* Gap is applied to the next segment below. */ }
+        }
+        long at = barrier.equals("long_pause") ? 7001 : 3000;
+        assertFalse(capture("last", List.of(part("rest", "Paper. Scissors.", at)), true));
+        assertEquals("INTRO", text(memory, GalaDinnerRps.PHASE, ""));
+        assertNull(GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(10)).segmentId());
+        assertFalse(memory.containsKey(GalaDinnerCountdown.PENDING));
+    }
+
+    @Test void englishCountdownCannotBypassFreshnessCompletionOrFollowUpGuards() {
+        round(true);
+        assertFalse(capture(List.of(part("speech", "Ready? Rock, Paper, Scissors.", 2000)), false));
+        assertFalse(capture(List.of(part("early", "Rock,", -1), part("fresh", " Paper, Scissors.", 2000))));
+        for (String words : List.of("Rock, Paper.", "Rock, Scissors, Paper.", "\"Rock, Paper, Scissors\"",
+                "Rock, Paper, Scissors. Show your hand.", "Rock, Paper, Scissors. Stop.",
+                "Rock, Paper, Scissors. Are you ready?"))
+            assertFalse(capture(List.of(part("speech", words, 2000))), words);
+        assertEquals("INTRO", text(memory, GalaDinnerRps.PHASE, ""));
+        assertNull(GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(10)).segmentId());
+    }
+
+    @ParameterizedTest @ValueSource(strings = {" Okay, ich schaue.", " Ich schaue auf Ihre Hand."})
+    void observedPostCountdownStatusDoesNotRejectCompleteFreshSpeechOrBecomePartOfTheReceiptSelection(String tail) {
+        round(true);
+        assertTrue(capture(List.of(part("schere", " Schere", 1000), part("comma", ",", 1180),
+                part("stein", " Stein,", 2207), part("papier", " Papier.", 3858),
+                part("status", tail, 5231))));
+        var cue = GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(10));
+        assertEquals(List.of("schere", "comma", "stein", "papier"), cue.receiptIds());
+        assertFalse(memory.containsKey(CAPTURE_ID));
+        assertNotNull(GalaDinnerRps.reveal(memory, owner, cue.id().toString(), BOUNDARY.plusSeconds(10)));
+        assertTrue(memory.containsKey(CAPTURE_ID));
+    }
+
+    @Test void handStatusCannotMakeIncompleteSpeechOrAnActualFollowUpExecutable() {
+        round(true);
+        assertFalse(capture(List.of(part("speech", "Bereit? Schere, Stein, Papier. Ich schaue auf Ihre Hand.", 2000)), false));
+        for (String tail : List.of(" Bist du bereit?", " Zeigen Sie Ihre Hand.", " Stopp.", " Noch nicht.", " Papier."))
+            assertFalse(capture(List.of(part("speech", "Schere, Stein, Papier." + tail, 2000))), tail);
+        assertEquals("INTRO", text(memory, GalaDinnerRps.PHASE, ""));
+        assertNull(GalaDinnerRps.cue(memory, BOUNDARY.plusSeconds(10)).segmentId());
     }
 
     @Test void anEarlyFirstWordStillCannotAuthorizeTheCountdown() {

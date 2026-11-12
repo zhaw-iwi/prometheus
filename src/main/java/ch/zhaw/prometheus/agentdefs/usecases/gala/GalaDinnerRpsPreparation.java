@@ -52,6 +52,11 @@ public final class GalaDinnerRpsPreparation {
     }
 
     static String introduction(Storage storage) {
+        if (GalaDinnerLanguage.english(storage))
+            return facts(storage) + " Introduce this as a short tutorial and explain its purpose with light robot self-irony. "
+                    + "English example (adapt to the requested language): "
+                    + "\"First, a quick tutorial — even robots need a warm-up! "
+                    + "Please show me rock, paper and scissors one at a time so we can check that I recognise all three hand signs.\"";
         return facts(storage) + " Introduce this as a short tutorial and explain its purpose with light robot self-irony. "
                 + "German example (adapt to the requested language): "
                 + "\"Erst ein kurzes Tutorial – auch Roboter brauchen ein Warm-up! "
@@ -63,13 +68,10 @@ public final class GalaDinnerRpsPreparation {
         display.addProperty("phase", "recognise_all_signs");
         display.add("recognisedSigns", array(recognised(storage)));
         display.add("remainingSigns", array(remaining(storage)));
-        display.addProperty("instruction", "Kurzes Tutorial: Wir prüfen, ob ich alle drei Handzeichen erkenne. "
-                + "Zeige sie einzeln ruhig vor der Kamera. Noch nötig: "
-                + String.join(", ", remaining(storage).stream().map(sign -> switch (sign) {
-                    case "rock" -> "Stein";
-                    case "paper" -> "Papier";
-                    default -> "Schere";
-                }).toList()) + ".");
+        display.addProperty("instruction", (GalaDinnerLanguage.english(storage)
+                ? "Quick tutorial: Let's check that I recognise all three hand signs. Show them one at a time, held still in front of the camera. Still needed: "
+                : "Kurzes Tutorial: Wir prüfen, ob ich alle drei Handzeichen erkenne. Zeige sie einzeln ruhig vor der Kamera. Noch nötig: ")
+                + String.join(", ", remaining(storage).stream().map(sign -> GalaDinnerLanguage.sign(storage, sign)).toList()) + ".");
     }
 
     private static JsonArray array(List<String> signs) {

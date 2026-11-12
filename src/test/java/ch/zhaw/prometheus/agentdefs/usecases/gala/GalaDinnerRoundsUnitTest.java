@@ -54,8 +54,14 @@ class GalaDinnerRoundsUnitTest {
         assertFalse(memory.containsKey(OUTCOME)); assertFalse(memory.containsKey(GalaDinnerRounds.COMPLETED_GAME));
         assertEquals("START_RPS", GalaDinnerInput.explicitGameChoice("Ich möchte Schere, Stein, Papier spielen."));
         assertEquals("START_GUESS", GalaDinnerInput.explicitGameChoice("Personen raten"));
+        assertEquals("START_RPS", GalaDinnerInput.explicitGameChoice("Let's play Rock, Paper, Scissors."));
+        assertEquals("START_RPS", GalaDinnerInput.explicitGameChoice("Can we play rock paper scissors please?"));
+        assertEquals("START_GUESS", GalaDinnerInput.explicitGameChoice("Person guessing please"));
+        assertEquals("START_GUESS", GalaDinnerInput.explicitGameChoice("I would like to play the guessing game"));
         for (String words : List.of("Kein Personenraten bitte", "Was ist Personenraten?", "Wenn wir Personenraten spielen",
-                "Personenraten oder Schere Stein Papier?", "\"Personenraten bitte\"", "Ja", "Spielen wir etwas?"))
+                "Personenraten oder Schere Stein Papier?", "\"Personenraten bitte\"", "Ja", "Spielen wir etwas?",
+                "Don't play rock paper scissors", "What is rock paper scissors?", "If we play the guessing game",
+                "Rock paper scissors or person guessing?", "\"Play rock paper scissors\""))
             assertNull(GalaDinnerInput.explicitGameChoice(words), words);
     }
     @ParameterizedTest @ValueSource(strings = {"RPS", "GUESS"})

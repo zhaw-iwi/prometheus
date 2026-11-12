@@ -82,6 +82,94 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Final local branch integration (2026-11-12): both local branches contain
+  their latest remote histories; agents also contains main's reusable Live fixes.
+  German/English Swiss Robotics Day definitions and the shared Gala countdown
+  improvements form one application-specific commit on agents. Their 16 modified
+  implementation/test files and eight new files match the preserved working snapshot.
+  Coordination retains remote sensing and committed Speech behavior; hand-pose
+  observations, preparation and reaction agreements remain excluded as requested.
+  The final agents tree passed 1,443 Java tests with 2 intentional capacity
+  skips, plus 162 Live/hand/state-graph JavaScript assertion bodies using a temporary
+  sequential harness. Main separately passed 1,039 Java tests (one capacity skip)
+  and 161 JavaScript checks. Java checks used JDK 26 with Java 21 compilation and
+  an explicit Mockito agent. Disposable local MySQL schemas/accounts were removed.
+  Source/test evidence is retained in `/tmp/prometheus-branch-sync-20261112`.
+  Browser, paid provider and physical-device trials were not rerun. Push/deployment
+  remain explicitly deferred; private application configuration is untouched.
+
+- RPS countdown recovery (2026-11-12): correlated the 13:34–13:36 Berlin telemetry
+  with the saved English Swiss Robotics Day run. A whitespace-only input cancelled
+  round two's browser cue; the retry split Rock and Paper/Scissors into separate
+  complete segments. Complete empty user transcripts now persist as
+  `IGNORED`/`empty_transcript` without a user event and resolve opted-in playback
+  input. Countdown-only Yeah/Yep acknowledgements preserve freshness and round
+  identity; mixed stop/wait requests remain interruptions. Tutorial countdowns
+  retain only bounded, fresh, consecutive native prefixes, spanning up to three
+  segments, 32 receipts and five-second inter-segment pauses within the original
+  round deadline. Playback cues explicitly name the ordered complete segments;
+  all selected receipts and per-segment voice evidence are required before one
+  gesture/capture. Restart the backend, hard-refresh the cockpit and restart Live;
+  no saved graph or database schema migration is required. Verification: 235 unit
+  checks and 30 disposable MySQL integration checks passed, including durable
+  split-countdown ingress/reload, empty-input admission, English acknowledgement
+  and shared Coordination delivery. All 126 shared Live JavaScript test bodies
+  passed using a temporary sequential assertion harness. Temporary test
+  databases/accounts were removed. Physical audio/robot and real-provider
+  retesting remain manual; no paid provider calls were made.
+
+- Swiss Robotics Day English entry (2026-11-12): added
+  `usecases.swiss_robotics_day_reception_multi_state_games_en`, sharing the
+  German entry's graph, policies, person cards and unchanged event/SIRA research
+  reference. English metadata, greeting, tutorial and display text persist across
+  reload/reset. The shared countdown uses “Ready? Rock … Paper … Scissors” in
+  English or the existing German sequence; both are recognised with the same
+  freshness, completeness and playback guards. English game choices and short
+  Yes acknowledgements preserve backend control. Allow the new key and create
+  a fresh instance after restarting the updated backend. Spoken language changes
+  and pacing remain prompt guidance; real provider/audio trials are pending.
+  Verification: 224 focused unit checks and 28 isolated MySQL persistence/catalog
+  checks passed with fake providers; the temporary database/account were removed
+  and server stopped.
+
+- Countdown telemetry follow-up (2026-11-11): read-only database correlation of
+  the supplied 17:32 telemetry confirmed that the first fresh, complete native
+  countdown at 17:29:57 appended “Okay, ich schaue.” and failed the end-anchored
+  recognizer. No countdown playback event or playing-hand capture followed.
+  Later attempts, including a clean countdown at 17:31:41, were independently
+  INCOMPLETE with audio_coverage_gap; the retained aggregate audio data cannot
+  attribute those gaps to transport versus scheduling. Tightened the instruction
+  to stay silent after Papier and accept only the observed harmless looking-at-
+  the-hand tails in complete fresh speech, excluding them from receipt selection.
+  Questions, commands, incomplete audio and playback/ownership checks remain
+  guarded. Verification passed 219 focused unit checks and 19 disposable MySQL
+  integration checks, including both event variants; temporary schema/account
+  and server were cleaned up. Physical/provider retest and investigation of
+  recurring audio gaps remain.
+
+- Multi-state games countdown (2026-11-11): Gala and Swiss Robotics Day now use a
+  short “Bereit?” lead-in followed automatically by slower, steady countdown
+  beats. Short Ja/Yes/Okay acknowledgements preserve round identity and speech
+  freshness without inference/restart. Optional playback acknowledgement handling
+  holds completion until the backend classifies the complete user receipt;
+  mixed/uncertain input still interrupts. Both bundled and standalone Valerian
+  clients support it; the standalone resumed-audio check is retained. Existing
+  graph operations and schema remain. Verification: 303 Java checks including
+  disposable MySQL transcript/persistence journeys, 123 shared and 77 standalone
+  Live JavaScript checks, plus five standalone browser checks passed. Native voice
+  pacing and physical hardware were not exercised; hard-refresh and restart Live.
+
+- Swiss Robotics Day clone (2026-11-11): added a separately registered clone of
+  the Gala multi-state games definition, with Swiss Robotics Day 2026 greeting,
+  labels and sourced event information. SML/IWI/SIRA research and robot-origin
+  facts are shared; explicit RPS/guessing control and Live lifecycle are retained.
+  Create a fresh instance with the new key documented in README. Verification:
+  199 focused unit checks plus 25 isolated MySQL integration/catalog checks
+  passed, including both embodiments, RPS playback/fresh capture and guessing
+  across reload/reset. The disposable schema/account and server were removed
+  or stopped. Real provider speech, camera and physical robot actions were not
+  exercised.
+
 - ES-08 deployment-branch integration (2026-11-12): merge accepted main
   `0801746d` into agents `0f668d12`, preserving the application/Gala catalogue,
   embodiment/persona handling, production settings and agents-push Heroku

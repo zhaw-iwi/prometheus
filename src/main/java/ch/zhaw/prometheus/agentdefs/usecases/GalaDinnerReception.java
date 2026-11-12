@@ -40,6 +40,7 @@ public class GalaDinnerReception implements AgentDefinition {
 
     protected Agent createAgent(boolean prepareRps, boolean coCreatedTasks) {
         Storage storage = new Storage();
+        ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerLanguage.configure(storage, languageCode());
         if (prepareRps) ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerRpsPreparation.enable(storage);
         var reception = activityState("Gala reception", storage, true, coCreatedTasks);
         var rps = activityState("Gala rock-scissor-paper", storage, true, coCreatedTasks);
@@ -89,7 +90,7 @@ public class GalaDinnerReception implements AgentDefinition {
         return completeAgent(reception, storage, true);
     }
 
-    private static GalaDinnerState activityState(String name, Storage storage, boolean starting, boolean coCreatedTasks) {
+    protected GalaDinnerState activityState(String name, Storage storage, boolean starting, boolean coCreatedTasks) {
         return new GalaDinnerState(name, coCreatedTasks ? new GalaDinnerPolicy(storage)
                 : new GalaDinnerGamesPolicy(storage), starting);
     }
@@ -141,9 +142,11 @@ public class GalaDinnerReception implements AgentDefinition {
                         AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN, AgentInteractionProfile.MODALITY_DISPLAY).stream()
                         .filter(modality -> activities || !List.of(AgentInteractionProfile.MODALITY_MOTION_HAND_SIGN,
                                 AgentInteractionProfile.MODALITY_DISPLAY).contains(modality)).toList(),
-                List.of("demo.gigi.gala_dinner", "demo.gigi.sira_lab")).withPresenceControlledLive(true));
+                profileTags()).withPresenceControlledLive(true));
         return applyDefinitionMetadata(agent);
     }
+
+    protected List<String> profileTags() { return List.of("demo.gigi.gala_dinner", "demo.gigi.sira_lab"); }
 
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {
         var agent = createAgent();

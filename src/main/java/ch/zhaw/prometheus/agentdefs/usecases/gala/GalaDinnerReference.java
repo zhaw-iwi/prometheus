@@ -31,18 +31,22 @@ final class GalaDinnerReference {
     private GalaDinnerReference() {}
 
     static String context() { return CONTEXT; }
+    static Document document() { return DOCUMENT; }
     static String context(boolean activities) { return activities ? CONTEXT : RECEPTION_CONTEXT; }
     static String context(boolean activities, boolean coCreatedTasks) {
         return !activities ? RECEPTION_CONTEXT : coCreatedTasks ? CONTEXT : GAMES_CONTEXT;
     }
 
     private static Document load() {
-        var input = GalaDinnerReference.class.getResourceAsStream(RESOURCE);
-        if (input == null) throw new IllegalStateException("Missing Gala reference: " + RESOURCE);
+        return load(RESOURCE);
+    }
+    static Document load(String resource) {
+        var input = GalaDinnerReference.class.getResourceAsStream(resource);
+        if (input == null) throw new IllegalStateException("Missing event reference: " + resource);
         try (var reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
             return new Gson().fromJson(reader, Document.class);
         } catch (IOException | RuntimeException failure) {
-            throw new IllegalStateException("Cannot load Gala reference: " + RESOURCE, failure);
+            throw new IllegalStateException("Cannot load event reference: " + resource, failure);
         }
     }
 
@@ -53,6 +57,9 @@ final class GalaDinnerReference {
         return render(document, activities, activities);
     }
     static String render(Document document, boolean activities, boolean coCreatedTasks) {
+        return render(document, activities, coCreatedTasks, "GALA REFERENZ");
+    }
+    static String render(Document document, boolean activities, boolean coCreatedTasks, String title) {
         if (document == null) throw new IllegalArgumentException("Gala reference is required");
         LocalDate.parse(document.recordedOn());
         if (document.sources() == null || document.sources().isEmpty()
@@ -75,7 +82,7 @@ final class GalaDinnerReference {
                 throw new IllegalArgumentException("All Gala capability variants are required");
         }
         // Render approved facts only: no source URLs, audit descriptions or duplicate summaries.
-        return "GALA REFERENZ (Stand der bereitgestellten Angaben: " + document.recordedOn() + ").\n"
+        return title + " (Stand der bereitgestellten Angaben: " + document.recordedOn() + ").\n"
                 + document.sections().stream()
                     .map(section -> section.title() + ": " + String.join(" ", section.facts())
                             + (section.activityFacts() == null ? "" : " " + (!activities ? section.receptionOnlyActivityFacts()

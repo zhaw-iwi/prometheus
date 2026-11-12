@@ -26,6 +26,16 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition swissRoboticsDayReceptionMultiStateGames() {
+        return new ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGames();
+    }
+
+    @Bean
+    AgentDefinition swissRoboticsDayReceptionMultiStateGamesEnglish() {
+        return new ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGamesEnglish();
+    }
+
+    @Bean
     AgentDefinition tdsrAishaInvestQatarQa() {
         return new ch.zhaw.prometheus.agentdefs.tdsr.aisha.Aisha();
     }
