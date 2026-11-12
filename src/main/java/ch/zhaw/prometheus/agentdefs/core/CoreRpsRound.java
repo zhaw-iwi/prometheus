@@ -94,7 +94,7 @@ final class CoreRpsRound {
                     || !Set.of("rock", "paper", "scissor").contains(text(data, "sign"))) return "rps_invalid_sign";
             var confidence = data.get("confidence");
             if (confidence == null || !confidence.isJsonPrimitive() || !confidence.getAsJsonPrimitive().isNumber()
-                    || !Double.isFinite(confidence.getAsDouble()) || confidence.getAsDouble() < .7 || confidence.getAsDouble() > 1) return "rps_low_confidence";
+                    || !Double.isFinite(confidence.getAsDouble()) || confidence.getAsDouble() < 0 || confidence.getAsDouble() > 1) return "rps_low_confidence";
             if ("valerian.hand.camera".equals(text(data, "source"))) {
                 var frames = data.get("stabilityFrames");
                 if (frames == null || !frames.isJsonPrimitive() || !frames.getAsJsonPrimitive().isNumber()
