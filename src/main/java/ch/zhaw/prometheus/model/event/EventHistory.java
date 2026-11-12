@@ -116,7 +116,7 @@ public class EventHistory {
     public String toString() {
         StringBuilder result = new StringBuilder("");
         for (Event current : this.eventList) {
-            if (ConversationProjection.isIntent(current)) continue;
+            if (ConversationProjection.isIntent(current) || ConversationProjection.isUnplayed(current)) continue;
             String label = current.getActor() != null ? current.getActor() : current.getType();
             result.append(label + ": " + current.getPayload() + "\n");
         }

@@ -12,7 +12,8 @@ public final class CoordinationPerception {
     private CoordinationPerception() {}
     public static String answer(EventHistory history, String text, Instant now) {
         String value = text.toLowerCase(Locale.ROOT).strip();
-        boolean question = value.matches("^(what|which|do you|can you see|was|welch\\p{L}*|siehst du|erkennst du).*?");
+        boolean question = value.matches("^(what|which|do you|can you see|was|welch\\p{L}*|siehst du|erkennst du).*?")
+                || value.matches("(?:hand sign|facial expression) do you see(?: now)?[?]?");
         if (!question) return null;
         String type = value.matches(".*\\b(handzeichen|hand sign|sign|zeichen)\\b.*") ? Event.TYPE_HAND_SIGN
                 : value.matches(".*\\b(gesichtsausdruck|facial expression|face expression)\\b.*") ? Event.TYPE_FACE_EMOTION : null;

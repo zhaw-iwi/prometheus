@@ -205,7 +205,7 @@ class QueryVolumeIntegrationTest {
 
     @Test void committedTranscriptChangesRevisionAndRevokedAccessIsImmediate() throws Exception {
         var fixture = fixture(new MultimodalBehaviour().createAgent());
-        var session = live.create(fixture.code(), fixture.id(), new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
+        var session = live.create(fixture.code(), fixture.id(), new LiveSessionRequest("v=0 offline", "marin", true)).orElseThrow();
         var owner = new ExternalSpeech(session.handle(), agents.findById(fixture.id()).orElseThrow().executionEpoch());
         assertEquals(0, live.updates(fixture.code(), fixture.id(), session.handle(), -1).orElseThrow().transcriptRevision());
         long now = System.currentTimeMillis();
@@ -243,7 +243,7 @@ class QueryVolumeIntegrationTest {
 
     @Test void coordinationMixedMinuteRetainsDurableInputAndReportsCapacity() throws Exception {
         var f = fixture(new CoordinationAgent().createAgent());
-        var session = live.create(f.code(), f.id(), new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
+        var session = live.create(f.code(), f.id(), new LiveSessionRequest("v=0 offline", "marin", true)).orElseThrow();
         var owner = new ExternalSpeech(session.handle(), agents.findById(f.id()).orElseThrow().executionEpoch());
         doReturn("{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{\"speech\":\"Answer the ordinary question from current facts.\"}}").when(language).infer(any());
         var paths = new LinkedHashMap<String, long[]>();
@@ -299,13 +299,14 @@ class QueryVolumeIntegrationTest {
             report.addProperty("projectedQuestionsPerHour", total * 60);
             report.addProperty("quotaPerHour", 36000);
             report.addProperty("headroomMet", total * 60 <= 27000);
-            report.addProperty("scope", "One client; 12 social batches, 12 face, 24 hand, 60 polls, 12 context/lease/history reads, 4 user and 8 native segments, 72 receipts. No wall-clock sleep, scheduled ticks, SSE reconnects or real providers.");
+            report.addProperty("scope", "One client; 12 social batches, 12 face, 24 hand, 60 polls, 12 context/lease/history reads, 4 user and 8 native segments, 72 receipts. Includes persisted speech requests; excludes approval/release/playback calls, wall-clock sleep, scheduled ticks, SSE reconnects and real providers.");
             report.add("pathsCallsAndQuestions", new com.google.gson.Gson().toJsonTree(paths));
             java.nio.file.Files.writeString(java.nio.file.Path.of("target/coordination-query-shapes.json"), new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(firstFaceStatements));
             java.nio.file.Files.writeString(java.nio.file.Path.of("target/coordination-query-report.json"), new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(report));
             System.out.println("COORDINATION_QUERY_VOLUME " + report);
-            // Regression ceiling only; 1,993 remains above this account's sustained quota.
-            assertTrue(total <= 2000, "Coordination mixed-minute query regression: " + total);
+            // Approval now persists ordinary-turn speaking requests: measured 2,007 vs prior 1,993.
+            // Regression ceiling only; this is still above the account quota and excludes playback calls.
+            assertTrue(total <= 2010, "Coordination mixed-minute query regression: " + total);
             var ledger = ingress.history(f.id(), owner.sessionId());
             assertEquals(12, ledger.size());
             assertTrue(ledger.stream().allMatch(row -> "COMPLETE".equals(row.status()) && row.receiptIds().size() == 6));
@@ -332,7 +333,7 @@ class QueryVolumeIntegrationTest {
                 String face = "{\"type\":\"obs.emotion.face\",\"actor\":\"user\",\"kind\":\"observation\",\"payload\":\"{\\\"emotion\\\":\\\"neutral\\\",\\\"confidence\\\":0.9,\\\"valence\\\":0.0,\\\"arousal\\\":0.2}\"}";
                 measure(label + " ordinary-face", () -> mvc.perform(post(base + "/acknowledge")
                         .header("X-Prometheus-Access-Code", code).contentType(MediaType.APPLICATION_JSON).content(face)).andExpect(status().isOk()));
-                var session = live.create(code, id, new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
+                var session = live.create(code, id, new LiveSessionRequest("v=0 offline", "marin", true)).orElseThrow();
                 measure(label + " initial-updates", () -> mvc.perform(get(base + "/live/sessions/" + session.handle() + "/updates")
                         .header("X-Prometheus-Access-Code", code)).andExpect(status().isOk()));
                 for (int cycle = 0; cycle < 2; cycle++) {
@@ -358,7 +359,7 @@ class QueryVolumeIntegrationTest {
                         sensor(Event.TYPE_SOCIAL_GROUPING, "{\"humanCount\":1,\"groupCount\":0,\"singletonCount\":1,\"largestGroupSize\":1}"),
                         sensor(Event.TYPE_SOCIAL_CONTEXT, "{\"humanCount\":1,\"people\":[]}"));
                 var separate = fixture(definition.createAgent());
-                var otherSession = live.create(separate.code(), separate.id(), new LiveSessionRequest("v=0 offline", "marin")).orElseThrow();
+                var otherSession = live.create(separate.code(), separate.id(), new LiveSessionRequest("v=0 offline", "marin", true)).orElseThrow();
                 long individualCost = measure(label + " sensor-separate", () -> {
                     for (var request : requests) mvc.perform(post("/demo/agents/" + separate.id() + "/acknowledge")
                             .header("X-Prometheus-Access-Code", separate.code()).contentType(MediaType.APPLICATION_JSON)

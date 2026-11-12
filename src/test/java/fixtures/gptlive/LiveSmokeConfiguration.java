@@ -33,7 +33,9 @@ public class LiveSmokeConfiguration {
                 if (data != null) {
                     var result = new JsonObject();
                     for (var field : List.of("responseId", "revision", "segmentId")) result.add(field, data.get(field));
-                    result.addProperty("verdict", data.get("capturedSpeech").getAsString().equals("First fixture observation.") ? "MATCH" : "UNRELATED");
+                    String captured = data.get("capturedSpeech").getAsString();
+                    result.addProperty("verdict", captured.equals("First fixture observation.") ? "MATCH"
+                            : captured.equals("Incorrect fixture observation.") ? "AMBIGUOUS" : "UNRELATED");
                     return result.toString();
                 }
                 if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported trigger fields")
@@ -49,7 +51,7 @@ public class LiveSmokeConfiguration {
                         {"operation":"PROPOSE_AND_START","agreement":{"goal":"Offer one fixture observation",
                          "humanRole":"Listen and judge usefulness","agentRole":"Offer one observation",
                          "success":"The visitor finds it useful","questions":[],"checks":[],"dialogueLimit":1,"reactions":null},
-                         "reply":{"speech":"Offer one fixture observation"}}
+                         "reply":{"speech":"First fixture observation."}}
                         """;
                 if (request.output() == InferenceRequest.Output.BOOLEAN)
                     return Boolean.toString(prompt.contains("Return true if the person is clearly ready to start a round"));
@@ -84,7 +86,14 @@ public class LiveSmokeConfiguration {
         return new SpeechSynthesisGateway() {
             public SpeechAudio synthesize(String text, String voice, double speed) { return synthesize(text, voice, speed, SpeechAudioFormat.MP3); }
             public SpeechAudio synthesize(String text, String voice, double speed, SpeechAudioFormat format) {
-                provider.tts.incrementAndGet(); return new SpeechAudio(new byte[4800], format.contentType());
+                provider.tts.incrementAndGet();
+                int lead = text.equals("First fixture observation.") ? 18000 : 0; // 750ms: real TTS may begin with silence.
+                byte[] pcm = new byte[48000 + lead * 2]; // One second of observable tone, not proof of physical speakers.
+                for (int i = lead; i < pcm.length / 2; i++) {
+                    short sample = (short) (6000 * Math.sin(2 * Math.PI * 440 * i / 24000));
+                    pcm[i * 2] = (byte) sample; pcm[i * 2 + 1] = (byte) (sample >> 8);
+                }
+                return new SpeechAudio(pcm, format.contentType());
             }
         };
     }
@@ -98,7 +107,7 @@ public class LiveSmokeConfiguration {
         });
         public volatile String latest;
         public Session create(Request request) {
-            String id = "fixture_" + UUID.randomUUID(); var call = new Call(); call.request = request; calls.put(id, call); latest = id;
+            String id = "fixture_" + UUID.randomUUID(); var call = new Call(); call.request = request; call.ttsBefore = tts.get(); calls.put(id, call); latest = id;
             return new Session(id, "v=0 synthetic-answer");
         }
         public Connection attach(String id, Consumer<JsonObject> receive, Runnable disconnected) {
@@ -126,7 +135,8 @@ public class LiveSmokeConfiguration {
                                 || call.activity.contains("Coordination stage: FINISHING")
                                 ? "First fixture observation." : call.activity.contains("Confirmed RPS phase: INTRO")
                                 ? "Show one hand. One, two, three." : "The round is ready.";
-                        audio.schedule(() -> speak(id, "ASSISTANT", spoken, null), 50, TimeUnit.MILLISECONDS);
+                        String candidate = call.rejectFirst.compareAndSet(true, false) ? "Incorrect fixture observation." : spoken;
+                        audio.schedule(() -> speak(id, "ASSISTANT", candidate, null), 50, TimeUnit.MILLISECONDS);
                     }
                 }
             };
@@ -134,14 +144,32 @@ public class LiveSmokeConfiguration {
         public void hangup(String id) { calls.get(id).closed = true; }
         public void speak(String id, String speaker, String text, String receipt) {
             Call call = calls.get(id); if (call == null || call.closed) throw new IllegalArgumentException("Synthetic call unavailable");
-            int sequence = call.sequence.incrementAndGet(); long offset = sequence * 3000L;
+            int sequence = call.sequence.incrementAndGet(); long offset = sequence * 5000L;
             String prefix = "USER".equals(speaker) ? "input" : "output";
+            if (prefix.equals("output")) {
+                // Model the new utterance's PCM lead-in before its caption. Otherwise an
+                // intentional idle interval appears as lost coverage inside the new speech.
+                var lead = new JsonObject(); lead.addProperty("type", "session.output_audio.delta");
+                lead.addProperty("delta", Base64.getEncoder().encodeToString(new byte[4800]));
+                lead.addProperty("start_ms", offset - 100); lead.addProperty("end_ms", offset);
+                call.receive.accept(lead);
+            }
             var transcript = new JsonObject(); transcript.addProperty("type", "session." + prefix + "_transcript.delta");
             transcript.addProperty("event_id", receipt == null ? "fixture_receipt_" + sequence : receipt);
             transcript.addProperty("delta", text); transcript.addProperty("start_ms", offset); transcript.addProperty("end_ms", offset + 500);
             call.captions.add(transcript.deepCopy());
             call.receive.accept(transcript);
-            for (int i = 1; i <= 10; i++) {
+            if (prefix.equals("output")) {
+                // Cover the spoken media interval too, not only its lead-in and trailing silence.
+                byte[] voiced = new byte[24000]; java.util.Arrays.fill(voiced, (byte)64);
+                var speech = new JsonObject(); speech.addProperty("type", "session.output_audio.delta");
+                speech.addProperty("delta", Base64.getEncoder().encodeToString(voiced));
+                speech.addProperty("start_ms", offset); speech.addProperty("end_ms", offset + 500);
+                call.receive.accept(speech);
+            }
+            // Supply measured quiet for the longest supported assistant assembly window.
+            // Stopping synthetic PCM at one second would test a coverage gap, not completion.
+            for (int i = 1; i <= (prefix.equals("output") ? 30 : 10); i++) {
                 int chunk = i;
                 audio.schedule(() -> {
                     if (call.closed) return;
@@ -154,10 +182,12 @@ public class LiveSmokeConfiguration {
         }
         public void close() { audio.shutdownNow(); }
         public static final class Call {
+            public int ttsBefore;
             public volatile Consumer<JsonObject> receive;
             public volatile boolean closed;
             public Request request;
             public volatile String activity = "";
+            public final java.util.concurrent.atomic.AtomicBoolean rejectFirst = new java.util.concurrent.atomic.AtomicBoolean();
             public final List<JsonObject> sent = new CopyOnWriteArrayList<>();
             public final List<JsonObject> captions = new CopyOnWriteArrayList<>();
             final AtomicInteger sequence = new AtomicInteger();
@@ -190,12 +220,15 @@ public class LiveSmokeConfiguration {
                     "maximum", pool.getMaximumPoolSize());
         }
         public record Speech(String speaker, String text, String receipt) {}
+        @PostMapping("/__live-fixture/reject-first/{id}") public Map<String, Boolean> rejectFirst(@PathVariable String id) {
+            provider.calls.get(id).rejectFirst.set(true); return Map.of("accepted", true);
+        }
         @PostMapping("/__live-fixture/speak/{id}") public Map<String, Boolean> speak(@PathVariable String id, @RequestBody Speech speech) {
             provider.speak(id, speech.speaker(), speech.text(), speech.receipt()); return Map.of("accepted", true);
         }
         @GetMapping("/__live-fixture/latest") public Map<String, Object> latest() {
             var call = provider.latest == null ? null : provider.calls.get(provider.latest);
-            return Map.of("providerId", provider.latest == null ? "" : provider.latest, "ttsCalls", provider.tts.get(),
+            return Map.of("providerId", provider.latest == null ? "" : provider.latest, "ttsCalls", provider.tts.get() - (call == null ? 0 : call.ttsBefore),
                 "commands", call == null ? List.of() : call.sent.stream().map(JsonObject::toString).toList(),
                 "captions", call == null ? List.of() : call.captions.stream().map(JsonObject::toString).toList(),
                 "instructions", call == null ? "" : call.request.instructions(),

@@ -75,6 +75,92 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Local branch synchronization (2026-11-12): merge remote main's completed ES-08
+  committed-Speech work and poster assets with the local hand-detection history.
+  At the owner's request, Coordination retains its remote scalar sensing contract:
+  no hand-pose profile admission, preparation checks or reaction agreements. The
+  extension remains available to Generic/Social Space and other supporting agents.
+  Remote Coordination control, speech and support behavior are retained. Focused
+  verification passed 240 Java checks and 155 Live/hand/state-graph JavaScript
+  assertion bodies using a temporary sequential harness. Push and deployment are
+  explicitly deferred; this synchronization creates local commits only.
+
+- ES-08 (2026-11-12, **behavioural scope complete**): the owner approved
+  the existing Speech service for committed Coordination replies. Live input,
+  backend task authority, budgets and playback confirmation remain. The new path
+  stores exact spoken content, fences synthesis/release against supersession and
+  interruption, and records explicit SYNTHESIZED provenance only as delivered
+  after playback. All three real-provider journeys have separate semantic PASS
+  reviews on the same source configuration. Final checks: 1,015 Java tests passed
+  with one intentional capacity skip, 218 Node tests, 11 preflight checks, five
+  browser checks and packaging. Audio review uses independent local ASR, not
+  word-for-word acoustic certification. Evidence and retained failures are in
+  `.agents/ESCALATION_RESULTS.md`. Physical trials NOT RUN; capacity/deployment
+  deferred at acceptance. The owner has since authorized publication through
+  `main` and the `agents` Heroku deployment branch; capacity remains deferred.
+
+Earlier checkpoints below are retained as history. Their ES-08 status and native
+output instructions are superseded by the current entry above.
+
+- Bounded unheard correction (2026-11-11): the owner authorized one corrective
+  realization for a valid semantic rejection of an approval-enabled Coordination
+  task response. Request/run/revision, spent contribution and original deadlines
+  remain; correction has its own speaking occasion, with persisted release fencing
+  against replay. Provider/capture errors and a second rejection retain recovery.
+  Verification passed: 942 Java tests (one capacity case skipped), 209 Node tests,
+  11 runner preflight checks, five browser checks and packaging; evidence is in
+  `.agents/ESCALATION_RESULTS.md`. One capped paid dialogue passed four replies,
+  then failed when ordinary clarification differed from the committed request and
+  was withheld. It did not exercise correction; recovery/social remain unrun in
+  this continuation. ES-08 remains unaccepted.
+  Physical trials remain unrun and capacity remains deferred. No commit/deployment
+  is included in this review handoff.
+
+- Approval-before-audio checkpoint (2026-11-11), authorized by the owner: bounded
+  original-PCM capture and separate approval/release/observed-playback checks now
+  protect delivery-aware Coordination sessions. Unconfirmed speech cannot supply
+  conversation, consent or the next cue. Existing state/budget/task-generation
+  authority is preserved. Last full local-MySQL run: 912 passed, one capacity skip;
+  four browser checks passed, including real local WebRTC. Final proposal-facts
+  completion and the sensory-occasion adapter then passed 42 focused Java tests;
+  208 Node, 11 preflight and package
+  checks passed. Six retained paid attempts produced **zero complete ES-08 passes**;
+  one ordinary proposal was approved and observed playing. Timing-margin repairs
+  are offline-verified; native/committed task wording still diverged. See
+  `.agents/ESCALATION_RESULTS.md` for exact coverage, usage and retained failures.
+  Stop for the next owner decision: one bounded retry of a never-released response,
+  or backend-controlled task speech. Neither is implemented. No deployment;
+  physical trials unrun and database capacity deferred.
+
+- ES-08 continuation C (2026-11-11): one bounded real Live attempt per scenario
+  on `4c787cc`; **zero complete journey passes** after semantic review. Recovery
+  spoke before authority and initially misidentified a sign; dialogue changed
+  the riddle clue and paused on AMBIGUOUS; social correctly negotiated the count
+  alternative and confirmed one welcome's playback, but described Stop as Pause.
+  Backend cancellation/budget/ownership guards held. Artifacts, usage and cleanup
+  are recorded in `.agents/ESCALATION_RESULTS.md`. No automatic retry. ES-08 is
+  incomplete; the owner subsequently approved the buffered speech stage recorded
+  in `.agents/PLAN_ESCALATION.md`. See the newer checkpoint for its verification. No deployment; physical
+  trials unrun and database capacity deferred.
+
+- ES-08 continuation B (2026-11-11): native Coordination startup guidance now
+  includes count/arrival limits and total action budgets before proposal review.
+  The instruction bound remains unchanged. Full local-MySQL regression passed
+  889 cases, skipped capacity and exposed one prompt-size edge case; after its
+  wording-only fix, all 46 affected cases and three real-app browser cases passed.
+  Also passed 193 Node, 11 preflight, packaging and whitespace checks. Exact
+  sequence is in `.agents/ESCALATION_RESULTS.md`. Three real Live journeys and
+  semantic review remain; physical trials are unrun and capacity stays deferred.
+
+- ES-08 continuation A (2026-11-11): delivery-aware Coordination uses a bounded
+  2.4-second observed assistant-silence window to keep nearby feedback sentences
+  together before verification. User interruption/overlap, muted/old input,
+  original capture/response/playback limits and receipt identities are covered;
+  other/legacy policies retain 800 ms. Passed 88 focused Java, 38 local-MySQL,
+  three browser, 193 Node and 11 runner checks; exact sequencing/limits are in
+  `.agents/ESCALATION_RESULTS.md`. Real Live acceptance remains pending the next
+  proposal correction and three-journey review. Capacity remains deferred.
+
 - Hand-detection integration (2026-11-11): integrate feature/hand-detection into
   main, then agents, with local merge commits only. Preserve calibrated capture
   time across the combined sign/pose inference and independent deliveries, newer
@@ -9804,6 +9890,26 @@ and whitespace checks passed. Evidence is retained under
 
 No schema migration or physical playback guarantee is introduced. This branch
 split includes local commits only; no push or deployment is authorized.
+
+## ES-08 bounded unheard correction (2026-11-11)
+
+After review of the earlier ES-08 attempts, the owner authorized one corrective
+realization of the same never-released task response. Approval-enabled Coordination
+now retains a valid semantic rejection until the scoped player can request that
+correction. A persisted attempt and separate speaking occasion preserve the original
+response/run/revision, contribution count and deadlines. At least ten verification
+seconds must remain; corrected capture must originate after reservation. Release
+is persisted before permission is returned, so acknowledgement loss cannot replay
+audio. A second mismatch, invalid authority, provider/capture failure or expiry
+keeps the existing recovery behavior. Ordinary/help/sensory speech is unchanged.
+
+Regression covers the changed-riddle case, concurrency, late capture, ownership,
+help, release uncertainty, database reload and production-browser playback. The
+existing acceptance fixtures now model audio lead-in before a later utterance,
+without relaxing production capture checks. Exact runs, retained failures and
+remaining Live/physical gates are recorded in `.agents/ESCALATION_RESULTS.md`.
+This work remains uncommitted for owner review; ES-08 is not declared complete.
+
 ## MediaPipe hand-detection branch (2026-11-05)
 
 Extracted the MediaPipe work from feature/hagrid-hand-sign-poc onto the shared

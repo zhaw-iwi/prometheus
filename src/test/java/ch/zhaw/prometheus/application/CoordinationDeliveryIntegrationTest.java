@@ -29,6 +29,38 @@ class CoordinationDeliveryIntegrationTest {
     @Autowired ExternalSpeechRecordingService recording;
     @Autowired ExternalSpeechOwnership ownership;
     @Autowired AgentActivityService activity;
+    @Autowired AgentApplicationService application;
+    @Autowired LiveSpeechApprovalService approvals;
+    @Autowired ch.zhaw.prometheus.repositories.LiveTranscriptSegmentRepository segments;
+    final Map<UUID, LiveSpeechApprovalService.Window> windows = new HashMap<>();
+    final Map<String, String> segmentIds = new HashMap<>();
+    String sid(String name) { return segmentIds.computeIfAbsent(name, ignored -> UUID.randomUUID().toString()); }
+    Event record(Scope scope, String name, String words, boolean complete, Instant started, List<LiveSpeechPart> parts) {
+        // These retained regressions exercise the earlier native approval path explicitly.
+        // Fresh production sessions select synthesis, covered by CommittedSpeechIntegrationTest.
+        var legacy = agents.findById(scope.id()).orElseThrow();
+        ((TaskPolicy) legacy.getCurrentState().ownPolicy()).storage().put(LiveCommittedSpeech.ENABLED, new JsonPrimitive(false));
+        agents.saveAndFlush(legacy);
+        String segment = sid(name);
+        var event = recording.record(scope.id(), scope.owner(), segment, words, List.of(), SpeechProvenance.Association.NONE, complete, started, parts).orElseThrow();
+        var row = new LiveTranscriptSegment(UUID.fromString(segment), agents.findById(scope.id()).orElseThrow(), scope.owner().sessionId(), scope.owner().epoch(),
+                "ASSISTANT", words, 0L, 1000L, started, "Coordination");
+        row.receipts(List.of("receipt-" + name)); row.finish(complete ? "COMPLETE" : "INCOMPLETE", null, event.getId()); segments.saveAndFlush(row);
+        return event;
+    }
+    void play(Scope scope, String name) {
+        var window = windows.computeIfAbsent(scope.id(), ignored -> new LiveSpeechApprovalService.Window());
+        String segment = sid(name);
+        var result = approvals.approve(scope.id(), scope.owner(), window, segment);
+        assertEquals("APPROVED", result.status());
+        if (memory(scope).containsKey(TaskResponse.KEY))
+            assertFalse(TaskCueStatus.of(agents.findById(scope.id()).orElseThrow(), Instant.now()).responseCaptured());
+        assertTrue(approvals.release(scope.id(), scope.owner(), window, result.id(), segment));
+        assertTrue(approvals.played(scope.id(), scope.owner(), window, result.id(), segment));
+        assertFalse(approvals.played(scope.id(), scope.owner(), window, result.id(), segment));
+        if (memory(scope).containsKey(TaskResponse.KEY))
+            assertTrue(TaskCueStatus.of(agents.findById(scope.id()).orElseThrow(), Instant.now()).responseCaptured());
+    }
     @org.springframework.test.context.bean.override.mockito.MockitoSpyBean LiveContextBridgeService bridge;
     @MockitoBean LanguageModelGateway gateway;
     record Scope(String code, UUID id, ExternalSpeech owner) {}
@@ -48,7 +80,71 @@ class CoordinationDeliveryIntegrationTest {
     void hear(Scope scope, boolean complete) {
         hear(scope, complete, "final-contribution", "The class is invited to the lab.");
     }
-    @Test void mergedEarlyRemarkKeepsNativeHistoryAndRequiresPlaybackOfTheLaterCheckedReply() throws Exception {
+    @Test void ordinarySpeechVerifiesOutsideTransactionAndAgentLockThenPersistsOnlyObservedPlayback() throws Exception {
+        String code = UUID.randomUUID().toString().substring(0, 5); var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(CoordinationAgent.KEY));
+        UUID id = demo.createAgent(code, CoordinationAgent.KEY).getID(), session = UUID.randomUUID();
+        var snapshot = contexts.claim(code, id, session).orElseThrow(); var scope = new Scope(code, id, new ExternalSpeech(session, snapshot.epoch()));
+        try {
+            interactionTurn(scope, "What can you do?", "KEEP", JsonNull.INSTANCE);
+            var response = memory(scope).get("core.task.response").getAsJsonObject();
+            String words = "We can agree a task, try it, and discuss how it went.";
+            record(scope, "ordinary", words, true, Instant.parse(response.get("created").getAsString()).plusMillis(1), List.of());
+            var checked = new java.util.concurrent.atomic.AtomicInteger();
+            when(gateway.infer(any())).thenAnswer(call -> {
+                assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+                java.util.concurrent.CompletableFuture.runAsync(() -> application.serialized(id, () -> null)).get(2, java.util.concurrent.TimeUnit.SECONDS);
+                checked.incrementAndGet();
+                var input = JsonParser.parseString(((InferenceRequest) call.getArgument(0)).messages().getLast().getContent()).getAsJsonObject();
+                var verdict = new JsonObject(); for (String key : List.of("responseId", "revision", "segmentId")) verdict.add(key, input.get(key));
+                verdict.addProperty("verdict", "MATCH"); return verdict.toString();
+            });
+            var before = agents.findById(id).orElseThrow().getEventHistory().toList().getLast();
+            assertTrue(ConversationProjection.isUnplayed(before)); assertNull(ConversationProjection.speech(before));
+            play(scope, "ordinary");
+            var after = agents.findById(id).orElseThrow().getEventHistory().toList().getLast();
+            assertEquals(words, ConversationProjection.speech(after)); assertTrue(after.speechProvenance().playbackConfirmed());
+            assertEquals(1, checked.get()); assertEquals(0, memory(scope).containsKey(TaskMemory.ACTIONS) ? memory(scope).get(TaskMemory.ACTIONS).getAsInt() : 0);
+            assertEquals("CONVERSATION", CoordinationMemory.stage(memory(scope)));
+        } finally { ownership.release(id, session); }
+    }
+    @Test void ordinaryCorrectionAndReleaseSurviveReloadWithoutChangingTaskAuthority() {
+        String code = UUID.randomUUID().toString().substring(0, 5); var access = admin.createAccessCode(code, true);
+        admin.replaceAllowedAgentTypes(access.getId(), List.of(CoordinationAgent.KEY));
+        UUID id = demo.createAgent(code, CoordinationAgent.KEY).getID(), session = UUID.randomUUID();
+        var snapshot = contexts.claim(code, id, session).orElseThrow(); var scope = new Scope(code, id, new ExternalSpeech(session, snapshot.epoch()));
+        try {
+            interactionTurn(scope, "What can you do?", "KEEP", JsonNull.INSTANCE);
+            var original = memory(scope).get("core.task.response").getAsJsonObject().deepCopy();
+            var checks = new java.util.concurrent.atomic.AtomicInteger();
+            when(gateway.infer(any())).thenAnswer(call -> {
+                var input = JsonParser.parseString(((InferenceRequest) call.getArgument(0)).messages().getLast().getContent()).getAsJsonObject();
+                var result = new JsonObject(); for (String key : List.of("responseId", "revision", "segmentId")) result.add(key, input.get(key));
+                result.addProperty("verdict", checks.incrementAndGet() == 1 ? "AMBIGUOUS" : "MATCH"); return result.toString();
+            });
+            var window = new LiveSpeechApprovalService.Window();
+            record(scope, "ordinary-rejected", "I have started a task.", true, Instant.now(), List.of());
+            assertEquals("CORRECTING", approvals.approve(id, scope.owner(), window, sid("ordinary-rejected")).status());
+            var corrected = memory(scope).get("core.task.response").getAsJsonObject();
+            for (String key : List.of("id", "facts", "created", "expires", "revision", "session", "epoch")) assertEquals(original.get(key), corrected.get(key));
+            var continuation = contexts.refresh(id, scope.owner()).orElseThrow().context().activity().continuation();
+            assertTrue(continuation.correction()); assertEquals(original.get("id").getAsString(), continuation.responseId().toString());
+            assertEquals("DISCARDED", approvals.approve(id, scope.owner(), new LiveSpeechApprovalService.Window(), sid("ordinary-rejected")).status());
+            record(scope, "ordinary-corrected", "We can agree a task and review it together.", true, Instant.now(), List.of());
+            var approved = approvals.approve(id, scope.owner(), window, sid("ordinary-corrected")); assertEquals("APPROVED", approved.status());
+            assertTrue(approvals.release(id, scope.owner(), window, approved.id(), sid("ordinary-corrected")));
+            assertTrue(memory(scope).get("core.task.response").getAsJsonObject().get("released").getAsBoolean());
+            assertEquals("DISCARDED", approvals.approve(id, scope.owner(), new LiveSpeechApprovalService.Window(), sid("ordinary-corrected")).status());
+            assertTrue(approvals.played(id, scope.owner(), window, approved.id(), sid("ordinary-corrected")));
+            assertEquals("CONVERSATION", CoordinationMemory.stage(memory(scope)));
+            assertFalse(memory(scope).containsKey(TaskMemory.ACTIONS)); assertEquals(2, checks.get());
+            var nativeEvents = agents.findById(id).orElseThrow().getEventHistory().toList().stream()
+                    .filter(e -> e.speechProvenance() != null && e.speechProvenance().origin() == SpeechProvenance.Origin.NATIVE).toList();
+            assertTrue(ConversationProjection.isUnplayed(nativeEvents.getFirst()));
+            assertEquals("We can agree a task and review it together.", ConversationProjection.speech(nativeEvents.getLast()));
+        } finally { ownership.release(id, session); }
+    }
+    @Test void mergedEarlyRemarkCannotClaimAWholeClipResponseOrBlockTheLaterAuthorizedClip() throws Exception {
         var scope = start();
         try {
             Instant created = Instant.parse(memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString());
@@ -60,32 +156,39 @@ class CoordinationDeliveryIntegrationTest {
                 var result = new JsonObject(); for (String key : List.of("responseId", "revision", "segmentId")) result.add(key, input.get(key));
                 result.addProperty("verdict", "MATCH"); return result.toString();
             }).when(gateway).infer(any());
-            var nativeSpeech = recording.record(scope.id(), scope.owner(), "merged", early + reply, List.of(),
-                    SpeechProvenance.Association.NONE, true, created.minusMillis(1),
+            var nativeSpeech = record(scope, "merged", early + reply, true, created.minusMillis(1),
                     List.of(new LiveSpeechPart(" " + early, created.minusMillis(1)), new LiveSpeechPart("The class is invited ", created.plusNanos(1)),
-                            new LiveSpeechPart("to the lab. \n", created.plusNanos(2)))).orElseThrow();
-            awaitCaptured(scope);
-            assertEquals(reply, checked.get());
+                            new LiveSpeechPart("to the lab. \n", created.plusNanos(2))));
+            assertEquals("PENDING", TaskResponse.status(memory(scope)));
+            assertNull(checked.get(), "Do not spend a check on a suffix that the player cannot release");
             assertEquals(early + reply, ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(nativeSpeech.getPayload()).getSpeech());
             assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
             assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
             var cue = contexts.refresh(scope.id(), scope.owner()).orElseThrow().context().activity().playbackCue();
-            assertEquals("merged", cue.segmentId());
+            assertNull(cue.segmentId());
             assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "early"));
-            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "merged"));
+            assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), sid("merged")));
+            assertEquals("DISCARDED", approvals.approve(scope.id(), scope.owner(), new LiveSpeechApprovalService.Window(), sid("merged")).status());
+            assertNull(ConversationProjection.speech(nativeSpeech));
+            assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
+            record(scope, "whole", reply, true, Instant.now(), List.of());
+            awaitCaptured(scope); assertEquals(reply, checked.get());
+            assertEquals(0, memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("speechOffset").getAsInt());
+            play(scope, "whole");
+            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), sid("whole")));
             assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+            assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
         } finally { ownership.release(scope.id(), scope.owner().sessionId()); }
     }
     void hear(Scope scope, boolean complete, String segment, String words) {
-        Instant started = Instant.parse(memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString()).plusNanos(1);
+        Instant started = Instant.parse(memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString()).plusMillis(1);
         doAnswer(call -> {
             var request = (InferenceRequest) call.getArgument(0);
             var input = JsonParser.parseString(request.messages().getLast().getContent()).getAsJsonObject();
             var result = new JsonObject(); for (String key : List.of("responseId", "revision", "segmentId")) result.add(key, input.get(key));
             result.addProperty("verdict", "MATCH"); return result.toString();
         }).when(gateway).infer(any());
-        assertTrue(recording.record(scope.id(), scope.owner(), segment, words,
-                List.of(), SpeechProvenance.Association.NONE, complete, started).isPresent());
+        record(scope, segment, words, complete, started, List.of());
     }
     @Test void scissorsConversationReachesReflectionOnlyAfterOneCapturedAndPlayedContribution() throws Exception {
         JsonObject fixture;
@@ -120,7 +223,7 @@ class CoordinationDeliveryIntegrationTest {
             assertEquals(proposal, memory(scope).get(CoordinationMemory.AGREEMENT));
             assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
             hear(scope, true, "interaction-arming", "The task is active. Show a fresh scissor sign for one joke.");
-            awaitCaptured(scope);
+            awaitCaptured(scope); play(scope, "interaction-arming");
             // The real three-second cue cooldown is part of the contract; do not replace it with a storage edit.
             Instant after = Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString());
             long delay = java.time.Duration.between(Instant.now(), after).toMillis();
@@ -133,6 +236,8 @@ class CoordinationDeliveryIntegrationTest {
             var cue = contexts.refresh(id, scope.owner()).orElseThrow().context().activity().playbackCue();
             assertNotNull(cue.segmentId());
             assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
+            assertFalse(contexts.playbackSettled(code, id, scope.owner(), cue.id(), cue.segmentId()));
+            play(scope, "interaction-joke");
             assertTrue(contexts.playbackSettled(code, id, scope.owner(), cue.id(), cue.segmentId()));
             assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
             interactionTurn(scope, words.get("acknowledge").getAsString(), "REFLECT", JsonNull.INSTANCE);
@@ -159,9 +264,50 @@ class CoordinationDeliveryIntegrationTest {
                 "{\"sign\":\"scissor\",\"confidence\":0.93,\"ts\":\"" + observed + "\"}"), OutputProfile.FULL_PLAN).orElseThrow();
     }
     void awaitCaptured(Scope scope) throws Exception {
+        awaitResponse(scope, "CAPTURED");
+    }
+    void awaitResponse(Scope scope, String expected) throws Exception {
         long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
-        while (!"CAPTURED".equals(TaskResponse.status(memory(scope))) && System.nanoTime() < deadline) Thread.sleep(20);
-        assertEquals("CAPTURED", TaskResponse.status(memory(scope)));
+        while (!expected.equals(TaskResponse.status(memory(scope))) && System.nanoTime() < deadline) Thread.sleep(20);
+        assertEquals(expected, TaskResponse.status(memory(scope)));
+    }
+    @Test void unheardCorrectionReloadsWithOneContributionAndReleasedSpeechCannotReplay() throws Exception {
+        var scope = start();
+        try {
+            var original = memory(scope).get(TaskResponse.KEY).getAsJsonObject().deepCopy();
+            var checks = new java.util.concurrent.atomic.AtomicInteger();
+            doAnswer(call -> {
+                var input = JsonParser.parseString(((InferenceRequest) call.getArgument(0)).messages().getLast().getContent()).getAsJsonObject();
+                var result = new JsonObject(); for (String key : List.of("responseId", "revision", "segmentId")) result.add(key, input.get(key));
+                result.addProperty("verdict", checks.incrementAndGet() == 1 ? "AMBIGUOUS" : "MATCH"); return result.toString();
+            }).when(gateway).infer(any());
+            record(scope, "rejected", "The class is not invited to the lab.", true, Instant.now(), List.of());
+            awaitResponse(scope, "REJECTED");
+            assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
+            var window = new LiveSpeechApprovalService.Window();
+            assertEquals("DISCARDED", approvals.approve(scope.id(), new ExternalSpeech(UUID.randomUUID(), scope.owner().epoch()),
+                    window, sid("rejected")).status());
+            assertEquals("CORRECTING", approvals.approve(scope.id(), scope.owner(), window, sid("rejected")).status());
+            var reloaded = memory(scope).get(TaskResponse.KEY).getAsJsonObject();
+            for (String key : List.of("id", "created", "deadline", "revision", "facts", "session", "epoch")) assertEquals(original.get(key), reloaded.get(key));
+            var continuation = contexts.refresh(scope.id(), scope.owner()).orElseThrow().context().activity().continuation();
+            assertEquals(TaskResponse.correctionId(memory(scope)), continuation.id()); assertTrue(continuation.correction());
+            assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+            record(scope, "corrected", "The class is invited to the lab.", true, Instant.now(), List.of()); awaitCaptured(scope);
+            var approved = approvals.approve(scope.id(), scope.owner(), window, sid("corrected"));
+            assertEquals("APPROVED", approved.status());
+            assertTrue(approvals.release(scope.id(), scope.owner(), window, approved.id(), sid("corrected")));
+            assertTrue(TaskResponse.released(memory(scope)));
+            assertEquals("DISCARDED", approvals.approve(scope.id(), scope.owner(), new LiveSpeechApprovalService.Window(), sid("corrected")).status());
+            assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), approved.id(), sid("corrected")));
+            assertTrue(approvals.played(scope.id(), scope.owner(), window, approved.id(), sid("corrected")));
+            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), approved.id(), sid("corrected")));
+            assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope))); assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+            var nativeEvents = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().stream()
+                    .filter(e -> e.speechProvenance() != null && e.speechProvenance().origin() == SpeechProvenance.Origin.NATIVE).toList();
+            assertEquals(2, nativeEvents.size()); assertTrue(ConversationProjection.isUnplayed(nativeEvents.getFirst()));
+            assertEquals("The class is invited to the lab.", ConversationProjection.speech(nativeEvents.getLast())); assertEquals(2, checks.get());
+        } finally { ownership.release(scope.id(), scope.owner().sessionId()); }
     }
     @Test void finishingReloadsAndOnlyScopedAssociatedPlaybackCompletesIt() throws Exception {
         var scope = start();
@@ -188,7 +334,9 @@ class CoordinationDeliveryIntegrationTest {
                     event.agentId().equals(scope.id()) && event.owner().equals(scope.owner())));
             assertFalse(contexts.playbackSettled(scope.code(), scope.id(), new ExternalSpeech(UUID.randomUUID(), scope.owner().epoch()), pending.id(), "final-contribution"));
             assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), pending.id(), "different-segment"));
-            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), pending.id(), "final-contribution"));
+            assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), pending.id(), sid("final-contribution")));
+            play(scope, "final-contribution");
+            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), pending.id(), sid("final-contribution")));
             assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
             assertEquals("Coordination reflection", agents.findById(scope.id()).orElseThrow().getCurrentState().getName());
             assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), pending.id(), "final-contribution"));
@@ -209,14 +357,15 @@ class CoordinationDeliveryIntegrationTest {
             var storage = ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
             TaskResponse.contribution(storage, "Required spoken content: The class is invited to the lab.", "The class is invited to the lab.");
             agents.saveAndFlush(agent); clearInvocations(gateway);
-            var started = Instant.parse(memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString()).plusNanos(1);
-            recording.record(scope.id(), scope.owner(), "literal", "The class is invited to the lab!", List.of(), SpeechProvenance.Association.NONE, true, started).orElseThrow();
+            var started = Instant.parse(memory(scope).get(TaskResponse.KEY).getAsJsonObject().get("created").getAsString()).plusMillis(1);
+            record(scope, "literal", "The class is invited to the lab!", true, started, List.of());
             long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
             while (!"CAPTURED".equals(TaskResponse.status(memory(scope))) && System.nanoTime() < deadline) Thread.sleep(20);
             assertEquals("CAPTURED", TaskResponse.status(memory(scope))); verifyNoInteractions(gateway);
             assertEquals("FINISHING", CoordinationMemory.stage(memory(scope)));
             var cue = contexts.refresh(scope.id(), scope.owner()).orElseThrow().context().activity().playbackCue();
-            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "literal"));
+            play(scope, "literal"); verifyNoInteractions(gateway);
+            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), sid("literal")));
             assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
         } finally { ownership.release(scope.id(), scope.owner().sessionId()); }
     }
@@ -227,7 +376,7 @@ class CoordinationDeliveryIntegrationTest {
         var calls = new java.util.concurrent.atomic.AtomicInteger();
         try {
             var response = memory(scope).get(TaskResponse.KEY).getAsJsonObject();
-            Instant started = Instant.parse(response.get("created").getAsString()).plusNanos(1);
+            Instant started = Instant.parse(response.get("created").getAsString()).plusMillis(1);
             when(gateway.infer(any())).thenAnswer(call -> {
                 var input = JsonParser.parseString(((InferenceRequest) call.getArgument(0)).messages().getLast().getContent()).getAsJsonObject();
                 int n = calls.incrementAndGet();
@@ -235,21 +384,22 @@ class CoordinationDeliveryIntegrationTest {
                 var result = new JsonObject(); for (String key : List.of("responseId", "revision", "segmentId")) result.add(key, input.get(key));
                 result.addProperty("verdict", n == 1 ? "UNRELATED" : "MATCH"); return result.toString();
             });
-            recording.record(scope.id(), scope.owner(), "unrelated", "I am waiting for further conversation.", List.of(), SpeechProvenance.Association.NONE, true, started).orElseThrow();
+            record(scope, "unrelated", "I am waiting for further conversation.", true, started, List.of());
             assertTrue(checking.await(5, java.util.concurrent.TimeUnit.SECONDS));
-            recording.record(scope.id(), scope.owner(), "actual", "The class is invited to the lab.", List.of(), SpeechProvenance.Association.NONE, true, started.plusNanos(1)).orElseThrow();
-            assertEquals("actual", memory(scope).get(TaskResponse.KEY).getAsJsonObject().getAsJsonObject("candidate").get("segment").getAsString());
+            record(scope, "actual", "The class is invited to the lab.", true, started.plusMillis(1), List.of());
+            assertEquals(sid("actual"), memory(scope).get(TaskResponse.KEY).getAsJsonObject().getAsJsonObject("candidate").get("segment").getAsString());
             release.countDown();
             long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
             while (!"CAPTURED".equals(TaskResponse.status(memory(scope))) && System.nanoTime() < deadline) Thread.sleep(20);
             assertEquals("CAPTURED", TaskResponse.status(memory(scope))); assertEquals(2, calls.get());
             var captured = memory(scope).get(TaskResponse.KEY).getAsJsonObject();
             assertEquals(response.get("id"), captured.get("id")); assertEquals(response.get("deadline"), captured.get("deadline"));
-            assertEquals("actual", captured.get("segment").getAsString()); assertFalse(captured.has("candidate"));
+            assertEquals(sid("actual"), captured.get("segment").getAsString()); assertFalse(captured.has("candidate"));
             assertEquals("FINISHING", CoordinationMemory.stage(memory(scope))); assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
             var cue = contexts.refresh(scope.id(), scope.owner()).orElseThrow().context().activity().playbackCue();
             assertFalse(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "unrelated"));
-            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), "actual"));
+            play(scope, "actual");
+            assertTrue(contexts.playbackSettled(scope.code(), scope.id(), scope.owner(), cue.id(), sid("actual")));
             assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
         } finally { release.countDown(); ownership.release(scope.id(), scope.owner().sessionId()); }
     }

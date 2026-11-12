@@ -64,7 +64,7 @@ public final class LiveContextDelivery {
         else if (current.activity() == null && delivered.activity() != null)
             add(commands, "thinking", "CURRENT ACTIVITY DATA removed; prior activity facts are no longer current.", null, null, revision);
         var continuation = current.activity() == null ? null : current.activity().continuation();
-        if (continuation != null && !attemptedNarrations.contains(continuation.id())) {
+        if (!current.committedSpeechOutput() && continuation != null && !attemptedNarrations.contains(continuation.id())) {
             if (attemptedNarrations.size() >= 4096) throw new IllegalStateException("Narration identity capacity reached");
             attemptedNarrations.add(continuation.id());
             var occasion = new ArrayList<Command>();
@@ -74,16 +74,22 @@ public final class LiveContextDelivery {
                     // Content and permission arrive together. Publishing the requested answer first as
                     // quiet facts lets native speech race a second, separate speaking instruction.
                     String content = "Confirmed reply " + continuation.id()
-                            + ". Say once, preserving meaning; do not repeat it or read metadata: " + continuation.facts();
+                            + (continuation.correction() ? ". Unheard draft rejected. Correct it once; keep every clue and fact, no additions: "
+                            : current.speechApprovalRequired() ? ". Prior drafts were unheard. Say this now; preserve all meaning: "
+                                    : ". Say once, preserving meaning; do not repeat it or read metadata: ") + continuation.facts();
                     if (bytes(content) > MAX_APPEND_BYTES) throw new IllegalStateException("Confirmed reply exceeds one append");
                     occasion.add(new Command("session.commentary.append", content, null, continuation.id(), revision));
                 } else {
                     add(occasion, "thinking", label + continuation.facts(), null, continuation.id(), revision);
-                    add(occasion, "commentary", "Use the confirmed facts for speaking occasion " + continuation.id()
+                    add(occasion, "commentary", continuation.correction()
+                            ? "Correct the unheard rejected draft for occasion " + continuation.id()
+                                + ". Say only the unchanged committed response from current facts. Preserve every clue, quantity and control state; no apology or additions. This is the sole correction, not a new task action."
+                            : "Use the confirmed facts for speaking occasion " + continuation.id()
                             + (continuation.occasion() == ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST
                                     ? ". Continue the visitor's pending request once, in your own words."
                                     : ". Make the authorized proactive comment once, in your own words.")
-                            + " Do not repeat an answer already spoken or read metadata aloud.", null, continuation.id(), revision);
+                            + (current.speechApprovalRequired() ? " Earlier drafts were unheard. Give this confirmed reply now, preserving every fact."
+                                    : " Do not repeat an answer already spoken or read metadata aloud."), null, continuation.id(), revision);
                 }
                 for (var command : occasion) commands.add(new Command(command.type(), command.content(), null,
                         continuation.id(), revision, null, continuation.expiresAt(), continuation.interruptible()));
@@ -91,6 +97,7 @@ public final class LiveContextDelivery {
         }
         // Legacy backend speech intents retain their existing delivery contract.
         for (Narration narration : narrations) {
+            if (current.committedSpeechOutput()) continue;
             if (attemptedNarrations.contains(narration.sourceId())) continue;
             if (attemptedNarrations.size() >= 4096) throw new IllegalStateException("Narration identity capacity reached");
             attemptedNarrations.add(narration.sourceId());
@@ -131,7 +138,7 @@ public final class LiveContextDelivery {
             var items = new ArrayList<>(current.items().stream().filter(item -> !deferred.contains(item.type())).toList());
             items.addAll(delivered.items().stream().filter(item -> deferred.contains(item.type())).toList());
             delivered = new LiveContextSnapshot(current.agentId(), current.epoch(), current.revision(), current.builtAt(),
-                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance(), current.userSilenceMs(), current.activity(), current.filterIsolatedInputActivity(), current.pendingAcknowledgements());
+                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance(), current.userSilenceMs(), current.activity(), current.filterIsolatedInputActivity(), current.pendingAcknowledgements(), current.assistantSilenceMs(), current.speechApprovalRequired(), current.committedSpeechOutput());
         }
         return delivered;
     }

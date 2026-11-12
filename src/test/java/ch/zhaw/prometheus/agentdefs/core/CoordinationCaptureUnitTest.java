@@ -25,18 +25,31 @@ class CoordinationCaptureUnitTest {
     }
     @Test void completeButUnfinishedAnswerGetsALiveSupportOccasionWithoutSpending() {
         var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(false), f.text); f.start(f.text);
+        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
         var revision = f.storage().get(TaskMemory.REVISION).deepCopy();
+        var agreement = f.storage().get(CoordinationMemory.AGREEMENT).deepCopy();
+        var phase = TaskMemory.phase(f.storage());
         clearInvocations(f.gateway); f.say("My answer is", f.live);
         assertEquals(revision, f.storage().get(TaskMemory.REVISION));
+        assertEquals(agreement, f.storage().get(CoordinationMemory.AGREEMENT));
+        assertEquals(phase, TaskMemory.phase(f.storage()));
         assertEquals(0, f.storage().get(TaskMemory.ACTIONS).getAsInt());
         assertFalse(f.storage().containsKey(TaskResponse.KEY));
         var response = f.storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject();
         assertTrue(response.get("supportOnly").getAsBoolean());
-        assertTrue(f.policy().liveActivityContext().facts().contains("finish that request"));
-        assertNotNull(f.policy().liveActivityContext().continuation()); verifyNoInteractions(f.gateway);
+        var context = f.policy().liveActivityContext();
+        assertFalse(context.facts().contains("finish that request"));
+        assertTrue(context.continuation().selfContained());
+        assertEquals("Speak these words verbatim: \"Please finish that request.\"", context.continuation().facts());
+        assertEquals(response.get("id").getAsString(), context.continuation().id().toString());
+        assertEquals(response.get("expires").getAsString(), context.continuation().expiresAt().toString());
+        assertTrue(f.policy().liveSpeechRequest(f.owner).postCommitOnly(), "An early acknowledgement cannot consume the committed clarification");
+        verifyNoInteractions(f.gateway);
     }
-    @Test void unfinishedAnswerCannotReplaceAnInFlightResponseOrItsDeadline() {
+    @ParameterizedTest @ValueSource(strings = {"PENDING", "REJECTED"})
+    void unfinishedAnswerCannotReplaceAnInFlightResponseOrItsDeadline(String status) {
         var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(false), f.live); f.start(f.live);
+        var response = f.storage().get(TaskResponse.KEY).getAsJsonObject(); response.addProperty("status", status); f.storage().put(TaskResponse.KEY, response);
         var pending = f.storage().get(TaskResponse.KEY).deepCopy();
         var permission = f.storage().get(CoreTaskVoice.RESPONSE).deepCopy();
         clearInvocations(f.gateway); f.say("My answer is", f.live);

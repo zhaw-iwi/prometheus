@@ -22,6 +22,15 @@ import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.model.policy.PromptPolicy;
 
 class LiveContextProjectionUnitTest {
+    @Test void onlyDeliveryAwareCoordinationOptsIntoAssistantSentenceAssembly() {
+        var coordination = new ch.zhaw.prometheus.agentdefs.core.CoordinationAgent().createAgent();
+        var result = projection(NOW).project(coordination);
+        assertEquals(2400, result.assistantSilenceMs()); assertEquals(2000, result.userSilenceMs());
+        assertEquals(800, projection(NOW).project(new MultimodalBehaviour().createAgent()).assistantSilenceMs());
+        var storage = ((ch.zhaw.prometheus.agentdefs.core.CoordinationPolicy) leaf(coordination).ownPolicy()).storage();
+        storage.remove("coordination.deliveryEnabled");
+        assertEquals(800, projection(NOW).project(coordination).assistantSilenceMs());
+    }
     static final Instant NOW = Instant.parse("2026-09-27T12:00:00Z");
     LiveContextProjection projection(Instant now) {
         return new LiveContextProjection(new PromptMessageAssembler(), new LiveVoicePolicyAdapter(), Clock.fixed(now, ZoneOffset.UTC));

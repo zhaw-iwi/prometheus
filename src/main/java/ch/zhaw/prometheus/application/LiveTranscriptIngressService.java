@@ -185,6 +185,14 @@ public class LiveTranscriptIngressService {
                 .map(Event::getCreatedDate).filter(java.util.Objects::nonNull).max(Instant::compareTo).orElse(null);
         boolean activityOwned = leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy
                 && policy.liveActivityContext() != null;
+        if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy && policy.liveCommittedSpeechOutput()
+                && policy.liveResolvedControlReply(segment.text(), agent.getEventHistory(), owner)
+                && agent.getEventHistory().toList().stream().anyMatch(event -> {
+                    var p = event.speechProvenance();
+                    return p != null && p.origin() == SpeechProvenance.Origin.SYNTHESIZED && Boolean.TRUE.equals(p.playbackConfirmed())
+                            && owner.sessionId().equals(p.sessionId()) && owner.epoch().equals(p.epoch())
+                            && event.getCreatedDate() != null && event.getCreatedDate().isBefore(Instant.ofEpochMilli(segment.firstReceivedMs()));
+                })) return false;
         var preceding = segments.findTop20ByAgent_IdAndEpochAndSpeakerAndStatusOrderByRecordedAtDesc(agent.getId(), owner.epoch(), "ASSISTANT", "COMPLETE")
                 .stream().filter(previous -> owner.sessionId().equals(previous.getSessionId())).toList();
         if (!preceding.isEmpty() && segment.startMs() != null && preceding.getFirst().getEndMs() != null

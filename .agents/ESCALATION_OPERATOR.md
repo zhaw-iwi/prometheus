@@ -1,10 +1,23 @@
 # Coordination escalation: operator acceptance
 
-Use a dedicated local/test environment containing the consolidated main revision.
-ES-08 behavioural acceptance remains incomplete. Main-branch verification does
-not update the separate deployment branch or existing remote application. Keep
+**Current scope, 2026-11-12:** the owner approved existing Speech for committed
+Coordination replies. ES-08's agreed behavioural scope is complete; the three
+synthetic real-provider journeys have separate semantic PASS reviews and final
+regression checks. This supersedes historical pending-choice/native-output instructions
+below. Read the top of `ESCALATION_RESULTS.md` for current checks and outcomes;
+physical trials, capacity and deployment remain separate. No commit or deployment
+has been performed in this continuation.
+
+Use a dedicated local/test environment containing the reviewed main revision.
+Main-branch verification does not update the separate deployment branch or
+existing remote application. Keep
 database capacity separate: it is deferred under the owner's November 11 scope
 update, and ES-07's short run failed the earlier deployment quota.
+The latest synthetic acceptance and retained failures are in
+`ESCALATION_RESULTS.md`. The owner-approved output design is implemented and
+recorded in `ES08_SPEECH_DELIVERY_DECISION.md`: Live input plus the existing
+Speech service for committed replies. Do not certify a physical trial from
+synthetic runs.
 Do not use a six-user class as a load test before provisioning/optimization and
 a representative sustained 60-70 minute acceptance run.
 
@@ -17,7 +30,8 @@ a representative sustained 60-70 minute acceptance run.
 2. Check camera permission and hand/social acknowledgement indicators; a browser
    detection is not proof of backend receipt. Select and test microphone/speaker
    devices, avoid feedback, and make sure only one tab owns audio capture/output.
-3. Choose either GPT-Live or ordinary text plus output-only Speech. Synthetic
+3. Choose either GPT-Live input with committed Speech output (Alloy), or ordinary
+   text plus output-only Speech. Synthetic
    acceptance does not certify physical audibility, visual recognition accuracy,
    pedagogical quality or room acoustics. Record each separately.
 
@@ -38,6 +52,13 @@ a representative sustained 60-70 minute acceptance run.
 | Return | Return to Conversation, ask the current state. | Actual state agrees with speech; prior outcomes and history remain available. |
 
 ## Teardown and evidence
+
+If synthesis or release fails, confirm that no native fallback reaches the
+selected speaker or appears as delivered conversation. A response is synthesized
+at most once; a lost release/playback acknowledgement cannot authorize replay.
+The original response and playback deadlines remain. Inspect SYNTHESIZED
+provenance and observed playback separately. A caption, generated PCM or successful
+release is not proof of complete audible playback.
 
 Explicitly Stop the task when ending an active trial, verify backend status, then
 stop Live/transcription/sensing and disconnect. Local capture teardown during an
