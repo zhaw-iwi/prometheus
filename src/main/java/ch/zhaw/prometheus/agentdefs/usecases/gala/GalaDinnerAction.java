@@ -516,7 +516,7 @@ public class GalaDinnerAction extends Action {
             display.addProperty("instruction", GalaDinnerLanguage.english(storage)
                     ? "Hold one hand still and clearly visible in front of the camera for a moment."
                     : "Halte eine Hand kurz ruhig und gut sichtbar vor die Kamera.");
-            display.addProperty("minimumConfidence", GalaDinnerHandSigns.MIN_CONFIDENCE);
+            display.addProperty("minimumConfidence", 0); // Confidence filtering belongs to the client.
             display.addProperty("cameraStableFrames", 3);
         }
         return display;

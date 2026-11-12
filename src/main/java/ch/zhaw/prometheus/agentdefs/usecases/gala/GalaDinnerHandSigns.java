@@ -7,9 +7,8 @@ import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.event.ObservationEvidence;
 
-/** RPS acceptance is separate from browser emission; no frame-by-frame state writes. */
+/** The client owns the confidence cutoff; RPS validates range, capture and observation evidence. */
 final class GalaDinnerHandSigns {
-    static final double MIN_CONFIDENCE = 0.7;
     private GalaDinnerHandSigns() {}
 
     static String rejection(JsonObject data, String captureId, Instant started, Instant now, Instant newer) {
@@ -24,7 +23,7 @@ final class GalaDinnerHandSigns {
             var confidence = data.get("confidence");
             if (confidence == null || !confidence.isJsonPrimitive() || !confidence.getAsJsonPrimitive().isNumber()) return "rps_low_confidence";
             double value = confidence.getAsDouble();
-            if (!Double.isFinite(value) || value < MIN_CONFIDENCE || value > 1) return "rps_low_confidence";
+            if (!Double.isFinite(value) || value < 0 || value > 1) return "rps_low_confidence";
             if (data.has("source") && "valerian.hand.camera".equals(data.get("source").getAsString())) {
                 var frames = data.get("stabilityFrames");
                 if (frames == null || !frames.isJsonPrimitive() || !frames.getAsJsonPrimitive().isNumber()

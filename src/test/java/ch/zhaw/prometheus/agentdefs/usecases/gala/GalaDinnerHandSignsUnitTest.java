@@ -16,9 +16,17 @@ class GalaDinnerHandSignsUnitTest {
         data.addProperty("ts", at.toString()); data.addProperty("source", "valerian.hand.camera");
         data.addProperty("stabilityFrames", 3); return data;
     }
-    @ParameterizedTest @CsvSource({"0.65,rps_low_confidence", "0.699,rps_low_confidence", "0.7,ACCEPT", "1.0,ACCEPT", "1.01,rps_low_confidence"})
-    void confidenceIsAnAcceptanceBoundaryRatherThanAnEmissionClaim(double confidence, String reason) {
+    @ParameterizedTest @CsvSource({"-0.01,rps_low_confidence", "0,ACCEPT", "0.64,ACCEPT", "0.699,ACCEPT", "0.7,ACCEPT", "1.0,ACCEPT", "1.01,rps_low_confidence"})
+    void confidenceMustBeValidWithoutAddingAnotherClientThreshold(double confidence, String reason) {
         assertEquals("ACCEPT".equals(reason) ? null : reason, GalaDinnerHandSigns.rejection(sample(confidence, now), "", started, now, null));
+    }
+    @Test void malformedConfidenceIsRejectedEvenWithoutAnAdditionalMinimum() {
+        for (var value : java.util.List.of(new com.google.gson.JsonPrimitive("0.64"),
+                new com.google.gson.JsonPrimitive(true), new com.google.gson.JsonPrimitive(Double.NaN),
+                new com.google.gson.JsonPrimitive(Double.POSITIVE_INFINITY), com.google.gson.JsonNull.INSTANCE)) {
+            var data = sample(.64, now); data.add("confidence", value);
+            assertEquals("rps_low_confidence", GalaDinnerHandSigns.rejection(data, "", started, now, null));
+        }
     }
     @Test void missingConfidenceAndUnstableCameraEvidenceAreNotAccepted() {
         var data = sample(.9, now); data.remove("confidence");

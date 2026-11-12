@@ -82,6 +82,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Gala/Swiss RPS confidence control (2026-11-12): preparation and playing
+  captures now rely on the cockpit's configured hand confidence threshold,
+  without an additional backend 0.70 floor. Confidence must remain numeric in
+  [0, 1]; three-sample camera stability, capture identity, source freshness,
+  ordering, countdown and replay checks remain. Paper at 0.64 completes
+  preparation and a round after client qualification. The shared Core RPS fix
+  is merged from main. Verification passed 244 Java unit checks and 65
+  JavaScript assertion bodies across both cockpits using a temporary sequential
+  harness. Restart the backend and hard-refresh the cockpit; no schema migration
+  or agent recreation is needed. Physical camera/robot trials were not rerun.
+
 - Core RPS confidence control (2026-11-12): the client's configured hand
   confidence threshold governs emission, without an additional backend 0.70
   floor. Core RPS validates numeric confidence in [0, 1] and retains capture

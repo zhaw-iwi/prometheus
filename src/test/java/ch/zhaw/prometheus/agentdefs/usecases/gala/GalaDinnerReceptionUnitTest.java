@@ -111,7 +111,7 @@ class GalaDinnerReceptionUnitTest {
         assertNotNull(GalaRpsTestFixture.countdownPlayed(agent, runtime));
         Instant began = time(memory, STARTED);
         assertNull(hand("paper", began.minusSeconds(1), 1));
-        assertNull(hand("paper", began.plusMillis(1), 0.2));
+        assertNull(hand("paper", began.plusMillis(1), -0.01));
         assertNull(hand("lizard", began.plusMillis(1), 1));
         assertNull(agent.acknowledge(Event.observation(Event.TYPE_HAND_SIGN, "sensor", "{}"), runtime));
         assertEquals("RPS", mode(memory));
@@ -172,12 +172,12 @@ class GalaDinnerReceptionUnitTest {
             when(gateway.infer(any())).thenReturn(answer("START_RPS", ""));
             say("Schere Stein Papier bitte");
             var start = BehaviourPlan.fromJson(GalaRpsTestFixture.countdownPlayed(agent, runtime).getPayload());
-            assertEquals(.7, start.getDisplay().getAsJsonObject().get("minimumConfidence").getAsDouble());
+            assertEquals(0, start.getDisplay().getAsJsonObject().get("minimumConfidence").getAsDouble());
             verify(sink).cue(eq("rps_waiting_for_sign"), any(), eq(Event.TYPE_HAND_SIGN));
             Instant at = time(memory, STARTED).plusMillis(10);
-            assertNull(hand("paper", at, .65));
+            assertNull(hand("paper", at, -.01));
             verify(sink).cue(eq("rps_low_confidence"), any(), eq(Event.TYPE_HAND_SIGN));
-            assertNotNull(hand("paper", at.plusMillis(1), .7));
+            assertNotNull(hand("paper", at.plusMillis(1), .64));
             verify(sink).cue(eq("cue_matched"), any(), eq(Event.TYPE_HAND_SIGN));
             verify(sink).cue(eq("rps_round_completed"), any(), eq(Event.TYPE_HAND_SIGN));
             assertNull(hand("paper", at.plusMillis(2), .99));

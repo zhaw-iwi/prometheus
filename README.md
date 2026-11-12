@@ -875,7 +875,8 @@ quoted examples are not covered by this narrow rule.
   restore it. Physical gesture
   execution, camera attribution and result latency still need device testing. Accepted
   signs are `rock`, `scissor`, `paper`; timestamps must be fresh and at/after capture
-  opening; numeric confidence must be between 0.7 and 1. Camera samples require three
+  opening; numeric confidence must be between 0 and 1, with the client owning the
+  configured confidence threshold. Camera samples require three
   stable frames. Each newly started/resumed capture also requires the exact
   `captureId` from the opening display, even for manual observations. Wrong/missing
   IDs cannot finish the round or affect its observation ordering. Resumption keeps
@@ -1016,10 +1017,11 @@ Gala RPS readiness comes from the active round. The shared activity footer now
 distinguishes no round, waiting, low-confidence/unstable/stale/out-of-order input,
 accepted cue, completed round and cancellation. These content-free diagnostics
 reuse the bounded activity journal; they do not start a game or request speech.
-The browser's default 0.65 confidence is a send threshold, not acceptance. Gala
-keeps its 0.70 acceptance threshold, requires source freshness after round start,
-and checks the existing three-frame metadata for camera-origin readings. Missing
-confidence is unknown. Explicit operator hand injection has no camera-frame count.
+The browser's configured hand confidence threshold governs RPS preparation and
+rounds, without an additional game minimum. Gala validates confidence in [0, 1],
+requires source freshness after round start and checks the existing three-frame
+metadata for camera-origin readings. Missing confidence is unknown. Explicit
+operator hand injection has no camera-frame count.
 A confirmed introduction asks for one visible hand held briefly steady, without
 claiming speaker-to-hand identity. A held sign after completion cannot replay it.
 The last display plan remains a historical request; the activity state controls

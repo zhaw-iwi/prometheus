@@ -96,7 +96,7 @@ class GalaDinnerRpsPreparationUnitTest {
         assertEquals("RPS_SETUP", mode(memory)); assertFalse(memory.containsKey(SIGN));
         assertEquals(occasion, text(memory, CONTINUATION_ID, ""), "Progress updates must not request repeated speech");
         assertTrue(new GalaDinnerPolicy(memory).liveActivityContext().facts().contains("still needed: [paper]"));
-        var start = BehaviourPlan.fromJson(hand("paper", Instant.now(), .99).getPayload());
+        var start = BehaviourPlan.fromJson(hand("paper", Instant.now(), .64).getPayload());
         assertEquals("Gala rock-scissor-paper countdown", agent.getCurrentState().getName());
         assertNull(start.getMotion());
         assertFalse(memory.containsKey(CAPTURE_ID));
@@ -108,7 +108,7 @@ class GalaDinnerRpsPreparationUnitTest {
         assertNotEquals(capture, text(memory, CAPTURE_ID, ""));
         assertFalse(memory.containsKey(RPS_RECOGNISED));
         assertNull(hand("paper", Instant.now(), .99, capture), "Preparation frames cannot decide the game");
-        assertNotNull(hand("paper", Instant.now(), .99));
+        assertNotNull(hand("paper", Instant.now(), .64));
         assertEquals("RECEPTION", mode(memory));
         assertEquals("true", text(memory, RPS_PREPARED, ""));
         var replay = BehaviourPlan.fromJson(say("Noch einmal bitte").getPayload());
@@ -124,7 +124,7 @@ class GalaDinnerRpsPreparationUnitTest {
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_RPS", ""));
         say("Schere Stein Papier bitte");
         assertNull(hand("rock", time(memory, STARTED).minusMillis(1), .99));
-        assertNull(hand("paper", Instant.now(), .69));
+        assertNull(hand("paper", Instant.now(), -.01));
         assertNull(hand("lizard", Instant.now(), .99));
         assertNull(hand("scissor", Instant.now(), .99, "previous-capture"));
         assertNull(hand("scissor", Instant.now(), .99, null));

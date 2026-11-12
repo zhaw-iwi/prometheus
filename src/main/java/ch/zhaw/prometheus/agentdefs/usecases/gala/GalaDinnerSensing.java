@@ -10,6 +10,7 @@ import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 
 /** Bounded ambient admission; raw refreshes and uncertain interpretations never queue speech. */
 final class GalaDinnerSensing {
+    private static final double MIN_AMBIENT_HAND_CONFIDENCE = 0.7;
     static final String PREFIX = "gala.sensing.", GROUP_BASE = PREFIX + "group_base", GROUP_CANDIDATE = PREFIX + "group_candidate",
             GROUP_SINCE = PREFIX + "group_since", FACE_BASE = PREFIX + "face_base", FACE_CANDIDATE = PREFIX + "face_candidate",
             FACE_SINCE = PREFIX + "face_since", AMBIENT_AT = PREFIX + "ambient_at", AMBIENT_SOURCE = PREFIX + "ambient_source", CORRECTED = PREFIX + "corrected";
@@ -153,8 +154,9 @@ final class GalaDinnerSensing {
             var data = JsonParser.parseString(event.getPayload()).getAsJsonObject();
             var facts = new JsonObject();
             if (!weather) {
-                // Reuse shape/confidence and camera stability validation, without round control.
-                if (GalaDinnerHandSigns.rejection(data, "", Instant.EPOCH, now, null) != null) return null;
+                // Ambient comments retain their own minimum; RPS confidence filtering belongs to the client.
+                if (GalaDinnerHandSigns.rejection(data, "", Instant.EPOCH, now, null) != null
+                        || data.get("confidence").getAsDouble() < MIN_AMBIENT_HAND_CONFIDENCE) return null;
                 facts.addProperty("sign", data.get("sign").getAsString());
                 return facts;
             }
