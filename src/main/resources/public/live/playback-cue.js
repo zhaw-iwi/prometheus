@@ -8,6 +8,7 @@ export class PlaybackSettlingGate {
   reset() {
     this.cue = null; this.last = null; this.media = null; this.progressAt = null; this.lastDiagnostic = null;
     this.frames = []; this.receipts = new Map(); this.segments = new Map();
+    this.pendingInputs = new Set(); this.inputResults = new Map();
   }
   state(outcome) {
     if (!this.cue) return;
@@ -23,16 +24,28 @@ export class PlaybackSettlingGate {
     if (this.receipts.size > 1024) this.receipts.delete(this.receipts.keys().next().value);
   }
   update(cue, segments) {
+    if (this.pendingInputs.size && (!cue || cue.id !== this.cue?.id || !cue.allowAcknowledgements)) this.interrupt();
     // Keep identities only, never transcript text. Ledger polls can precede the cue.
     for (const segment of (segments || []).slice(-64)) {
       if (segment.speaker === 'ASSISTANT' && segment.status === 'COMPLETE' && segment.receiptIds?.length)
         this.segments.set(segment.segmentId, [...segment.receiptIds]);
+      if (segment.speaker === 'USER' && segment.status !== 'PENDING') {
+        const harmless = segment.status === 'COMPLETE' && segment.reason === 'countdown_acknowledgement'
+          || segment.status === 'IGNORED' && segment.reason === 'empty_transcript';
+        for (const id of (segment.receiptIds || []).slice(0, 128)) {
+          this.inputResults.set(id, harmless);
+          if (this.pendingInputs.delete(id) && !harmless) this.interrupt();
+        }
+      }
     }
     while (this.segments.size > 64) this.segments.delete(this.segments.keys().next().value);
+    while (this.inputResults.size > 1024) this.inputResults.delete(this.inputResults.keys().next().value);
     // No cue yet is normal while context is being refreshed; do not lose its earlier audio.
     if (!cue) { this.cue = null; this.lastDiagnostic = null; return; }
     if (this.cue?.id === cue.id && this.cue?.segmentId === cue.segmentId && this.cue?.expiresAt === cue.expiresAt
-      && JSON.stringify(this.cue.receiptIds || []) === JSON.stringify(cue.receiptIds || [])) return;
+      && this.cue?.allowAcknowledgements === cue.allowAcknowledgements
+      && JSON.stringify(this.cue.receiptIds || []) === JSON.stringify(cue.receiptIds || [])
+      && JSON.stringify(this.cue.segmentIds || []) === JSON.stringify(cue.segmentIds || [])) return;
     this.cue = cue; this.received = this.now();
     this.state(this.done.has(cue.id) ? 'already_finished' : cue.segmentId ? 'capture_received' : 'awaiting_capture');
   }
@@ -40,16 +53,44 @@ export class PlaybackSettlingGate {
     if (this.cue) { this.state('input_interrupted'); this.remember(this.cue.id); }
     this.reset(); // Also fences a cue/association that has not reached this browser yet.
   }
+  input(id) {
+    if (!this.cue?.allowAcknowledgements || typeof id !== 'string' || !/^[A-Za-z0-9_:.\-]{1,200}$/.test(id)
+      || this.pendingInputs.size >= 128) { this.interrupt(); return; }
+    if (this.inputResults.has(id)) {
+      if (!this.inputResults.get(id)) this.interrupt();
+      return;
+    }
+    // Retain playback evidence, but block execution until the backend has classified
+    // the COMPLETE user segment. A partial "Ja" can still become "Ja, stopp".
+    this.pendingInputs.add(id); this.state('awaiting_input_classification');
+  }
   remember(id) { this.done.add(id); if (this.done.size > 64) this.done.delete(this.done.values().next().value); }
   evidence() {
-    const segmentIds = this.segments.get(this.cue.segmentId), selection = this.cue.receiptIds;
-    if (!segmentIds || selection != null && !Array.isArray(selection)) return 'awaiting_segment_evidence';
+    const segments = this.cue.segmentIds ?? [this.cue.segmentId], selection = this.cue.receiptIds;
+    if (!Array.isArray(segments) || !segments.length || segments.length > 3
+      || new Set(segments).size !== segments.length || segments.at(-1) !== this.cue.segmentId
+      || segments.some(id => typeof id !== 'string' || !/^[A-Za-z0-9._:-]{1,160}$/.test(id))
+      || selection != null && !Array.isArray(selection)) return 'awaiting_segment_evidence';
+    const groups = segments.map(id => this.segments.get(id));
+    if (groups.some(ids => !ids?.length || ids.length > 128)) return 'awaiting_segment_evidence';
+    const segmentIds = groups.flat();
     const scoped = selection?.length > 0, ids = scoped ? selection : segmentIds;
+    if (segments.length > 1 && (!scoped || groups.some(group => !group.some(id => ids.includes(id)))
+      || new Set(segmentIds).size !== segmentIds.length)) return 'awaiting_segment_evidence';
     const from = scoped ? segmentIds.indexOf(ids[0]) : 0;
     if (scoped && (ids.length > 32 || new Set(ids).size !== ids.length || from < 0
       || ids.some((id, i) => typeof id !== 'string' || !/^[A-Za-z0-9_:.\-]{1,200}$/.test(id) || segmentIds[from + i] !== id)))
       return 'awaiting_segment_evidence';
     if (ids.some(id => !this.receipts.has(id))) return 'awaiting_segment_evidence';
+    // Each acoustically separate word needs local voice evidence. The last word
+    // cannot lend its audio to a missing earlier segment of the countdown.
+    const groupTimes = groups.map(group => group.filter(id => ids.includes(id)).map(id => this.receipts.get(id)));
+    if (groupTimes.some((times, index) => {
+      const next = groupTimes[index + 1];
+      const end = Math.min(Math.max(...times) + 1000, next ? Math.min(...next) - 250 : Infinity);
+      return !this.frames.some(frame => frame.voiced && frame.at >= Math.min(...times) - 250
+        && frame.at <= end);
+    })) return 'voice_unobserved';
     const times = ids.map(id => this.receipts.get(id)), first = Math.min(...times), last = Math.max(...times);
     // A countdown may finish a response whose earlier captions were discarded by input.
     // Observed prefixes from this same completed segment can establish audio continuity;
@@ -98,6 +139,7 @@ export class PlaybackSettlingGate {
     if (!cue) return;
     const waiting = this.done.has(cue.id) ? 'already_finished'
       : !(Date.parse(cue.expiresAt) > this.wall()) ? 'expired'
+      : this.pendingInputs.size ? 'awaiting_input_classification'
       : !cue.segmentId ? 'awaiting_capture'
       : this.evidence() || (now - this.received < 500 ? 'awaiting_capture_settling' : null);
     if (waiting) { this.state(waiting); return; }
@@ -116,11 +158,30 @@ export class LivePlaybackObserver {
     this.output = stream; this.start();
   }
   caption(id) { if (!this.closed) this.gate.caption(id); }
+  /** A buffered clip has known receipts before audio starts; bind them at observed onset,
+   * after the media element has begun progressing, not during its initial silent stall. */
+  scheduled(cue, segment, onsetWaitMs = 500) {
+    if (!Number.isFinite(onsetWaitMs) || onsetWaitMs < 500 || onsetWaitMs > 45000) throw Error('Invalid onset bound');
+    this.gate.reset(); this.gate.update(cue, [segment]);
+    this.onset = {ids: [...segment.receiptIds], deadline: performance.now() + onsetWaitMs};
+  }
   update(cue, segments) {
     if (this.closed) return;
     this.gate.update(cue, segments);
   }
-  interrupt() { this.gate.interrupt(); }
+  interrupt() { this.onset = null; this.gate.interrupt(); }
+  sample(value) {
+    this.gate.sample(value);
+    if (this.onset && performance.now() > this.onset.deadline) this.onset = null;
+    if (this.onset && value.voiced && this.gate.frames.at(-1)?.voiced) {
+      for (const id of this.onset.ids) this.gate.caption(id);
+      this.onset = null;
+    }
+  }
+  input(id) {
+    if (this.gate.cue?.allowAcknowledgements) this.gate.input(id);
+    else this.interrupt();
+  }
   async start() {
     if (this.context || !this.output || this.closed) return;
     let context;
@@ -137,7 +198,7 @@ export class LivePlaybackObserver {
         this.analyser.getFloatTimeDomainData(this.samples);
         const rms = Math.sqrt(this.samples.reduce((sum, value) => sum + value * value, 0) / this.samples.length);
         const track = this.output?.getAudioTracks()[0];
-        this.gate.sample({voiced: rms > 500 / 32768, mediaTime: this.audio.currentTime,
+        this.sample({voiced: rms > 500 / 32768, mediaTime: this.audio.currentTime,
           playable: context.state === 'running' && !document.hidden && !this.audio.paused && !this.audio.muted
             && this.audio.volume > 0 && this.audio.readyState >= 2 && track?.readyState === 'live' && !track.muted});
       }, 50);
@@ -153,5 +214,5 @@ export class LivePlaybackObserver {
     const context = this.context; this.context = null;
     if (context) void context.close().catch(() => {});
   }
-  close() { this.closed = true; this.gate.reset(); this.release(); this.output = null; }
+  close() { this.closed = true; this.onset = null; this.gate.reset(); this.release(); this.output = null; }
 }

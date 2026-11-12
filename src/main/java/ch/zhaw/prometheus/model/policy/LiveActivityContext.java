@@ -12,17 +12,25 @@ public record LiveActivityContext(String facts, Continuation continuation, Insta
     public LiveActivityContext { bounded(facts, 4000); }
     public enum Occasion { USER_REQUEST, PROACTIVE }
     /** A persisted identity authorizes one speaking occasion; selfContained facts travel with its speaking instruction. */
-    public record Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, boolean selfContained) {
+    public record Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, boolean selfContained, boolean correction, UUID responseId) {
+        public static final int MAX_FACTS_BYTES = 1000;
         public static final int MAX_SELF_CONTAINED_BYTES = 340;
+        public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, boolean selfContained, boolean correction) {
+            this(id, occasion, facts, expiresAt, interruptible, selfContained, correction, id);
+        }
+        public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, boolean selfContained) {
+            this(id, occasion, facts, expiresAt, interruptible, selfContained, false);
+        }
         public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible) {
             this(id, occasion, facts, expiresAt, interruptible, false);
         }
         public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt) { this(id, occasion, facts, expiresAt, false); }
         public Continuation(UUID id, Occasion occasion, String facts) { this(id, occasion, facts, null, false); }
         public Continuation {
-            Objects.requireNonNull(id); Objects.requireNonNull(occasion); bounded(facts, 1000);
+            Objects.requireNonNull(id); Objects.requireNonNull(responseId); Objects.requireNonNull(occasion); bounded(facts, MAX_FACTS_BYTES);
             if (selfContained) bounded(facts, MAX_SELF_CONTAINED_BYTES);
             if (interruptible && occasion != Occasion.PROACTIVE) throw new IllegalArgumentException("Only proactive comments may be interruptible");
+            if (correction && (interruptible || occasion != Occasion.USER_REQUEST)) throw new IllegalArgumentException("Corrections require an uninterrupted requested response");
         }
         public boolean expiredAt(Instant now) { return expiresAt != null && !now.isBefore(expiresAt); }
         @Override public String toString() { return "LiveContinuation[id=" + id + ",occasion=" + occasion + "]"; }

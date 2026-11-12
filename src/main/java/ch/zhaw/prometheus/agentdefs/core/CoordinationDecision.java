@@ -28,7 +28,7 @@ public class CoordinationDecision extends Decision {
                 && CoordinationDelivery.matches(storage, events.toList().getLast(), runtime, java.time.Instant.now());
         if ("OBSERVE_PREPARATION".equals(coordinationCondition))
             return "PREPARATION".equals(CoordinationMemory.stage(storage)) && !events.isEmpty()
-                    && TaskSpec.observationTypes().contains(events.toList().getLast().getType());
+                    && TaskSpec.FIELDS.containsKey(events.toList().getLast().getType());
         return coordinationCondition.equals(CoordinationMemory.stage(storage));
     }
 }

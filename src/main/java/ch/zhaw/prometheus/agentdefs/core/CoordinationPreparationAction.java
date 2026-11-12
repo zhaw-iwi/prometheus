@@ -25,7 +25,14 @@ public class CoordinationPreparationAction extends Action {
         storage.put(CoreTaskVoice.INVITATION, new JsonPrimitive(now.toString()));
         if (runtime.externalSpeech() == null)
             storage.put(TaskMemory.REPLY, BehaviourPlan.speechOnly("I've recognised the required observations. " + CoordinationMemory.acceptancePrompt(storage)).toJsonObject());
-        else CoreTaskVoice.response(storage, "Required observations were recognised. Explicitly ask for acceptance: " + CoordinationMemory.acceptancePrompt(storage),
-                true, false, runtime, CoordinationMemory.facts(storage));
+        else {
+            CoreTaskVoice.response(storage, "Required observations were recognised. Review the saved goal, roles, success criterion and total limit, "
+                    + "without performing the task. Explicitly ask for acceptance: " + CoordinationMemory.acceptancePrompt(storage),
+                    true, false, runtime, CoordinationMemory.facts(storage));
+            var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
+            response.addProperty("proposalReview", true); storage.put(CoreTaskVoice.RESPONSE, response);
+            CoordinationSpeechApproval.words(storage, ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.spokenProposalReview(
+                    CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT)));
+        }
     }
 }

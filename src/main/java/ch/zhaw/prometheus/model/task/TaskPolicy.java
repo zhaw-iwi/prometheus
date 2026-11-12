@@ -26,6 +26,8 @@ public class TaskPolicy extends Policy {
     public boolean liveIncompleteResponseIsFailure() { return false; }
     /** Maximum verified unrelated segments that may be skipped within the original response deadline. */
     public int liveUnrelatedResponseAllowance() { return 0; }
+    /** Opt in only when the client withholds unapproved audio and rechecks current release authority. */
+    public boolean liveUnheardResponseCorrection() { return false; }
     public void setConfiguredInstructions(String instructions) { this.taskInstructions = instructions; }
     @Override public String describe() {
         return voiceInstructions() + "\n" + TaskMemory.description(storage);

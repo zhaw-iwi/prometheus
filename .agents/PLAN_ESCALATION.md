@@ -1,5 +1,18 @@
 # Coordination escalation and classroom reliability
 
+**Current scope, 2026-11-12:** the owner approved existing Speech for committed
+Coordination replies. **ES-08's agreed behavioural scope is complete**, with
+three real-provider journeys, separate semantic PASS reviews and final regression
+checks on the same source configuration. This supersedes historical pending-choice/native-output instructions
+below. Read the top of `ESCALATION_RESULTS.md` for current checks and outcomes;
+physical trials, capacity and deployment remain separate. No commit or deployment
+has been performed in this continuation.
+
+### Historical scope and native-output checkpoints
+
+The dated checkpoints in this section explain earlier decisions; the current
+scope above supersedes their pending-choice and implementation status.
+
 Prepared: 2026-11-10. Status: ES-01 through ES-07 implemented and re-audited;
 ES-08 harness and local/Live investigation executed, acceptance unmet. Native
 speech fidelity/association remain open; database capacity is deferred by the
@@ -8,6 +21,33 @@ atomic short replies, verifier evaluation and explicit current-turn context.
 Passing local and direct-provider checks do not close the integrated Live failures.
 Physical trials NOT RUN.
 Actual verification and limitations: `ESCALATION_RESULTS.md`.
+
+**2026-11-12 native-output verification:** earlier dialogue/social runs have full
+semantic PASS reviews, but recovery and final-tree three-scenario acceptance
+remain unmet. Repairs cover preparation/return sequencing, heard-only task history,
+factual feedback, exact-echo RESTART, serialized sideband writes and reflected
+media-range capture. Latest recovery had complete capture but omitted review roles;
+an unsupported recognition claim was also incorrectly approved. Deterministic
+support now uses local literal approval. Exact evidence and final offline checks
+are in `ESCALATION_RESULTS.md`. The broader output-path choice in
+`ES08_SPEECH_DELIVERY_DECISION.md` is pending owner input and unimplemented. No
+further paid run or architecture change is assumed while that choice is pending.
+
+**2026-11-11 completion continuation:** the owner authorized continuing through
+ES-08 completion, starting with the failed incomplete-answer clarification.
+Reuse the existing compact speaking occasion for short confirmed support replies,
+then repair demonstrated remaining failures and execute/review all three bounded
+Live journeys. Keep backend authority, approval/playback proof, original budgets
+and deadlines, failed-run evidence and per-run caps. No unchanged rerolls, commits
+or deployment are included. Physical operator trials and capacity remain separate.
+
+**2026-11-12 completion scope:** repeated withheld proposal drafts establish the
+need for the same one-correction bound on ordinary committed Coordination replies.
+This supersedes the earlier task-only correction boundary below. Ordinary correction
+retains response/owner/revision, facts and original expiry, persists reservation and
+release, and cannot alter task authority. Sensor remarks and pending-task help,
+malformed/provider failures and second rejections remain excluded. Verify reload,
+interruption, late candidates and current-request acknowledgement before paid runs.
 
 **2026-11-11 consolidation:** office and home work are reconciled on `main`.
 See `CONSOLIDATION_COORDINATION_2026-11-11.md` for provenance, retained differences
@@ -199,6 +239,107 @@ Physical audibility, camera accuracy, classroom experience and robot behaviour
 still require a separately recorded operator trial.
 
 ## Milestones
+
+**Authorized continuation (2026-11-11):** complete ES-08 in three focused steps:
+(A) bounded assistant sentence assembly with interruption/authority/playback
+regressions; (B) correct misleading preliminary proposal wording at its cause;
+(C) run and semantically review the three bounded real Live journeys. Preserve
+the failed-attempt record and stop for a genuinely new owner scope decision.
+The shared receipt-selection commits through `057aa55` are incorporated first.
+Database capacity and physical trials remain separate from this behavioural scope.
+Steps A and B are implemented and regression-checked; the final prompt-size
+edge case and focused rerun are recorded in `ESCALATION_RESULTS.md`. Step C must
+review all native speech, including preliminary proposals, on the combined tree.
+
+**Continuation outcome:** A/B are committed as `2424691` / `4c787cc`. C ran each
+scenario once on the combined tree; all three failed full semantic acceptance.
+The social count proposal and one welcome/playback succeeded, but Stop was spoken
+as Pause. Recovery exposed speech before response authority and incorrect initial
+perception; dialogue changed the riddle clue and failed association before feedback.
+See the newest evidence section. Do not rerun these unchanged scenarios for luck.
+
+### Authorized approval before audible Coordination speech (2026-11-11)
+
+The owner accepted the recommended playback change and its added latency.
+The implementation retains the state machine, agreements and contribution budgets.
+The browser buffers bounded original PCM through a silent worklet; native captions
+are audit evidence until one complete receipt-matched clip is approved, released
+and observed playing. `LiveSpeechApprovalService` validates the current owner,
+request and revision before and after verification and immediately before release. An ordinary draft
+may precede backend commitment only when it follows the last trusted receipt of
+the current user turn; the whole draft must still pass semantic approval after
+commitment. Older-turn speech and mute/interruption cannot qualify. Existing
+`TaskResponse` generation-time fences remain unchanged.
+Task contributions reuse `TaskResponse` verification; ordinary/control/help replies
+use one semantic check per request, with four concurrent checks and 128 attempts
+per session. Approval never spends a contribution. Final task playback cues remain
+a separate protocol. Unplayed speech cannot supply conversation or consent evidence.
+
+The declared bounds remain 30 seconds per captured clip, 45 seconds for response
+verification and 60 seconds for playback; the browser retains at most two clips.
+Acoustic completion requires 2.4 seconds of quiet. No automatic speech retry or
+new task contribution follows rejection. Missing audio/caption alignment produces
+visible guidance after ten seconds; help, Pause, Stop and explicit reconnection
+remain available. User interruption, mute, close, a superseding speaking occasion
+or the original deadline discard/cancel playback. API release/completion recheck
+current authority; cached browser context is not authority.
+Optional sensory remarks retain their existing facts, owner/revision scope,
+priority and cancellation rules. Their shorter observation/occasion expiry also
+bounds release; timely release permits completion within the overall playback
+bound. Buffering or verification may exhaust this short admission window.
+
+Offline acceptance covers original-sample/silent-output tests, interruption and
+network races, disposable-MySQL approval/playback/reload and consent checks, and
+a production-player browser smoke. Real-provider acceptance must use that same
+player, distinguish generated captions from observed speech, retain every failed
+attempt and measure buffering delay. Acoustic segmentation and model verification
+are fallible checks, not proof of physical audibility or perfect transcription.
+Current run outcomes and remaining ES-08 gates are in `ESCALATION_RESULTS.md`.
+Database capacity and physical trials remain deferred; no deployment is included.
+
+### Bounded unheard correction — authorized continuation (2026-11-11)
+
+After reviewing the separate ES-08 commits, the owner authorized one focused
+correction milestone. Approval-enabled Coordination task responses may request
+one new realization after a valid semantic AMBIGUOUS verdict, while the rejected
+whole clip is still unheard. Ordinary/control/help and sensory replies retain
+their existing recovery behavior. Provider errors, malformed verdicts, incomplete
+capture and uncertain release do not authorize correction.
+
+The persisted task response, run/revision/owner, contribution count and original
+45-second verification / 60-second playback limits stay unchanged. At least ten
+seconds must remain in the verification window when correction is requested.
+The scoped player rechecks interruption and current authority before the backend
+reserves the correction. A separate speaking-occasion ID delivers it once; the
+playback request remains bound to the original response. Corrected speech must
+begin after that reservation and pass the same verifier. A persisted release
+marker prevents replay after acknowledgement/window loss. A second rejection,
+expiry or invalidation retains truthful recovery rather than another attempt.
+
+Verification extends the existing domain, scoped approval, context delivery,
+MySQL reload and production-player tests. Run the capped dialogue journey first;
+continue recovery and social after it demonstrates progress. All three complete
+journeys and semantic review remain necessary for ES-08. Current evidence and
+any environment blocks are recorded in `ESCALATION_RESULTS.md`.
+
+### Earlier decision after approval checkpoint — superseded by the authorization above
+
+The gate is implemented and tested offline; ES-08 remains incomplete. The paid
+attempts and final unrerun timing/fact-input changes are recorded in the results.
+Recommendation: allow one bounded corrective realization of the **same committed
+response**, only if no release was granted. Keep request/run identity, spent
+contribution count, original deadlines and explicit user interruption authority.
+Rejecting a second candidate or running out of time must return visible recovery
+guidance. A released response must never retry merely because playback completion
+was lost. This is a new recovery policy, not an implicit part of speech approval.
+Backend-controlled task speech is the more deterministic alternative, with a larger
+change to the voice path. The owner must choose before either is implemented.
+
+If the bounded retry is chosen, acceptance requires unit races and budget/deadline
+checks, a real-MySQL reload/ownership test, production-browser rejected-first /
+approved-second playback with exactly one contribution, and the three capped Live
+journeys with full semantic review. Preserve every failed attempt. No new action,
+weaker verifier or hidden deadline extension may be used to make the tests pass.
 
 ### ES-01 — Reproducible classroom cases and bounded recovery evidence
 
@@ -415,6 +556,14 @@ sanitized incident evidence before reset/deletion; enabling external log drains
 or adding a durable research archive is a separate rollout decision.
 
 ### ES-08 — Integrated OpenAI Live acceptance and operator handoff
+
+**Current continuation (2026-11-12):** the approved Speech path is implemented.
+Live supplies input; the backend commits complete words; scoped synthesis,
+release and observed playback remain separate. The three real-provider journeys
+passed automated checks and separate semantic review on this path, with final
+Java/Node/browser/preflight/package verification. Earlier native passes and failures remain
+historical evidence. Exact checks and retained failures are in
+`ESCALATION_RESULTS.md`; physical acceptance remains NOT RUN.
 
 **2026-11-10 review:** integrated local MySQL, browser and real Live evidence is
 now recorded in `ESCALATION_RESULTS.md`, with retained failed attempts and an

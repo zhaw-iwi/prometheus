@@ -1,5 +1,1141 @@
 # Coordination escalation and classroom reliability evidence
 
+## ES-08 behavioural acceptance COMPLETE (2026-11-12)
+
+The owner approved the existing Speech service for committed Coordination replies.
+This supersedes the pending-choice/native-only checkpoint below. Live input, backend
+state authority, spent contributions, original deadlines and observed playback are
+retained. New sessions use distinct SYNTHESIZED provenance and no native-output
+fallback. The concrete decision and changed voice/cost path are in
+`ES08_SPEECH_DELIVERY_DECISION.md`. Acceptance used the uncommitted `main` tree
+based on `333f0f098425f4e89be2a2df6d28628932e94a59`; the owner subsequently
+authorized committing/pushing `main` and merging it into `agents` for deployment.
+
+All three real-provider journeys passed automated authority/delivery assertions
+and separate semantic reviews on the same final source configuration. The 74-file
+source manifest, journey/PCM hashes, independent local ASR and semantic reviews
+are checked together in `target/es08-speech-final-20261112/summary.json`.
+Raw journey rubrics remain unchanged; semantic verdicts are separate artifacts.
+The backend model was `gpt-5.6-luna`; Live used `gpt-live-1` / Willow with native
+output muted. Committed output used `gpt-4o-mini-tts` / Alloy at normal speed.
+
+| Journey | Artifact suffix | Reviewed outcome | Backend requests; prompt + completion tokens | Output Speech calls / characters | Last Live report |
+| --- | --- | --- | --- | --- | --- |
+| Recovery | `84e0fcead0` | Preparation/help, full terms, supplied perception, ready-help, explicit acceptance at zero actions, one fresh-cue welcome, confirmed Reflection and history-preserving return | 2; 9,295 + 364 | 8 / 1,281 | 148 s |
+| Dialogue | `6c4cdaf94c` | No solution leak; help/perception/fragment spend nothing; keyboard feedback correctly rejects piano against the heard space clue; replacement needs acceptance; Stop is CANCELLED | 5; 29,834 + 694 | 9 / 1,590 | 223 s |
+| Social | `7d93d0d610` | Explicit at-least-two-visible alternative, count/arrival/identity disclosure, one welcome, fresh-budget restart, preserved pause/resume and Stop without another action | 3; 15,630 + 637 | 7 / 1,078 | 148 s |
+
+Artifact directories are `target/gptlive-acceptance-<suffix>`. All 24 returned
+clips have separate playback-confirmed evidence. Visitor audio used the retained
+Onyx cache (zero new visitor synthesis). The original per-run backend/input/Live
+caps and separate 12-call/6,000-character output caps held. Every runner-owned
+application, disposable schema and account was cleaned up. No deployment occurred.
+
+Final verification:
+
+- `python tests/gptlive/run_acceptance.py --java-tests all`: `719afcbfa6`,
+  **1,016 Java cases: 1,015 passed, one intentional capacity skip, zero failures
+  or errors**. All 180 current JUnit XML reports and totals are archived there.
+- All **218 Node tests** and **11 acceptance-runner preflight checks** passed.
+- Five focused browser checks passed in `a2ef282518` (four enabled, one disabled;
+  three mode-specific skips), including real WebRTC, leading PCM silence,
+  delayed input captions, normal Reflection and lost playback acknowledgement.
+  The resulting cockpit screenshot was visually reviewed.
+- `./mvnw.cmd -q -DskipTests package` and `git diff --check` passed. Logs and
+  common source hashes are in `target/es08-speech-final-20261112`.
+
+The three paid commands used `python tests/gptlive/run_acceptance.py --java-tests
+none --paid-core coordination --coordination-scenario` with respectively
+`escalation-dialogue`, `escalation-recovery`, and `escalation-social`.
+The browser command used the focused grep documented in `tests/gptlive/README.md`.
+
+**Limits:** these are synthetic microphone/sensor journeys through real Live,
+Speech, application and MySQL. Local `faster-whisper` ASR recovered the required
+terms, controls and task content; it did not recover some closing proposal
+invitation phrases (and the initial dialogue review's inactive/invitation tail).
+The separate reviews record this explicitly; no word-for-word acoustic guarantee
+or physical speaker audibility is claimed. Recovery supplied an independently
+transcribed Start invitation before acceptance; all journeys required explicit
+acceptance and performed no premature action. Native contradictory drafts stayed
+inaudible. Provider transcription remains imperfect; the silent structural-fragment
+guard is deliberately narrow. Physical camera/microphone/speaker, room/classroom,
+pedagogical and sustained capacity acceptance remain **NOT RUN / deferred** under
+the owner's agreed scope. Optional ambient remarks have deterministic coverage,
+not a separate paid acoustic acceptance. Fresh Coordination instances/current
+clients are required for rollout; saved graphs are not migrated.
+
+The ignored artifacts and private configuration do not transfer through Git.
+Preserve them without committing raw provider traces or credentials. Stop here
+for owner review and commit; deployment and capacity are separate decisions.
+
+## Retained Speech implementation checkpoints and failures
+
+Full Java regression `0a238faf78` passed 1,010 cases (one intentional capacity skip,
+zero failures/errors). Focused Java and five browser checks passed in `95f5c50ebe`;
+normal playback reaches Reflection, while lost playback acknowledgement does not
+replay or claim delivery. The screenshot was visually reviewed. Earlier focused
+runs `528b446edd` and `3e8bf320c9` retain a corrected mock-operation mismatch and
+PCM content-type/fixture-count failures respectively. No failed evidence is erased.
+First Speech recovery `4f4fa9d141` failed at perception playback confirmation.
+The complete ready review and two preparation replies played, but the next clip
+started with 490 ms of silence and missed the observer's fixed 500 ms onset window.
+The clip was released, never confirmed played; no acceptance or action occurred.
+Usage: one backend request, 5,306 prompt + 305 completion tokens, four output
+Speech calls, zero new visitor synthesis, last Live report 163 seconds. PCM,
+local ASR and a separate FAIL review are retained. The observer now derives its
+onset bound from the known PCM plus the existing 500 ms margin; it does not trim
+audio or extend the response expiry. The regression failed before this fix and
+passes afterward. All five browser checks passed in `135e67b9f3`, including a
+750 ms leading-silence fixture and the lost-acknowledgement case. Twenty-two
+focused Node checks passed.
+
+Recovery `01567dd05c` passed raw state/delivery assertions but **failed separate
+semantic review**: ready-help incorrectly required a fresh demonstration before
+acceptance even though preparation was complete. Live had admitted “I understand.
+Do I need to demonstrate again”, omitting the negation from the synthetic input;
+the remaining explicit question still required the authoritative readiness answer.
+Usage: four backend requests, 21,081 prompt + 562 completion tokens, eight output
+Speech calls, zero new visitor synthesis, last Live report 148 seconds. Local ASR
+confirms the incorrect instruction. Readiness questions now use existing SUPPORT
+facts, and the shortened “hand sign do you see now” uses supplied-evidence rendering.
+Forty focused Java checks and nine journey-fixture Node checks pass; the recovery
+assertion now rejects another demonstration before acceptance. Recovery is being
+rerun after these causal fixes; no combined acceptance is yet claimed.
+
+Recovery `3fd719b39c` subsequently passed automated and separate semantic review:
+three backend requests, 15,261 prompt + 471 completion tokens, eight output Speech
+calls, zero new visitor synthesis, last Live report 163 seconds. Independent local
+ASR recovered all agreement terms and the explicit ready-help invitation, but not
+the long review's closing invitation. No bit-exact acoustic fidelity is claimed.
+Initial inactive wording plus ready-help established acceptance before the fresh
+cue; one welcome reached confirmed Reflection and return preserved the outcome.
+
+Dialogue `927bd51bd8` failed after a provider-only USER fragment `t: {` over silent
+synthetic input interrupted otherwise correct keyboard feedback. The backend had
+correctly rejected piano against the heard space/Enter clues; that reply never
+played. Native “Correct, piano” output stayed inaudible. Four backend requests,
+22,967 prompt + 497 completion tokens, seven output Speech calls (six returned
+clips), zero new visitor synthesis, last Live report 178 seconds. Raw/PCM/ASR and
+separate FAIL review remain. A narrow guard now retains tiny structural fragments
+as incomplete audit evidence only when five seconds of continuous reflected input
+was silent; real voice, ordinary words, gaps and missing audio retain normal
+admission. The committed player uses its existing microphone worklet for immediate
+interruption instead of delayed native captions. Focused Java and five browser
+checks passed in `a2ef282518`; 31 focused Node checks pass. Browser coverage injects
+the delayed caption during release/playback. The final three scenarios are being
+rerun after this shared input repair; the prior recovery pass is historical.
+
+## Retained native-output checkpoint (2026-11-12)
+
+**Historical blocker (superseded by the approved Speech continuation):**
+ES-08 was not complete. Earlier dialogue `234999817d` and
+social `f963c96aa7` have separate semantic PASS reviews, but recovery is unmet and
+the final shared capture/voice changes have no complete three-journey acceptance.
+The owner has been asked to choose between using the existing Speech service for
+committed Coordination output (retaining Live input and backend authority), or
+requiring native-only output. This is a delivery-path decision under the owner's
+architecture-preservation instruction, not a new approval rule from a skill.
+The concrete seams are in `ES08_SPEECH_DELIVERY_DECISION.md`. No answer or output-path
+change is assumed; no further paid run is in progress. All changes remain
+uncommitted/unpublished.
+
+**Final offline checkpoint:** `97d595caa0` passed **993 Java cases: 992 passed,
+one intentional capacity skip, zero failures/errors**, using real disposable MySQL.
+JUnit XML and totals are retained there. Its browser run exposed a malformed
+synthetic fixture: caption media had no matching voiced PCM. The fixture now
+supplies that interval and nonoverlapping ranges; its three focused Java cases and
+all **five browser checks** passed in `2ab407b993` (four enabled, one disabled;
+three mode-specific skips). Production runtime is unchanged between these two
+offline runs. Corrected-playback screenshots were inspected. All **210 Node tests**,
+**11 preflight checks**, packaging and `git diff --check` passed; logs and final
+source hashes are in `target/es08-final-20261112`. These are implementation checks,
+not completion of the remaining real Live semantic gate. The final literal-support
+guard has offline coverage but no paid journey after it.
+
+Latest recovery `307eb96b2c`: **FAIL**, with raw evidence and separate semantic
+review/hash retained. All **772 reflected output chunks were timed**, none untimed,
+and captured replies were complete. Both ready reviews omitted human judgement
+and were withheld. **The initial played preparation reply added an unsupported
+"Rock recognition looks good" claim before any demonstration; the semantic
+verifier incorrectly approved it.** Do not describe this run as universally
+fail-closed. Usage: six backend requests, 9,963 prompt + 645 completion tokens;
+last Live report 148 seconds; zero new synthesis. No acceptance/action occurred,
+and all owned test resources were removed.
+
+Deterministic support/preparation/return replies now require their committed words
+with the existing punctuation/case normalization, checked locally before release.
+Extra or changed words reserve at most the same one unheard correction; there is
+no provider verdict that can override that literal check. Semantic free wording
+remains for proposal reviews and other nonliteral replies. This prevents the
+observed unsupported preface but may withhold otherwise truthful paraphrases;
+native delivery success remains unverified after this guard. Focused voice/
+correction/approval/real-MySQL checks passed in `25d8b1e952`.
+
+The dated repair checkpoints below are a chronological evidence trail, not claims
+that all earlier open steps are still running or that later passes erase failures.
+
+Recovery `a7242093ff` passed preparation, both help phases, full ready review,
+perception, acceptance, one fresh-cue welcome and confirmed final playback. Return
+committed Conversation and preserved LIMIT_REACHED, but its acknowledgement was
+withheld: an earlier Reflection draft consumed the ordinary approval attempt as
+UNRELATED before the confirmed return reply arrived. The separate FAIL review and
+journey hash are retained. Usage: ten backend requests, 16,167 prompt + 943
+completion tokens, last Live report 253 seconds, zero new synthesis; owned
+resources were cleaned up.
+
+Return now uses the existing compact, verbatim confirmed-support path and its
+post-commit generation fence. It preserves history/outcome and original 45/60-second
+deadlines without another action. All 84 focused voice/correction/approval/recovery/
+real-MySQL cases passed in `74591d4894`. The preceding `3a609acc2e` failed one old
+test's location assertion (content moved from quiet context into the atomic
+speaking occasion); that assertion was corrected.
+
+Recovery `49d99fd0ac` failed before reaching return: initial preparation/help
+played, but the ready review repeated the goal/roles/success in over 100 words and
+exceeded the unchanged 30-second capture limit. The incomplete main segment and
+unmatched suffix were withheld. Usage: three backend requests, 6,935 prompt + 449
+completion tokens; last Live report 133 seconds; zero new synthesis. No activation
+or action occurred; owned resources were cleaned up and the FAIL review retained.
+The existing 55-word instruction was embedded in review data while surrounding
+instructions requested faithful reading. The next repair promotes that constraint
+to Coordination voice instructions and explicitly asks to combine duplicated
+facts without omitting distinct terms. No capture/deadline bound is extended.
+All 49 focused voice/correction/acceptance/real-MySQL cases passed in
+`766c9465bd`. Intermediate offline attempts retained: `ec82b09429` caught the
+instruction-byte ceiling, resolved by compressing redundant voice prose;
+`28ac30efbe` then caught an obsolete literal-string assertion, updated to the
+equivalent shorter wording. The next capped recovery is `4f6bfff44a`.
+
+Recovery `4f6bfff44a` failed at a concise ready review marked
+INCOMPLETE/audio_coverage_gap. Preparation/help played; help used one correction
+after an unsupported rock claim. No ready review, activation or action played.
+Usage: four backend requests, 7,741 prompt + 524 completion tokens; last Live
+report 148 seconds; zero new synthesis. Owned resources were cleaned up.
+The FAIL review retains the distinction between observed aggregate PCM timing
+and an unproved exact transport cause. One output window has only 9,600 samples,
+followed by larger 28,800-sample windows; the browser retains an audio clip.
+
+A deterministic reproduction then established a capture defect: a delayed packet
+permanently poisoned a segment even when all delayed PCM arrived in the following
+burst. Capture now tracks the missing sample duration and lets only actually
+received catch-up PCM repay it before closure. An unresolved deficit above the
+same 500-ms tolerance still yields INCOMPLETE. Silence, 30-second open capture,
+45/60-second response/playback, interruption and late-after-commit bounds remain.
+The reproduction fails on the old implementation; 35 focused capture/PCM cases
+passed after the repair. The new case now covers both speakers, and the integrated
+Java/real-MySQL/browser run is `0d1f5d807a`. No gap is forgiven from a caption or
+browser buffer alone. Test logs: `target/es08-final-20261112/capture-jitter-*.log`.
+
+That final integrated run passed: 986 Java cases, **985 passed / one intentional
+capacity skip**, zero failures/errors; JUnit XML/totals retained in the artifact.
+Four enabled and one disabled browser checks passed, with three mode-specific
+skips. The corrected-playback screenshot was inspected. All 210 Node tests,
+11 runner preflight checks, packaging and whitespace checks passed. Source hashes
+and final logs are retained in `target/es08-final-20261112`. Recovery regression
+`aaa1d88646` now checks the capture repair on the final integrated runtime.
+
+Recovery `aaa1d88646` passed preparation/help, a concise full ready review and
+fresh perception, then failed when ready-stage help was marked incomplete for
+audio coverage. No acceptance/action occurred. Usage: six backend requests,
+14,806 prompt + 692 completion tokens; last Live report 208 seconds; zero new
+synthesis. Owned resources were removed and the separate FAIL review is retained.
+The arrival-deficit repair alone did not resolve this run.
+
+Further reference review found that **reflected sideband output** carries
+`start_ms`/`end_ms`, unlike primary WebSocket output. The previous capture code
+ignored those fields. The [official sideband reference](https://developers.openai.com/api/reference/resources/live/sideband-websocket)
+and [server-control guide](https://developers.openai.com/api/docs/guides/voice-server-controls)
+describe ranges and dropped-frame gaps. The generic conversations guide's untimed
+output description must not be applied to reflected sideband events.
+Capture now uses valid reflected ranges to check coverage across the transcript,
+with bounded merged ranges. Packet arrival delay and gaps outside the utterance
+cannot poison fully covered speech; actual gaps, invalid ranges and overlap still
+fail, and replayed PCM cannot count as fresh silence. Untimed input/compatibility
+events retain the received-sample deficit check. The same 500-ms tolerance,
+silence, open-capture and response/playback limits apply. Scoped capture diagnostics
+count timed/untimed output chunks without retaining audio. Focused capture/PCM/
+real-MySQL delivery tests passed in `96d81fab07`; the earlier full regression
+predates this range-aware change and will be rerun after Live verification.
+
+Ready-review verifier refinement passed all 26 labelled cases in
+`target/es08-final-20261112/verifier-ready-review.json`: 25 provider requests plus
+one exact-word fast path, 21,229 prompt + 1,353 completion tokens. The retained
+complete review matches, while premature activation, immediate execution instead
+of a fresh cue, missing human judgement and repeated preparation remain rejected.
+The focused 78-case verifier/correction/approval/real-MySQL suite passed in
+`294ec38b7e`; packaging and whitespace checks passed again. The probe's published
+two-pass ceilings are now 52 requests and 60,000 reported tokens; this run used
+one pass only. Live scenario limits are unchanged.
+
+Recovery `de092f721a` failed earlier, before the refined ready-review path: native
+speech invented a rock observation without supplied recognition evidence, and its
+correction omitted the demonstration request and judgement role. Both were
+withheld. Usage: three backend requests, 7,501 prompt + 451 completion tokens;
+last Live report 88 seconds; zero new synthesis. No speech played, activation or
+action occurred; owned resources were removed and the FAIL review is retained.
+
+Pending preparation now receives an explicit proposal review too: recognition is
+unconfirmed for the outstanding checks, demonstration precedes acceptance, and
+all saved roles/limits remain available. Long reviews retain this projection in
+the bounded full context instead of reverting to broad agreement JSON. Shared
+remaining-check rendering also guides support. All 87 focused
+proposal/preparation/support/correction/acceptance/social/real-MySQL cases passed
+in `2fd2f4ef7b`. A further capped recovery journey is checking this concrete repair.
+
+Recovery `f5eeb16699` played its complete initial pending proposal and help, but
+then withheld two ready-stage responses that reduced the requested repeated full
+review to readiness/cue status. Usage: six backend requests, 15,038 prompt + 701
+completion tokens; last Live report 148 seconds; zero new synthesis. No action or
+activation occurred. Owned resources were cleaned up and the FAIL review remains.
+
+The pending full-review prototype was replaced with a simpler sequence: a complete
+proposal requiring preparation first gives a short deterministic demonstration
+request, with no acceptance invitation. Once observations satisfy preparation,
+the full saved terms are reviewed before acceptance. The same existing states,
+checks, original deadlines and finite budgets apply. This also avoids presenting
+the whole proposal twice. Long ready reviews still retain their explicit projection
+in bounded context. All 86 focused cases passed in `fb96c22e0e`; a further capped
+recovery run checks the final sequence. No broader voice-path change is involved.
+
+Latest batch: **dialogue PASS** in `234999817d`, with separate semantic review.
+The played keys/no-door question and piano feedback match; help explicitly reports
+active state, perception/fragment support preserve authority, final delivery enters
+Reflection, and replacement/renewed acceptance/new question/Stop complete. Usage:
+15 backend requests, 36,242 prompt + 1,351 completion tokens; last Live report
+283 seconds; zero new synthesis. Earlier wrong/uncommitted native drafts were
+withheld. Raw journey, PASS review/hash and source manifest are retained.
+
+Recovery `e9658d3d65` passed complete preparation help, then failed when the verifier
+rejected a semantically complete ready review twice. The review states completed
+checks, fresh rock after acceptance, one workshop welcome, usefulness judgement,
+one-action total and an acceptance question. Usage: five backend requests, 8,896
+prompt + 586 completion tokens; last Live report 148 seconds; zero new synthesis.
+No activation/action occurred. The retained candidate is being added as a positive
+review fixture with negative activation/cue/role contrasts. Social regression `f963c96aa7` also passed full semantic review: explicit count
+alternative, exactly one played welcome with confirmed delivery, fresh restart,
+pause/resume and Stop. Usage: 12 backend requests, 22,191 prompt + 1,236 completion
+tokens; last Live report 223 seconds; zero new synthesis. One welcome correction
+remained within the same spent contribution. All three runs closed their sessions
+and removed owned app/schema/account resources. Recovery remains the only open
+scenario; none of the two passes certifies physical operation.
+
+Latest integrated result: **social PASS** in `20c42b6d65`, including separate
+semantic review of played speech, durable state and final playback. The exact
+visible-count alternative was accepted; a nonmatching cue spent nothing, one
+matching cue produced one welcome, and restart/pause/resume/stop preserved their
+run/budget contracts. Earlier incorrect drafts remained unheard. Usage: 10 backend
+requests, 20,801 prompt + 1,103 completion tokens, last Live report 208 seconds,
+zero new synthesis. This is one synthetic pass, not a reliability-rate estimate.
+
+Recovery `e78026068f` failed at preparation help: both native candidates omitted
+that recognition alone cannot start the task. They were withheld, and later steps
+were not exercised. Usage: four backend requests, 7,561 prompt + 521 completion
+tokens, last Live report 118 seconds, zero new synthesis. The next repair will
+make this help a concise complete instruction and explicitly request its wording.
+Both runs retained raw journeys plus semantic reviews/hashes and cleaned up their
+owned sessions/apps/disposable database resources. Dialogue `a036a052d2` subsequently passed automated lifecycle/playback assertions
+but **failed semantic review**. The backend itself committed a keys/space/enter
+question (keyboard), then generated incorrect positive feedback for piano. The
+verifier correctly matched each committed response; this is factual feedback
+failure, not verifier drift. Played help also omitted an explicit active-state
+answer. Usage: 16 backend requests, 36,549 prompt + 1,418 completion tokens, last
+Live report 298 seconds, zero new synthesis. The raw journey and separate FAIL
+review remain retained; the successful harness exit is not acceptance.
+
+Feedback now receives the previous actually delivered contribution as explicit
+current-turn data, selected by the existing response/owner/revision/segment and
+playback fences rather than the latest ordinary help. Receipt-aware speech offsets
+remain respected. Guidance evaluates all defining clues and rejects partial fits;
+no new task engine or additional per-turn inference was added. The fixture accepts
+an evaluation of either polarity, but factual correctness remains a required
+semantic review of the actual question/answer/feedback triple.
+
+Preparation help is now a compact complete instruction with explicit acceptance
+after recognition. Deterministic support requests its complete wording, including
+the same text on its one correction. Focused verification passed 78 Java/real-MySQL
+cases in `c0c546f043` and eight Node fixture cases. The earlier `28d2f4d226` caught
+outdated test wording and a synthetic played=false fixture; the runtime represents
+pending playback by absence of played, so the fixture now uses that contract.
+
+A three-request factual-feedback probe used the actual current-turn builder and
+retained production request context. All three reviewed responses were correct:
+partial-fit piano versus the multi-clue question, matching keyboard, and matching
+piano versus the single-clue question. Total: 17,472 prompt + 314 completion tokens
+(17,786 reported); no Live/database work. Detailed requests/results and review are
+in `target/es08-final-20261112/feedback-guidance-probe.json`. This probe does not
+replace the integrated journey. All 210 Node and 11 runner preflight checks also
+passed after these repairs; full Java/browser regression `c274cc1144` passed 980 Java cases with one
+intentional capacity skip, four enabled-browser cases and one disabled-browser
+case (three mode-specific skips). JUnit XML is retained in that artifact; the
+corrected-playback screenshot was inspected. Packaging and whitespace checks
+also passed. A final capped three-scenario batch is running on this tree.
+
+Full offline checkpoint `26ed6ce58a` passed 973 Java cases with one intentional
+capacity skip, four enabled-browser checks and one disabled-browser check (three
+mode-specific skips). JUnit XML is retained inside the artifact. All 210 Node and
+11 runner preflight checks passed. These results precede the final prompt repairs
+below and do not close the Live gate.
+
+A two-request `low`-reasoning comparison preserved both the description-like
+welcome and the riddle rejection (4,293 prompt + 259 completion tokens; no Live,
+database or configuration mutation). Inspecting the actual cue request then found
+contradictory instructions: Generic asked for a description, "not a finished
+utterance", while Coordination asked for actual words. Coordination now overrides
+that inherited guidance through a protected specialization; Generic keeps its
+existing behavior. Focused Generic/Coordination/verifier/DB tests passed in
+`884a1efab9` after fixing a missing test import exposed by `62760bf3f2`. All review
+tests passed in `edbfc816b7`.
+
+One controlled replay replaced only that guidance with the current implementation:
+the same Luna/none model now returned "Welcome, everyone." (3,749 prompt + 52
+completion tokens). This is causal diagnostic evidence, not integrated acceptance.
+The 20-case verifier check passed 19, still rejecting omission of optional "many"
+in the retained keys riddle (19 provider requests; 11,597 prompt + 1,014 completion
+tokens). Guidance now explicitly distinguishes that paraphrase from lost numeric
+counts or distinctive multi-clue content; the fixture includes both negatives.
+Proposal reviews also request combining repeated facts within 55 words, without
+dropping roles/success/budget or changing production capture/deadline limits.
+
+Artifacts for these small probes are in `target/es08-final-20261112/`. The broader
+speech-path question is deferred while these concrete repairs are checked within
+the existing architecture; the alternative remains unimplemented.
+
+The refined verifier passed all 21 labelled cases in
+`target/es08-final-20261112/verifier-explicit-emphasis.json`: 20 provider requests,
+13,031 prompt + 1,067 completion tokens and one exact-word fast-path case. Numeric
+and distinctive-clue loss remain rejected; only optional emphasis was clarified.
+Support replies now share the post-commit generation fence with proposal reviews,
+addressing `3649b59a63`'s early acknowledgement consuming correction before the
+confirmed help. Other ordinary conversation retains the prior allowance. Focused
+capture/support/correction/approval tests passed in `a31db06a93`. A further capped
+three-scenario batch tests these concrete changes.
+
+Captured request inspection also found that `TaskMemory.messages` bypasses the
+shared heard-speech projection and includes native drafts whose playback is false.
+The current batch remains unchanged for attributable evidence. The implemented repair
+now filters those drafts before applying the dialogue-history bound, so rejected
+speech cannot be treated as conversation or crowd out the heard question.
+
+## Post-prompt batch and causal repairs (2026-11-12)
+
+The subsequent capped batch also retained three failed journeys, each with a
+separate semantic review and hash of its raw journey. No new synthesis was needed;
+all sessions requested closure and their owned app/schema/account were removed.
+
+| Scenario / artifact | Reviewed result | Backend usage | Last reported Live usage |
+| --- | --- | --- | --- |
+| Dialogue `6fdad58f6a` | All turns through feedback played and final delivery confirmed. Feedback borrowed an unheard space clue; replacement then failed with `context_delivery_unconfirmed`. | 10 requests; 26,885 prompt + 981 completion tokens | 238 seconds |
+| Recovery `8a3c1d95c3` | Initial preparation/help played; ready review implied checks remained, omitting their confirmed completion. Both candidates withheld. | 6 requests; 14,411 prompt + 691 completion tokens | 133 seconds |
+| Social `867b9afcc6` | Count alternative, arming and actual "Welcome, everyone!" played; final delivery confirmed. Exact echoed agreement caused RESTART validation to reject. | 7 requests; 18,402 prompt + 898 completion tokens | 163 seconds |
+
+`TaskMemory.messages` now excludes explicitly unplayed drafts before its 20-turn
+bound, using the shared projection rule. Legacy speech/backend-intent handling
+and the raw audit history remain unchanged. The new regression places 25 rejected
+complete/incomplete drafts after a heard question and verifies the question stays
+in the actual task prompt.
+
+The Live sideband now serializes text writes with a dedicated lock and shares its
+existing send deadline across queueing and transport completion. Inbound callbacks
+remain independent; queued commands cannot send after closure. The observed
+replacement failure coincided with concurrent delegation/context sends; that
+causal attribution remains an inference. The underlying transport race is real:
+[JDK WebSocket](https://docs.oracle.com/en/java/javase/21/docs/api/java.net.http/java/net/http/WebSocket.html#sendText(java.lang.CharSequence,boolean))
+rejects overlapping text/binary writes. Mock-transport regressions exercise overlap,
+inbound delivery during a pending send, closure and stalled-send timeout.
+
+Ready reviews now explicitly retain completed preparation, which their former
+compact projection dropped. RESTART tolerates only an exact redundant echo of the
+accepted agreement; changed terms are still rejected. Questions, quoted or deferred
+restart requests cannot activate a new run. Focused tests initially caught a test
+expectation confusing the COMPLETED phase with its CANCELLED outcome (`5c3ab25f98`);
+the expectation was corrected without changing lifecycle behavior. All 82 focused
+cases then passed in `900308c81f`, including real MySQL delivery coverage.
+
+## Retained ES-08 scenario batch before final prompt repairs (2026-11-12)
+
+ES-08 remains **unaccepted**. The final native-output batch preserves every failed
+attempt, with synthetic Onyx visitor audio, Live `gpt-live-1`/Willow and backend
+`gpt-5.6-luna`/`none`. No provider settings or production application were changed
+by this batch. Each scenario retained the declared 360-second session, 12-turn,
+24-request, 2,048-completion-token/request, 80,000-input-byte/request,
+200,000-reported-token cutoff, 12-clip/6,000-character synthesis and 420-second
+child-wall caps. The reported token cutoff can be crossed by its final request.
+
+| Scenario / artifact | Reviewed result | Backend usage | Last reported Live usage |
+| --- | --- | --- | --- |
+| Dialogue `deaaab2cc2` | Full proposal reviewed and played; first question omitted "many", was rejected, and no usable correction arrived. PAUSED/UNCERTAIN with one spent contribution. | 4 requests; 12,206 prompt + 447 completion tokens | 148 seconds |
+| Recovery `35b5b3a3fc` | Initial preparation and help played; acceptance review exceeded capture duration and remained unheard. No activation/contribution. | 4 requests; 12,212 prompt + 565 completion tokens | 148 seconds |
+| Social `e6379034d8` | Correct count alternative and arming played; backend committed "A brief welcome to the visible group", which Live repeated. Both drafts were rejected as an actual contribution; final delivery UNCERTAIN with one spent action. | 6 requests; 11,794 prompt + 630 completion tokens | 148 seconds |
+
+All three runs used cached synthesis, requested session closure, stopped the owned app
+and removed their disposable database/schema account. Later scenario steps were
+not exercised; these are not partial acceptance passes. Review considers
+`trial.speech_played` separately from all captured/unheard assistant drafts.
+Each artifact also contains `semantic-review.json`, with a FAIL assessment and
+SHA-256 of the unchanged raw journey. The near-equivalent riddle pair needs a
+labelled verifier check; omission of "many" is not by itself proof of a materially
+different riddle. The required playback still failed.
+
+A broader output-path alternative and its concrete implementation/test seams are
+prepared in `ES08_SPEECH_DELIVERY_DECISION.md`. A scope question is pending because
+backend-written synthesized replies would change the selected native Live output
+path; the standing task instruction calls for preserving the architecture.
+The social failure concerns backend content as well as delivery: the existing cue
+guidance already requires actual words, but the returned wording is description-like.
+Both verdicts were AMBIGUOUS; their exact rationale is not returned. Synthesizing
+that same text would not by itself establish a useful welcome.
+The alternative is not implemented. Physical trials remain NOT RUN and deployment
+capacity remains deferred.
+
+## Ordinary committed-reply correction (2026-11-12, implementation and investigation)
+
+Under the owner's authorization to finish ES-08, one bounded correction now also
+applies to an ordinary current Coordination reply. The persisted response retains
+its original identity, owner/revision, content and 45-second expiry; at least ten
+seconds must remain. The replacement must start after reservation. Release is
+persisted before permission is returned, fencing replay after in-memory window
+loss. A valid second rejection, malformed verdict, provider error or interruption
+cannot reserve another correction. No task action is executed or refunded.
+Sensory remarks and help attached to a pending task response remain excluded.
+
+This addresses retained dialogue `3920e39007`: the labelled review produced an
+unheard draft that quoted the riddle before acceptance and omitted the invitation.
+Approval correctly rejected it, but the task-only correction scope left the
+ordinary proposal without a delivery path. Two requests used 6,257 backend tokens;
+last Live usage was 58 seconds, no new TTS clips, and owned cleanup completed.
+The scope extension uses the existing response, approval service, speaking occasion
+and player rather than replaying a task or weakening the semantic check.
+
+Focused Java and real disposable-MySQL checks passed in `2e3362a1d3` and
+`9cdeedca8b`. Final approval/correction unit checks and both production-browser
+delivery paths passed in `08548b505b`. The ordinary reservation remains recorded
+in the approval window so concurrent stale candidates cannot trigger extra checks;
+an already reserved correction does not consume a second window-capacity slot.
+
+Dialogue `78343a186e` stopped before approval: the proposal segment was INCOMPLETE
+with `audio_coverage_gap`, and no reply was played. Reflected-audio telemetry shows
+a temporary output-sample shortfall followed by catch-up, but those audio chunks
+have no provider timestamps that could prove continuous coverage. The conservative
+capture guard is unchanged. One backend request used 5,233 prompt + 210 completion
+tokens; last Live usage was 58 seconds, no new TTS clips, and owned cleanup
+completed. This run did not exercise ordinary correction. The next trial moves to
+the independently required recovery scenario on the same implementation.
+
+Recovery `742a65602f` delivered preparation help and a truthful scissors report,
+then withheld the ready-state help before verification. Its final USER receipt
+preceded the first ASSISTANT receipt in the same millisecond; capture persisted
+millisecond precision while the approval window compared a finer-resolution
+Instant. Approval now uses bounded, deduplicated sideband receipt order only to
+disambiguate that millisecond for ordinary pre-commit drafts. Earlier speech,
+missing order, later input and task output still fail closed. Seven requests used
+9,272 prompt + 703 completion tokens; last Live usage 178 seconds, four new TTS
+clips, owned cleanup complete. `90e26b1d11` passed the focused approval/session
+checks and real-MySQL delivery regressions, including seven timestamp/order cases.
+The run also demonstrates ordinary correction of two unheard drafts, but its
+heard preparation invitation did not review the proposed terms; it is not a
+complete semantic acceptance pass.
+
+Prepared sensor invitations now review the saved roles, success criterion, total
+action budget and fresh-cue requirement before acceptance. The generic identified
+proposal review serves both dialogue and sensor agreements; count alternatives
+retain their specialized disclosure. The first focused run (`c1ffabe526`) passed
+78/79 cases and exposed one assertion still looking for the review in quiet facts.
+After updating it to the identified speaking occasion, all 20 voice cases passed
+in `b54c72b86c`.
+
+Social `0d9df29d22` rejected an unheard proposal that first suggested a verbal cue
+and then described the count alternative. Its one correction was captured, but
+the harness's 40-second heard-response wait ended before approval/playback could
+finish within the existing 45/60-second production limits. No speech was played.
+The ES-08 wait is now 65 seconds to observe those limits; neither production
+deadlines nor the 360-second session / 420-second child cap changed. Syntax and
+all seven escalation-fixture tests passed. Usage: two requests, 6,248 prompt +
+354 completion tokens, last Live usage 58 seconds, five new TTS clips, cleanup
+complete. A further social run tests this harness repair; the failed run is retained.
+
+Social `8f6896c81e` reached the second verification under the corrected wait, but
+both drafts were rejected. The correction stated the count/limit without the
+agreed welcome, roles or success criterion: the specialized count-review message
+itself omitted those fields. That message now combines its executable count
+disclosure with the full saved proposal review. All focused social/voice/context
+checks passed in `1c5c565227`. The failed run used three requests, 7,100 prompt +
+430 completion tokens; last Live usage 88 seconds, no new synthesis and complete
+owned cleanup. No speech played and no acceptance/action was inferred.
+
+Dialogue `19dfb480b5` delivered a corrected invitation, then stalled after START.
+Task association checked a sentence suffix from an early mixed segment and left
+the response REJECTED; whole-audio approval correctly discarded that segment,
+but the later complete requested question could no longer claim the response.
+It expired into PAUSED/UNCERTAIN with one spent contribution and no task audio
+played. Five requests used 12,896 prompt + 517 completion tokens; last Live usage
+133 seconds, no new synthesis, cleanup complete. Approval-enabled task association
+now considers whole segments only: early mixed segments stay audit evidence and
+leave the response pending for a later authorized whole clip. Other agents retain
+receipt-aware suffix association. The changed real-MySQL regression verifies
+that the later whole reply reaches confirmed Reflection without another action.
+Focused task/approval checks and real-MySQL delivery passed in `5c047bac0b`, followed
+by both production-browser delivery paths (direct approval and rejected/corrected
+speech to Reflection). All 209 Node and 11 runner preflight checks also passed;
+Node output is retained in `target/es08-final-20261112/node.log`.
+
+Dialogue `0a668e312f` confirmed the whole-clip repair: its proposed two-contribution
+round and first riddle were both approved and observed playing, with one action.
+The harness then falsely treated two occurrences of "keys" as two questions in
+"I've got keys but no locks. What object has keys that cannot open a door?"
+There is one question. The assertion now counts question boundaries, with a
+regression accepting this exact setup/question and rejecting repeated questions
+or a promise to ask later. Semantic clue/leak review remains mandatory. All eight
+escalation fixture tests pass. The retained incomplete journey used four requests,
+12,050 prompt + 410 completion tokens, last Live usage 58 seconds, no new TTS clips,
+and complete owned cleanup. The next dialogue run tests this harness correction.
+
+Dialogue `4f30a7188c` delivered the proposal but joined an early, unauthorized
+riddle to the later confirmed question without an acoustic boundary. Whole-clip
+association and the browser withheld it; the response expired to PAUSED/UNCERTAIN
+with one spent action. Three requests used 11,518 prompt + 358 completion tokens;
+last Live usage 118 seconds, no new synthesis, cleanup complete. The bridge now
+waits for an already active assistant draft to finish before planning a required
+approval-enabled speaking occasion. This uses capture's in-memory activity and
+the existing scheduler, with no sleeping worker or repeated graph reads while
+busy. Quiet, supersession, closure and original expiry are separate boundaries;
+the response deadline and action budget never restart. Other playback modes and
+optional ambient comments retain their existing behavior.
+The focused bridge/capture/segmenter and real-MySQL tests passed in `c5fcba5f07`,
+as did both browser delivery paths. The quiet-wait state publication ordering was
+then tightened before the browser compilation. The correction screenshot from
+`5c047bac0b` was reviewed: only approved speech appears in delivered conversation;
+controls and status are readable. This is synthetic UI evidence, not physical audio.
+
+Dialogue `960c5a7650` passed proposal, task question, help and current perception,
+including one checked task correction. It then rejected both incomplete-answer
+support drafts. The corrected words requested completion and preserved the
+agreement, but omitted the separately required state-unchanged reassurance. The
+committed clarification now simply asks to finish the request; state/agreement/
+budget preservation remains enforced and tested rather than narrated. The run
+used ten requests, 15,630 prompt + 854 completion tokens; last Live usage 208 seconds,
+no new synthesis and complete cleanup. Feedback/replacement/stop were not reached.
+
+Dialogue `ca20ba119a` failed at proposal delivery before exercising the shorter
+clarification. Both reviewed drafts omitted terms or performed the riddle early;
+neither played. Three requests used 6,678 prompt + 329 completion tokens, last
+Live usage 88 seconds, no new synthesis, complete owned cleanup. The backend
+already generates a proposed spoken review, but the Live path discarded it and
+reconstructed speech from task instructions. Approval-enabled ready proposals now
+retain that bounded wording and ask Live to realize it; semantic verification
+still uses the complete saved agreement. The backend guidance requires all review
+terms and forbids performing the riddle. Oversized/absent wording retains the
+existing bounded review fallback. Focused runs `ffc309aa42` and `bd8fa6e345`
+exposed an outdated assertion and the deterministic proposal overwrite; after
+fixing both, all 64 voice/correction/context cases passed in `3ffcc5a0c3`.
+
+Dialogue `017c6615ad` played a reviewed, inactive two-part riddle proposal without
+the solution. The harness failed to recognize "Say if you want me to start" as
+an invitation, so acceptance and later turns were never attempted. The saved
+agreement retained both roles and the question-before-feedback success criterion;
+the spoken review described that exchange and its two-part bound. The pacing
+expression now accepts this explicit invitation, with all eight fixture tests
+passing. Two requests used 6,091 prompt + 270 completion tokens, last Live usage
+88 seconds, no new synthesis and complete owned cleanup. This is retained as an
+incomplete journey; a further dialogue run tests the harness repair.
+
+Dialogue `3291366c40` rejected an early task-performing draft and then the
+backend-generated review, which omitted the saved human responsibility. No
+speech played. Three requests used 6,873 prompt + 370 completion tokens, last
+Live usage 88 seconds, no new synthesis, cleanup complete. The proposed-speech
+optimization is removed: ready reviews now render all four saved agreement fields,
+the total limit and any count condition as explicit review text. This avoids
+depending on an independently generated summary to retain required terms. The
+original bounds and oversized-context fallback remain. The first focused run
+(`7379492546`) passed 79/80; the remaining assertion was corrected to inspect the
+existing full-context path for a review larger than the atomic-message limit.
+
+All 80 focused review/correction/context checks passed in `0b0e801bb7`.
+Dialogue `72841d5726` captured the complete saved review, but an earlier short
+"Ready when you say go" draft reserved correction while the confirmed review
+was already being delivered. That review lacked a matched whole audio clip;
+the duplicate correction completed beyond the original window. Nothing played.
+Two requests used 5,928 prompt + 250 completion tokens, last Live usage 88 seconds,
+no new synthesis, cleanup complete. Proposal review requests now explicitly
+require post-commit generation, so an early acknowledgement cannot consume the
+check/correction before the confirmed review. Other ordinary current-turn replies
+retain their existing pre-commit allowance. Approval, voice, correction and real
+MySQL delivery regressions passed in `b1c0d1c44b`.
+
+Dialogue `3649b59a63` played the proposal and first riddle with one contribution.
+Both help drafts omitted the active-state answer and were withheld; later turns
+were not reached. Six requests used 13,190 prompt + 567 completion tokens, last
+Live usage 133 seconds, no new synthesis, cleanup complete. Spoken support now
+starts with its human-readable explanation instead of an internal state label;
+active dialogue help does not mention independent sensor reactions, and Pause
+versus Stop is distinguished. Focused support/capture/voice/approval checks passed
+in `5f1b1741bd`.
+
+## ES-08 completion continuation (2026-11-11)
+
+The owner authorized continuing through all three integrated behavioural journeys.
+Short confirmed support replies now use the existing compact speaking occasion:
+content and permission arrive together, while background state remains quiet.
+Approval, task authority, deadlines and the task-only correction scope are unchanged.
+
+Focused checks: 122 cases across capture, voice, support, perception, context
+delivery and approval. The initial run (`6ff8523ac9`) passed 121 and found one old
+assertion expecting help text in quiet facts; it now checks the speaking occasion.
+All 20 support cases then passed (`6e651523e3`).
+
+Paid dialogue `1c5d882726` stopped before reaching the clarification change. The
+proposal was approved and played, but synthetic "Let's start" produced no USER
+transcript. The provider emitted those words as ASSISTANT output instead; reflected
+input telemetry confirms voiced input reached the server. No consent was inferred,
+and the task stayed inactive. This is retained as a failed input-attribution
+attempt, not a pass or evidence about the clarification fix. Two backend requests
+used 6,279 tokens; last reported Live usage was 104 seconds. Owned cleanup completed.
+
+The next controlled attempt changes only the synthetic visitor voice from Alloy
+to Onyx to distinguish it from Live Willow; scenario words and USER-transcript
+requirements remain unchanged. This tests a possible synthetic-voice ambiguity,
+not a proven diagnosis or a production input-reliability fix. Stimulus model/voice
+are now recorded in each journey artifact. No unchanged reroll is authorized.
+Dialogue `fcd428a805` then passed input attribution and the repaired clarification:
+"Go on, please; the agreement and state stay the same." A first feedback draft
+omitted the committed piano explanation, was rejected, and reserved the one
+unheard correction. The corrected piano feedback was approved, released and
+played exactly once; the original response/deadlines and two-contribution budget
+were preserved, and final delivery reached PLAYBACK_CONFIRMED/COMPLETED.
+
+The harness then failed on its obsolete `trial.playback_ack` assertion: it recorded
+the direct player's final HTTP acknowledgement but not the approval player's.
+Production diagnostic and persisted state both confirmed acceptance. The harness
+now records the actual production-player HTTP result and awaits an acknowledgement
+matching the current delivery ID and segment, rather than any historical cue.
+Revision/stop were not reached; this remains an incomplete attempt. Usage: ten
+backend requests, 20,596 prompt + 872 completion tokens, last Live usage 164
+seconds, eight new Onyx stimulus clips. Owned cleanup completed. A rerun is
+justified by this harness repair; no production completion check was relaxed.
+Dialogue `c692869b6b` admitted explicit "Let's start" correctly, but inference
+labelled the first riddle contribution STEP while the draft was READY. Validation
+rejected it, preserved the inactive proposal and gave truthful recovery guidance;
+the journey failed. Four backend requests used 12,534 tokens; last Live usage 88
+seconds; no new TTS clips. Owned cleanup completed. Onyx is a controlled stimulus
+choice, not a guarantee of input attribution.
+
+Explicit acceptance of a ready proposal now selects START in the backend. The
+existing inference supplies its first contribution; START/STEP labels cannot
+change that selected operation, and proposed replacement terms or other operations
+still fail closed. Negation, questions, quotation, future intent and incomplete
+fragments retain their existing guards. Focused acceptance/lifecycle/capture/agent
+regression passed in `e6f3f56ee2`; no extra provider request or task engine was added.
+Dialogue `9caad663b7` failed before acceptance: its abbreviated proposal said only
+"two lines total" and omitted the human role and success condition. Approval
+rejected it; no proposal audio played. Two backend requests used 6,234 tokens;
+last Live usage was 58 seconds, no new synthesis, and owned cleanup completed.
+The ready-dialogue review now puts its exact goal, both roles, success criterion,
+limit and inactive/acceptance status together in the identified speaking occasion.
+Long reviews use the existing bounded fact chunks; oversized ones retain full
+context without dropping terms. This changes realization guidance, not verification.
+Integrated results and final review remain pending.
+
+## One bounded unheard task correction (2026-11-11)
+
+Owner-authorized continuation after reviewing the ES-08 commits. **ES-08 remains
+unaccepted.** Implementation permits one corrective realization only for a valid
+semantic rejection of an unreleased, approval-enabled Coordination task response.
+The scoped player's complete audio match and current interruption/owner checks
+precede reservation. The response identity, contribution count and deadlines are
+unchanged; ten verification seconds must remain. Correction has a separate
+speaking-occasion identity, while playback keeps the original response identity.
+Release is persisted before its acknowledgement, preventing replay after window
+or acknowledgement loss. Provider/capture failures and a second mismatch retain
+recovery. No ordinary/help/sensory retry or new task engine was added.
+
+Verification:
+
+- **109 focused Java cases passed** in `target/gptlive-acceptance-9aa6d688ed`,
+  including real disposable-MySQL reload/ownership and release uncertainty.
+  Its selected JUnit reports are retained under that artifact's `junit/` directory.
+  A later late/incomplete-candidate regression and the final ordinary commit
+  notification mapping are included in the full regression recorded below.
+- **Three production-browser checks passed** in
+  `target/gptlive-acceptance-04245ec0b8`: real local WebRTC capture/silence,
+  the existing approved-playback path, and rejected-first/corrected-second playback
+  with one contribution and confirmed Reflection. The correction screenshot was
+  visually inspected: only the checked replacement appears in conversation.
+- **209 Node tests and 11 runner preflight checks passed.** Node output is retained
+  in `target/es08-correction-20261111/node.log`.
+- Full disposable-MySQL regression: **943 cases, 942 passed, one explicitly gated
+  capacity case skipped, zero failures/errors**; artifact
+  `target/gptlive-acceptance-019cfb4cc1`, with reports preserved under `junit/`.
+- Final browser regression: **five checks passed** in
+  `target/gptlive-acceptance-ece516fc9b`: four with Live enabled (WebRTC silence/
+  release, original and corrected Coordination playback, neighboring scoped
+  cockpit) and the legacy scoped cockpit with Live disabled. The three Live-only
+  cases were explicitly skipped in the disabled run. Owned apps and disposable
+  schema/accounts were cleaned up after both runners.
+- `mvnw.cmd -q -DskipTests package` and `git diff --check` passed. These runs
+  include the final response-identity mapping and late/incomplete-candidate fence.
+
+Retained failures: the first focused run needed corrected test setup for the
+approval opt-in and the Storage helper's package boundary. The first browser
+correction attempt (`37a827c300`) exposed missing PCM lead-in after the synthetic
+provider's idle interval (`audio_coverage_gap`). Review also identified that a
+correction occasion ID must not replace the browser's response ID. After those
+repairs, `9aa6d688ed` confirmed both playback paths but continuously emitted
+synthetic silence kept the activity footer at “Live output activity.” The fixture
+now supplies the next utterance's PCM lead-in and its complete quiet tail without
+inventing idle output activity. The subsequent three browser checks passed.
+Production capture timing, semantic verification and the footer assertions were
+not relaxed. Failed artifacts remain intact; no paid rerolls were made.
+
+At the owner's request, a read-only Heroku config inspection found no model/effort
+overrides on Valerian. The deployment branch's `openai-prod.properties` routes all
+five inference purposes to `gpt-5.6-luna` / `none`, with `gpt-5.2` as the fallback.
+Once the owner supplied a private local key, the ignored local provider file was
+set to Luna / `none`, preserving the key and other settings. The paid trace below
+confirms those effective settings. No deployment configuration was changed.
+
+### Paid dialogue: clarification withheld, journey incomplete
+
+Command: `python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordination --coordination-scenario escalation-dialogue`.
+Retained artifact: `target/gptlive-acceptance-74a86512da`, including `journey.json`,
+`provider.jsonl` and a separate `semantic-review.json`; the automated report is
+unchanged. This was one run, with the previously declared ES-08 caps and
+`gpt-live-1` / `willow`, backend Luna / `none`.
+
+- Four complete replies passed approval and observed playback: an inactive,
+  bounded proposal; one keys/no-door riddle after acceptance; truthful running
+  status/help; and a fresh scissor-sign report. The riddle preserved its committed
+  wording and concealed the answer. Help/perception spent no contribution.
+- On the incomplete input "My answer is", the backend committed "Please finish
+  that request; the agreement and state are unchanged." Live instead generated
+  "I'm still waiting for your answer." The verifier returned AMBIGUOUS and the
+  player rejected it. The required completion prompt was never heard; the runner
+  timed out. This is ordinary clarification speech, outside the task-only
+  correction scope. The response was correctly withheld; the required user
+  experience still failed.
+- Final task state remained RUNNING with one contribution, the original captured/
+  released/played riddle response and unchanged authority. No correction was
+  reserved in this paid run, so it supplies no real-provider evidence for the new
+  correction path. Final answer/feedback, Reflection, replacement and stop were
+  not reached. Semantic acceptance is FAIL/incomplete, not a passing subset.
+- Usage: five visitor turns, seven backend requests, 13,698 prompt + 638 completion
+  tokens (14,336 total), one Live session (last reported usage 148 seconds), and
+  one new TTS synthesis; other stimulus clips came from the existing cache. No
+  total dollar cost is inferred from incomplete provider telemetry. Session close
+  was requested; the owned app stopped and disposable schema/account were removed.
+- Recovery/social were not run after this failed dialogue gate. Physical trials
+  remain unrun and capacity remains deferred. No unchanged paid reroll was made.
+
+Next focused step: inspect how the ordinary clarification occasion conveys its
+current communicative act to Live, using this exact incomplete-answer case. Make
+the request to finish the fragment explicit before retrying dialogue; preserve
+the semantic approval rule and the task-only correction boundary. This follow-up
+is not implemented in the present review handoff.
+
+## Approval before audible speech - implementation checkpoint (2026-11-11)
+
+**Owner-authorized scope implemented; ES-08 is NOT accepted.** The owner accepted
+added latency and the buffered playback change. No deployment or physical trial
+was performed. The current state machine, agreement/budget authority and task
+speech generation fences remain intact. No task verification was weakened to turn
+an unsuccessful Live journey into a pass.
+
+### What changed
+
+- Delivery-aware Coordination Live sessions require an approval-capable client.
+  Original remote PCM is captured through a silent worklet, with two bounded clips,
+  a 30-second clip limit, 2.4-second acoustic quiet and 60-second retention.
+  Receipt matching uses one-second onset / 1.5-second end margins, below the
+  grouping gap, exact whole text/receipt identity and exclusion of extra receipts.
+  These are conservative acoustic checks, not perfect speech/ASR correspondence.
+- A separate scoped approval/release/played protocol checks current agent/session/
+  epoch/revision and deadlines. Task contributions reuse their existing semantic
+  verifier. Ordinary/control/help speech has one semantic check per current
+  request, at most four concurrent checks and 128 attempts per session. Provider
+  waits occur outside agent locks and database transactions.
+- Optional sensory remarks use their existing scoped occasion and facts. They
+  cannot displace a current reply, establish consent or consume a task response.
+  Release must still occur within the original observation/occasion expiry (at
+  most six seconds); playback admitted in time may finish within the overall
+  60-second bound. Supersession and user input cancel the occasion. This short
+  admission window can expire during buffering/verification; no paid sensory
+  remark trial was performed.
+- An ordinary draft may precede backend commitment only if it follows the last
+  trusted receipt of the current user turn and is then reviewed against committed
+  facts. Earlier-turn drafts, mute and interruption cannot qualify. Task content
+  retains its post-request generation fence and original 45-second deadline.
+- Approval does not prove delivery. Only observed playback exposes native speech
+  to conversation/prompt/consent views and opens the next cue. The existing final
+  task playback cue remains separate. Help cannot consume a task response or
+  manufacture acceptance evidence. Missing/rejected speech gives visible recovery
+  guidance; there is no automatic replay or new contribution.
+- The production player uses a private muted, zero-volume remote sink for
+  [Chromium's remote-stream consumption issue](https://issues.chromium.org/issues/40094084).
+  The original stream is never audible. A real local WebRTC peer-pair regression
+  checks nonzero capture, silence on rejection and one approved playback.
+  Buffered playback binds receipts at observed audio onset after media warmup;
+  a later interruption/stall still invalidates proof.
+
+### Verification and retained offline failures
+
+- Full disposable-MySQL regression: **913 cases, 912 passed, one explicitly gated
+  capacity case skipped, zero failures/errors**; artifact
+  `target/gptlive-acceptance-65ad2c77c2`.
+- **Four Playwright checks passed** in that same run: real local WebRTC
+  capture/rejection/approved playback, real-app Coordination Reflection, neighboring
+  scoped cockpit and persisted state/SSE. The approved-conversation screenshot was
+  visually inspected; it contains the delivered contribution without draft leakage.
+- Final review completed the verifier's proposal facts with actual human/agent
+  roles and success criteria, then restored the optional sensory-occasion adapter.
+  **42 focused Java cases passed after both changes** (`CoordinationVoiceUnitTest`,
+  `LiveSpeechApprovalServiceUnitTest`, `SensoryRemarksUnitTest`). These cover
+  current-reply priority, owner scope, consumption after playback, cancellation,
+  and expiry between approval and release versus completion after timely release.
+  The full suite and browser checks above preceded these two final changes.
+- **208 Node tests**, **11 acceptance-runner preflight tests**, `mvnw -DskipTests
+  package` and `git diff --check` passed. Logs are under
+  `target/es08-approval-20261111`. No configured application database was used.
+
+The initial full run `target/gptlive-acceptance-de3a2de656` had 908 cases:
+900 passed, one capacity test skipped, six failures and one error. Six older
+fixtures treated capture as delivery/consent; they were updated to exercise the
+new approval/playback boundary. The other fixture needed the client handshake.
+The subsequent query regression measured **2,007 vs the prior 1,993** questions
+per synthetic minute because ordinary replies now persist speaking requests.
+The ceiling is now 2,010, with the reason recorded in the test. This is **not quota
+acceptance** and excludes approval/release/playback calls: capacity remains deferred.
+
+The first three browser checks passed in `3474b06b4d`; paid capture diagnostics
+then exposed the zero-PCM issue that synthetic media did not cover. The new local
+WebRTC regression checks the repair. Run `f7edc39af5`
+passed the WebRTC check but failed the application playback acknowledgement after
+media warmup erased early receipt evidence. The bounded onset binding regression
+and both browser paths then passed in `d73b66f455`. All failures remain retained.
+
+### Real-provider attempts ? generated is not heard
+
+All runs used the real local application, disposable loopback MySQL,
+`gpt-live-1`/`willow`, backend `gpt-5.6-luna` with effort `none` (run-only settings),
+synthetic visitor audio/sensors and the production approval player. Per-run caps:
+12 visitor turns, 24 backend requests, 2,048 completion tokens/request, 80,000
+input bytes/request, 200,000 reported backend tokens, one Live session/360 seconds,
+12 synthesis clips/6,000 characters and 420 child wall seconds. No configured
+application database or model defaults were changed.
+
+| Artifact under `target/gptlive-acceptance-*` | Result and actual coverage | Backend requests / tokens | Last reported Live seconds |
+| --- | --- | --- | --- |
+| `dbe35c23e6` ? social, initial capture | No heard speech or approval check. Generated draft incorrectly promised a count increase/once per arrival; later diagnostics identified the capture-path problem. | 1 / 5,648 | 60 |
+| `d193041426` ? recovery, diagnostic capture | Zero voiced PCM frames. No heard speech or approval check; no recovery steps reached. | 1 / 5,532 | 59 |
+| `6690c35a38` ? recovery, capture repaired | Nonzero real audio; complete proposal discarded by the newly introduced generation cutoff. Led to the current-turn ordinary-draft correction, without changing task fences. | 1 / 5,547 | 58 |
+| `102583eaef` ? dialogue, reviewed drafts | Proposal MATCH, released once and observed. Question withheld: backend locks/space/enter riddle differed from native keys/no-doors riddle; verifier AMBIGUOUS. One contribution remained spent; task paused/uncertain. Help/feedback/replacement/Stop not reached. | 4 / 12,390 | 88 |
+| `6a49f65690` ? social, reviewed drafts | Generated count-alternative proposal; no heard speech or semantic check. First caption was 601.33 ms before audio onset, outside initial 600 ms margin. Final one-second margin is unit-verified, not provider-rerun. | 1 / 5,646 | 58 |
+| `8caa01d8b3` ? recovery, reviewed drafts | Generated rock-preparation proposal; no heard speech or semantic check. Final caption was 1,260 ms before voice end, outside initial 1,200 ms margin. Final 1,500 ms margin is unit-verified, not provider-rerun. | 1 / 5,539 | 58 |
+
+**Zero complete journey passes.** The sole confirmed proposal had **4,720 ms**
+between captured voice end and playback release; it took additional time to play
+and settle. This is one observation, not a latency distribution. Total backend
+usage: **9 requests, 40,302 tokens (38,383 input + 1,919 output)**. All synthesis
+clips were cached: **zero new TTS requests**. Live seconds above are the last
+reported telemetry values, not billing totals. Each artifact retains raw generated
+captions, observed speech, provider results, buffer diagnostics where available,
+`semantic-review.json` and `approval-usage.json`. Every owned session/app/schema/
+account/MySQL process was cleaned up. Earlier failed runs were not overwritten;
+repeats followed concrete capture/authority repairs, not unchanged rerolls.
+
+### Remaining decision and unverified areas
+
+The approval stage prevents unverified speech from becoming delivered task or
+consent evidence, but it does not make independently generated Live wording
+reliably match a committed task. The final audio-margin fixes and full proposal-role/criterion verifier payload
+have not been tested in another paid journey; all later recovery/social steps and final dialogue feedback
+remain unverified on this path. Physical audibility, microphone interruption/echo,
+camera accuracy and classroom usability remain unrun. Database capacity remains
+a separate, explicitly deferred gate.
+
+A next milestone needs an owner decision: permit **one bounded new realization
+of a rejected task response that was never released to the audible player**, keeping its request identity, spent
+budget and original deadlines, or choose backend-controlled speech for committed
+task content. Recommendation for the smaller continuation: one bounded unheard
+retry, with no second task action and no retry after release (even when completion is unconfirmed). This
+changes the present fail-closed recovery contract and is not implemented or
+assumed authorized by the current checkpoint. Do not simply widen verifier meaning,
+relax task generation fences, increase action budgets or repeat paid runs for luck.
+
+
+## ES-08 continuation C — three bounded Live attempts (2026-11-11)
+
+**ES-08 remains incomplete. All three attempts failed whole-journey acceptance.**
+The combined code checkpoint was `4c787cc`, including assembly commit `2424691`.
+Each used the real local application, disposable loopback MySQL, real OpenAI Live,
+synthetic visitor audio/sensors and the production browser playback observer.
+No failed run was retried. Semantic review includes preliminary native speech,
+not only the associated final response. Each artifact has `journey.json`,
+`provider.jsonl`, logs and a manually assessed `semantic-review.json`.
+
+### Actual findings
+
+1. **Recovery — `target/gptlive-acceptance-c6d15c8a41`: FAIL.** Correct proposal,
+   rock preparation, help before/after preparation and protected-state assertions
+   passed. The perception turn nevertheless said "I see a rock sign" before
+   "I see a scissor sign", despite fresh scissors being supplied: the lexical
+   check accepted the correction, but semantic review rejects the initial error.
+   After acceptance, the only arming sentence began "Got it, it's active...".
+   Its first trusted receipt was `15:06:33.247Z`, the response was created at
+   `15:06:33.708145400Z`, and the confirmed commentary was sent at `15:06:34.498Z`.
+   There was no eligible complete sentence beginning after response creation.
+   The original 45-second deadline ended UNCERTAIN and paused the task with zero
+   actions. No welcome, final playback or return step was reached. The authority
+   fence behaved correctly; acoustic grouping cannot authorize earlier speech.
+2. **Dialogue — `target/gptlive-acceptance-d0c0646196`: FAIL.** A two-contribution
+   dialogue proposal and acceptance succeeded without revealing the solution.
+   Backend question: "What has many keys but cannot open a single door?" Native
+   question: "Here we go. I have keys, but no locks; what am I?" A single complete
+   segment was checked and the verifier returned AMBIGUOUS. This is a recognizable
+   variant, but the changed clue does not explicitly preserve the door-opening
+   condition; it is not verified faithful delivery. The task paused with one
+   consumed contribution and no replay. Help, unfinished-answer support, final
+   feedback assembly/playback and replacement were **not reached**. Do not label
+   the acoustic fix as real-Live feedback acceptance based on this run.
+3. **Social — `target/gptlive-acceptance-6f3bd05d2d`: FAIL, with a confirmed welcome.**
+   Spoken proposal explicitly denied newcomer detection, disclosed "more than
+   one person is visible" and "One welcome total", and required acceptance.
+   This is positive evidence for continuation B. A count of one did nothing;
+   two triggered "Welcome, everyone." Exactly one contribution reached
+   PLAYBACK_CONFIRMED/Reflection. Restart created a new run and fresh budget;
+   pause/resume preserved it. Stop correctly persisted COMPLETED/CANCELLED with
+   zero actions in that second run, but native speech said "Okay, pausing it here"
+   and "Paused and outcome recorded. What's next?" Backend facts explicitly
+   contained CANCELLED and prohibited further actions. This is a real spoken
+   control mismatch, not a matcher defect. Restart also mixed "propose the same
+   terms again" with an already-running fresh task. No whole-journey pass.
+
+The assembly regression and earlier offline checks remain valid. The live
+remaining failures concern speaking before authority, stale preliminary
+perception, changed task wording and incorrect control confirmations. Neither
+retroactive association, a longer timeout, weaker verification nor retrying for
+a luckier result would establish the required contract.
+
+### Configuration, bounds, usage and cleanup
+
+This device's ignored backend default was `gpt-5.2`; run-only environment
+overrides reproduced the home comparison settings: all inference routes
+`gpt-5.6-luna`/effort `none`, Live `gpt-live-1`/`willow`. Recorded inference spans
+confirm the route and effort. No private or production configuration changed.
+These are application models, not a claim about the coding agent's model.
+
+Per run: 12 visitor turns, 24 backend requests, 2,048 completion tokens/request,
+80,000 input bytes/request, further-inference cutoff at 200,000 reported tokens,
+one 360-second Live session, 12 synthesis clips/6,000 characters and a 420-second
+child timeout. The final inference may cross the token threshold. The same
+previously authorized bounds were declared before each invocation.
+
+| Scenario | Backend requests | Prompt / completion tokens | Last reported Live seconds | New synthesis requests |
+| --- | ---: | ---: | ---: | ---: |
+| Recovery | 1 | 5,227 / 308 | 133 | 5 |
+| Dialogue | 3 | 11,273 / 362 | 43 | 4 |
+| Social | 6 | 17,082 / 645 | 149 | 5 |
+
+Total reported backend usage: **10 requests / 34,897 tokens**. Last Live usage
+updates are not complete billing totals; synthesis and Live usage are separate.
+All three requested session closure and the runner confirmed owned app, random
+schema/account and private MySQL cleanup. Recovery additionally recorded
+`context_injection_incomplete` during teardown after the primary failure.
+No physical trial, deployment, remote database write or capacity investigation.
+
+The authorized A/B/C sequence is now recorded, but the acceptance milestone is
+not complete. Further implementation stops at the new product/architecture
+decision in `PLAN_ESCALATION.md`: whether to add a bounded approval stage before
+native speech becomes audible, accepting latency and a separate playback path.
+Current playback code observes audio that is already playing; it cannot prevent
+an incorrect utterance from being heard. The provider also distinguishes
+[acknowledgment cancellation](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run)
+from [checking buffered speech before playback](https://developers.openai.com/api/docs/guides/voice-server-controls?api=live#check-speech-before-playback).
+
+## ES-08 continuation B — early social capability guidance (2026-11-11)
+
+The backend already knew that arrival is empty-to-occupied and that an extra
+person requires an explicitly reviewed count alternative. Native startup speech
+did not have those limits before the backend produced a proposal. Coordination
+now supplies that distinction, accurate numeric terms and the run-wide action
+limit in its existing voice guidance. No new state, transport or per-turn request
+was added. The new regression failed before the change (`proposal-before.log`).
+
+The existing 16,000-byte instruction bound remains. An initial wording exceeded
+it; shorter wording passed ordinary cases, and an additional optional-correction
+case then exposed a remaining overrun. The final wording fits both. This checks
+prompt availability and bounds, not probabilistic speech compliance. Preliminary
+native speech is explicitly included in the Live semantic-review rubric.
+Provider acknowledgment cancellation cannot stop independent or already generated
+speech; see [the official acknowledgment guidance](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run).
+No audio-buffering/muting architecture was added in this step.
+
+Verification on top of continuation A:
+
+- Full disposable-MySQL suite: **891 cases, 889 passed, one intentional capacity
+  skip, one prompt-size failure** described above. Artifact
+  `target/gptlive-acceptance-019460a91b` preserves its log and JUnit XML.
+- After shortening, **all 46 affected Java cases passed** (Coordination voice,
+  social contract and Live context projection), including optional correction
+  guidance. **Three real-app browser cases passed**: delayed cue/Reflection,
+  durable scoped conversation, and persisted state/monitor SSE. Artifact
+  `target/gptlive-acceptance-2687ebd4e0` retains logs, XML and screenshots.
+  The recorded-conversation and RPS-result screenshots were visually inspected;
+  content and controls remained readable. Owned app/schema/account/MySQL cleanup
+  completed after both invocations. The whole suite was not repeated after the
+  final wording-only shortening; the affected cases were.
+- **193 Node and 11 runner checks passed; packaging and whitespace checks passed.**
+  Local command logs: `target/es08-continuation-20261111/`. No paid journey was
+  used to select the wording. Real Live acceptance is the next step; ES-08 is open.
+
+## ES-08 continuation A — bounded assistant sentence assembly (2026-11-11)
+
+Started from clean `main`, incorporated the subsequent shared receipt-selection
+and test-clock commits through `057aa55`, then reproduced the home feedback split.
+The deterministic baseline closed "That's it, a piano!" after 800 ms, before the
+explanation 1.4 seconds later. The new regression failed before the change;
+`target/es08-continuation-20261111/assembly-before.log` retains that result.
+
+Delivery-aware Coordination policies now opt into a 2,400 ms **observed assistant
+silence** boundary through the existing session snapshot/capture path. Nearby
+sentences stay in one native segment with their original receipt IDs/times. No
+completed history is rewritten and no second semantic inference/retry is added.
+Default/legacy policies retain 800 ms; user capture remains at its existing setting.
+Fresh user audio/transcript closes the assembly boundary: nonoverlapping speech
+with the original minimum observed quiet may complete; overlap/interruption stays
+incomplete. Delayed older input and muted input cannot cut the current response.
+Coverage gaps, close, receipt/character bounds and the original 30-second maximum
+open duration remain. Response verification still has 45 seconds, final playback
+60 seconds, and the existing owner/revision/session fences. AMBIGUOUS is unchanged.
+
+This is bounded acoustic assembly, not proof that every generated answer is
+semantically finished. A longer pause may still split an answer; missing or
+incorrect content still fails verification. Physical/noisy-room behavior is not
+established. The provider's continuous audio and absence of an output-done event
+are documented in [the Live event guide](https://developers.openai.com/api/docs/guides/voice-websockets?api=live#send-and-receive-events).
+
+Verification:
+
+- **88 focused Java cases passed** in segmenter, capture, context projection,
+  scoped sessions, Coordination voice and TaskResponse tests. Covers the exact
+  split pattern, original receipts, repeated receipt suppression, interruption,
+  muted/old/overlapping input, coverage/close/time bounds, policy opt-in and existing
+  response identity/deadlines. Command: `mvnw.cmd -q -Dtest=LiveTranscriptSegmenterUnitTest,LiveTranscriptCaptureServiceUnitTest,LiveContextProjectionUnitTest,ScopedLiveSessionServiceUnitTest,CoordinationVoiceUnitTest,TaskResponseUnitTest test`.
+  Final log: `target/es08-continuation-20261111/assembly-focused-final.log`.
+- **38 local-MySQL cases and three real-app browser cases passed** in artifact
+  `target/gptlive-acceptance-7d1a686f48`, through the owned local helper. Selection:
+  Coordination agent/delivery, transcript ingress/claim, speech/receipt durability,
+  task-voice persistence, core RPS and Social Space smoke. Browser cases cover
+  delayed playback to Reflection, durable scoped conversation and real state/SSE.
+  The fake provider now supplies three seconds of measured assistant quiet, rather
+  than ending synthetic PCM after one second. This run preceded the final narrow
+  muted-input guard, which is covered by the final unit run above. Combined final
+  regression follows the proposal correction before paid acceptance.
+- **193 Node tests** and **11 runner preflight checks** passed. No paid provider
+  run yet; no physical trial, deployment or capacity investigation. Owned local
+  schema/account/app/MySQL cleanup was reported by the runner.
+
+The assistant-assembly implementation is ready for the next authorized step.
+ES-08 acceptance remains open. Next: make social-condition limits available to
+native speech before a proposal, then review the three bounded real Live journeys.
+
 ## Office/home consolidation (2026-11-11)
 
 The home checkpoint `02df87b` is the integration base. The office's 19 changed or

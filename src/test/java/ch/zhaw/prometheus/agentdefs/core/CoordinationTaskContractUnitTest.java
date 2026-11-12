@@ -6,8 +6,37 @@ import com.google.gson.*;
 import org.junit.jupiter.api.Test;
 import ch.zhaw.prometheus.model.coordination.*;
 import ch.zhaw.prometheus.model.task.TaskMemory;
+import ch.zhaw.prometheus.model.task.TaskResponse;
+import ch.zhaw.prometheus.model.event.SpeechProvenance;
 
 class CoordinationTaskContractUnitTest {
+    @Test void feedbackContextSelectsTheDeliveredContributionInsteadOfLaterHelpOrUnheardDrafts() {
+        var f = new CoordinationAgentUnitTest(); f.propose(f.dialogue(), f.live); f.start(f.live);
+        String prefix = "Earlier preface. ", question = "What has keys, space but no room, and enter but no way inside?";
+        f.agent.recordExternalSpeech(prefix + question, new SpeechProvenance(SpeechProvenance.Origin.NATIVE,
+                f.owner.sessionId(), f.owner.epoch(), "question", SpeechProvenance.Association.CONFIRMED, java.util.List.of(), true, true));
+        f.agent.recordExternalSpeech("The task is active.", new SpeechProvenance(SpeechProvenance.Origin.NATIVE,
+                f.owner.sessionId(), f.owner.epoch(), "help", SpeechProvenance.Association.NONE, java.util.List.of(), true, true));
+        f.agent.recordExternalSpeech("A different unheard question?", new SpeechProvenance(SpeechProvenance.Origin.NATIVE,
+                f.owner.sessionId(), f.owner.epoch(), "unheard", SpeechProvenance.Association.NONE, java.util.List.of(), true, false));
+        var response = f.storage().get(TaskResponse.KEY).getAsJsonObject().deepCopy();
+        response.addProperty("status", "CAPTURED"); response.addProperty("segment", "question");
+        response.addProperty("speechOffset", prefix.length()); response.addProperty("played", true);
+        f.storage().put(TaskResponse.KEY, response);
+        String prompt = CoordinationTaskContract.currentTurn(f.storage(), "My answer is a piano", f.agent.getEventHistory(), f.owner);
+        var data = JsonParser.parseString(prompt.substring(prompt.lastIndexOf('\n') + 1)).getAsJsonObject();
+        assertEquals(question, data.get("previousHeardContribution").getAsString());
+        assertTrue(prompt.contains("ALL its defining clues"));
+        assertEquals(response, f.storage().get(TaskResponse.KEY));
+
+        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new JsonPrimitive(true));
+        response.remove("played"); f.storage().put(TaskResponse.KEY, response);
+        assertFalse(CoordinationTaskContract.currentTurn(f.storage(), "My answer is a piano", f.agent.getEventHistory(), f.owner)
+                .contains("previousHeardContribution"));
+        response.addProperty("played", true); response.addProperty("revision", -1); f.storage().put(TaskResponse.KEY, response);
+        assertFalse(CoordinationTaskContract.currentTurn(f.storage(), "My answer is a piano", f.agent.getEventHistory(), f.owner)
+                .contains("previousHeardContribution"));
+    }
     @Test void currentTurnAndRemainingBudgetAreExplicitEvenWhenNativeAnswerPrecedesItsUserHistoryEntry() {
         var f = new CoordinationAgentUnitTest(); var proposal = f.dialogue(); proposal.addProperty("dialogueLimit", 2);
         f.propose(proposal, f.text); f.start(f.text);

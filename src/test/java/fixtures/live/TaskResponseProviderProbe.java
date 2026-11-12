@@ -40,13 +40,13 @@ public final class TaskResponseProviderProbe {
         var report = new JsonObject(); var results = new JsonArray(); report.add("cases", results);
         report.add("route", JSON.toJsonTree(route)); report.addProperty("repeats", repeats);
         report.addProperty("scope", "Synthetic response verifier only; no Live, database, task progression or playback");
-        report.addProperty("maxRequests", 36); report.addProperty("maxSeconds", 240); report.addProperty("maxReportedTokens", 30000);
+        report.addProperty("maxRequests", 52); report.addProperty("maxSeconds", 240); report.addProperty("maxReportedTokens", 60000);
         long deadline = System.nanoTime() + 240_000_000_000L;
         int requests = 0, promptTokens = 0, completionTokens = 0;
         boolean passed = true, finished = false;
         try (var stream = Objects.requireNonNull(TaskResponseProviderProbe.class.getResourceAsStream("/coordination/response-verification-cases.json"))) {
             var cases = JsonParser.parseReader(new java.io.InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject().getAsJsonArray("cases");
-            if (cases.size() > 18) throw new IllegalStateException("Fixture exceeds probe budget");
+            if (cases.size() > 26) throw new IllegalStateException("Fixture exceeds probe budget");
             for (int repetition = 1; repetition <= repeats; repetition++) for (var item : cases) {
                 var fixture = item.getAsJsonObject(); var result = fixture.deepCopy(); results.add(result); result.addProperty("repetition", repetition);
                 String id = fixture.get("id").getAsString();
@@ -58,7 +58,7 @@ public final class TaskResponseProviderProbe {
                     boolean validOutput = true;
                     if (check.exactlyMatches()) result.addProperty("method", "word-equality");
                     else {
-                        if (requests >= 36 || System.nanoTime() >= deadline || promptTokens + completionTokens >= 30000)
+                        if (requests >= 52 || System.nanoTime() >= deadline || promptTokens + completionTokens >= 60000)
                             throw new IllegalStateException("Probe budget exhausted");
                         var request = check.request();
                         if (JSON.toJson(request.messages()).getBytes(StandardCharsets.UTF_8).length > 12000) throw new IllegalStateException("Oversized verifier input");

@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.annotation.*;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
+import ch.zhaw.prometheus.spi.SpeechSynthesisGateway;
 import ch.zhaw.prometheus.spi.live.LiveSessionGateway;
 import ch.zhaw.prometheus.logging.LatencyTrace;
 import com.google.gson.*;
@@ -27,8 +28,21 @@ public final class ProviderCaptureApplication {
         static BeanPostProcessor recorder(Path output, int maxRequests, long maxTokens, int maxSessions) {
             var count = new AtomicInteger();
             var sessions = new AtomicInteger(); var tokens = new AtomicLong();
+            var speechCalls = new AtomicInteger(); var speechCharacters = new AtomicInteger();
             return new BeanPostProcessor() {
                 @Override public Object postProcessAfterInitialization(Object bean, String name) {
+                    if (bean instanceof SpeechSynthesisGateway) return Proxy.newProxyInstance(bean.getClass().getClassLoader(),
+                            new Class<?>[]{SpeechSynthesisGateway.class}, (proxy, method, args) -> {
+                                if (!method.getName().equals("synthesize")) return method.invoke(bean, args);
+                                int call = speechCalls.incrementAndGet(), characters = speechCharacters.addAndGet(((String) args[0]).length());
+                                if (call > 12 || characters > 6000) throw new IllegalStateException("Committed Speech journey budget exhausted");
+                                var record = new JsonObject(); record.addProperty("call", call); record.addProperty("characters", ((String) args[0]).length());
+                                record.addProperty("cumulativeCharacters", characters); record.addProperty("voice", (String) args[1]);
+                                try { return method.invoke(bean, args); }
+                                catch (InvocationTargetException failure) { record.addProperty("failureType", failure.getCause().getClass().getSimpleName()); throw failure.getCause(); }
+                                finally { synchronized (speechCalls) { Files.writeString(output.resolveSibling("speech-provider.jsonl"),
+                                        record + System.lineSeparator(), StandardOpenOption.CREATE, StandardOpenOption.APPEND); } }
+                            });
                     if (bean instanceof LiveSessionGateway) return Proxy.newProxyInstance(bean.getClass().getClassLoader(),
                             new Class<?>[]{LiveSessionGateway.class}, (proxy, method, args) -> {
                                 if (method.getName().equals("create") && sessions.incrementAndGet() > maxSessions)

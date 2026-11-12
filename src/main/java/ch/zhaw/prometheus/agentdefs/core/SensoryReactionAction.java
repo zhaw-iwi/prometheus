@@ -25,7 +25,11 @@ public class SensoryReactionAction extends Action {
         var change = SensoryRemarks.change(events, storage, now, stabilityMs, conversationQuietMs, remarkCooldownMs).orElse(null);
         if (change == null) return;
         SensoryRemarks.attempted(storage, now);
-        if (runtime.externalSpeech() != null) { SensoryRemarks.occasion(storage, change, now); return; }
+        if (runtime.externalSpeech() != null) {
+            SensoryRemarks.occasion(storage, change, now);
+            CoordinationSpeechApproval.scopeSensory(storage, runtime.externalSpeech(), now);
+            return;
+        }
         var policy = ValerianCoreAgentFactory.corePromptPolicy(getPolicy().describe() + "\n" + SensoryRemarks.guidance(change), null);
         try {
             var plan = policy.onRespond(null, events, runtime.promptMessageAssembler(), runtime.languageModelGateway());

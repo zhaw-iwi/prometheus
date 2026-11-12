@@ -132,3 +132,13 @@ test("audio telemetry is allowlisted and polling retains earlier context and upd
   assert.equal(diagnostics.snapshot().sessions[0].mediaDropped, 2);
   assert.equal(diagnostics.snapshot().sessions[0].browser.length, 0, "Audio samples do not evict transcript correlations");
 });
+
+
+test('approval delay is numeric metadata and does not export audio or draft text', () => {
+  const d = new LiveDiagnostics();
+  d.record({handle: 'session', phase: 'speech_approval', outcome: 'released', bufferDelayMs: 4720,
+    text: 'private draft', samples: [1, 2], capture: {raw: 'private draft'}});
+  const result = d.snapshot().sessions[0];
+  assert.equal(result.browser.at(-1).bufferDelayMs, 4720);
+  assert.doesNotMatch(JSON.stringify(result), /private draft|samples/);
+});

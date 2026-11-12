@@ -26,10 +26,13 @@ class CoordinationSocialContractUnitTest {
         var delivery = new ch.zhaw.prometheus.application.live.LiveContextDelivery(initial); delivery.ready();
         var spoken = delivery.plan(current, java.util.List.of()).commands().stream().filter(c -> c.type().equals("session.commentary.append")).toList();
         assertEquals(1, spoken.size());
-        assertTrue(spoken.getFirst().content().contains(description + " visible"));
-        assertTrue(spoken.getFirst().content().contains("not a new arrival"));
-        assertTrue(spoken.getFirst().content().contains("Limit: 1"));
-        assertTrue(spoken.getFirst().content().contains("acceptance"));
+        String review = current.activity().continuation().facts();
+        assertTrue(review.contains(description + " visible"));
+        assertTrue(review.contains("not a new arrival"));
+        assertTrue(review.contains("Limit: 1"));
+        assertTrue(review.contains("acceptance"));
+        for (String field : java.util.List.of("goal", "humanRole", "agentRole", "success"))
+            assertTrue(review.contains(proposal.get(field).getAsString()), "Count disclosure must not replace " + field);
         assertFalse(TaskMemory.active(f.storage()));
         assertFalse(f.storage().containsKey(ch.zhaw.prometheus.model.task.TaskResponse.KEY));
         assertTrue(delivery.plan(current, java.util.List.of()).commands().stream().noneMatch(c -> c.type().equals("session.commentary.append")));

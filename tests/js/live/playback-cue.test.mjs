@@ -184,3 +184,92 @@ test('production observer samples before a cue and discards evidence on stream r
     for (const [key, value] of Object.entries(originals)) {if (value === undefined) delete globalThis[key]; else globalThis[key] = value;}
   }
 });
+
+
+test('buffered playback binds receipts after initial media warmup but never after a later stall', () => {
+  for (const failure of ['none', 'stall', 'interruption']) {
+    const f = fixture(), observer = new LivePlaybackObserver({}, () => {}); observer.gate = f.gate;
+    observer.scheduled({...f.cue, segmentId: 'speech'}, ledger()[0]);
+    observer.sample({voiced: false, playable: false, mediaTime: 0});
+    assert.equal(f.gate.receipts.size, 0);
+    observer.sample({voiced: true, playable: true, mediaTime: .05});
+    assert.equal(f.gate.receipts.size, 1);
+    if (failure === 'stall') observer.sample({voiced: true, playable: false, mediaTime: .05});
+    if (failure === 'interruption') observer.interrupt();
+    for (let i = 0; i < 10; i++) f.sample(true);
+    f.quiet();
+    assert.deepEqual(f.seen, failure === 'none' ? ['round-one'] : []);
+    observer.close();
+  }
+});
+
+test('countdown acknowledgements retain audio but block execution until the backend confirms the complete input', () => {
+  const f = fixture(), cue = {...f.cue, segmentId: 'speech', allowAcknowledgements: true};
+  f.gate.update({...cue, segmentId: null}); f.speak(); f.gate.input('ready-yes');
+  f.gate.update(cue, ledger()); f.quiet();
+  assert.deepEqual(f.seen, []);
+  assert.equal(f.diagnostics.at(-1).outcome, 'awaiting_input_classification');
+  const acknowledgement = {speaker: 'USER', status: 'COMPLETE', reason: 'countdown_acknowledgement', receiptIds: ['ready-yes']};
+  f.gate.update(cue, [...ledger(), acknowledgement]); f.quiet();
+  assert.deepEqual(f.seen, ['round-one']);
+  f.gate.update(cue, [...ledger(), acknowledgement]); f.quiet();
+  assert.deepEqual(f.seen, ['round-one']);
+});
+
+test('a partial yes followed by stop, an incomplete input or ordinary conversation still invalidates the cue', () => {
+  for (const result of [{status: 'COMPLETE', reason: 'acknowledged'}, {status: 'INCOMPLETE'}, {status: 'CLARIFICATION'},
+    {status: 'LATE'}, {status: 'INCOMPLETE', reason: 'empty_transcript'}, {status: 'IGNORED', reason: 'unknown'}]) {
+    const f = fixture(), cue = {...f.cue, segmentId: 'speech', allowAcknowledgements: true};
+    f.gate.update(cue, ledger()); f.speak(); f.gate.input('yes-prefix'); f.gate.input('stop-suffix'); f.quiet();
+    assert.deepEqual(f.seen, []);
+    f.gate.update(cue, [...ledger(), {speaker: 'USER', ...result, receiptIds: ['yes-prefix', 'stop-suffix']}]);
+    f.quiet(); assert.deepEqual(f.seen, []);
+    assert.equal(f.gate.done.has(cue.id), true);
+  }
+});
+
+test('a complete backend-ignored empty input resolves pending classification without cancelling the countdown', () => {
+  const f = fixture(), cue = {...f.cue, segmentId: 'speech', allowAcknowledgements: true};
+  f.gate.update({...cue, segmentId: null}); f.gate.input('whitespace');
+  f.speak(); f.gate.update(cue, ledger()); f.quiet(); assert.deepEqual(f.seen, []);
+  f.gate.update(cue, [...ledger(), {speaker: 'USER', status: 'IGNORED', reason: 'empty_transcript', receiptIds: ['whitespace']}]);
+  f.quiet(); assert.deepEqual(f.seen, ['round-one']);
+  f.gate.update(cue, ledger()); f.quiet(); assert.deepEqual(f.seen, ['round-one']);
+});
+
+test('a slow countdown requires every complete segment and receipt before one playback acknowledgement', () => {
+  const f = fixture(), cue = {...f.cue, segmentId: 'last', segmentIds: ['rock', 'last'], receiptIds: ['rock', 'paper', 'scissors']};
+  f.gate.update({...cue, segmentId: null, segmentIds: [], receiptIds: []});
+  f.speak('rock'); f.quiet(1000); f.speak('paper'); f.quiet(1000); f.speak('scissors'); f.quiet();
+  const segments = [...ledger('rock', ['rock']), ...ledger('last', ['paper', 'scissors'])];
+  f.gate.update(cue, segments.slice(1)); f.quiet(); assert.deepEqual(f.seen, []);
+  f.gate.update(cue, segments); f.quiet(); assert.deepEqual(f.seen, ['round-one']);
+  f.gate.update(cue, segments); f.quiet(); assert.deepEqual(f.seen, ['round-one']);
+});
+
+test('multi-segment playback rejects missing voice, invalid segment selections and interrupted evidence', () => {
+  for (const failure of ['missing_voice', 'incomplete', 'duplicate', 'wrong_last', 'oversized', 'unselected', 'interrupted']) {
+    const f = fixture(), cue = {...f.cue, segmentId: 'last', segmentIds: ['rock', 'last'], receiptIds: ['rock', 'paper', 'scissors']};
+    f.gate.update({...cue, segmentId: null});
+    if (failure === 'missing_voice') f.gate.caption('rock'); else f.speak('rock');
+    f.quiet(2000); f.speak('paper'); f.quiet(1000); f.speak('scissors'); f.quiet();
+    const segments = [...ledger('rock', ['rock']), ...ledger('last', ['paper', 'scissors'])];
+    if (failure === 'incomplete') segments[0].status = 'INCOMPLETE';
+    if (failure === 'duplicate') cue.segmentIds = ['rock', 'rock', 'last'];
+    if (failure === 'wrong_last') cue.segmentIds = ['last', 'rock'];
+    if (failure === 'oversized') cue.segmentIds = ['one', 'two', 'rock', 'last'];
+    if (failure === 'unselected') {cue.segmentIds = ['extra', 'rock', 'last']; segments.unshift(...ledger('extra', ['other']));}
+    if (failure === 'interrupted') f.gate.interrupt();
+    f.gate.update(cue, segments); f.quiet(); assert.deepEqual(f.seen, [], failure);
+  }
+});
+
+test('late acknowledgement captions use durable receipt classification; missing classification and withdrawn cues never execute', () => {
+  const f = fixture(), cue = {...f.cue, segmentId: 'speech', allowAcknowledgements: true};
+  f.gate.update(cue, [...ledger(), {speaker: 'USER', status: 'COMPLETE', reason: 'countdown_acknowledgement', receiptIds: ['yes']}]);
+  f.speak(); f.gate.input('yes'); f.quiet(); assert.deepEqual(f.seen, ['round-one']);
+  const g = fixture(), pending = {...g.cue, segmentId: 'speech', allowAcknowledgements: true};
+  g.gate.update(pending, ledger()); g.speak(); g.gate.input('unknown'); g.quiet();
+  assert.deepEqual(g.seen, []);
+  g.gate.update(null); g.gate.update(pending, ledger()); g.quiet(); assert.deepEqual(g.seen, []);
+});

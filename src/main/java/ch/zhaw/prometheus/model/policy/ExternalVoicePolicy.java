@@ -21,6 +21,21 @@ public interface ExternalVoicePolicy {
     }
     /** Session-fixed quiet interval for backend user-turn capture, not provider speech generation. */
     default long liveUserSilenceMs() { return 800; }
+    /** Session-fixed assistant sentence assembly; completion still needs observed quiet and current authority. */
+    default long liveAssistantSilenceMs() { return 800; }
+    /** Requires an approval-capable player; default policies keep direct native playback. */
+    default boolean liveSpeechApprovalRequired() { return false; }
+    /** Select output-only synthesis for backend-authored replies; native audio stays inaudible. */
+    default boolean liveCommittedSpeechOutput() { return false; }
+    default LiveCommittedSpeech liveCommittedSpeech(ExternalSpeech owner) { return null; }
+    /** Persist one synthesis claim before provider work. No retry after an uncertain result. */
+    default boolean liveSpeechSynthesisClaimed(LiveCommittedSpeech speech, java.util.UUID synthesisId) { return false; }
+    /** Immutable authority for checking a candidate; null means no speech is authorized. */
+    default LiveSpeechRequest liveSpeechRequest(ExternalSpeech owner) { return null; }
+    /** Reserve at most one unheard correction under current authority. Local storage only; null declines. */
+    default java.util.UUID liveSpeechCorrection(LiveSpeechRequest request, String rejectedSegment, java.time.Instant now) { return null; }
+    /** Persist an admitted release under the agent lock; return whether storage changed. */
+    default boolean liveSpeechReleased(LiveSpeechRequest request, String segment) { return false; }
     /** Opt-in occupied-encounter grace for camera dropouts; Stop and access checks remain immediate. */
     default long liveDepartureGraceMs() { return 0; }
     /** Opt-in rejection of isolated input activity spikes for backend capture only. */

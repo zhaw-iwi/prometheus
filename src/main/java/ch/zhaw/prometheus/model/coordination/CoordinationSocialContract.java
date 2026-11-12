@@ -6,6 +6,10 @@ import ch.zhaw.prometheus.model.social.SocialSituationChangeDetector;
 
 /** Task interpretation must respect the detector's categories, not their colloquial names. */
 public final class CoordinationSocialContract {
+    /** Native speech needs these limits before the backend has interpreted a proposal. */
+    public static final String VOICE_GUIDANCE = "\nA count is not proof that someone joined. Arrival means empty-to-occupied. "
+            + "Never promise extra-person detection, even before a proposal. Await an explicitly reviewed visible-count alternative: "
+            + "state its number, not joining, and get acceptance. Limits are total across the run, not per person/cue.";
     public static final String GUIDANCE = "\nSocial detector semantics: " + SocialSituationChangeDetector.CHANGE_ARRIVAL
             + " means zero visible people to someone present, except that crossing the configured crowd threshold takes precedence. "
             + SocialSituationChangeDetector.CHANGE_CROWD_DETECTED + " means crossing that threshold; "
@@ -29,21 +33,11 @@ public final class CoordinationSocialContract {
     public static String proposalCondition(CoordinationAgreement proposal) {
         if (proposal == null || proposal.reactions() == null) return "";
         var conditions = proposal.reactions().rules().stream()
-                .filter(rule -> "humanCount".equals(rule.field()) || "currentHumanCount".equals(rule.field()))
+                .filter(rule -> rule.field().equals("humanCount") || rule.field().equals("currentHumanCount"))
                 .map(rule -> (switch (rule.operator()) { case "gt" -> "more than "; case "lt" -> "fewer than "; default -> "exactly "; })
                         + rule.value().getAsString() + (rule.value().getAsDouble() == 1 ? " person visible" : " people visible")).distinct().toList();
         return conditions.isEmpty() ? "" : " Visible-person conditions: " + String.join("; ", conditions)
                 + ". These check the supplied count, not a new arrival or a person's identity.";
-    }
-    /** Essential executable terms travel with the invitation, not only as background JSON. */
-    public static String liveProposalReview(CoordinationAgreement proposal) {
-        String condition = proposalCondition(proposal);
-        if (condition.isEmpty()) return "";
-        return "Proposed count alternative." + condition
-                + " Limit: " + proposal.reactions().maxActions() + " action(s) in total. Awaiting acceptance, not active. "
-                + (proposal.reactions().firstAction() == ch.zhaw.prometheus.model.task.TaskSpec.FirstAction.ON_CUE
-                    ? "After acceptance, a fresh matching cue is required. " : "Acceptance starts the agreed immediate first action. ")
-                + "Do you accept these terms?";
     }
     public static boolean extraPerson(String text) {
         return text.toLowerCase(Locale.ROOT).replaceAll("\\s+", " ").matches(".*\\b(another person|additional person|extra person|someone else|jemand anderes|weitere person|andere person)\\b.*");

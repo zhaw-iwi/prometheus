@@ -118,7 +118,11 @@ public class LiveTranscriptIngressService {
                 segments.save(persisted); ledgerChanged(id, owner.sessionId()); return Optional.of(view(persisted));
             }
             String text = persisted.getTranscript();
-            if (segment.closure() == Closure.LATE || text.isBlank()) {
+            if (segment.speaker() == Speaker.USER && text.isBlank() && segment.closure() == Closure.COMPLETE) {
+                // A whitespace-only provider delta is not a spoken interruption. Keep
+                // its durable identity so opted-in playback can resolve pending input.
+                persisted.finish("IGNORED", "empty_transcript", null);
+            } else if (segment.closure() == Closure.LATE || text.isBlank()) {
                 persisted.finish("LATE", segment.reason(), null);
             } else if (segment.speaker() == Speaker.ASSISTANT) {
                 var candidates = agent.getEventHistory().toList().stream().filter(ConversationProjection::isIntent)
@@ -138,6 +142,14 @@ public class LiveTranscriptIngressService {
             } else if (ambiguousShortReply(agent, owner, segment, observedStatePath)) {
                 persisted.finish("CLARIFICATION", "short_reply_without_established_context", null);
             } else {
+                var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
+                boolean countdownAcknowledgement = false;
+                if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy
+                        && policy.liveNonMutatingAcknowledgement(text)) {
+                    var activity = policy.liveActivityContext();
+                    var cue = activity == null ? null : activity.playbackCue();
+                    countdownAcknowledgement = cue != null && cue.allowAcknowledgements() && !cue.expired(Instant.now());
+                }
                 int before = agent.getEventHistory().toList().size();
                 var response = turns.acknowledge(id, new EventRequest(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, Event.KIND_OBSERVATION, text), OutputProfile.FULL_PLAN);
                 agents.flush();
@@ -146,7 +158,7 @@ public class LiveTranscriptIngressService {
                 UUID eventId = appended.stream().skip(before).filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType()))
                         .map(Event::getId).findFirst().orElse(null);
                 if (response.isEmpty()) throw new IllegalStateException("Agent disappeared during transcript ingress");
-                persisted.finish("COMPLETE", "acknowledged", eventId);
+                persisted.finish("COMPLETE", countdownAcknowledgement ? "countdown_acknowledgement" : "acknowledged", eventId);
                 // Ordinary speech remains externally owned; this call can only supply configured non-speech behaviour.
                 if (owner.equals(ownership.current(fresh)) && response.get().getResponseEvent() == null)
                     turns.generate(id, List.of(), OutputProfile.FULL_PLAN);
@@ -185,6 +197,14 @@ public class LiveTranscriptIngressService {
                 .map(Event::getCreatedDate).filter(java.util.Objects::nonNull).max(Instant::compareTo).orElse(null);
         boolean activityOwned = leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy
                 && policy.liveActivityContext() != null;
+        if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy && policy.liveCommittedSpeechOutput()
+                && policy.liveResolvedControlReply(segment.text(), agent.getEventHistory(), owner)
+                && agent.getEventHistory().toList().stream().anyMatch(event -> {
+                    var p = event.speechProvenance();
+                    return p != null && p.origin() == SpeechProvenance.Origin.SYNTHESIZED && Boolean.TRUE.equals(p.playbackConfirmed())
+                            && owner.sessionId().equals(p.sessionId()) && owner.epoch().equals(p.epoch())
+                            && event.getCreatedDate() != null && event.getCreatedDate().isBefore(Instant.ofEpochMilli(segment.firstReceivedMs()));
+                })) return false;
         var preceding = segments.findTop20ByAgent_IdAndEpochAndSpeakerAndStatusOrderByRecordedAtDesc(agent.getId(), owner.epoch(), "ASSISTANT", "COMPLETE")
                 .stream().filter(previous -> owner.sessionId().equals(previous.getSessionId())).toList();
         if (!preceding.isEmpty() && segment.startMs() != null && preceding.getFirst().getEndMs() != null

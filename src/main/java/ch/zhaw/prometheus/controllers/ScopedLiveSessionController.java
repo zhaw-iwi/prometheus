@@ -87,6 +87,27 @@ public class ScopedLiveSessionController {
         if (request == null) throw new IllegalArgumentException("Missing playback acknowledgement");
         return ResponseEntity.of(service.playbackSettled(code, agentId, handle, cueId, request.segmentId()));
     }
+    @PostMapping("/demo/agents/{agentId}/live/sessions/{handle}/speech-approvals")
+    public ResponseEntity<ch.zhaw.prometheus.application.LiveSpeechApprovalService.Result> approveSpeech(@PathVariable UUID agentId, @PathVariable UUID handle,
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code,
+            @RequestBody PlaybackAcknowledgement request) {
+        if (request == null) throw new IllegalArgumentException("Missing speech candidate");
+        return ResponseEntity.of(service.approveSpeech(code, agentId, handle, request.segmentId()));
+    }
+    @PostMapping("/demo/agents/{agentId}/live/sessions/{handle}/speech-synthesis/{responseId}")
+    public ResponseEntity<ch.zhaw.prometheus.application.LiveCommittedSpeechService.Result> synthesizeSpeech(
+            @PathVariable UUID agentId, @PathVariable UUID handle, @PathVariable UUID responseId,
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code) {
+        return ResponseEntity.of(service.synthesizeSpeech(code, agentId, handle, responseId));
+    }
+    @PostMapping("/demo/agents/{agentId}/live/sessions/{handle}/speech-approvals/{approvalId}/{operation:release|played}")
+    public ResponseEntity<Boolean> approvedSpeech(@PathVariable UUID agentId, @PathVariable UUID handle, @PathVariable UUID approvalId,
+            @PathVariable String operation,
+            @RequestHeader(value = ScopedDemoController.ACCESS_CODE_HEADER, required = false) String code,
+            @RequestBody PlaybackAcknowledgement request) {
+        if (request == null) throw new IllegalArgumentException("Missing speech identity");
+        return ResponseEntity.of(service.approvedSpeech(code, agentId, handle, approvalId, request.segmentId(), operation.equals("played")));
+    }
     @ExceptionHandler(DemoAccessDeniedException.class) public ResponseEntity<Void> unauthorized() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }

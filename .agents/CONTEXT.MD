@@ -91,13 +91,49 @@ PROMETHEUS currently provides:
   associated speech and scoped playback confirmation; uncertain delivery never
   automatically replays work. The browser retains bounded receipt-linked playback
   observations across delayed cues/association; fresh control cues precede provider
-  append acknowledgements. Bounded content-free journals explain transitions;
+  append acknowledgements. Retained native capture supports bounded assistant
+  sentence assembly; user interruption, original capture/response deadlines and
+  separate playback evidence remain authoritative.
+  Following owner approval, fresh Coordination Live sessions use the existing
+  output-only Speech gateway for committed replies while retaining Live input.
+  Exact words are stored separately from narration instructions. Proposal reviews
+  preserve saved roles, success, preparation and total limits; support and task
+  contributions keep their own response identity and authority. Native output
+  stays inaudible and cannot claim a synthesized task response. Other agents keep
+  their current voice paths; the earlier native approval/correction path remains
+  independently tested.
+  One durable synthesis claim and one durable release prevent automatic retries
+  or replay after uncertainty. Provider work runs outside transactions/agent locks,
+  with bounded concurrency and PCM size, and rechecks owner/epoch/revision,
+  interruption, supersession and the original 45/60-second response/playback bounds.
+  Transient sensory remarks retain their shorter admission deadline. The player
+  requires actual source end plus observed output before acknowledging playback;
+  final contributions still require the separate scoped cue before Reflection.
+  Synthesized behaviour events carry explicit SYNTHESIZED provenance and enter
+  conversation, prompts and proposal-consent evidence only after playback.
+  The canonical behaviour Speech endpoint still rejects unheard speech/intents.
+  Task prompts exclude unheard drafts before their size bound; feedback receives
+  the actual prior delivered question and must evaluate all defining clues.
+  Native capture still validates reflected media ranges, distinguishes arrival
+  jitter from missing PCM and retains its existing 30-second capture limit.
+  Committed playback takes immediate interruption from the microphone monitor,
+  not delayed native captions. Tiny structural input fragments over five seconds
+  of continuously measured silence remain incomplete audit evidence; ordinary
+  words, recent voice and missing/gapped audio retain normal admission. This is
+  a narrow noise guard, not a general transcription-error detector.
+  Sideband writes remain serialized within the existing timeout. Synthesis changes
+  delivery fidelity, not the factual validity of backend content. Current real-
+  provider acceptance and retained failures are in `.agents/ESCALATION_RESULTS.md`;
+  physical audibility remains unverified.
+  Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
   admission and task controls. Cross-phase support uses the shared user action,
   bounded content-free rejection evidence and canonical pending-response identity;
   help preserves authority and explicit controls remain guarded. Supported dialogue
   and output-only sensor tasks stay distinct; first arrival is not extra-person
-  detection. Valerian service recovery keeps last-known views and performs scoped
+  detection. Coordination negotiation receives count/arrival and total-budget
+  limits before proposal negotiation; confirmed alternatives still need acceptance.
+  Valerian service recovery keeps last-known views and performs scoped
   read-only refresh without replaying uncertain mutations. Both Generic variants
   remain available. See README
   and `.agents/COORDINATION_RESULTS.md` for the bounded contract and verification;

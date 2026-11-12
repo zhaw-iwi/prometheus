@@ -233,8 +233,8 @@ public class Agent {
     /** Records externally generated assistant speech without evaluating guards, actions or regulation. */
     public Event recordExternalSpeech(String text, ch.zhaw.prometheus.model.event.SpeechProvenance provenance) {
         if (text == null || text.isBlank() || text.length() > 3000 || provenance == null
-                || provenance.origin() != ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE)
-            throw new IllegalArgumentException("Invalid native speech segment");
+                || !provenance.realized())
+            throw new IllegalArgumentException("Invalid realized speech");
         Event event = Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
                 ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(text).toJson());
         if (event.getPayload().length() > 4096) throw new IllegalArgumentException("Native speech payload too large");
