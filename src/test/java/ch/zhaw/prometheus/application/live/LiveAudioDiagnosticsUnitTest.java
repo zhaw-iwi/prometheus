@@ -4,6 +4,22 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 class LiveAudioDiagnosticsUnitTest {
+    @Test void onlyStructuralFragmentsOverContinuousMeasuredSilenceAreRejected() {
+        var d = new LiveAudioDiagnostics(); String fragment = "t: {\"";
+        assertFalse(d.silentStructuralFragment(fragment, 0));
+        for (int at = 200; at <= 5000; at += 200) d.observe(true, new byte[9600], at);
+        assertTrue(d.silentStructuralFragment(fragment, 5000));
+        assertFalse(d.silentStructuralFragment("My answer is a piano", 5000));
+        assertFalse(d.silentStructuralFragment("A", 5000));
+        assertFalse(d.silentStructuralFragment(fragment, 5501));
+        d.observe(true, new byte[9600], 6000); // A gap is not measured silence.
+        assertFalse(d.silentStructuralFragment(fragment, 6000));
+        for (int at = 6200; at <= 11000; at += 200) d.observe(true, new byte[9600], at);
+        assertTrue(d.silentStructuralFragment(fragment, 11000));
+        byte[] voice = new byte[9600]; java.util.Arrays.fill(voice, (byte)64);
+        d.observe(true, voice, 11200);
+        assertFalse(d.silentStructuralFragment(fragment, 11200)); // Spoken literals remain eligible.
+    }
     @Test void separatesInputOutputActivityAndRetainsBoundedWindowsWithoutAudio() {
         var diagnostics = new LiveAudioDiagnostics();
         byte[] voiced = new byte[960];

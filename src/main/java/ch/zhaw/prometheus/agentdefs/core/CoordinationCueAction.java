@@ -16,6 +16,12 @@ import jakarta.persistence.Entity;
 public class CoordinationCueAction extends CoreTaskUpdateAction {
     protected CoordinationCueAction() {}
     public CoordinationCueAction(Storage storage, String instructions) { super(storage, instructions, true); }
+    @Override protected String liveSpeechGuidance() {
+        return "\nFor an agreed spoken task action, speech contains the complete words the audience should hear, not a description or instruction to Live. "
+                + "Perform the communicative act: welcome the audience, tell the joke or provide the requested observation. "
+                + "Live realizes these committed words; the backend retains task authority. Preserve appropriate nonverbal/motion channels. "
+                + "For an output-only silent action, omit speech.";
+    }
     @Override protected String inferenceGuidance(PolicyRuntime runtime) {
         return super.inferenceGuidance(runtime) + "\nUse fresh supplied observations for any requested perception estimate. "
                 + "This sensor reaction is output-only: do not invite a task answer, promise feedback or start an interactive riddle game. "
@@ -42,6 +48,7 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
                 var response = getStorage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
                 response.addProperty("facts", facts); response.addProperty("contributionOnly", true); getStorage().put(CoreTaskVoice.RESPONSE, response);
                 TaskResponse.contribution(getStorage(), facts, literalSpeech(rule, spoken));
+                CoordinationSpeechApproval.words(getStorage(), spoken);
             }
         }
         CoordinationDelivery.attach(getStorage());

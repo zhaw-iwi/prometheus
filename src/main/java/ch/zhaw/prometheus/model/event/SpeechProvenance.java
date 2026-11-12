@@ -13,7 +13,8 @@ public record SpeechProvenance(Origin origin, UUID sessionId, UUID epoch, String
     public SpeechProvenance playback(boolean played) {
         return new SpeechProvenance(origin, sessionId, epoch, segmentId, association, intentIds, complete, played);
     }
-    public enum Origin { BACKEND_INTENT, NATIVE }
+    public enum Origin { BACKEND_INTENT, NATIVE, SYNTHESIZED }
+    public boolean realized() { return origin == Origin.NATIVE || origin == Origin.SYNTHESIZED; }
     public enum Association { NONE, AMBIGUOUS, CONFIRMED }
     public SpeechProvenance {
         intentIds = intentIds == null ? List.of() : List.copyOf(intentIds);

@@ -75,6 +75,37 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- ES-08 (2026-11-12, **behavioural scope complete**): the owner approved
+  the existing Speech service for committed Coordination replies. Live input,
+  backend task authority, budgets and playback confirmation remain. The new path
+  stores exact spoken content, fences synthesis/release against supersession and
+  interruption, and records explicit SYNTHESIZED provenance only as delivered
+  after playback. All three real-provider journeys have separate semantic PASS
+  reviews on the same source configuration. Final checks: 1,015 Java tests passed
+  with one intentional capacity skip, 218 Node tests, 11 preflight checks, five
+  browser checks and packaging. Audio review uses independent local ASR, not
+  word-for-word acoustic certification. Evidence and retained failures are in
+  `.agents/ESCALATION_RESULTS.md`. Physical trials NOT RUN; capacity/deployment
+  deferred at acceptance. The owner has since authorized publication through
+  `main` and the `agents` Heroku deployment branch; capacity remains deferred.
+
+Earlier checkpoints below are retained as history. Their ES-08 status and native
+output instructions are superseded by the current entry above.
+
+- Bounded unheard correction (2026-11-11): the owner authorized one corrective
+  realization for a valid semantic rejection of an approval-enabled Coordination
+  task response. Request/run/revision, spent contribution and original deadlines
+  remain; correction has its own speaking occasion, with persisted release fencing
+  against replay. Provider/capture errors and a second rejection retain recovery.
+  Verification passed: 942 Java tests (one capacity case skipped), 209 Node tests,
+  11 runner preflight checks, five browser checks and packaging; evidence is in
+  `.agents/ESCALATION_RESULTS.md`. One capped paid dialogue passed four replies,
+  then failed when ordinary clarification differed from the committed request and
+  was withheld. It did not exercise correction; recovery/social remain unrun in
+  this continuation. ES-08 remains unaccepted.
+  Physical trials remain unrun and capacity remains deferred. No commit/deployment
+  is included in this review handoff.
+
 - Approval-before-audio checkpoint (2026-11-11), authorized by the owner: bounded
   original-PCM capture and separate approval/release/observed-playback checks now
   protect delivery-aware Coordination sessions. Unconfirmed speech cannot supply
@@ -9833,3 +9864,22 @@ and whitespace checks passed. Evidence is retained under
 
 No schema migration or physical playback guarantee is introduced. This branch
 split includes local commits only; no push or deployment is authorized.
+
+## ES-08 bounded unheard correction (2026-11-11)
+
+After review of the earlier ES-08 attempts, the owner authorized one corrective
+realization of the same never-released task response. Approval-enabled Coordination
+now retains a valid semantic rejection until the scoped player can request that
+correction. A persisted attempt and separate speaking occasion preserve the original
+response/run/revision, contribution count and deadlines. At least ten verification
+seconds must remain; corrected capture must originate after reservation. Release
+is persisted before permission is returned, so acknowledgement loss cannot replay
+audio. A second mismatch, invalid authority, provider/capture failure or expiry
+keeps the existing recovery behavior. Ordinary/help/sensory speech is unchanged.
+
+Regression covers the changed-riddle case, concurrency, late capture, ownership,
+help, release uncertainty, database reload and production-browser playback. The
+existing acceptance fixtures now model audio lead-in before a later utterance,
+without relaxing production capture checks. Exact runs, retained failures and
+remaining Live/physical gates are recorded in `.agents/ESCALATION_RESULTS.md`.
+This work remains uncommitted for owner review; ES-08 is not declared complete.

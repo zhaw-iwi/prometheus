@@ -32,7 +32,7 @@ const report = {startedAt: new Date().toISOString(), selection, passed: false, t
   limitations: 'Synthetic audio/sensors; captions and received media do not prove physical audibility or movement.'};
 if (escalation) report.limits = {visitorTurns: 12, inferenceRequests: 24, completionTokensPerRequest: 2048,
   inputBytesPerInference: 80000, reportedInferenceTokenCeiling: 200000, liveSessions: 1, liveSeconds: 360,
-  synthesizedClips: 12, synthesisCharacters: 6000, childWallSeconds: 420};
+  synthesizedClips: 12, synthesisCharacters: 6000, committedOutputClips: 12, committedOutputCharacters: 6000, childWallSeconds: 420};
 report.scenario = coordinationScenario;
 const clips = {info: 'Hello Valerian. What is the SIRA Lab?',
   sense: selection === 'face' ? 'How does my facial expression look?' : 'How many people can you currently see?',
@@ -93,9 +93,12 @@ if (escalation) {
 }
 const cache = 'target/core-provider-audio'; fs.mkdirSync(cache, {recursive: true});
 report.synthesisRequests = 0;
+// Keep the synthetic visitor acoustically distinct from the Live Willow voice.
+// Preserve the words and require a real USER transcript; output echoes never count.
+report.stimulus = {model: 'gpt-4o-mini-tts', voice: escalation ? 'onyx' : 'alloy'};
 try {
 for (const [name, input] of Object.entries(clips)) {
-  const body = JSON.stringify({model: 'gpt-4o-mini-tts', voice: 'alloy', input, response_format: 'pcm'});
+  const body = JSON.stringify({...report.stimulus, input, response_format: 'pcm'});
   const file = path.join(cache, createHash('sha256').update(body).digest('hex') + '.pcm');
   if (!fs.existsSync(file)) {
     ++report.synthesisRequests;
@@ -135,6 +138,11 @@ async function observe(type, payload) {
 }
 async function storage() {
   return Object.fromEntries((await api(agentPath + '/storage')).map(entry => [entry.key, JSON.parse(entry.value)]));
+}
+async function synthesizedSpeech() {
+  return (await api(agentPath + '/live/history')).filter(event => event.provenance?.origin === 'SYNTHESIZED')
+    .map(event => ({segmentId: event.provenance.segmentId, origin: 'SYNTHESIZED',
+      played: event.provenance.playbackConfirmed === true, text: JSON.parse(event.payload).speech || null}));
 }
 async function until(label, action, timeout = 40000) {
   const start = Date.now();
@@ -179,7 +187,7 @@ async function settled(index, expected) {
     const status = await api(`${agentPath}/live/sessions/${handle}`);
     assert.equal(status.state, 'attached', 'Live closed: ' + status.reason);
     const text = (await captionsFrom(index)).trim(); return text && (!expected || expected.test(text));
-  });
+  }, escalation ? 65000 : 40000); // Covers the original verification/playback deadlines and observation overhead.
   // This is a test pacing heuristic, not a production audio-completion contract.
   await page.waitForFunction(() => window.approval ? !window.approval.current : performance.now() - logs.findLast(e => e.type === 'session.output_transcript.delta').at > 3500,
     {}, {timeout: 30000});
@@ -453,6 +461,19 @@ try {
     finally { heartbeatBusy = false; }
   }, 5000);
   page = await browser.newPage(); await page.goto(base + '/valerian/');
+  report.synthesizedAudio = [];
+  await page.exposeFunction('retainSynthesis', reply => {
+    assert.match(reply.segmentId, /^[a-f0-9-]{36}$/); assert.equal(reply.sampleRate, 24000);
+    const audio = Buffer.from(reply.pcm, 'base64');
+    assert.ok(audio.length > 0 && audio.length <= 2160000 && audio.length % 2 === 0);
+    assert.ok(report.synthesizedAudio.length < 12);
+    assert.ok(report.synthesizedAudio.reduce((n, item) => n + item.text.length, 0) + reply.text.length <= 6000);
+    const directory = path.join(path.dirname(output), 'synthesized-speech'); fs.mkdirSync(directory, {recursive: true});
+    const file = `${reply.segmentId}.pcm`; fs.writeFileSync(path.join(directory, file), audio);
+    const evidence = {file: `synthesized-speech/${file}`, segmentId: reply.segmentId, text: reply.text,
+      seconds: audio.length / 48000, sha256: createHash('sha256').update(audio).digest('hex'), origin: 'SYNTHESIZED'};
+    report.synthesizedAudio.push(evidence); return evidence;
+  });
   const offer = await page.evaluate(async ({agentPath, code, connectionOnly, coordinationJourney}) => {
     window.logs = []; window.mark = (type, fields = {}) => logs.push({type, ...fields, at: performance.now()});
     window.ac = new AudioContext({sampleRate: 24000}); await ac.resume();
@@ -469,20 +490,25 @@ try {
         method: 'POST', headers: {'Content-Type': 'application/json', 'X-Prometheus-Access-Code': code},
         body: JSON.stringify({segmentId: cue.segmentId})
       });
-      mark('trial.playback_ack', {ok: response.ok, accepted: response.ok && await response.json()});
+      mark('trial.playback_ack', {ok: response.ok, accepted: response.ok && await response.json(), cueId: cue.id, segmentId: cue.segmentId});
     }, value => mark('trial.playback_diagnostic', value));
     if (coordinationJourney) {
-      const {ApprovedSpeechPlayer} = await import('/live/approved-speech.js');
+      const {CommittedSpeechPlayer} = await import('/live/committed-speech.js');
       playback?.close();
-      window.approval = new ApprovedSpeechPlayer({audio: player,
+      window.approval = new CommittedSpeechPlayer({audio: player,
         api: async (path, options) => {
           const response = await fetch(`${agentPath}/live/sessions/${window.liveHandle}/${path}`, {
             ...options, headers: {'Content-Type': 'application/json', 'X-Prometheus-Access-Code': code}});
           if (!response.ok) throw Error(`Approval endpoint ${response.status}`);
-          return response.json();
+          const result = await response.json();
+            if (path.startsWith('speech-synthesis/') && result.status === 'APPROVED')
+              mark('trial.synthesis_received', await window.retainSynthesis(result));
+          if (path.startsWith('playback-cues/')) mark('trial.playback_ack', {
+            ok: true, accepted: result === true, cueId: path.slice('playback-cues/'.length), segmentId: JSON.parse(options.body).segmentId});
+          return result;
         }, diagnostic: value => mark('trial.approval_diagnostic', value),
         withheld: message => mark('trial.speech_withheld', {message}),
-        played: value => mark('trial.speech_played', {text: value.text, segmentId: value.segmentId, requestId: value.id})});
+        played: value => mark('trial.speech_played', {text: value.text, segmentId: value.segmentId, requestId: value.id, origin: 'SYNTHESIZED'})});
       await approval.prepare(destination.stream);
       window.playback = approval.observer;
     }
@@ -517,7 +543,7 @@ try {
     window.dc = pc.createDataChannel('oai-events'); dc.onmessage = event => {
       const message = JSON.parse(event.data);
       if (captions.receive(message)) {
-        if (message.type === 'session.input_transcript.delta') {if (window.approval) approval.interrupt(); else playback?.interrupt();}
+        if (message.type === 'session.input_transcript.delta') {if (window.approval) approval.inputTranscript(message); else playback?.interrupt();}
         if (message.type === 'session.output_transcript.delta') {if (window.approval) approval.receipt(message); else playback?.caption(message.event_id);}
       }
       if (!message.type.includes('audio.')) mark(message.type, message.type === 'session.started' ? {} : message);
@@ -530,6 +556,7 @@ try {
     return pc.localDescription.sdp;
   }, {agentPath, code, connectionOnly, coordinationJourney});
   const session = await api(agentPath + '/live/sessions', 'POST', {sdp: offer, voice: 'willow', speechApproval: true}); handle = session.handle;
+    if (coordinationJourney) { assert.equal(session.committedSpeechOutput, true); report.output = {origin: 'SYNTHESIZED', voice: 'alloy'}; }
   await page.evaluate(({sdp, handle}) => {window.liveHandle = handle; return pc.setRemoteDescription({type: 'answer', sdp});}, session);
   await page.waitForFunction(coordination => coordination
     ? pc.connectionState === 'connected' && dc.readyState === 'open'
@@ -657,7 +684,7 @@ try {
     report.finalState = await api(agentPath + '/state');
   } else if (coordinationJourney) {
     if (escalation) {
-      await runEscalation(coordinationScenario, {page, say, settled, captionsFrom, acceptanceQuestion, storage, observe, until, capturedResponse, api, agentPath, handle, report, wait});
+      await runEscalation(coordinationScenario, {page, say, settled, captionsFrom, acceptanceQuestion, storage, observe, until, capturedResponse, synthesizedSpeech, api, agentPath, handle, report, wait});
     } else if (coordinationScenario === 'interaction') {
       await coordinationInteraction();
     } else if (coordinationScenario === 'delivery') {

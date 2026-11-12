@@ -64,6 +64,25 @@ class LiveSpeechApprovalServiceUnitTest {
     LiveSpeechApprovalService.Result approve() { return service.approve(id, owner, window, segmentId.toString()); }
     boolean release() { return service.release(id, owner, window, requestId, segmentId.toString()); }
     boolean played() { return service.played(id, owner, window, requestId, segmentId.toString()); }
+    @ParameterizedTest @ValueSource(booleans = {true, false})
+    void deterministicSupportCannotAcquireAnUnsupportedPrefaceEvenIfTheVerifierWouldApprove(boolean unchanged) {
+        String required = "The task is stopped.";
+        var literal = new LiveSpeechRequest(request.id(), owner, 0, request.created(), request.expiresAt(), required,
+                request.releaseBy(), null, null, false, true, required);
+        when(policy.liveSpeechRequest(owner)).thenReturn(literal);
+        if (!unchanged) {
+            speech.setPayload("{\"speech\":\"Recognition looks good. The task is stopped.\"}");
+            segment = new LiveTranscriptSegment(segmentId, agent, owner.sessionId(), owner.epoch(), "ASSISTANT",
+                    "Recognition looks good. The task is stopped.", 0L, 1000L, now.minusSeconds(4), "Coordination");
+            segment.receipts(List.of("receipt")); segment.finish("COMPLETE", null, null);
+            when(segments.findById(segmentId)).thenReturn(Optional.of(segment));
+            when(policy.liveSpeechCorrection(literal, segmentId.toString(), now)).thenReturn(UUID.randomUUID());
+        }
+        assertEquals(unchanged ? "APPROVED" : "CORRECTING", approve().status());
+        assertEquals(unchanged, release());
+        verifyNoInteractions(gateway);
+        assertTrue(ConversationProjection.isUnplayed(speech), "Approval/release still do not prove playback");
+    }
     @Test void transientObservationCannotBeginPlaybackAfterItsOriginalExpiry() {
         var expiry = now.plusSeconds(1);
         when(policy.liveSpeechRequest(owner)).thenReturn(new LiveSpeechRequest(requestId, owner, 0, request.created(), expiry, request.facts(), expiry));
@@ -92,6 +111,45 @@ class LiveSpeechApprovalServiceUnitTest {
         when(gateway.infer(any())).thenAnswer(call -> { if (verdict.equals("failure")) throw new IllegalStateException(); return verdict.equals("malformed") ? "not JSON" : verdict(verdict); });
         assertEquals("REJECTED", approve().status()); assertEquals("REJECTED", approve().status());
         assertFalse(release()); assertFalse(played()); assertTrue(ConversationProjection.isUnplayed(speech)); verify(gateway, times(1)).infer(any());
+        if (!verdict.equals("AMBIGUOUS")) verify(policy, never()).liveSpeechCorrection(any(), any(), any());
+    }
+    @Test void validRejectionReservesCorrectionOnlyWhileTheRequestAndInputAreCurrent() {
+        when(gateway.infer(any())).thenReturn(verdict("AMBIGUOUS"));
+        when(policy.liveSpeechCorrection(eq(request), eq(segmentId.toString()), eq(now))).thenReturn(UUID.randomUUID());
+        assertEquals("CORRECTING", approve().status()); assertFalse(release());
+        assertEquals("CORRECTING", approve().status()); verify(gateway, times(1)).infer(any());
+        verify(policy).liveSpeechCorrection(request, segmentId.toString(), now);
+        window.interrupt(now); assertEquals("DISCARDED", approve().status());
+        verify(policy, times(1)).liveSpeechCorrection(any(), any(), any());
+    }
+    @Test void ordinaryCorrectionRejectsPreReservationCandidatesAndPersistedRelease() {
+        var corrected = new LiveSpeechRequest(request.id(), owner, 0, request.created(), request.expiresAt(), request.facts(),
+                request.releaseBy(), UUID.randomUUID(), now.minusSeconds(1), false);
+        when(policy.liveSpeechRequest(owner)).thenReturn(corrected);
+        window.input("old-input", request.created().minusSeconds(1));
+        assertEquals("DISCARDED", approve().status()); verifyNoInteractions(gateway);
+        when(policy.liveSpeechRequest(owner)).thenReturn(new LiveSpeechRequest(request.id(), owner, 0, request.created(),
+                request.expiresAt(), request.facts(), request.releaseBy(), null, null, true));
+        assertEquals("DISCARDED", approve().status()); verifyNoInteractions(gateway);
+    }
+    @Test void earlyDraftCannotSpendTheCheckOrCorrectionBeforeConfirmedSpeech() {
+        when(policy.liveSpeechRequest(owner)).thenReturn(new LiveSpeechRequest(request.id(), owner, 0,
+                now.minusSeconds(3), request.expiresAt(), request.facts(), request.releaseBy(), null, null, false, true));
+        window.input("current-input", now.minusSeconds(6));
+        assertEquals("DISCARDED", approve().status()); verifyNoInteractions(gateway);
+        verify(policy, never()).liveSpeechCorrection(any(), any(), any());
+        UUID laterId = UUID.randomUUID();
+        var later = new LiveTranscriptSegment(laterId, agent, owner.sessionId(), owner.epoch(), "ASSISTANT",
+                "The task is stopped.", 2000L, 3000L, now.minusSeconds(2), "Coordination");
+        later.receipts(List.of("later-receipt")); later.finish("COMPLETE", null, null);
+        when(segments.findById(laterId)).thenReturn(Optional.of(later));
+        var laterSpeech = new Event(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT, Event.KIND_RESPONSE, speech.getPayload());
+        laterSpeech.speechProvenance(new SpeechProvenance(SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
+                laterId.toString(), SpeechProvenance.Association.NONE, List.of(), true, false));
+        agent.getEventHistory().appendEvent(laterSpeech);
+        when(gateway.infer(any())).thenReturn(verdict("MATCH").replace(segmentId.toString(), laterId.toString()));
+        assertEquals("APPROVED", service.approve(id, owner, window, laterId.toString()).status());
+        verify(gateway, times(1)).infer(any());
     }
     @ParameterizedTest @ValueSource(strings = {"owner", "scope", "incomplete", "early", "epoch", "revision", "interrupted", "closed"})
     void missingOrStaleAuthorityCannotApprove(String kind) {
@@ -151,5 +209,64 @@ class LiveSpeechApprovalServiceUnitTest {
         value.addProperty("speechOffset", 0);
         assertEquals("APPROVED", approve().status()); assertTrue(release()); assertTrue(TaskResponse.playbackPending(storage));
         assertTrue(played()); assertFalse(TaskResponse.playbackPending(storage)); verifyNoInteractions(gateway);
+    }
+    @ParameterizedTest @ValueSource(strings = {"after", "before", "unknown", "later_input", "interrupted", "task", "earlier_ms"})
+    void receiptOrderResolvesOnlySameMillisecondOrdinaryDrafts(String boundary) {
+        Instant inputAt = request.created().minusSeconds(1).plusNanos(500_000);
+        Instant started = Instant.ofEpochMilli(inputAt.toEpochMilli() - (boundary.equals("earlier_ms") ? 1 : 0));
+        segment = new LiveTranscriptSegment(segmentId, agent, owner.sessionId(), owner.epoch(), "ASSISTANT", "The task is stopped.",
+                0L, 1000L, started, "Coordination");
+        segment.receipts(List.of("receipt")); segment.finish("COMPLETE", null, null);
+        when(segments.findById(segmentId)).thenReturn(Optional.of(segment));
+        if (boundary.equals("before")) window.output("receipt");
+        window.input("current-input", inputAt);
+        if (!boundary.equals("unknown")) window.output("receipt"); // A duplicate retains its original order.
+        if (boundary.equals("later_input")) window.input("later-input", inputAt.plusNanos(1));
+        if (boundary.equals("interrupted")) window.interrupt(now);
+        if (boundary.equals("task")) TaskResponse.expect(storage, owner, requestId, request.facts(), request.created());
+        assertEquals(boundary.equals("after") ? "APPROVED" : "DISCARDED", approve().status());
+        if (!boundary.equals("after")) verifyNoInteractions(gateway);
+    }
+    void rejectedTask() {
+        storage.put(LiveSpeechRequest.ENABLED, new JsonPrimitive(true));
+        storage.put(TaskMemory.PHASE, new JsonPrimitive("RUNNING")); storage.put(TaskMemory.ACTIONS, new JsonPrimitive("1"));
+        TaskResponse.expect(storage, owner, requestId, request.facts(), request.created());
+        var v = storage.get(TaskResponse.KEY).getAsJsonObject();
+        v.addProperty("status", "REJECTED"); v.addProperty("segment", segmentId.toString()); storage.put(TaskResponse.KEY, v);
+        when(policy.liveUnheardResponseCorrection()).thenReturn(true);
+    }
+    @Test void concurrentCorrectionRequestsReserveOnlyOnePersistedAttempt() throws Exception {
+        rejectedTask();
+        var first = java.util.concurrent.CompletableFuture.supplyAsync(this::approve);
+        var second = java.util.concurrent.CompletableFuture.supplyAsync(this::approve);
+        var results = List.of(first.get(2, java.util.concurrent.TimeUnit.SECONDS), second.get(2, java.util.concurrent.TimeUnit.SECONDS));
+        assertEquals(1, results.stream().filter(r -> r.status().equals("CORRECTING")).count());
+        var correction = TaskResponse.correctionId(storage); assertNotNull(correction);
+        assertNotEquals("CORRECTING", approve().status()); assertEquals(correction, TaskResponse.correctionId(storage));
+        assertEquals(1, storage.get(TaskMemory.ACTIONS).getAsInt()); assertFalse(release()); verifyNoInteractions(gateway);
+    }
+    @ParameterizedTest @ValueSource(strings = {"interrupt", "closed", "late", "owner", "disabled", "released"})
+    void rejectedDraftCannotCorrectAfterAuthorityOrDeliveryChanges(String boundary) {
+        rejectedTask();
+        switch (boundary) {
+            case "interrupt" -> window.interrupt(now);
+            case "closed" -> window.close();
+            case "late" -> when(clock.instant()).thenReturn(request.created().plusSeconds(36));
+            case "owner" -> when(ownership.current(agent)).thenReturn(null);
+            case "disabled" -> when(policy.liveUnheardResponseCorrection()).thenReturn(false);
+            case "released" -> { var v = storage.get(TaskResponse.KEY).getAsJsonObject(); v.addProperty("released", true); storage.put(TaskResponse.KEY, v); }
+        }
+        assertNotEquals("CORRECTING", approve().status()); assertNull(TaskResponse.correctionId(storage));
+        assertFalse(release()); verifyNoInteractions(gateway);
+    }
+    @Test void releaseSurvivesLossOfTheInMemoryWindowWithoutGrantingAnotherPlayback() {
+        rejectedTask();
+        var v = storage.get(TaskResponse.KEY).getAsJsonObject(); v.addProperty("status", "CAPTURED"); storage.put(TaskResponse.KEY, v);
+        assertEquals("APPROVED", approve().status()); assertTrue(release()); assertTrue(TaskResponse.released(storage));
+        var freshWindow = new LiveSpeechApprovalService.Window();
+        assertEquals("DISCARDED", service.approve(id, owner, freshWindow, segmentId.toString()).status());
+        assertFalse(service.release(id, owner, freshWindow, requestId, segmentId.toString()));
+        assertFalse(service.played(id, owner, freshWindow, requestId, segmentId.toString()));
+        assertTrue(ConversationProjection.isUnplayed(speech)); assertTrue(played());
     }
 }

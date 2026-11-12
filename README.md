@@ -1471,11 +1471,12 @@ the tab is enabled, its model and allowed voices; it never grants eligibility.
 | Method and path below `/demo/agents/{agentId}/live` | Contract |
 | --- | --- |
 | `GET /capabilities` | Enabled flag, pilot eligibility, model, allowed voices, diagnostic-only marker. |
-| `POST /sessions` | `{ "sdp": "v=0…", "voice": "marin", "speechApproval": true }`; returns 201 with an opaque local handle and SDP answer after sideband attachment, plus `speechApprovalRequired`. Delivery-aware Coordination instances require an approval-capable client. Unknown fields are rejected. |
+| `POST /sessions` | `{ "sdp": "v=0…", "voice": "marin", "speechApproval": true }`; returns 201 with an opaque local handle and SDP answer after sideband attachment, plus `speechApprovalRequired` and `committedSpeechOutput`. Fresh delivery-aware Coordination sessions select committed Speech and require the current client. Unknown fields are rejected. |
 | `GET /sessions/{handle}` | Bounded, content-free activity counters and event types. |
 | `POST /sessions/{handle}/input?muted=true` | Waits for the corresponding provider mute/unmute acknowledgement. |
 | `DELETE /sessions/{handle}` | Closes the session and reports whether finalization was confirmed. |
-| `POST /sessions/{handle}/speech-approvals` | `{ "segmentId": "UUID" }`; verifies one current complete speech candidate. Returns a bounded status, approval identity, exact receipts/text and expiry when approved. |
+| `POST /sessions/{handle}/speech-synthesis/{responseId}` | Synthesizes the current committed reply once; no text body. Returns approval identity, exact words, explicit synthesis receipt and bounded base64 24-kHz PCM. Repeated/obsolete claims are discarded. |
+| `POST /sessions/{handle}/speech-approvals` | `{ "segmentId": "UUID" }`; For native-approval sessions, verifies one current complete speech candidate. Returns a bounded status, approval identity, exact receipts/text and expiry when approved. |
 | `POST /sessions/{handle}/speech-approvals/{id}/release` | Same segment body; rechecks authority immediately before buffered playback. One successful release only. |
 | `POST /sessions/{handle}/speech-approvals/{id}/played` | Same segment body; records observed playback separately from approval. Does not replace the final task playback cue. |
 
@@ -1532,7 +1533,8 @@ physical motion guarantee. Sessions without a cue retain only bounded local
 observations and never send a playback acknowledgement. Stop, stream replacement,
 input interruption, hidden/muted output, sampling gaps and stalled media invalidate
 the corresponding evidence; duplicate captions cannot restore it.
-Output-audio deltas use PCM coverage; they do not require provider timing fields.
+Reflected sideband output uses provider media ranges when present; primary/legacy
+untimed audio uses received PCM coverage. Packet arrival time is not media time.
 Keep an expired cue in activity data until runtime evaluation cancels it. Live
 refresh evaluates expired cues through the ordinary tick path even when scheduled
 ticks are disabled, while retaining session ownership and task-work checks.
@@ -2078,7 +2080,10 @@ task explicitly requested to start now needs no second confirmation when it has
 no preparation checks. An unfinished agreement, recognition evidence alone or a
 casual acknowledgement cannot authorize execution.
 For unchanged ON_CUE proposals, clear starts such as "Let's start", "let start",
-"I accept" and "Bitte jetzt starten" arm locally without a model call. Short
+"I accept" and "Bitte jetzt starten" arm locally without a model call. Explicit
+acceptance of a ready dialogue proposal selects START in the backend;
+the existing inference supplies its first contribution and cannot replace the
+accepted terms or relabel activation as a later step. Short
 assent, including "Bereit", needs the current completed acceptance invitation
 (at most two minutes old); in Live, its matching captured utterance is required.
 Without that context, say Start explicitly. Questions, quotes, negation and future
@@ -2270,6 +2275,12 @@ Ready Live count proposals put those executable terms, the action limit and the
 review-before-acceptance requirement into a single bounded speaking request when
 it fits. Longer proposals retain the full existing context path without truncating
 their terms. Proposal review neither starts the task nor creates a task contribution.
+Ready dialogue proposals likewise carry the goal, both roles, success criterion,
+total contribution limit and acceptance status in one identified review. Reviews
+that exceed one message use bounded fact chunks; oversized reviews retain full
+context without truncating their terms.
+The final preparation check also reviews the saved sensor proposal's roles,
+success criterion, total action limit and fresh-cue requirement before acceptance.
 Independent rules cannot silently become compound conditions
 or previous/current-count comparisons. Existing saved rules are not rewritten;
 known unsupported draft terms get clarification guidance rather than advice to
@@ -2280,35 +2291,67 @@ feedback/replacement and reviewed count alternatives are available through the
 existing provider probe; see [the test instructions](tests/gptlive/README.md).
 These checks use the real agent and gateway in memory. They do not establish
 Realtime speech delivery, database capacity or physical classroom acceptance.
-The same test instructions now include the three ES-08 real Live journeys with
-disposable local MySQL and browser-observed playback. Dialogue response capture
-compares the current committed contribution, following the sensor-response pattern;
-it still requires a semantic match and separate playback confirmation. Actual
-passes, retained failures and outstanding gates are recorded in
-[the escalation results](.agents/ESCALATION_RESULTS.md).
-ES-08 acceptance remains unmet. The revised verifier passes the labelled direct
-provider evaluation, but that alone does not establish reliable Live delivery.
-The latest three Live attempts still fail full acceptance: early arming speech,
-a changed riddle clue, and Stop described as Pause. The social count proposal and
-one welcome with confirmed playback did succeed. Approval before audible Coordination speech is now implemented following the owner's
-latency/playback decision. The production player buffers original audio through a
-silent worklet, matches complete receipt-bound clips and releases only current
-approved speech. An ordinary current-turn draft can be checked after the backend
-commits its facts; older-turn drafts cannot qualify. Task contributions retain
-their existing post-request generation fence. Captured or approved speech alone is not delivery: conversation,
-consent and task continuation require observed playback. Rejection or missing
-proof gives visible recovery guidance; it never automatically repeats a task.
+Fresh Coordination Live sessions use the existing output-only Speech service for
+committed replies, following the owner's November 12 delivery-path decision.
+Live still captures user speech; backend state machines still own interpretation,
+agreements, preparation, contributions and outcomes. Other agents retain their
+existing voice paths. ES-08's agreed behavioural scope is complete, with three
+real-provider journeys and separate semantic reviews on this configuration; see
+[the escalation results](.agents/ESCALATION_RESULTS.md) for actual evidence.
 
-The audio path holds at most two 30-second clips, requires 2.4 seconds of acoustic
-quiet and retains the original 45-second verification / 60-second playback bounds.
-Ordinary, control and help replies add one bounded semantic check; task speech
-reuses its existing verifier. These checks add latency and provider/database work.
-Audio remains in browser memory. Raw native receipts remain diagnostic evidence;
-unplayed candidates are excluded from conversational history and prompts.
-An older client that cannot buffer speech must reload before opening Coordination
-Live. Other agents retain their existing audio path. Consult the results for exact
-real-provider coverage; deterministic success does not close ES-08. Physical trials
-remain unrun. Database capacity is deferred while deployment options are reviewed.
+The backend stores complete words separately from instructions to Live. Ordinary
+answers and task contributions use the committed utterance; ready proposal reviews
+include all saved goal, human/agent roles, success, total limit, preparation and
+visible-count terms. Preparation first requests outstanding demonstrations without
+premature acceptance. Help and perception replies preserve the task budget.
+Returning to Conversation preserves history and outcomes. Feedback uses the prior
+actually delivered question and all defining clues; synthesis does not establish
+that a backend answer is factually correct.
+
+The scoped synthesis endpoint accepts a response identity, never client-authored
+text. It shares the configured `prometheus.speech.model` and gateway with existing
+Speech, using Alloy at normal speed. The Live voice selection still configures the
+Live connection; Coordination's committed replies use Alloy. One durable synthesis
+claim prevents automatic retry after an uncertain provider result. Provider work
+runs outside database transactions and agent locks, with four bounded workers and
+the original response deadline. Owner/session/epoch/revision, interruption and
+supersession are checked again after synthesis and before release.
+
+The browser keeps native Live audio inaudible. It buffers only the authorized
+24-kHz mono PCM response, rechecks release, and requires both the audio source's
+end and observed output playback before acknowledging completion. A pause inside
+a clip cannot finish it. Known leading PCM silence extends only the observer's
+onset wait, never the response expiry. One durable release prevents replay after lost completion
+acknowledgement or reload. Final task contributions still require the separate
+playback cue before Reflection. Missing proof leaves delivery uncertain; it never
+spends another contribution or automatically repeats work.
+
+Synthesis is bounded to 3,000 committed characters and 45 seconds of PCM, and must
+fit within the original 45-second preparation / 60-second playback windows. A
+transient observation retains its shorter release deadline. Native capture retains
+its separate 30-second open bound and reflected-media coverage checks; input and
+other native agents keep their current capture behaviour. No additional model
+paraphrase or semantic verifier is used for synthesized wording. Captured native
+output cannot claim a synthesized response or become delivered conversation.
+For committed output, immediate interruption follows the existing microphone
+monitor; delayed native captions alone do not stop a clip. Tiny structural input
+fragments without recent acoustic support are retained as incomplete audit data
+only after five seconds of continuously measured silent input. Ordinary words,
+real voice, missing audio and audio gaps retain normal admission. This narrow
+guard does not detect all transcription errors or hallucinations.
+Speech receives the committed text, but playback confirmation proves delivery
+through the monitored browser path, not a word-for-word acoustic transcript or
+physical speaker audibility. Provider pronunciation, omissions and interpretation
+still require output review; the acceptance evidence records these limits.
+
+Persisted behaviour events identify synthesized speech as `SYNTHESIZED`; they are
+excluded from conversation, prompts and proposal-consent evidence until playback
+is confirmed. Raw native transcripts remain separate diagnostic evidence. The
+existing canonical behaviour Speech endpoint continues to reject unheard speech
+and backend narration intents. Use a fresh Coordination instance/session and reload
+the browser for this delivery contract. Historical native approval/correction
+results remain in the evidence record; they are not current synthesized delivery.
+Physical trials remain unrun; classroom capacity and deployment remain deferred.
 
 A proposal may additionally request up to three **recognition demonstrations**,
 each checking one supported sensor field using `eq`, `lt` or `gt` and a confidence

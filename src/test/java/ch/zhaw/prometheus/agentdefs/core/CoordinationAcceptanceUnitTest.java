@@ -37,6 +37,33 @@ class CoordinationAcceptanceUnitTest {
             verifyNoInteractions(fixture.gateway);
         }
     }
+    @Test void explicitDialogueAcceptanceOwnsStartWhileInferenceSuppliesTheFirstContribution() {
+        for (String operation : java.util.List.of("START", "STEP")) {
+            var fixture = new CoordinationAgentUnitTest(); fixture.propose(fixture.dialogue(), fixture.live);
+            var draft = fixture.storage().get(CoordinationMemory.DRAFT).deepCopy();
+            clearInvocations(fixture.gateway);
+            fixture.turn(operation, null, "Let\u2019s start", fixture.live);
+            assertEquals("EXECUTION", CoordinationMemory.stage(fixture.storage()), operation);
+            assertEquals(draft, fixture.storage().get(CoordinationMemory.AGREEMENT));
+            assertEquals(1, fixture.storage().get(TaskMemory.ACTIONS).getAsInt());
+            assertEquals("START", fixture.storage().get(CoordinationMemory.LOG).getAsJsonArray().asList().getLast().getAsJsonObject().get("operation").getAsString());
+            verify(fixture.gateway, times(1)).infer(any());
+        }
+    }
+    @Test void firstContributionCannotManufactureAcceptanceOrReplaceExplicitlyAcceptedTerms() {
+        for (String command : java.util.List.of("Let's start?", "Don't start", "Start tomorrow", "\"Start\"", "My answer is")) {
+            var fixture = new CoordinationAgentUnitTest(); fixture.propose(fixture.dialogue(), fixture.live);
+            fixture.turn("STEP", null, command, fixture.live);
+            assertEquals("READY", CoordinationMemory.stage(fixture.storage()), command);
+            assertFalse(fixture.storage().containsKey(CoordinationMemory.AGREEMENT), command);
+            assertFalse(fixture.storage().containsKey(TaskMemory.ACTIONS), command);
+        }
+        var fixture = new CoordinationAgentUnitTest(); fixture.propose(fixture.dialogue(), fixture.live);
+        var saved = fixture.storage().get(CoordinationMemory.DRAFT).deepCopy();
+        fixture.turn("REPLACE", fixture.sensor(false), "Let's start", fixture.live);
+        assertEquals(saved, fixture.storage().get(CoordinationMemory.DRAFT));
+        assertFalse(fixture.storage().containsKey(CoordinationMemory.AGREEMENT));
+    }
     @Test void readyNeedsARecentCompletedInvitationAndRepeatedStartsCannotResetTheRun() {
         var ready = new CoordinationAgentUnitTest(); ready.propose(ready.sensor(false), ready.text);
         org.springframework.test.util.ReflectionTestUtils.setField(ready.agent.getEventHistory().toList().getLast(),

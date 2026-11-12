@@ -13,6 +13,38 @@ import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationSupportUnitTest {
     @ParameterizedTest
+    @ValueSource(strings={"I understand. Do I need to demonstrate again", "Do I have to repeat the check again?"})
+    void preparationQuestionUsesSavedReadinessWithoutInventingAnotherDemonstration(String words) {
+        var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(true), f.text);
+        f.policy().beginLiveConversation(f.agent.getEventHistory());
+        var completed = new JsonObject(); completed.add("0", new JsonObject()); completed.add("1", new JsonObject());
+        f.storage().put(CoordinationMemory.EVIDENCE, completed);
+        assertEquals("READY", CoordinationMemory.stage(f.storage()));
+        var evidence = f.storage().get(CoordinationMemory.EVIDENCE).deepCopy();
+        var draft = f.storage().get(CoordinationMemory.DRAFT).deepCopy();
+        clearInvocations(f.gateway);
+        f.say(words, f.live);
+        String spoken = f.policy().liveCommittedSpeech(f.owner).text();
+        assertTrue(spoken.contains("no further demonstration is needed"));
+        assertTrue(spoken.contains("After acceptance, show a fresh matching cue"));
+        assertEquals(evidence, f.storage().get(CoordinationMemory.EVIDENCE));
+        assertEquals(draft, f.storage().get(CoordinationMemory.DRAFT));
+        assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
+        assertFalse(f.storage().containsKey(TaskResponse.KEY));
+        verifyNoInteractions(f.gateway);
+    }
+
+    @Test void shortenedPerceptionQuestionStillUsesSuppliedEvidenceWithoutInference() {
+        var f = new CoordinationAgentUnitTest();
+        f.sign("scissor", .87, Instant.now(), f.text); clearInvocations(f.gateway);
+        f.policy().beginLiveConversation(f.agent.getEventHistory()); f.say("hand sign do you see now", f.live);
+        String spoken = f.policy().liveCommittedSpeech(f.owner).text();
+        assertTrue(spoken.contains("supplied hand observation reported scissors"));
+        assertTrue(spoken.contains("not direct access to camera images"));
+        verifyNoInteractions(f.gateway);
+    }
+
+    @ParameterizedTest
     @ValueSource(strings={"Please help me set up a dialogue task: draft an invitation with me. Propose it without starting.",
             "Can you help me propose a dialogue task?", "Hilf mir eine Dialogaufgabe zu planen."})
     void helpWithAConcreteProposalStillReachesTheTaskInterpreter(String request) {
@@ -58,9 +90,30 @@ class CoordinationSupportUnitTest {
         var before = new JsonObject();
         protectedKeys.forEach(key -> { if (f.storage().containsKey(key)) before.add(key, f.storage().get(key).deepCopy()); });
         clearInvocations(f.gateway); var response = f.say("I don't understand ", f.text);
-        assertTrue(response.getPayload().contains(phase)); verifyNoInteractions(f.gateway);
+        String expected = switch (phase) {
+            case "CONVERSATION" -> "No task is active";
+            case "COORDINATION" -> "unresolved terms";
+            case "PREPARATION" -> "Before starting, demonstrate";
+            case "READY" -> "no further demonstration is needed";
+            case "EXECUTION" -> "The task is active";
+            case "PAUSED" -> "progress is preserved";
+            case "FINISHING" -> "awaiting speech association or playback";
+            case "UNCERTAIN" -> "delivery is uncertain";
+            default -> "The task has ended";
+        };
+        assertTrue(response.getPayload().contains(expected)); verifyNoInteractions(f.gateway);
+        assertFalse(response.getPayload().contains("Current coordination state:"));
         protectedKeys.forEach(key -> { if (before.has(key)) assertEquals(before.get(key), f.storage().get(key)); else assertFalse(f.storage().containsKey(key)); });
         assertEquals(phase, CoordinationMemory.stage(f.storage()));
+    }
+
+    @ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void activeHelpMentionsIndependentReactionsOnlyForASensorTask(boolean sensor) {
+        var f = new CoordinationAgentUnitTest(); f.propose(sensor ? f.sensor(false) : f.dialogue(), f.text); f.start(f.text);
+        String words = CoordinationSupport.explain(f.storage(), Instant.now());
+        assertTrue(words.startsWith("The task is active."));
+        assertTrue(words.contains("Pause to pause it, or Stop to end it"));
+        assertEquals(sensor, words.contains("independent sensor reactions"));
     }
 
     @Test void liveHelpCannotReplacePendingTaskIdentityOrExtendItsDeadline() {
@@ -86,10 +139,13 @@ class CoordinationSupportUnitTest {
         f.storage().put(CoordinationMemory.EVIDENCE, evidence);
         var words = CoordinationSupport.explain(f.storage(), Instant.now());
         assertTrue(words.contains("paper")); assertFalse(words.contains("rock"));
+        assertTrue(words.contains("then accept the ready proposal"));
         f.say("Help me", f.live);
         assertFalse(f.storage().containsKey(TaskResponse.KEY));
         assertNotNull(f.policy().liveActivityContext().continuation());
-        assertTrue(f.policy().liveActivityContext().facts().contains("Remaining recognition"));
+        assertTrue(f.policy().liveActivityContext().continuation().selfContained());
+        assertTrue(f.policy().liveActivityContext().continuation().facts().contains("Speak these words verbatim:"));
+        assertTrue(f.policy().liveActivityContext().continuation().facts().contains(words));
         assertEquals("PREPARATION", CoordinationMemory.stage(f.storage()));
     }
 
