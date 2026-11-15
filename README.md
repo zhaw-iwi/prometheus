@@ -203,7 +203,7 @@ requests keep their original ID and cannot restore a newer window's cooldown/sta
 The agent validates the ID; it is correlation, not authorization or hand ownership.
 Displays without an ID keep the existing uncorrelated sensor behavior.
 
-#### Cockpit lifecycle contract
+#### Behaviour details and robot view
 
 The Behaviour column has **Details / Robot** views. Speech stays above the middle
 region and Latest Behaviour Event below it. Details is the default; the browser
@@ -231,6 +231,15 @@ The pinned Three.js browser modules and MIT license are served locally. After
 `npm run test:embodiment:unit` and `npm run test:embodiment:browser` (with a local
 server, or the ordinary Playwright application startup). Roadmap/evidence:
 `.agents/PLAN_EMBODIMENT.md` and `.agents/EMBODIMENT_RESULTS.md`.
+
+[Robot view preview](.doc/figures/Valerian/valerian-embodiment.png).
+For isolated local-MySQL regression, run
+`python tests/gptlive/run_acceptance.py --embodiment --browser --browser-mode disabled --java-tests ValerianClientStaticResourceContractTest,SpeechArchitectureBrowserClientContractTest,LiveCockpitSmokeIntegrationTest`.
+An explicitly paid provider/rendering smoke uses
+`python tests/gptlive/run_acceptance.py --embodiment --paid-core coordination-text --coordination-scenario baseline --java-tests none`.
+It opens the actual persisted output in Robot view without adding model calls.
+
+#### Cockpit lifecycle contract
 
 The sensing, interaction, and behaviour columns represent the currently
 connected agent only. An empty column contains no agent-derived history,

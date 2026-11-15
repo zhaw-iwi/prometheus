@@ -1,12 +1,13 @@
 // Pure, bounded interpretation of the existing public BehaviourPlan contract.
 const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-const token = value => typeof value === 'string' ? value.trim().toLowerCase().replace(/[ -]+/g, '_') : '';
+const token = value => typeof value === 'string' ? value.trim().replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase().replace(/[ -]+/g, '_') : '';
+const lookup = (map, key) => Object.hasOwn(map, key) ? map[key] : undefined;
 export const unit = (value, fallback = 0) => typeof value === 'number' && Number.isFinite(value)
   ? Math.max(0, Math.min(1, value)) : fallback;
 const signs = new Set(['rock', 'paper', 'scissor']);
 const gestures = new Set(['OPEN_QUESTION', 'EXPLAIN', 'UNCERTAIN', 'ACKNOWLEDGE', 'POLITE', 'NONE']);
 const faces = {
-  neutral: 'neutral', attentive: 'attentive', focused: 'attentive', curious: 'curious',
+  neutral: 'neutral', warm_neutral: 'neutral', attentive: 'attentive', focused: 'attentive', curious: 'curious',
   happy: 'happy', smile: 'happy', smiling: 'happy', warm_smile: 'happy', friendly: 'happy',
   sad: 'sad', concerned: 'concerned', empathetic: 'concerned', surprised: 'surprised',
   uncertain: 'uncertain', confused: 'uncertain', angry: 'angry', serious: 'attentive',
@@ -24,19 +25,24 @@ export function normalizePlan(plan, modalities = null) {
   const display = allowed('display') && plan.display != null ? plan.display : null;
   const d = object(display), warnings = [];
   let gesture = allowed('nonVerbal.gesture') ? token(nv.gesture).toUpperCase() || 'NONE' : 'NONE';
-  let sign = token(d.agentSign || motion.handSign);
+  const parseSign = value => {
+    const label = token(value);
+    const sign = lookup({rock:'rock',stein:'rock',paper:'paper',papier:'paper',scissor:'scissor',scissors:'scissor',schere:'scissor'}, label);
+    if (label && !sign) warnings.push('Unmapped hand sign: ' + label);
+    return sign || '';
+  };
+  let sign = parseSign(d.agentSign) || parseSign(motion.handSign);
   if (!sign && signs.has(gesture.toLowerCase())) sign = gesture.toLowerCase();
-  if (sign && !signs.has(sign)) { warnings.push('Unmapped hand sign: ' + sign); sign = ''; }
   if (!gestures.has(gesture)) {
     if (!signs.has(gesture.toLowerCase())) warnings.push('Unmapped gesture: ' + gesture);
     gesture = 'NONE';
   }
   const face = allowed('nonVerbal.facialExpression') ? nv.facialExpression : null;
   const faceLabel = token(typeof face === 'string' ? face : face?.type || face?.expression);
-  if (faceLabel && !faces[faceLabel]) warnings.push('Unmapped expression: ' + faceLabel);
+  if (faceLabel && !lookup(faces, faceLabel)) warnings.push('Unmapped expression: ' + faceLabel);
   const gaze = allowed('nonVerbal.gaze') ? nv.gaze : null;
   const gazeLabel = token(typeof gaze === 'string' ? gaze : gaze?.direction || gaze?.focus);
-  if (gazeLabel && !gazes[gazeLabel]) warnings.push('Unmapped gaze: ' + gazeLabel);
+  if (gazeLabel && !lookup(gazes, gazeLabel)) warnings.push('Unmapped gaze: ' + gazeLabel);
   const expressive = allowed('nonVerbal.motion') ? object(nv.motion) : {};
   const energy = unit(motion.energy ?? expressive.energy, 0.35);
   const stillness = unit(motion.stillness ?? expressive.stillness, 0.75);
@@ -44,9 +50,9 @@ export function normalizePlan(plan, modalities = null) {
   const hand = ['left_hand', 'right_hand', 'both_hands'].includes(effector) ? effector : '';
   if (sign && !hand) warnings.push('Unmapped effector: ' + effector);
   return {
-    gesture, face: faces[faceLabel] || 'neutral', faceLabel,
+    gesture, face: lookup(faces, faceLabel) || 'neutral', faceLabel,
     intensity: faceLabel ? unit(object(face).intensity, 0.55) : 0,
-    gaze: gazes[gazeLabel] || [0, 0], gazeLabel, focus: typeof gaze?.focus === 'string' ? gaze.focus : '',
+    gaze: lookup(gazes, gazeLabel) || [0, 0], gazeLabel, focus: typeof gaze?.focus === 'string' ? gaze.focus : '',
     energy, stillness, sign: hand ? sign : '', hand, display, warnings,
   };
 }

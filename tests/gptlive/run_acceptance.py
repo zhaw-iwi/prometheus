@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -34,6 +35,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
+    parser.add_argument('--embodiment', action='store_true', help='Robot browser regression or real-provider persisted-plan rendering smoke')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--browser-mode', choices=['both', 'enabled', 'disabled'], default='both', help='Select fixture modes for focused browser checks')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
@@ -43,6 +45,8 @@ def main():
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
+    if args.embodiment and (args.classroom_capacity or not (args.browser or args.paid_core == 'coordination-text')):
+        parser.error('--embodiment requires --browser or --paid-core coordination-text, without capacity mode')
     if args.classroom_capacity and (args.paid_core or args.browser):
         parser.error('--classroom-capacity requires a separate offline run')
     if args.classroom_capacity and args.java_tests != 'ClassroomCapacityIntegrationTest':
@@ -91,6 +95,20 @@ def main():
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)
     artifacts.mkdir(parents=True)
+    if args.embodiment:
+        sources = [p for directory in ('src/main', 'src/test', 'tests/playwright', 'tests/js/embodiment')
+                   for p in (root/directory).rglob('*')
+                   if p.is_file() and p.suffix in ('.java', '.js', '.mjs', '.json', '.html', '.css')]
+        sources += [root/'pom.xml', root/'tests/gptlive/run_acceptance.py', root/'playwright.config.mjs',
+                    root/'tests/gptlive/embodiment_browser_smoke.mjs', root/'tests/gptlive/coordination_text_journey.mjs']
+        manifest = {'schema': 'embodiment-acceptance-v1',
+                    'sourceRevision': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
+                    'selection': {'java': args.java_tests, 'browser': args.browser,
+                                  'scenario': args.coordination_scenario, 'paid': bool(args.paid_core)},
+                    'files': {str(p.relative_to(root)).replace('\\','/'): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
+                    'limits': {'dbPool': 10, 'scheduledTicks': False,
+                               'providerCalls': 24 if args.paid_core else 0, 'providerTokens': 200000 if args.paid_core else 0}}
+        (artifacts/'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     (artifacts / 'escalation-cases.json').write_text(json.dumps(recovery_fixture, indent=2), encoding='utf-8')
     database = pymysql.connect(host=url.hostname, port=url.port or 3306,
         user=os.environ.get('GPTLIVE_MYSQL_ADMIN_USER', props.get('spring.datasource.username')),
@@ -107,6 +125,10 @@ def main():
         PROMETHEUS_SKIP_WEBSERVER='true')
     env['PROMETHEUS_CLASSROOM_CAPACITY'] = 'true' if args.classroom_capacity else 'false'
     maven = ['mvnw.cmd'] if os.name == 'nt' else ['bash', './mvnw']
+    # Isolate acceptance from IDE compilation and classes left by another branch.
+    build_dir = artifacts/'build' if args.embodiment else root/'target'
+    if args.embodiment:
+        maven.append('-Dprometheus.build.directory=' + str(build_dir))
     npm = 'npx.cmd' if os.name == 'nt' else 'npx'
 
     def run(command, name):
@@ -177,6 +199,10 @@ def main():
                 PROMETHEUS_SPEECH_URL='https://api.openai.com/v1/audio/speech',
                 PROMETHEUS_LIVE_SESSIONS_URL='https://api.openai.com/v1/live/sessions',
                 PROMETHEUS_LIVE_ENABLED='true', PROMETHEUS_LIVE_REQUEST_TIMEOUT_MS='30000')
+            if args.embodiment:
+                env.update(PROMETHEUS_LIVE_ENABLED='false', PROMETHEUS_PROVIDER_MAX_REQUESTS='24',
+                    PROMETHEUS_PROVIDER_MAX_TOKENS='200000', PROMETHEUS_PROVIDER_MAX_SESSIONS='0',
+                    OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000')
             if escalation:
                 env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='24', PROMETHEUS_PROVIDER_MAX_TOKENS='200000',
                     PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
@@ -188,9 +214,9 @@ def main():
             fixture_root = artifacts / 'provider-classes'
             fixtures = fixture_root / 'fixtures' / 'provider'
             fixtures.mkdir(parents=True)
-            for source in (root / 'target/test-classes/fixtures/provider').glob('*.class'):
+            for source in (build_dir / 'test-classes/fixtures/provider').glob('*.class'):
                 shutil.copy2(source, fixtures / source.name)
-            classpath = os.pathsep.join([str(root / 'target/classes'), str(fixture_root), (artifacts / 'classpath.txt').read_text().strip()])
+            classpath = os.pathsep.join([str(build_dir / 'classes'), str(fixture_root), (artifacts / 'classpath.txt').read_text().strip()])
             env['PROMETHEUS_PROVIDER_ARTIFACT'] = str(artifacts / 'provider.jsonl')
             with socket.socket() as port_socket:
                 port_socket.bind(('127.0.0.1', 0))
@@ -211,6 +237,8 @@ def main():
                 else:
                     raise RuntimeError('Isolated real-provider app startup timed out.')
                 journey = 'coordination_text_journey.mjs' if args.paid_core == 'coordination-text' else 'core_backend_journey.mjs'
+                if args.embodiment:
+                    env['PROMETHEUS_EMBODIMENT_SMOKE'] = 'true'
                 run(['node', 'tests/gptlive/' + journey, '--allow-paid-provider', str(artifacts / 'journey.json'),
                     '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()
@@ -220,9 +248,9 @@ def main():
             # Isolate just the explicit fixtures; unrelated test controllers never enter component scanning.
             fixtures = artifacts / 'fixture-classes' / 'fixtures' / 'gptlive'
             fixtures.mkdir(parents=True)
-            for source in (root / 'target/test-classes/fixtures/gptlive').glob('*.class'):
+            for source in (build_dir / 'test-classes/fixtures/gptlive').glob('*.class'):
                 shutil.copy2(source, fixtures / source.name)
-            classpath = os.pathsep.join([str(root / 'target/classes'), str(artifacts / 'fixture-classes'),
+            classpath = os.pathsep.join([str(build_dir / 'classes'), str(artifacts / 'fixture-classes'),
                 (artifacts / 'classpath.txt').read_text().strip()])
             for enabled in (('true', 'false') if args.browser_mode == 'both' else ('true',) if args.browser_mode == 'enabled' else ('false',)):
                 with socket.socket() as port_socket:
@@ -252,12 +280,20 @@ def main():
                         if not args.live_only:
                             specs += ['tests/playwright/valerian-lifecycle.spec.mjs', 'tests/playwright/valerian-transcription.spec.mjs',
                                 'tests/playwright/valerian-column-expansion.spec.mjs', 'tests/playwright/valerian-classroom-smoke.spec.mjs']
+                    if args.embodiment:
+                        specs = ['tests/playwright/valerian-embodiment.spec.mjs', 'tests/playwright/valerian-lifecycle.spec.mjs',
+                            'tests/playwright/valerian-transcription.spec.mjs', 'tests/playwright/valerian-column-expansion.spec.mjs']
                     run([npm, 'playwright', 'test', '--config=playwright.config.mjs', *specs,
                         '--output=' + str(artifacts / ('browser-' + enabled)),
                         *(['--grep', args.browser_grep] if args.browser_grep else [])], 'browser-' + enabled)
                     stop()
     finally:
         stop()
+        if args.embodiment:
+            final_hashes = {str(p.relative_to(root)).replace('\\','/'): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources if p.exists()}
+            manifest['filesAtEnd'] = final_hashes
+            manifest['sourceChangedDuringRun'] = [name for name, value in manifest['files'].items() if final_hashes.get(name) != value]
+            (artifacts/'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
         capacity_report = root / 'target/classroom-capacity-report.json'
         if args.classroom_capacity and capacity_report.exists():
             try:

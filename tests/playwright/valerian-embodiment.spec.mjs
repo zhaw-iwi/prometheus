@@ -71,6 +71,9 @@ test('embodiment animates fresh events once and preserves native, replay, reset 
   await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-animating','false');
   await page.evaluate(e=>handleBehaviourEnvelope({...e,provenance:{origin:'NATIVE'}},{eventId:e.id,delivery:'live'}),event({speech:'Native speech'},4));
   await expect(page.locator('#embodiment_summary')).toContainText('polite');
+  await publish(page,{motion:{handSign:'Schere'},display:{agentSign:'unknown'}},5);
+  await expect(page.locator('#embodiment_summary')).toContainText('right hand: scissor');
+  await expect(page.getByTestId('agent-sign-label')).toHaveText('Schere');
   await page.locator('#open_diagnostics').click();await page.getByTestId('connect-agent').click();
   await expect(page.locator('#embodiment_summary')).toContainText('Connect an agent');
   await expect(page.getByTestId('speech-preview')).toHaveText('-');

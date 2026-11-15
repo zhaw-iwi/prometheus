@@ -1,5 +1,8 @@
 # Valerian alternative embodiment view
 
+EV-01 through EV-03 are complete. Verification, retained failures and remaining
+limits are recorded in [EMBODIMENT_RESULTS.md](EMBODIMENT_RESULTS.md).
+
 Started 2026-11-15 on `feature/valerian-embodiment`, based on the current study
 branch. The owner requested implementation, a roadmap with testable milestones,
 and previously authorized milestone commits/pushes and local-DB/live-provider
