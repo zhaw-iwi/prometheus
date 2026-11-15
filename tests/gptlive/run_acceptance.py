@@ -51,7 +51,7 @@ def main():
         if args.classroom_capacity or args.live_only or args.coordination_scenario != 'baseline':
             parser.error('--study cannot select unrelated capacity/Live/Coordination scenarios')
         if args.java_tests == 'LiveCockpitSmokeIntegrationTest':
-            args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest,StudySessionsIntegrationTest,StudyRestartIntegrationTest,StudyTurnsIntegrationTest'
+            args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest,StudySessionsIntegrationTest,StudyRestartIntegrationTest,StudyTurnsIntegrationTest,StudyRecorderIntegrationTest'
         if args.java_tests == 'none' and not (args.browser or args.paid_core):
             parser.error('--study requires a test, browser, or provider selection')
         if args.browser:
@@ -119,6 +119,9 @@ def main():
         SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE='10',
         PROMETHEUS_SKIP_WEBSERVER='true')
     env['PROMETHEUS_CLASSROOM_CAPACITY'] = 'true' if args.classroom_capacity else 'false'
+    if args.study:
+        env['PROMETHEUS_STUDY_SOURCE_REVISION'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+        env['PROMETHEUS_STUDY_SOURCE_DIRTY'] = str(bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=root, text=True).strip())).lower()
     maven = ['mvnw.cmd'] if os.name == 'nt' else ['bash', './mvnw']
     npm = 'npx.cmd' if os.name == 'nt' else 'npx'
 

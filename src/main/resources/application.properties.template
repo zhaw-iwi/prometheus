@@ -56,3 +56,5 @@ prometheus.cors.allowed-origin-patterns=
 # SYNTHETIC attempts are operator-created software fixtures, never participant invitations.
 prometheus.study.collection-enabled=false
 prometheus.study.information-version=
+prometheus.study.source-revision=UNKNOWN
+prometheus.study.source-dirty=true

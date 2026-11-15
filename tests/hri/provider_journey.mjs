@@ -39,6 +39,16 @@ try {
   assert.ok(state.agreement); assert.equal(state.actions,1);
   state=await turn('Pause the task.'); assert.equal(state.phase,'PAUSED');
   assert.equal(state.turns.length,3); assert.equal(state.turnVersion,3);
+  for (const event of await api('/api/study/events')) if (event.type==='resp.behaviour_plan') {
+    const receipt={eventId:event.id,clientTime:new Date().toISOString()};
+    await api('/api/study/display','POST',receipt); await api('/api/study/display','POST',receipt);
+  }
+  headers={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
+  const exported=await api(`/admin/study/attempts/${invitation.session.id}/export`);
+  assert.equal(exported.manifest.recordingComplete,true); assert.equal(exported.manifest.displayComplete,true);
+  assert.equal(exported.agreements.length,1); assert.equal(exported.requests.length,3);
+  assert.ok(!JSON.stringify(exported).includes(invitation.token));
+  report.export=exported;
   report.passed=true;
 } catch(error) { report.error=error.message; process.exitCode=1; }
 finally {

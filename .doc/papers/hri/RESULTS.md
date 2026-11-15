@@ -107,3 +107,44 @@ Final targeted rerun after adding rollback-publication coverage:
 `--study --java-tests StudyTurnsIntegrationTest`, artifact `1eb58f1427`, **six
 passed**, including no monitor publication for a rolled-back mutation. Runner
 preflight: 13 passed. Node syntax and `git diff --check` passed.
+
+## OS-04 — Research recorder and export (15 November 2026)
+
+Added append-only `study_record` evidence at procedural/agent commit boundaries,
+immutable acceptance snapshots, version/configuration metadata, full canonical
+event coverage, separate client rendering reports and private-answer export rows.
+Operator-only JSON export compares recordings against canonical state and reports
+missing records, uncertainty and procedure/display completeness independently.
+
+Actual verification:
+
+- `--study --java-tests StudySessionsIntegrationTest,StudyTurnsIntegrationTest`:
+  **14 passed**, artifact `3433a81b0a`, after inserting recorder boundaries.
+- `--study --java-tests StudyRecorderIntegrationTest,StudyRestartIntegrationTest`:
+  **six passed**, artifact `c7b973524b`. Tests retain exact initial/revised
+  agreements, exceed 12 journal entries/eight outcomes, inject post-insert recorder
+  failure, check display scope/deduplication and detect missing evidence.
+- First complete-study run `83e1fbc365` had **23 passes and one failed assertion**:
+  OS-03's broad “no broadcaster calls” check raced with scheduled activity metrics.
+  Narrowed it to agent-state publication; metadata activity is a separate channel.
+  Failure XML/logs retained; no provider trial was reached in that run.
+- `python tests/gptlive/run_acceptance.py --study --paid-core coordination-text`:
+  **24 Java checks passed**, zero failures/errors/skips; real OpenAI journey/export
+  also passed. Artifact `target/gptlive-acceptance-4325eed8f0`. Two provider calls,
+  7,449 cumulative tokens. Owned MySQL schema/account cleaned up.
+
+Independent semantic review of `4325eed8f0`: **PASS for this bounded smoke**.
+The proposal preserved roles/success/limit without executing; explicit acceptance
+produced one short welcome sentence and one counted contribution; pause preserved
+the accepted terms. Export retained exactly that agreement with source/run/revision,
+three committed requests and four idempotent synthetic display reports (including
+the starter). The export correctly reported procedure incomplete and excluded the
+participant token. Display evidence here was supplied by the test script, not an
+actual browser or proof of reading. The OS-03 wording deviation remains part of
+the evidence; this successful run does not establish a reliability rate.
+
+No human data collected. Source metadata records the tested base commit with a
+dirty-checkout flag. Research materials remain draft and collection closed.
+Participant UI, full instruments, task executors and operational qualification
+remain subsequent work.
+Final runner preflight: 13 passed. Node syntax and `git diff --check` passed.

@@ -33,11 +33,13 @@ public class StudyTurns {
     private final AgentRepository agentRepository;
     private final TransactionTemplate transaction;
     private final ObjectMapper json;
+    private final StudyRecorder recorder;
     public StudyTurns(StudySessions sessions,StudyAttemptRepository attempts,StudyTurnRepository receipts,
-            AgentApplicationService agents,AgentRepository agentRepository,PlatformTransactionManager transactions,ObjectMapper json) {
+            AgentApplicationService agents,AgentRepository agentRepository,PlatformTransactionManager transactions,ObjectMapper json,StudyRecorder recorder) {
         this.sessions=sessions; this.attempts=attempts; this.receipts=receipts; this.agents=agents;
         this.agentRepository=agentRepository; transaction=new TransactionTemplate(transactions);
         this.json=json;
+        this.recorder=recorder;
     }
     public View submit(String token,Request request) {
         if (request==null || request.requestId()==null || request.expectedTurn()<0 || request.text()==null
@@ -83,6 +85,7 @@ public class StudyTurns {
                     }
                     receipt.status=StudyTurn.Status.COMMITTED; receipt.finishedAt=Instant.now();
                     receipt.committedTurn=++attempt.turnVersion; attempt.pendingRequest=null; attempt.updatedAt=Instant.now();
+                    recorder.turn(attempt,receipt,saved,position);
                     receipts.saveAndFlush(receipt); attempts.saveAndFlush(attempt);
                     return saved;
                 })).orElseThrow(() -> new IllegalStateException("Study agent unavailable"));
@@ -138,6 +141,7 @@ public class StudyTurns {
                 receipt.status=StudyTurn.Status.REJECTED; receipt.reason="participant_cancelled";
                 receipt.finishedAt=Instant.now(); attempt.pendingRequest=null; attempt.turnVersion++;
                 attempts.saveAndFlush(attempt); receipts.saveAndFlush(receipt);
+                recorder.procedure(attempt,"cancel:"+requestId);
             }
             return view(receipt);
         });

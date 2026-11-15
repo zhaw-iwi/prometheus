@@ -33,13 +33,15 @@ public class StudySessions {
     private final boolean collectionEnabled;
     private final String informationVersion;
     private final Gson json = new Gson();
+    private final StudyRecorder recorder;
     public StudySessions(StudyAttemptRepository attempts, StudyFormRepository forms, StudyMaterials materials,
             StudyCoordinationAgent definition, AgentApplicationService agents, PromptMessageAssembler prompts,
             LanguageModelGateway gateway, @Value("${prometheus.study.collection-enabled:false}") boolean enabled,
-            @Value("${prometheus.study.information-version:}") String informationVersion) {
+            @Value("${prometheus.study.information-version:}") String informationVersion,StudyRecorder recorder) {
         this.attempts=attempts; this.forms=forms; this.materials=materials; this.definition=definition;
         this.agents=agents; creation=new AgentCreationContext(prompts,gateway);
         collectionEnabled=enabled; this.informationVersion=informationVersion;
+        this.recorder=recorder;
     }
     @Transactional
     public Invitation invite(Mode mode, String scenario, UUID predecessor) {
@@ -51,10 +53,12 @@ public class StudySessions {
             var previous=attempts.lockById(predecessor).orElseThrow(() -> failure(HttpStatus.NOT_FOUND,"Unknown attempt"));
             if (previous.stage==Stage.REPLACED) throw failure(HttpStatus.CONFLICT,"Attempt already replaced");
             previous.advance(Stage.REPLACED);
+            attempts.saveAndFlush(previous); recorder.procedure(previous,"replaced");
         }
         byte[] secret=new byte[32]; new SecureRandom().nextBytes(secret);
         String token=Base64.getUrlEncoder().withoutPadding().encodeToString(secret);
         var attempt=attempts.saveAndFlush(new StudyAttempt(hash(token),mode,scenario,materials.manifest().version(),predecessor));
+        recorder.created(attempt); recorder.procedure(attempt,"created");
         return new Invitation(view(attempt),token);
     }
     @Transactional(readOnly=true)
@@ -69,7 +73,7 @@ public class StudySessions {
         if (attempt.consentedAt!=null) return view(attempt); // A repeat confirms the same durable consent.
         stage(attempt,Stage.INFORMATION);
         attempt.consentVersion=version; attempt.consentedAt=Instant.now(); attempt.advance(Stage.PRE);
-        return saved(attempt);
+        var result=saved(attempt); recorder.procedure(attempt,"consent"); return result;
     }
     @Transactional
     public View form(String token, String kind, Map<String,String> answers) {
@@ -90,22 +94,26 @@ public class StudySessions {
         if (expected==Stage.PRIVATE) {
             // This definition's starter is deterministic: no provider I/O in this transaction.
             // Agent and ownership binding commit together; no demo credential is issued.
-            attempt.agentId=agents.persistCreatedAgent(definition.createInstance(creation)).getId();
+            var agent=agents.persistCreatedAgent(definition.createInstance(creation));
+            attempt.agentId=agent.getId();
             attempt.advance(Stage.COORDINATION);
+            attempts.saveAndFlush(attempt); recorder.provisioned(attempt,agent);
         } else attempt.advance(expected==Stage.PRE?Stage.INTENTION:Stage.PRIVATE);
-        return saved(attempt);
+        var result=saved(attempt); recorder.procedure(attempt,"form:"+kind); return result;
     }
     @Transactional
     public View withdraw(String token) {
         var attempt=require(token,true);
         if (attempt.stage==Stage.WITHDRAWN) return view(attempt);
-        open(attempt); attempt.advance(Stage.WITHDRAWN); return saved(attempt);
+        open(attempt); attempt.advance(Stage.WITHDRAWN);
+        var result=saved(attempt); recorder.procedure(attempt,"withdrawn"); return result;
     }
     @Transactional
     public View revoke(UUID id) {
         var attempt=attempts.lockById(id).orElseThrow(() -> failure(HttpStatus.NOT_FOUND,"Unknown attempt"));
-        if (!attempt.closed()) attempt.advance(Stage.REVOKED);
-        return saved(attempt);
+        if (attempt.closed()) return view(attempt);
+        attempt.advance(Stage.REVOKED);
+        var result=saved(attempt); recorder.procedure(attempt,"revoked"); return result;
     }
     StudyAttempt require(String token, boolean lock) {
         String digest=hash(token);

@@ -80,7 +80,7 @@ class StudyTurnsIntegrationTest {
         doThrow(new IllegalStateException("Injected failure after agent save")).when(agents).flush();
         assertEquals(StudyTurn.Status.UNCERTAIN,turns.submit(invitation.token(),request).status());
         assertEquals(before,history(invitation)); assertEquals(0,sessions.get(invitation.token()).turnVersion());
-        verifyNoInteractions(monitor);
+        verify(monitor,never()).publish(any(ch.zhaw.prometheus.model.Agent.class));
         assertEquals(StudyTurn.Status.UNCERTAIN,turns.submit(invitation.token(),request).status());
         assertThrows(ResponseStatusException.class,() -> turns.submit(invitation.token(),request()));
         assertEquals(StudyTurn.Status.REJECTED,turns.cancel(invitation.token(),request.requestId()).status());

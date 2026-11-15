@@ -5,16 +5,17 @@ the evolving software contract; it is not a participant protocol or collection a
 
 ## Current boundary
 
-OS-01–03 provide materials, a study definition, durable attempts, private forms
-and recoverable text turns. The landing page is closed. Scenario execution,
-assessments and exports are later milestones. Study attempts have independent procedural stages and own
+OS-01–04 provide materials, a study definition, durable attempts, private forms,
+recoverable text turns and research recording/export. The landing page is closed.
+Scenario execution and assessments are later milestones. Study attempts have independent procedural stages and own
 one agent after preparation. Agent task state remains owned by Coordination.
 
 Additive Hibernate-managed tables are introduced: `study_attempt` (hashed
 credential, assignment, consent, procedural stage, predecessor and agent binding),
 `study_form` (unique attempt/form, material version, private answers and time), and
 `study_turn` (unique attempt/request, input, pending/terminal status and canonical
-event/result correlation).
+event/result correlation). `study_record` contains append-only metadata, procedural
+changes, provisioning/turn events, acceptance snapshots and client evidence.
 Use the repository's normal schema setup on a separate study database. No data
 backfill or modification of baseline saved agents is required.
 
@@ -95,6 +96,43 @@ on lookup. None of this guarantees exactly-once provider billing.
 advances the cursor without replaying it. Refresh the conversation before composing
 a new request. It is a submission-recovery action, distinct from negotiating Pause
 or Stop with the Coordination agent. Withdrawal/revocation also fence late commits.
+
+## Research records and export
+
+The recorder runs in the same transaction as each relevant mutation. A recording
+failure rolls back the agent change and leaves an explicit uncertain request.
+Initial and subsequent acceptances have independent, immutable JSON snapshots,
+ordinal, canonical acceptance event, run, revision and preparation evidence.
+Every committed turn records its events, current contract/control facts and new
+journal entries; retention does not depend on the runtime's 12-entry journal or
+eight-outcome buffer. Snapshots preserve accepted terms, not an LLM paraphrase.
+
+Creation captures the exact material manifest, English persona, definition key,
+configured model routes/effort/token limits/timeouts and source revision/dirty flag.
+Set `prometheus.study.source-revision` and `prometheus.study.source-dirty` when
+packaging; the isolated runner records Git HEAD and whether its checkout is dirty.
+Unknown configuration is flagged, not invented. Route settings describe the
+configured system; they are not a claim about every actual provider call or its
+token usage. No keys or provider endpoint URLs enter this metadata.
+
+| Method/path | Purpose |
+| --- | --- |
+| `GET /api/study/events` | Credential-scoped canonical interaction events, ordered by history position; no private forms or researcher rubrics |
+| `POST /api/study/display` | `{ "eventId":"<canonical response UUID>", "clientTime":"<ISO UTC>" }`; one client rendering report per response, duplicate-safe; unknown/foreign responses rejected |
+| `POST /api/study/client-events` | `{ "id":"<UUID>", "type":"DISCONNECT|RECONNECT|HELP|ERROR", "clientTime":"<ISO UTC>", "code":"<short diagnostic code>" }`; bounded, idempotent client evidence |
+| `GET /admin/study/attempts/{id}/export` | Operator-only `hri-record-v1` JSON dataset, with metadata, records, immutable agreements, all request outcomes and tabular private-answer rows |
+
+Export reports separate `recordingComplete`, `configurationComplete`,
+`procedureComplete`, and `displayComplete` flags, explicit issues and record
+counts. Recording completeness compares canonical history, committed requests,
+acceptances and private-form records. Missing records are not reconstructed from
+the latest agreement. Configuration completeness means the settings were recorded,
+not that draft materials or a dirty source tree are approved/frozen for research.
+Pending/uncertain work, absent display evidence and incomplete procedures remain
+visible. Client times are untrusted browser reports, distinct from server times;
+display reports establish neither reading nor comprehension. Exports contain no
+participant bearer credential or its hash. They do contain private research
+answers and must remain in authorized research storage, outside Git.
 
 ## Verification commands
 

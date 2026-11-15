@@ -113,6 +113,11 @@ class StudySessionsIntegrationTest {
                 .contentType("application/json").content("{\"private\":\"secret\"}")).andExpect(status().isConflict());
         http.perform(get("/admin/study/attempts/"+second.session().id()).header(StudyController.TOKEN_HEADER,first.token()))
                 .andExpect(status().isUnauthorized());
+        http.perform(get("/admin/study/attempts/"+second.session().id()+"/export").header(StudyController.TOKEN_HEADER,first.token()))
+                .andExpect(status().isUnauthorized());
+        http.perform(get("/admin/study/attempts/"+first.session().id()+"/export").header("X-Prometheus-Admin-Token","study-test-admin"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.schema").value(StudyRecorder.SCHEMA))
+                .andExpect(jsonPath("$.session.tokenHash").doesNotExist());
         http.perform(post("/admin/study/attempts").contentType("application/json").content("{\"mode\":\"SYNTHETIC\",\"scenario\":\"guess\"}"))
                 .andExpect(status().isUnauthorized());
         assertEquals(Stage.INFORMATION,sessions.get(second.token()).stage());

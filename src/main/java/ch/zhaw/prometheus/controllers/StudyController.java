@@ -14,11 +14,12 @@ public class StudyController {
     public static final String TOKEN_HEADER="X-Prometheus-Study-Token";
     private final StudySessions sessions;
     private final StudyTurns turns;
+    private final StudyEvidence evidence;
     private final String adminToken;
     public record Invite(StudyAttempt.Mode mode, String scenario, UUID predecessor) {}
     public record Consent(String version) {}
-    public StudyController(StudySessions sessions, StudyTurns turns, @Value("${prometheus.admin.token:}") String adminToken) {
-        this.sessions=sessions; this.turns=turns; this.adminToken=adminToken;
+    public StudyController(StudySessions sessions, StudyTurns turns, StudyEvidence evidence, @Value("${prometheus.admin.token:}") String adminToken) {
+        this.sessions=sessions; this.turns=turns; this.evidence=evidence; this.adminToken=adminToken;
     }
     @PostMapping("/admin/study/attempts")
     public StudySessions.Invitation invite(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false) String token,
@@ -31,6 +32,9 @@ public class StudyController {
     @PostMapping("/admin/study/attempts/{id}/revoke")
     public StudySessions.View revoke(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false) String token,
             @PathVariable UUID id) { admin(token); return sessions.revoke(id); }
+    @GetMapping("/admin/study/attempts/{id}/export")
+    public com.fasterxml.jackson.databind.JsonNode export(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false) String token,
+            @PathVariable UUID id) { admin(token); return evidence.export(id); }
     @GetMapping("/api/study/session")
     public StudySessions.View get(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return sessions.get(token); }
     @PostMapping("/api/study/consent")
@@ -52,6 +56,16 @@ public class StudyController {
     @PostMapping("/api/study/turns/{requestId}/cancel")
     public StudyTurns.View cancel(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
             @PathVariable UUID requestId) { return turns.cancel(token,requestId); }
+    @PostMapping("/api/study/display")
+    public ResponseEntity<Void> display(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
+            @RequestBody StudyEvidence.Display receipt) { evidence.display(token,receipt); return ResponseEntity.noContent().build(); }
+    @GetMapping("/api/study/events")
+    public List<com.fasterxml.jackson.databind.JsonNode> events(@RequestHeader(name=TOKEN_HEADER,required=false) String token) {
+        return evidence.participantEvents(token);
+    }
+    @PostMapping("/api/study/client-events")
+    public ResponseEntity<Void> client(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
+            @RequestBody StudyEvidence.ClientEvent event) { evidence.client(token,event); return ResponseEntity.noContent().build(); }
     private void admin(String token) {
         if (token==null || adminToken.isBlank() || !MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8),adminToken.getBytes(StandardCharsets.UTF_8)))
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);

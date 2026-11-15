@@ -75,6 +75,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-04 (2026-11-15, **complete**, study application branch): transactional research
+  records, immutable accepted-agreement snapshots, scoped display/client evidence
+  and operator-only JSON export with independent completeness flags. Verified all
+  24 study checks against disposable MySQL, including recorder rollback, records
+  beyond runtime retention bounds and restart. A live OpenAI three-turn journey
+  and export passed technical and bounded semantic review; prior wording deviation
+  remains recorded. Display receipts in this smoke were synthetic API reports,
+  not browser rendering evidence. OS-05 participant UI is next. Evidence:
+  `.doc/papers/hri/RESULTS.md`.
+
 - OS-03 (2026-11-15, **complete**, study application branch): durable text receipts
   with atomic agent/result commit, replay, canonical event IDs, stale/concurrent
   request rejection, pending/uncertain recovery and cancellation/closure fencing.

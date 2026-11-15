@@ -39,6 +39,9 @@ class StudyRestartIntegrationTest {
             var repeated=restarted.getBean(StudyTurns.class).submit(token,request);
             assertEquals(StudyTurn.Status.COMMITTED,repeated.status()); assertEquals(responseId,repeated.responseEventId());
             assertEquals(1,restarted.getBean(StudyTurnRepository.class).findByAttemptIdOrderByReceivedAt(id).size());
+            var exported=restarted.getBean(StudyEvidence.class).export(id);
+            assertTrue(exported.path("manifest").path("recordingComplete").asBoolean());
+            assertEquals(1,exported.path("requests").size());
         }
     }
 }
