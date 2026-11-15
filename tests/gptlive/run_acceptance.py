@@ -36,6 +36,7 @@ def main():
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--study', action='store_true', help='Select online-study fixtures/specs; real inference uses --paid-core coordination-text')
+    parser.add_argument('--study-scenario', choices=['foundation','guess'],default='foundation',help='Bounded real-provider study journey')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--browser-mode', choices=['both', 'enabled', 'disabled'], default='both', help='Select fixture modes for focused browser checks')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
@@ -45,13 +46,15 @@ def main():
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
+    if args.study_scenario!='foundation' and not (args.study and args.paid_core):
+        parser.error('--study-scenario requires --study and --paid-core')
     if args.study:
         if args.paid_core and args.paid_core != 'coordination-text':
             parser.error('--study paid inference requires --paid-core coordination-text')
         if args.classroom_capacity or args.live_only or args.coordination_scenario != 'baseline':
             parser.error('--study cannot select unrelated capacity/Live/Coordination scenarios')
         if args.java_tests == 'LiveCockpitSmokeIntegrationTest':
-            args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest,StudySessionsIntegrationTest,StudyRestartIntegrationTest,StudyTurnsIntegrationTest,StudyRecorderIntegrationTest'
+            args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest,StudySessionsIntegrationTest,StudyRestartIntegrationTest,StudyTurnsIntegrationTest,StudyRecorderIntegrationTest,StudyGuessingTest,StudyGuessingIntegrationTest'
         if args.java_tests == 'none' and not (args.browser or args.paid_core):
             parser.error('--study requires a test, browser, or provider selection')
         if args.browser:
@@ -123,6 +126,11 @@ def main():
         env['PROMETHEUS_STUDY_SOURCE_REVISION'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
         env['PROMETHEUS_STUDY_SOURCE_DIRTY'] = str(bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=root, text=True).strip())).lower()
     maven = ['mvnw.cmd'] if os.name == 'nt' else ['bash', './mvnw']
+    # The editor's incremental compiler also writes target/classes. Study evidence
+    # must come from the owned Maven build, never those transient IDE class files.
+    build_dir = artifacts / 'build' if args.study else root / 'target'
+    if args.study:
+        maven.append('-Dprometheus.build.directory=' + str(build_dir))
     npm = 'npx.cmd' if os.name == 'nt' else 'npx'
 
     def run(command, name):
@@ -178,7 +186,7 @@ def main():
             # for full-suite runs without changing any application's production pool size.
             run([*maven, '-q', '-Dspring.test.context.cache.maxSize=4', *selection, 'test'], 'java')
             if args.study:
-                reports = [p for p in (root / 'target/surefire-reports').glob('TEST-*.xml') if p.stat().st_mtime >= test_started]
+                reports = [p for p in (build_dir / 'surefire-reports').glob('TEST-*.xml') if p.stat().st_mtime >= test_started]
                 totals = dict.fromkeys(('tests', 'failures', 'errors', 'skipped'), 0)
                 for report in reports:
                     suite = ET.parse(report).getroot()
@@ -220,9 +228,9 @@ def main():
             fixture_root = artifacts / 'provider-classes'
             fixtures = fixture_root / 'fixtures' / 'provider'
             fixtures.mkdir(parents=True)
-            for source in (root / 'target/test-classes/fixtures/provider').glob('*.class'):
+            for source in (build_dir / 'test-classes/fixtures/provider').glob('*.class'):
                 shutil.copy2(source, fixtures / source.name)
-            classpath = os.pathsep.join([str(root / 'target/classes'), str(fixture_root), (artifacts / 'classpath.txt').read_text().strip()])
+            classpath = os.pathsep.join([str(build_dir / 'classes'), str(fixture_root), (artifacts / 'classpath.txt').read_text().strip()])
             env['PROMETHEUS_PROVIDER_ARTIFACT'] = str(artifacts / 'provider.jsonl')
             with socket.socket() as port_socket:
                 port_socket.bind(('127.0.0.1', 0))
@@ -244,6 +252,7 @@ def main():
                     raise RuntimeError('Isolated real-provider app startup timed out.')
                 journey = 'coordination_text_journey.mjs' if args.paid_core == 'coordination-text' else 'core_backend_journey.mjs'
                 journey_path = 'tests/hri/provider_journey.mjs' if args.study else 'tests/gptlive/' + journey
+                if args.study and args.study_scenario=='guess': journey_path='tests/hri/guessing_journey.mjs'
                 run(['node', journey_path, '--allow-paid-provider', str(artifacts / 'journey.json'),
                     '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()
@@ -253,9 +262,9 @@ def main():
             # Isolate just the explicit fixtures; unrelated test controllers never enter component scanning.
             fixtures = artifacts / 'fixture-classes' / 'fixtures' / 'gptlive'
             fixtures.mkdir(parents=True)
-            for source in (root / 'target/test-classes/fixtures/gptlive').glob('*.class'):
+            for source in (build_dir / 'test-classes/fixtures/gptlive').glob('*.class'):
                 shutil.copy2(source, fixtures / source.name)
-            classpath = os.pathsep.join([str(root / 'target/classes'), str(artifacts / 'fixture-classes'),
+            classpath = os.pathsep.join([str(build_dir / 'classes'), str(artifacts / 'fixture-classes'),
                 (artifacts / 'classpath.txt').read_text().strip()])
             for enabled in (('true', 'false') if args.browser_mode == 'both' else ('true',) if args.browser_mode == 'enabled' else ('false',)):
                 with socket.socket() as port_socket:

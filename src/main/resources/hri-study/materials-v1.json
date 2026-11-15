@@ -5,7 +5,7 @@
       "id": "guess", "title": "A short guessing game", "ready": false,
       "task": "Arrange a short Twenty Questions-style game for a fictional cognitive activity. You choose an everyday object in secret. Agree who asks, answers and guesses, what answers are allowed, the limit, and how to stop. Use your own words; you may negotiate a supported alternative.",
       "privatePrompt": "Privately record the object and one preference for the activity. Do not reveal the object to the assistant.",
-      "revision": {"id":"guess.revision","kind":"instruction","prompt":"Ask to change the question limit to three, keeping the roles and other agreed requirements unchanged. Review and accept the revised proposal."},
+      "revision": {"id":"guess.revision","kind":"instruction","prompt":"Ask to change the question limit to three in total, including questions already asked, keeping the roles and other agreed requirements unchanged. Record your prediction, then review and accept the revised proposal."},
       "probe": {"id":"guess.probe","kind":"instruction","prompt":"During the game, ask to pause, then explicitly resume when ready."},
       "understanding": [{"id":"guess.roles","kind":"text","prompt":"Who knows the secret, who asks the questions, and who guesses?"},{"id":"guess.limit","kind":"text","prompt":"What will happen when the agreed question limit is reached?"}],
       "rubric": ["Secret ownership and roles faithfully agreed", "Answer types and question/guess budget explicit", "Revision changes only requested terms", "Pause preserves the game; budget exhaustion is not success"]

@@ -23,6 +23,7 @@ remain outside the repository; public links are provided where known.
 Implementation is under way on `experiment/hri-2027-coordination`.
 [RESULTS.md](RESULTS.md) records engineering evidence and remaining limitations.
 [IMPLEMENTATION.md](IMPLEMENTATION.md) describes the current API and persistence.
+[SCENARIOS.md](SCENARIOS.md) records executable scenario boundaries and coding notes.
 No manuscript, human-study results, or completed ethics process is claimed.
 
 Before project work, follow the repository bootstrap:

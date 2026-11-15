@@ -28,6 +28,37 @@ async function noMedia(page) {
   await page.addInitScript(()=>{window.mediaRequests=0;navigator.mediaDevices.getUserMedia=()=>{window.mediaRequests++;throw Error('Study must not request media');};});return requests;
 }
 
+test('guessing game predicts, plays, revises and ends with a reported result',async({page,request},info)=>{
+  const invitation=await invite(request,true);const media=await noMedia(page);
+  const terms={goal:'Guess an everyday object',humanRole:'Keep the secret and answer',agentRole:'Ask and guess',success:'The human confirms a specific guess',
+    questions:[],checks:[],reactions:null,dialogueLimit:6,activity:{kind:'GUESSING',secretOwner:'HUMAN',answers:['YES','NO','UNKNOWN'],questionLimit:5,guessesCount:true}};
+  const control=async(operation,agreement=null)=>expect((await request.post('/__live-fixture/study-reply',{data:{response:JSON.stringify({operation,agreement,reply:{speech:'Ready.'}})}})).ok()).toBeTruthy();
+  const move=async(kind,words)=>expect((await request.post('/__live-fixture/game-reply',{data:{response:JSON.stringify({kind,words})}})).ok()).toBeTruthy();
+  const send=async text=>{await page.locator('#message').fill(text);await page.locator('#send').click();await expect(page.locator('#message')).toHaveValue('');await expect(page.locator('#pending-panel')).toBeHidden();};
+  await control('PROPOSE',terms);await move('QUESTION','Is it used indoors?');await open(page,invitation);
+  await send('Propose a game where I keep the secret and answer yes, no or unknown. You ask and guess, with five questions including guesses.');
+  await expect(page.locator('#prediction-form')).toBeVisible();await screenshot(page,info,'guess-prediction-desktop');
+  await page.locator('#prediction').fill('private-prediction-browser');await page.getByRole('button',{name:'Save private prediction'}).click();
+  await expect(page.locator('#prediction-form')).toBeHidden();await control('START');await send('I accept the saved proposal. Start now.');
+  await expect(page.locator('#game-progress')).toContainText('spent: 1');await send('Pause');await expect(page.locator('#activity-status')).toHaveText('Activity paused');
+  await page.reload();await expect(page.locator('#game-progress')).toContainText('Is it used indoors?');await send('Resume');
+  const revised=structuredClone(terms);revised.activity.questionLimit=3;revised.dialogueLimit=4;
+  await control('REPLACE',revised);await send('Change the question limit to three, keeping everything else unchanged.');
+  await expect(page.locator('#prediction-form')).toBeVisible();await screenshot(page,info,'guess-revision-mobile',390);
+  await page.locator('#prediction').fill('It will retain the pending question and questions already spent.');await page.getByRole('button',{name:'Save private prediction'}).click();
+  await expect(page.locator('#prediction-form')).toBeHidden();await control('START');await send('I accept the saved proposal. Start now.');
+  await expect(page.locator('#game-progress')).toContainText('spent: 1');await move('QUESTION','Is it made of metal?');await send('No');
+  await move('GUESS','Is it a kettle?');await send('Yes');await expect(page.locator('#game-progress')).toContainText('spent: 3');
+  await expect(page.locator('#activity-status')).toHaveText('Activity running');await send('Yes');
+  await expect(page.locator('#activity-status')).toHaveText('Activity ended');await expect(page.locator('#game-progress')).toContainText('human confirmed guess');
+  await screenshot(page,info,'guess-ended-mobile',390);
+  await page.getByRole('button',{name:'Finish interaction'}).click();await page.getByRole('button',{name:'Save and finish'}).click();
+  await expect(page.getByRole('heading',{name:'Your interaction is saved'})).toBeVisible();
+  const data=await exported(request,invitation);expect(data.agreements).toHaveLength(2);expect(data.manifest.recordingComplete).toBe(true);
+  expect(JSON.stringify(data.answers)).toContain('private-prediction-browser');
+  expect(await page.locator('#messages').innerText()).not.toContain('private-prediction-browser');expect(media).toEqual([]);
+});
+
 test('study preparation is clearly closed and text only', async ({page}, info) => {
   const media = [];
   page.on('request', r => { if (/\/(live|speech|transcription)\//.test(r.url())) media.push(r.url()); });

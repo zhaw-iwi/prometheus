@@ -129,13 +129,15 @@ public class CoordinationUpdateAction extends Action {
                     operation = "START";
                 }
                 rejection = "reply_shape";
-                reply = controlReply(operation, update.get("reply"));
+                reply = interpretationReply(operation, update.get("reply"));
             }
             rejection = "operation_constraints";
             validate(operation, proposed, assent, invitation, text);
             rejection = "speech_intent_length";
             if (runtime.externalSpeech() != null && reply.getSpeech() != null && reply.getSpeech().length() > 350)
                 throw new IllegalArgumentException("Coordination speech intent too long");
+            rejection="activity_contract";
+            reply=prepareActivity(operation,proposed,reply,event,runtime);
         } catch (RuntimeException failure) {
             if (!runtime.taskContinuation().getAsBoolean()) return;
             if (failure instanceof PendingResponse && runtime.externalSpeech() != null) {
@@ -168,6 +170,13 @@ public class CoordinationUpdateAction extends Action {
         commit(operation, proposed, reply, event, now, runtime);
         if (!Set.of("KEEP", "SUPPORT", "STATUS", "REFLECT").contains(operation)) CoordinationRecovery.clear(storage);
     }
+    /** Optional typed executor seam. Default Coordination retains its original contract. */
+    protected BehaviourPlan prepareActivity(String operation,CoordinationAgreement proposed,BehaviourPlan reply,Event event,PolicyRuntime runtime) {
+        if (proposed!=null && proposed.activity()!=null) throw new IllegalArgumentException("Unsupported activity executor");
+        return reply;
+    }
+    protected BehaviourPlan applyActivity(String operation,BehaviourPlan reply,Event event,PolicyRuntime runtime) { return reply; }
+    protected BehaviourPlan interpretationReply(String operation,JsonElement raw) { return controlReply(operation,raw); }
     private boolean explicitCueStart(String text, String invitation) {
         var draft = CoordinationMemory.agreement(getStorage(), CoordinationMemory.DRAFT);
         return draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
@@ -317,8 +326,9 @@ public class CoordinationUpdateAction extends Action {
             }
             default -> { }
         }
+        reply=applyActivity(operation,reply,event,runtime);
         var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
-        if (action && accepted != null && Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0"))
+        if (action && accepted != null && accepted.activity()==null && Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0"))
                 >= (accepted.reactions() == null ? accepted.dialogueLimit() : accepted.reactions().maxActions())) {
             CoordinationMemory.phase(storage, "COMPLETED"); storage.put(CoordinationMemory.OUTCOME, new JsonPrimitive("LIMIT_REACHED"));
             CoordinationDelivery.await(storage, reply, runtime);

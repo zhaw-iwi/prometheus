@@ -25,7 +25,7 @@ public class StudyTurns {
             UUID responseEventId,String responseType,String responsePayload,Instant receivedAt,Instant finishedAt,String reason) {}
     public record Entry(String input,View receipt) {}
     public record Conversation(long turnVersion,List<Entry> turns,String phase,JsonNode draft,JsonNode agreement,int actions) {}
-    private record Claim(UUID attemptId,UUID agentId,boolean claimed,View view) {}
+    private record Claim(UUID attemptId,UUID agentId,boolean claimed,View view,boolean predicted) {}
     private final StudySessions sessions;
     private final StudyAttemptRepository attempts;
     private final StudyTurnRepository receipts;
@@ -34,12 +34,14 @@ public class StudyTurns {
     private final TransactionTemplate transaction;
     private final ObjectMapper json;
     private final StudyRecorder recorder;
+    private final StudyProcedure procedure;
     public StudyTurns(StudySessions sessions,StudyAttemptRepository attempts,StudyTurnRepository receipts,
-            AgentApplicationService agents,AgentRepository agentRepository,PlatformTransactionManager transactions,ObjectMapper json,StudyRecorder recorder) {
+            AgentApplicationService agents,AgentRepository agentRepository,PlatformTransactionManager transactions,ObjectMapper json,StudyRecorder recorder,StudyProcedure procedure) {
         this.sessions=sessions; this.attempts=attempts; this.receipts=receipts; this.agents=agents;
         this.agentRepository=agentRepository; transaction=new TransactionTemplate(transactions);
         this.json=json;
         this.recorder=recorder;
+        this.procedure=procedure;
     }
     public View submit(String token,Request request) {
         if (request==null || request.requestId()==null || request.expectedTurn()<0 || request.text()==null
@@ -53,14 +55,18 @@ public class StudyTurns {
                 if (!receipt.input.equals(request.text()) || receipt.expectedTurn!=request.expectedTurn())
                     throw failure(HttpStatus.CONFLICT,"Request ID already used for different content");
                 reconcile(attempt,receipt);
-                return new Claim(attempt.id,attempt.agentId,false,view(receipt));
+                return new Claim(attempt.id,attempt.agentId,false,view(receipt),false);
             }
             open(attempt); interaction(attempt);
             if (attempt.pendingRequest!=null) throw failure(HttpStatus.CONFLICT,"Reconcile the pending request first");
             if (request.expectedTurn()!=attempt.turnVersion) throw failure(HttpStatus.CONFLICT,"Refresh the conversation before submitting");
+            boolean predicted=procedure.permitsStart(attempt);
+            if (!predicted && (ch.zhaw.prometheus.agentdefs.core.CoordinationAcceptance.explicit(request.text())
+                    || ch.zhaw.prometheus.agentdefs.core.CoordinationAcceptance.assent(request.text())))
+                throw failure(HttpStatus.CONFLICT,"Save your private prediction before starting");
             var receipt=receipts.saveAndFlush(new StudyTurn(attempt,request.requestId(),request.expectedTurn(),request.text(),Instant.now()));
             attempt.pendingRequest=request.requestId(); attempts.saveAndFlush(attempt);
-            return new Claim(attempt.id,attempt.agentId,true,view(receipt));
+            return new Claim(attempt.id,attempt.agentId,true,view(receipt),predicted);
         });
         if (!claim.claimed()) return claim.view();
         try {
@@ -73,6 +79,13 @@ public class StudyTurns {
                     if (attempt.closed() || !request.requestId().equals(attempt.pendingRequest)
                             || receipt.status!=StudyTurn.Status.PENDING || !Instant.now().isBefore(receipt.deadline))
                         throw new IllegalStateException("Study turn authority expired");
+                    var candidateStorage=((TaskPolicy)candidate.getCurrentState().ownPolicy()).storage();
+                    if (!claim.predicted() && candidateStorage.containsKey(CoordinationMemory.LOG))
+                        for (var entry:candidateStorage.get(CoordinationMemory.LOG).getAsJsonArray()) {
+                            var item=entry.getAsJsonObject();
+                            if ("START".equals(item.get("operation").getAsString()) && item.has("sourcePosition")
+                                    && item.get("sourcePosition").getAsLong()>=position) throw new IllegalStateException("Prediction required before acceptance");
+                        }
                     var saved=persist.get(); agentRepository.flush();
                     var events=saved.getEventHistory().toList();
                     receipt.inputEventId=events.stream().filter(e -> Long.valueOf(position).equals(e.sourcePosition()))

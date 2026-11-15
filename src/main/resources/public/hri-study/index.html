@@ -40,10 +40,16 @@
           <div id="agreement"></div></details>
         </section>
         <button id="finish" class="secondary wide">Finish interaction</button>
+        <section id="study-instructions" class="card" hidden><details id="study-step-details" open><summary>Next study steps</summary><p id="revision-card"></p><p id="probe-card"></p></details></section>
       </aside>
       <section class="card conversation" aria-label="Conversation">
         <div class="conversation-heading"><h2>Conversation</h2><span id="connection" class="hint">Connecting…</span></div>
         <div id="messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
+        <p id="game-progress" class="hint" hidden></p>
+        <form id="prediction-form" class="pending" hidden><label for="prediction">Before starting, what do you expect the assistant to do next?</label>
+          <p class="hint">This prediction is private and cannot be changed after submission. You can still ask the assistant to clarify or revise the proposal.</p>
+          <textarea id="prediction" rows="2" maxlength="2000" required></textarea><button type="submit">Save private prediction</button>
+        </form>
         <div id="pending-panel" class="pending" hidden><p id="pending-status" role="status"></p><p id="pending-text"></p>
           <div class="tools"><button id="check" class="secondary">Check status</button><button id="retry" class="secondary" hidden>Send saved message</button>
             <button id="cancel" class="quiet">Discard pending submission</button></div>

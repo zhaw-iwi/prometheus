@@ -7,10 +7,10 @@ import ch.zhaw.prometheus.model.event.EventHistory;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 /** Coordination-only natural commands; short assent still needs a recent completed invitation. */
-final class CoordinationAcceptance {
+public final class CoordinationAcceptance {
     static final long INVITATION_SECONDS = 120;
     private CoordinationAcceptance() {}
-    static boolean assent(String text) {
+    public static boolean assent(String text) {
         if (text.contains("?") || text.stripLeading().matches("[\"'“‘].*")) return false;
         return CoreTaskVoice.assent(text) || CoreTaskVoice.normalize(text).matches("ready|bereit|ich bin bereit");
     }
@@ -22,7 +22,7 @@ final class CoordinationAcceptance {
             return CoreTaskVoice.prompt(storage, events, owner, CoordinationMemory.DRAFT);
         } catch (RuntimeException invalid) { return null; }
     }
-    static boolean explicit(String text) {
+    public static boolean explicit(String text) {
         if (text.contains("?") || text.stripLeading().matches("[\"'“‘].*")) return false;
         return CoreTaskVoice.normalize(text).matches("(yes |okay |ok )?(please )?"
                 + "((lets|let) start( it| the task| the saved proposal)?( now)?|start( it| the task| the saved proposal)?( now)?|"

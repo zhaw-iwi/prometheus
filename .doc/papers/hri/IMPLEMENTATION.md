@@ -164,6 +164,66 @@ closes the attempt. Human information and collection remain gated pending OS-09
 and the owner's study arrangements. Compact study status wording preserves the
 shared control rules, including unsupported proposals; baseline wording is unchanged.
 
+## Guessing-game execution
+
+The shared Coordination graph now has a definition-owned update-action factory
+and small reply/execution hooks. `StudyCoordinationUpdateAction` implements the
+study executor; baseline Coordination still rejects typed activities it cannot
+execute. Existing eight-field agreements and saved core agents remain supported.
+Fresh study agents use the new persisted action subtype; previously created study
+agents retain their original graph and should not be used for this scenario.
+
+An optional `agreement.activity` is validated by `GuessingContract`:
+
+```json
+{"kind":"GUESSING","secretOwner":"HUMAN","answers":["YES","NO","UNKNOWN"],"questionLimit":5,"guessesCount":true}
+```
+
+This bounded implementation supports a human-held secret, assistant questions and
+guesses, YES/NO with optional UNKNOWN, and 1–20 questions including guesses.
+Reverse-role games are not implemented by this executor. The secret is never
+part of its contract or state. `dialogueLimit` is the question limit plus one
+final acknowledgment; the executor owns the question counter and awaits the final
+answer even after asking the last question. Typed game counters represent questions
+and guesses, not control/support messages. The participant panel displays that
+budget explicitly. Nongame synthetic foundation exercises still use ordinary
+Coordination contributions.
+
+Each pending question has an ID, kind and exact words. Answer processing accepts
+bounded explicit yes/no/unknown expressions. Other text continues through shared
+coordination/support, without authorizing an unchecked game STEP or COMPLETE.
+The model proposes one QUESTION or GUESS; the backend validates shape and budget,
+and passes all accepted terms plus the persisted answer record to generation.
+Semantic quality of a yes/no question or guessed object still requires review.
+An invalid/failed next move preserves the prior question and budget for explicit
+recovery; no automatic model retry occurs.
+
+Only YES to a pending GUESS establishes `HUMAN_CONFIRMED_GUESS`, explicitly a
+participant report. `QUESTION_LIMIT_REACHED` and early `CANCELLED` are separate.
+Pause/resume preserve the pending question. A new accepted limit is a total,
+including already asked questions; revision suspends execution and needs renewed
+acceptance. It retains that question and progress rather than asking another one
+on START. A limit-only change cannot silently alter answer choices, human role or
+success commitments. A fresh game after a finished one starts fresh state; reset
+clears game state. Full game state accompanies each immutable TURN record.
+
+`GET /api/study/activity` returns current revision, prediction requirement/saved
+status, canonical game state as a JSON string, and applicable revision/probe cards.
+`POST /api/study/predictions` takes `{ "revision":"<current revision>",
+"prediction":"..." }`. It saves an immutable private form tied to the proposal
+revision, records its server time and permits identical retries. Changed or stale
+answers are rejected. Predictions and private intentions/secrets never enter agent
+history or inference. Starting a typed game requires this pre-feedback record;
+ordinary clarifications/revisions remain possible. A natural-language acceptance
+that bypasses the early command check is fenced at commit, with an explicit
+uncertain receipt requiring cancellation/reconciliation; no game output commits.
+The initial and revised prediction are exported separately.
+
+The UI adds prediction, question progress and revision/probe cards, with mobile
+collapsing panels. Assessment instruments remain OS-09. Scenario readiness flags
+remain false until the complete study procedure is qualified; implementation of
+the guessing executor alone does not authorize human collection.
+
 ## Verification commands
 
 `python tests/gptlive/run_acceptance.py --study` runs the study foundations against
@@ -171,3 +231,9 @@ an owned disposable local MySQL schema, including two independently started
 application contexts to verify persistence after restart. `--browser` adds the
 selected study browser suite. Paid checks remain explicit through
 `--paid-core coordination-text`. Never point fixture cleanup at a shared database.
+Add `--study-scenario guess` for the bounded guessing/acceptance/revision/pause/
+exhaustion/export trial. The foundation greeting smoke remains the default.
+Study runs compile into their own artifact directory through
+`-Dprometheus.build.directory=...`, isolating acceptance from an editor's concurrent
+incremental compiler. Ordinary Maven builds still use `target`. Reports, compiled
+fixtures, browser screenshots and provider evidence belong to that one run.

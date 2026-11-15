@@ -147,7 +147,7 @@ public class CoordinationAgent implements AgentDefinition {
         // These stateless operations share this agent's storage in every phase. Reuse
         // their persisted nodes rather than loading nine copies of the same operation.
         var delivery = new CoordinationDeliveryAction(storage);
-        var update = new CoordinationUpdateAction(storage, configurationInstructions(voice));
+        var update = createUpdateAction(storage, configurationInstructions(voice));
         var preparation = new CoordinationPreparationAction(storage);
         var presence = new SocialSpaceResponseAction(storage, GenericMultimodalBehaviour.behaviourInstructions(voice));
         var deliveryDecision = new CoordinationDecision(storage, "DELIVERY");
@@ -165,6 +165,9 @@ public class CoordinationAgent implements AgentDefinition {
         var agent = new Agent(name, description, states.get("CONVERSATION"), storage);
         agent.setInteractionProfile(profile.withPresenceControlledLive(presenceReception));
         return applyDefinitionMetadata(agent);
+    }
+    protected CoordinationUpdateAction createUpdateAction(Storage storage,String instructions) {
+        return new CoordinationUpdateAction(storage,instructions);
     }
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {
         var agent = createAgent();

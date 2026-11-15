@@ -2053,6 +2053,11 @@ carry a durable request UUID and expected conversation cursor; retries reconcile
 the saved result. Unknown/interrupted work is never automatically inferred again.
 Operator exports include immutable acceptance snapshots and explicit completeness
 checks. Client rendering reports are stored separately from generated responses.
+The study guessing executor supports a human-held secret, negotiated yes/no/unknown
+answers, a question budget including guesses, private pre-start predictions and
+revision with preserved pending-question progress. A confirmed guess, exhausted
+budget and early stop have distinct outcomes. Contextual check-in and negotiated
+sign execution remain subsequent milestones; full assessments are also pending.
 
 Study-only checks use the existing disposable local MySQL runner:
 `python tests/gptlive/run_acceptance.py --study --browser`.
@@ -2060,6 +2065,7 @@ An explicitly authorized paid foundation smoke is
 `python tests/gptlive/run_acceptance.py --study --java-tests none --paid-core coordination-text`.
 It caps provider requests/tokens, keeps evidence under ignored `target/`, and
 requires separate semantic review. No participant media is requested.
+Add `--study-scenario guess` to exercise the bounded guessing-game journey.
 
 The recorded scissors interaction has a repeatable acceptance script in
 `tests/gptlive/README.md` ("Recorded scissors interaction"). For an unchanged

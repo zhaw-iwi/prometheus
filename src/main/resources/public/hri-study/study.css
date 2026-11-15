@@ -25,3 +25,5 @@ button.quiet { color:#425f72; background:transparent; border-color:transparent; 
 .pending { background:#fff7e9; border-top:1px solid #e6c995; padding:1rem 1.5rem; } #pending-text { white-space:pre-wrap; overflow-wrap:anywhere; font-size:.9rem; } #pending-status { font-weight:650; }
 dialog { border:1px solid #bdcbd6; border-radius:14px; max-width:600px; width:calc(100% - 2rem); padding:2rem; color:inherit; } dialog::backdrop { background:#12253588; } dialog .tools { margin-top:1.5rem; }
 @media(max-width:760px) { main { padding:1.25rem .8rem 3rem; } .layout { grid-template-columns:1fr; } .topbar { padding:.8rem 1rem; } .topbar span { display:none; } .welcome { padding:1.5rem; } .session-heading { align-items:flex-start; } .session-heading .tools { flex-direction:column; gap:0; } .card { padding:1.1rem; } .conversation { padding:0; } .conversation-heading,#messages,#composer { padding:1rem; } #messages { max-height:65vh; } .composer-actions { align-items:flex-start; } .composer-actions .hint { max-width:55%; } .message { max-width:100%; } }
+
+#game-progress { padding: 0 1.5rem; }

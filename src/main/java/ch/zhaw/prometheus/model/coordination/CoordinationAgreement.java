@@ -7,8 +7,12 @@ import ch.zhaw.prometheus.model.task.TaskSpec;
 
 /** A bounded agreement; dialogue needs no invented sensor rule. Preparation is evidence, not model output. */
 public record CoordinationAgreement(String goal, String humanRole, String agentRole, String success,
-        List<String> questions, List<Check> checks, int dialogueLimit, TaskSpec reactions) {
+        List<String> questions, List<Check> checks, int dialogueLimit, TaskSpec reactions, JsonObject activity) {
     private static final Gson JSON = new Gson();
+    public CoordinationAgreement(String goal,String humanRole,String agentRole,String success,List<String> questions,
+            List<Check> checks,int dialogueLimit,TaskSpec reactions) {
+        this(goal,humanRole,agentRole,success,questions,checks,dialogueLimit,reactions,null);
+    }
     public record Check(String eventType, String field, String operator, JsonPrimitive value, double minConfidence) {
         public TaskSpec.Rule rule() {
             return new TaskSpec.Rule(eventType, field, operator, value, "Recognise the agreed observation",
@@ -18,7 +22,9 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
     public static CoordinationAgreement parse(JsonElement raw) {
         try {
             var object = raw.getAsJsonObject();
-            exact(object, Set.of("goal", "humanRole", "agentRole", "success", "questions", "checks", "dialogueLimit", "reactions"));
+            var fields=new HashSet<>(Set.of("goal", "humanRole", "agentRole", "success", "questions", "checks", "dialogueLimit", "reactions"));
+            if (object.has("activity")) fields.add("activity");
+            exact(object, fields);
             String goal = text(object, "goal", 300), human = text(object, "humanRole", 300), agent = text(object, "agentRole", 300), success = text(object, "success", 300);
             var questions = new ArrayList<String>();
             for (var question : object.getAsJsonArray("questions")) {
@@ -47,7 +53,12 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
             if (turns < 1 || turns > 50) throw new IllegalArgumentException();
             var task = object.get("reactions").isJsonNull() ? null : TaskSpec.parse(object.get("reactions")).executable();
             if (task != null && !task.goal().equals(goal)) throw new IllegalArgumentException();
-            var agreement = new CoordinationAgreement(goal, human, agent, success, List.copyOf(questions), List.copyOf(checks), turns, task);
+            JsonObject activity=object.has("activity") ? object.getAsJsonObject("activity").deepCopy() : null;
+            if (activity!=null) {
+                var game=GuessingContract.parse(activity);
+                if (task!=null || !checks.isEmpty() || turns!=game.questionLimit()+1) throw new IllegalArgumentException();
+            }
+            var agreement = new CoordinationAgreement(goal, human, agent, success, List.copyOf(questions), List.copyOf(checks), turns, task,activity);
             if (agreement.json().toString().getBytes(StandardCharsets.UTF_8).length > 3000) throw new IllegalArgumentException();
             return agreement;
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid coordination agreement"); }

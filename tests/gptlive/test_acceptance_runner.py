@@ -16,6 +16,8 @@ class AcceptanceRunnerTest(unittest.TestCase):
     def test_study_remote_database_is_rejected_before_provisioning(self):
         self.run_rejected(['--study'], {'GPTLIVE_MYSQL_ADMIN_URL': 'jdbc:mysql://example.invalid/research'},
                           'no remote database is permitted')
+    def test_study_scenario_cannot_be_ignored(self):
+        self.run_rejected(['--study-scenario','guess'], {}, 'requires --study and --paid-core')
     def test_escalation_requires_real_live_transport(self):
         for scenario in ('escalation-recovery', 'escalation-dialogue', 'escalation-social'):
             self.run_rejected(['--paid-core', 'coordination-text', '--coordination-scenario', scenario], {},

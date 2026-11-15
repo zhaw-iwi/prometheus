@@ -103,12 +103,29 @@ function renderAgreement(conversation) {
   for(const [label,agreement] of [['Saved proposal',conversation.draft],['Accepted terms',conversation.agreement]]) {
     if(!agreement)continue;$('agreement').append(node('h3',label));const list=node('dl');
     for(const [term,value] of [['Goal',agreement.goal],['Your role',agreement.humanRole],['Assistant’s role',agreement.agentRole],['Success criterion',agreement.success],['Maximum assistant contributions',agreement.dialogueLimit]]) {
+      if(agreement.activity&&term==='Maximum assistant contributions')continue;
       list.append(node('dt',term),node('dd',String(value??'Not yet specified')));
     }
     if(agreement.questions?.length)list.append(node('dt','Still to clarify'),node('dd',agreement.questions.join(' ')));
+    if(agreement.activity?.kind==='GUESSING') {
+      list.append(node('dt','Game roles'),node('dd','You keep the secret and answer; the assistant asks and guesses.'),
+        node('dt','Question limit'),node('dd',`${agreement.activity.questionLimit} total questions, including guesses. Already asked questions remain spent after revision.`),
+        node('dt','Allowed answers'),node('dd',agreement.activity.answers.join(', ')),
+        node('dt','Ending'),node('dd','Your confirmation of a specific guess means reported success. Budget exhaustion is a separate result.'));
+    }
     $('agreement').append(list);
   }
   if(!conversation.draft&&!conversation.agreement)$('agreement').append(node('p','No activity has been agreed yet.','hint'));
+}
+function renderActivity(activity) {
+  state.activity=activity;
+  const predictionKey=key('prediction.'+activity.revision);
+  if(state.predictionKey!==predictionKey){state.predictionKey=predictionKey;$('prediction').value=local(predictionKey)??'';}
+  $('prediction-form').hidden=!activity.predictionRequired||activity.predictionSaved;
+  const game=parse(activity.game);$('game-progress').hidden=!game;
+  $('game-progress').textContent=game?`Questions and guesses spent: ${game.questions}. ${game.outcome?'Recorded result: '+game.outcome.replaceAll('_',' ').toLowerCase():game.pending?'Pending: '+game.pending.words:''}`:'';
+  $('study-instructions').hidden=!activity.revisionInstruction;
+  $('revision-card').textContent=activity.revisionInstruction??'';$('probe-card').textContent=activity.probeInstruction??'';
 }
 function renderEvents(events) {
   const follow=$('messages').scrollTop+$('messages').clientHeight >= $('messages').scrollHeight-60 || state.events.size===0;
@@ -156,7 +173,7 @@ async function refresh() {
     }
     renderPage(page);
     if(interactive.has(page.session.stage)||page.session.stage==='ASSESSMENT') {
-      const [conversation,events]=await Promise.all([api('conversation'),api('events')]);renderAgreement(conversation);renderEvents(events);
+      const [conversation,events,activity]=await Promise.all([api('conversation'),api('events'),api('activity')]);renderAgreement(conversation);renderEvents(events);renderActivity(activity);
       if(!state.pending&&page.session.pendingRequest) {
         const entry=conversation.turns.find(t=>t.receipt.requestId===page.session.pendingRequest);
         if(entry)pending({requestId:entry.receipt.requestId,expectedTurn:page.session.turnVersion,text:entry.input});
@@ -177,6 +194,8 @@ async function sendSaved() {
   finally {state.busy=false;await refresh();renderPending();}
 }
 $('entry-form').addEventListener('submit',event=>{event.preventDefault();stopStream();state.token=$('credential').value.trim();local('hri.token',state.token);state.page=null;notice();void refresh();});
+$('prediction').addEventListener('input',()=>local(state.predictionKey,$('prediction').value));
+$('prediction-form').addEventListener('submit',async event=>{event.preventDefault();try{await api('predictions',{revision:state.activity.revision,prediction:$('prediction').value});notice('Your prediction is saved. You may now accept the proposal in the conversation.');await refresh();}catch(error){notice(problem(error));}});
 $('step-form').addEventListener('submit',async event=>{
   event.preventDefault();if(state.busy)return;state.busy=true;$('continue').disabled=true;notice();
   try {
@@ -206,6 +225,6 @@ window.addEventListener('offline',()=>{state.wasOffline=true;$('connection').tex
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void refresh();});
 setInterval(()=>{if(state.pending&&navigator.onLine)void refresh();},2500);
 const fragment=new URLSearchParams(location.hash.slice(1));state.token=fragment.get('token')??local('hri.token');
-const compact=matchMedia('(max-width:760px)');function layout(){for(const id of ['task-details','agreement-details'])$(id).open=!compact.matches;requestAnimationFrame(()=>$('messages').scrollTop=$('messages').scrollHeight);}compact.addEventListener('change',layout);layout();
+const compact=matchMedia('(max-width:760px)');function layout(){for(const id of ['task-details','agreement-details','study-step-details'])$(id).open=!compact.matches;requestAnimationFrame(()=>$('messages').scrollTop=$('messages').scrollHeight);}compact.addEventListener('change',layout);layout();
 if(fragment.has('token')){history.replaceState(null,'',location.pathname);local('hri.token',state.token);}
 if(state.token)void refresh();

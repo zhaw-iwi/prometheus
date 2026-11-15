@@ -26,6 +26,10 @@ public class StudyCoordinationAgent extends CoordinationAgent {
             """;
     @Override public String key() { return KEY; }
     @Override public boolean externalRealtimeSpeech() { return false; }
+    @Override protected ch.zhaw.prometheus.agentdefs.core.CoordinationUpdateAction createUpdateAction(
+            ch.zhaw.prometheus.model.Storage storage,String instructions) {
+        return new StudyCoordinationUpdateAction(storage,instructions);
+    }
     @Override public Agent createAgent() {
         var agent=createAgent("Coordination Assistant", "Text-based task agreement and revision for the online study.",
                 VOICE, AgentInteractionProfile.of(List.of(Event.TYPE_USER_UTTERANCE),

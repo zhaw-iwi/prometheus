@@ -18,7 +18,7 @@ public class StudyMaterials {
         public Manifest { scenarios = List.copyOf(scenarios); pre = List.copyOf(pre); post = List.copyOf(post); }
     }
     private static final Set<String> SCENARIOS = Set.of("guess", "context", "signs");
-    private static final Set<String> IMPLEMENTED = Set.of();
+    private static final Set<String> IMPLEMENTED = Set.of("guess");
     private final Manifest manifest;
     public StudyMaterials() {
         try (var input = StudyMaterials.class.getResourceAsStream("/hri-study/materials-v1.json")) {

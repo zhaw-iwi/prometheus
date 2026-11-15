@@ -29,6 +29,7 @@ public class LiveSmokeConfiguration {
                 }
                 ch.zhaw.prometheus.logging.ActivityTrace.inference(request.requestId(), request.purpose().name(), "fixture-model", "low", 10, 5, 1);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
+                if (prompt.contains("STUDY_GUESSING_MOVE:")) return provider.gameReply;
                 if (prompt.contains("You are the Coordination Assistant in an English text-based research study.")) return provider.studyReply;
                 var data = responseCheckData(request);
                 if (data != null) {
@@ -99,6 +100,7 @@ public class LiveSmokeConfiguration {
     }
     public static final class Provider implements LiveSessionGateway, AutoCloseable {
         public volatile String studyReply="{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{\"speech\":\"Tell me about your activity.\"}}";
+        public volatile String gameReply="{\"kind\":\"QUESTION\",\"words\":\"Is it used indoors?\"}";
         public volatile CompletableFuture<Void> inferenceGate;
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
         public final AtomicInteger tts = new AtomicInteger();
@@ -200,6 +202,10 @@ public class LiveSmokeConfiguration {
         private final com.zaxxer.hikari.HikariDataSource pool;
         FixtureApi(Provider provider, com.zaxxer.hikari.HikariDataSource pool) { this.provider = provider; this.pool = pool; }
         public record StudyReply(String response) {}
+        @PostMapping("/__live-fixture/game-reply") public Map<String,Boolean> gameReply(@RequestBody StudyReply reply) {
+            if(reply.response()==null || reply.response().length()>4096) throw new IllegalArgumentException("Invalid game fixture");
+            JsonParser.parseString(reply.response()).getAsJsonObject();provider.gameReply=reply.response();return Map.of("accepted",true);
+        }
         @PostMapping("/__live-fixture/study-reply") public Map<String,Boolean> studyReply(@RequestBody StudyReply reply) {
             if (reply.response()==null || reply.response().length()>4096) throw new IllegalArgumentException("Invalid study fixture");
             JsonParser.parseString(reply.response()).getAsJsonObject(); provider.studyReply=reply.response(); return Map.of("accepted",true);

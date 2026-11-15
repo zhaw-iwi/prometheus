@@ -75,6 +75,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-06 (2026-11-15, **complete**, study application branch): typed human-secret
+  guessing executor with real question/guess limits, pending-answer identity,
+  explicit outcome categories, revision preserving progress, private pre-start
+  predictions and study cards. Final 36 study DB checks and nine browser journeys
+  passed; 37 focused shared/game checks passed separately. A nine-turn live OpenAI
+  journey passed independent bounded semantic review after two retained failures
+  exposed reply ownership and duplicated budget wording. Study Maven builds are
+  isolated from editor compilation. Human collection stays closed. OS-07 contextual
+  check-in is next; full evidence in `.doc/papers/hri/RESULTS.md`.
+
 - OS-05 (2026-11-15, **complete**, study application branch): resumable text UI,
   private preparation forms, deterministic saved-term review, native SSE recovery,
   help/finish/withdraw and cancellation-before-receipt fencing. All 26 study DB

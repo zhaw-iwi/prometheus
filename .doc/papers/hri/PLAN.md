@@ -1,6 +1,6 @@
 # Online student study system: implementation roadmap
 
-Prepared **15 November 2026**. Status: **OS-01–05 complete; OS-06 next**.
+Prepared **15 November 2026**. Status: **OS-01–06 complete; OS-07 next**.
 Actual verification is recorded in [RESULTS.md](RESULTS.md). Read [STUDY.md](STUDY.md) for requirements and
 [PAPER_BRIEF.md](PAPER_BRIEF.md) for research context. This roadmap owns milestone
 sequence, dependencies, acceptance, and implementation evidence.
@@ -93,7 +93,7 @@ not claims that those tests exist.
 | OS-03 | Recoverable text turns with durable request identity | OS-02 | COMPLETE |
 | OS-04 | Complete research recording and initial export | OS-03 | COMPLETE |
 | OS-05 | Resumable participant text interface | OS-04 | COMPLETE |
-| OS-06 | Executable guessing-game coordination | OS-05 | NOT STARTED |
+| OS-06 | Executable guessing-game coordination | OS-05 | COMPLETE |
 | OS-07 | Executable contextual check-in | OS-06 | NOT STARTED |
 | OS-08 | Executable negotiated sign answers | OS-07 | NOT STARTED |
 | OS-09 | Full assessment, allocation and operator workflow | OS-06, OS-07, OS-08 | NOT STARTED |

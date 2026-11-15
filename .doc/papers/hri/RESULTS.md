@@ -199,3 +199,58 @@ Retained failures preclude treating the passing trial as a reliability estimate.
 No human data collected. Assessment remains a procedural placeholder; all three
 task executors and later operational qualification remain pending. Human collection
 is disabled and scenarios remain unready.
+
+## OS-06 — Bounded guessing-game execution (15 November 2026)
+
+Added an optional typed guessing contract, study-owned executor through the shared
+Coordination graph, persisted pending questions/answers/counters, explicit success
+and exhaustion outcomes, revision with retained progress, immutable private
+predictions and participant cards. Research TURN records include full game state.
+The model supplies bounded QUESTION/GUESS proposals; the backend owns their budget,
+answer consumption, final confirmation and control transitions. Baseline agreement
+format and graph remain supported. Scope and coding notes: [SCENARIOS.md](SCENARIOS.md).
+
+Verification used `python tests/gptlive/run_acceptance.py`; artifact suffixes below
+refer to `target/gptlive-acceptance-<suffix>`. All schemas/accounts were owned local
+MySQL fixtures and cleaned up. Failures and raw provider captures are retained.
+
+| Run | Actual result and follow-up |
+| --- | --- |
+| `70f0f589e1` | Compile failed on the acceptance helper's package/visibility. Exposed the existing helper explicitly and corrected the reference |
+| `20a83df051` | 35 Java passes, one test failure: fixture tried changing protected terms using PROPOSE. Corrected it to an explicit replacement |
+| `f99b8b8153` | 38 checks attempted, 36 errors from transient editor-produced incomplete class files. No passing acceptance claim. Isolated study Maven output under each artifact directory through an optional build-directory property |
+| `cb73adede5` | 37 passes, one fixture assertion failure: the early acceptance recognizer did not match the compound test sentence; its mock still returned PROPOSE. Corrected the direct-command fixture and added a separate inferred-acceptance commit-gate test |
+| `4ff46c4fea`, `--study --browser` | **34 Java and nine browser checks passed**; included full persisted game/revision/export and paused reload |
+| `54c7d21481`, paid guessing | Failed on START after two committed turns: generated blank speech rejected before executor takeover. Two calls, 8,507 tokens. Added a study-specific START reply seam; unused interpreter wording/modalities cannot bypass the executor |
+| `884981cc8f`, focused shared/game tests + paid guessing | **37 Java checks passed**. Paid trial reached revision but failed exact unchanged-success assertion: the earlier success string repeated the old numeric limit. Four calls, 14,404 tokens. Centralized numeric limits in typed fields and added a limit-only revision guard |
+| `43320f77e0`, same focused tests + paid guessing | **37 Java checks passed**; complete nine-turn paid journey passed. Seven calls, 22,009 tokens |
+
+Independent semantic review of `43320f77e0`: **PASS for this bounded script**.
+No task question preceded acceptance. Roles, answer choices and confirmation were
+faithful; initial five and revised three-question budgets were explicit. Only
+`activity.questionLimit` and its derived `dialogueLimit` changed between the two
+exact snapshots. Pause/resume and revision preserved the same pending question ID
+and one spent question. The subsequent questions were “Is it primarily used
+outdoors?” and a book guess; after three NO answers the backend reported exhaustion
+without claiming a correct guess. Actual provider requests contained neither the
+private object form nor prediction text. This is not a guessing-accuracy estimate.
+
+The export retained nine requests, two snapshots, ten synthetic display reports,
+31 records and ten private-answer rows, with recording/configuration/display
+complete and procedure incomplete. Paid display reports are synthetic; separate
+browser evidence establishes actual DOM rendering. Retained failed trials prevent
+interpreting one successful run as a general reliability rate.
+
+Desktop prediction and mobile revision/ended screenshots were inspected in
+`4ff46c4fea`. Review led to collapsing study-step cards on mobile, removing the
+internal derived contribution budget from the participant review and adding
+padding around game progress. Readiness flags and human collection remain closed.
+Full assessments, adaptive revision cards and B/C executors remain later milestones.
+
+Final `--study --browser`, artifact `5bd6fe78aa`: **36 Java and nine browser checks
+passed**, zero failures/errors/skips/retries. This includes inferred acceptance
+fencing without a prediction, invalid-move recovery, reset and executor-owned START
+wording. Final mobile revision/ended screenshots were inspected after the visual
+adjustments. Runner preflight: **14 passed**; JavaScript syntax and
+`git diff --check` passed. The separate 37-check shared/game regression and live
+trial above used the same final executor source.

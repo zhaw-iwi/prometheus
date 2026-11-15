@@ -15,12 +15,13 @@ public class StudyController {
     private final StudySessions sessions;
     private final StudyTurns turns;
     private final StudyEvidence evidence;
+    private final StudyProcedure procedure;
     private final String adminToken;
     public record Invite(StudyAttempt.Mode mode, String scenario, UUID predecessor) {}
     public record Consent(String version) {}
     public record Finish(String reason) {}
-    public StudyController(StudySessions sessions, StudyTurns turns, StudyEvidence evidence, @Value("${prometheus.admin.token:}") String adminToken) {
-        this.sessions=sessions; this.turns=turns; this.evidence=evidence; this.adminToken=adminToken;
+    public StudyController(StudySessions sessions, StudyTurns turns, StudyEvidence evidence, StudyProcedure procedure,@Value("${prometheus.admin.token:}") String adminToken) {
+        this.sessions=sessions; this.turns=turns; this.evidence=evidence; this.procedure=procedure;this.adminToken=adminToken;
     }
     @PostMapping("/admin/study/attempts")
     public StudySessions.Invitation invite(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false) String token,
@@ -40,6 +41,10 @@ public class StudyController {
     public StudySessions.View get(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return sessions.get(token); }
     @GetMapping("/api/study/page")
     public StudySessions.Page page(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return sessions.page(token); }
+    @GetMapping("/api/study/activity")
+    public StudyProcedure.Activity activity(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return procedure.view(token); }
+    @PostMapping("/api/study/predictions")
+    public StudyProcedure.Activity prediction(@RequestHeader(name=TOKEN_HEADER,required=false) String token,@RequestBody Map<String,String> answer) { return procedure.predict(token,answer); }
     @GetMapping(path="/api/study/stream",produces=MediaType.TEXT_EVENT_STREAM_VALUE)
     public org.springframework.web.servlet.mvc.method.annotation.SseEmitter stream(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
             @RequestHeader(name="Last-Event-ID",required=false) String cursor) { return sessions.stream(token,cursor); }
