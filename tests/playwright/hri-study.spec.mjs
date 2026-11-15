@@ -59,6 +59,32 @@ test('guessing game predicts, plays, revises and ends with a reported result',as
   expect(await page.locator('#messages').innerText()).not.toContain('private-prediction-browser');expect(media).toEqual([]);
 });
 
+test('negotiated signs demonstrate, wait, revise and answer each question once',async({page,request},info)=>{
+  const invitation=await invite(request,true,'signs');const media=await noMedia(page);
+  const terms={goal:'A fictional preference check-in',humanRole:'Answer with the agreed simulated signs',agentRole:'Ask the saved questions in order',success:'The agreed answers are recorded',questions:[],checks:[],dialogueLimit:4,reactions:null,
+    activity:{kind:'SIGN_ANSWERS',questions:['Would you like a short activity?','Would you prefer a quiet activity?','Would you like a break afterwards?'],yesSign:'THUMBS_UP',noSign:'THUMBS_DOWN',waitSign:'OPEN_PALM',resume:'EXPLICIT_TEXT',demonstrate:true}};
+  const control=async(operation,agreement=null)=>expect((await request.post('/__live-fixture/study-reply',{data:{response:JSON.stringify({operation,agreement,reply:{speech:'Ready.'}})}})).ok()).toBeTruthy();
+  const send=async text=>{await page.locator('#message').fill(text);await page.locator('#send').click();await expect(page.locator('#message')).toHaveValue('');await expect(page.locator('#pending-panel')).toBeHidden();};
+  const sign=async name=>{await page.getByRole('button',{name,exact:true}).click();await expect(page.locator('#pending-panel')).toBeHidden();};
+  const demonstrate=async()=>{for(const name of ['Thumbs up','Thumbs down','Open palm']){await sign(name);await expect(page.getByRole('button',{name,exact:true})).toBeDisabled();}};
+  const accept=async()=>{await expect(page.locator('#prediction-form')).toBeVisible();await page.locator('#prediction').fill('PRIVATE_SIGN_PREDICTION');await page.getByRole('button',{name:'Save private prediction'}).click();await expect(page.locator('#prediction-form')).toBeHidden();await control('START');await send('I accept this proposal. Start now.');};
+  await control('PROPOSE',terms);await open(page,invitation);await send('Propose a short fictional sign-answer check-in with these three questions and demonstrations before acceptance.');
+  await expect(page.locator('#activity-status')).toHaveText('Checking agreed conditions');await expect(page.locator('#prediction-form')).toBeHidden();
+  await screenshot(page,info,'signs-demonstration-desktop');await demonstrate();await accept();
+  await sign('Thumbs up');await expect(page.locator('#sign-progress')).toContainText('1 answer(s)');await expect(page.locator('#sign-status')).toContainText('quiet');
+  await sign('Open palm');await expect(page.locator('#activity-status')).toHaveText('Activity paused');await page.reload();
+  await expect(page.locator('#sign-status')).toContainText('quiet');await expect(page.getByRole('button',{name:'Thumbs down',exact:true})).toBeDisabled();await screenshot(page,info,'signs-wait-mobile',390);
+  await send('Resume');const revised=structuredClone(terms);revised.activity.yesSign='THUMBS_DOWN';revised.activity.noSign='THUMBS_UP';
+  await control('REPLACE',revised);await send('Swap yes and no signs, preserving the questions, wait and stopping conditions.');
+  await demonstrate();await accept();await expect(page.locator('#sign-status')).toContainText('quiet');await expect(page.locator('#sign-progress')).toContainText('1 answer(s)');
+  await sign('Thumbs down');await expect(page.locator('#sign-progress')).toContainText('2 answer(s)');await sign('Thumbs up');
+  await expect(page.locator('#activity-status')).toHaveText('Activity ended');await expect(page.locator('#sign-progress')).toContainText('answers recorded');await screenshot(page,info,'signs-ended-mobile',390);
+  await page.getByRole('button',{name:'Finish interaction'}).click();await page.getByRole('button',{name:'Save and finish'}).click();await expect(page.getByRole('heading',{name:'Your interaction is saved'})).toBeVisible();
+  const data=await exported(request,invitation);expect(data.agreements).toHaveLength(2);expect(Object.keys(data.agreements[1].evidence)).toHaveLength(3);expect(data.manifest.recordingComplete).toBe(true);
+  const value=data.records.filter(r=>r.kind==='TURN').at(-1).data;
+  expect(value['coordination.signAnswers'].answers.map(a=>a.answer)).toEqual(['YES','YES','NO']);expect(media).toEqual([]);expect(await page.evaluate(()=>mediaRequests)).toBe(0);
+});
+
 test('context check-in interrupts held output, revises and resumes a pending question',async({page,request},info)=>{
   const invitation=await invite(request,true,'context');const media=await noMedia(page);
   const terms={goal:'A fictional routine check-in',humanRole:'Report yes or no in the fictional scenario',agentRole:'Ask once and offer the agreed response',success:'The agreed fictional response is delivered',questions:[],checks:[],dialogueLimit:2,reactions:null,

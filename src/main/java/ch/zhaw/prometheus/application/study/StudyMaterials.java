@@ -18,7 +18,8 @@ public class StudyMaterials {
         public Manifest { scenarios = List.copyOf(scenarios); pre = List.copyOf(pre); post = List.copyOf(post); }
     }
     private static final Set<String> SCENARIOS = Set.of("guess", "context", "signs");
-    private static final Set<String> IMPLEMENTED = Set.of("guess","context");
+    // Executors alone do not qualify a scenario for the complete research procedure.
+    private static final Set<String> QUALIFIED = Set.of();
     private final Manifest manifest;
     public StudyMaterials() {
         try (var input = StudyMaterials.class.getResourceAsStream("/hri-study/materials-v1.json")) {
@@ -37,7 +38,7 @@ public class StudyMaterials {
             var ids = new HashSet<String>(); var scenarios = new HashSet<String>();
             for (Scenario scenario : value.scenarios()) {
                 require(SCENARIOS.contains(scenario.id()) && scenarios.add(scenario.id()));
-                require(!scenario.ready() || IMPLEMENTED.contains(scenario.id()));
+                require(!scenario.ready() || QUALIFIED.contains(scenario.id()));
                 require(scenario.id().equals("context")?scenario.sceneProbe().equals(List.of(1,2,1)):scenario.sceneProbe().isEmpty());
                 require(nonempty(scenario.title()) && nonempty(scenario.task()) && nonempty(scenario.privatePrompt()));
                 item(scenario.revision(), ids); item(scenario.probe(), ids);

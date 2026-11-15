@@ -24,6 +24,8 @@ public class StudyTurns {
     public record SceneRequest(UUID requestId,long expectedScene,Integer humanCount,String observedAt,Integer probeStep) {
         public SceneRequest(UUID requestId,long expectedScene,Integer humanCount,String observedAt){this(requestId,expectedScene,humanCount,observedAt,null);}
     }
+    public record SignRequest(UUID requestId,long expectedTurn,UUID observationId,String sign,String mode,
+            String revision,UUID run,UUID question,String observedAt) {}
     public record View(UUID requestId,StudyTurn.Status status,Long committedTurn,UUID inputEventId,
             UUID responseEventId,String responseType,String responsePayload,Instant receivedAt,Instant finishedAt,String reason,
             String inputType,long expectedTurn,long sceneVersion,boolean sceneSensitive) {}
@@ -59,8 +61,20 @@ public class StudyTurns {
         if(request.probeStep()!=null)payload.addProperty("probeStep",request.probeStep());
         return submit(token,new Request(request.requestId(),request.expectedScene(),payload.toString()),Event.TYPE_HUMAN_PRESENCE);
     }
+    public View sign(String token,SignRequest request) {
+        if(request==null || request.observationId()==null || request.sign()==null || request.sign().length()>24
+                || request.mode()==null || !Set.of("DEMONSTRATE","ANSWER").contains(request.mode()) || request.revision()==null
+                || !request.revision().matches("[0-9]{1,9}") || request.observedAt()==null || request.observedAt().length()>40)
+            throw failure(HttpStatus.BAD_REQUEST,"Invalid simulated sign");
+        var payload=new com.google.gson.JsonObject();payload.addProperty("simulation",true);payload.addProperty("source","controlled_study");
+        payload.addProperty("observationId",request.observationId().toString());payload.addProperty("sign",request.sign());payload.addProperty("mode",request.mode());
+        payload.addProperty("revision",request.revision());payload.addProperty("run",request.run()==null?null:request.run().toString());
+        payload.addProperty("question",request.question()==null?null:request.question().toString());payload.addProperty("ts",request.observedAt());
+        return submit(token,new Request(request.requestId(),request.expectedTurn(),payload.toString()),ch.zhaw.prometheus.agentdefs.study.StudySigns.EVENT);
+    }
     private View submit(String token,Request request,String type) {
         boolean scene=Event.TYPE_HUMAN_PRESENCE.equals(type);
+        boolean sign=ch.zhaw.prometheus.agentdefs.study.StudySigns.EVENT.equals(type);
         if (request==null || request.requestId()==null || request.expectedTurn()<0 || request.text()==null
                 || request.text().isBlank() || request.text().length()>2000)
             throw failure(HttpStatus.BAD_REQUEST,"A request ID, current turn and text of at most 2000 characters are required");
@@ -94,6 +108,7 @@ public class StudyTurns {
             }
             if (attempt.pendingRequest!=null) throw failure(HttpStatus.CONFLICT,"Reconcile the pending request first");
             if (!scene && request.expectedTurn()!=attempt.turnVersion) throw failure(HttpStatus.CONFLICT,"Refresh the conversation before submitting");
+            if(sign)procedure.validateSign(attempt,com.google.gson.JsonParser.parseString(request.text()).getAsJsonObject());
             if(!scene && !procedure.sceneApplied(attempt))throw failure(HttpStatus.CONFLICT,"Apply a current simulated scene before continuing");
             boolean predicted=scene || procedure.permitsStart(attempt);
             if (!predicted && (ch.zhaw.prometheus.agentdefs.core.CoordinationAcceptance.explicit(request.text())
@@ -106,7 +121,7 @@ public class StudyTurns {
         });
         if (!claim.claimed()) return claim.view();
         try {
-            agents.acknowledge(claim.agentId(),new EventRequest(type,scene?"study-simulation":Event.ACTOR_USER,
+            agents.acknowledge(claim.agentId(),new EventRequest(type,scene||sign?"study-simulation":Event.ACTOR_USER,
                     Event.KIND_OBSERVATION,request.text()),OutputProfile.FULL_PLAN,(candidate,position,response,persist) ->
                 transaction.execute(tx -> {
                     var attempt=attempts.lockById(claim.attemptId()).orElseThrow();

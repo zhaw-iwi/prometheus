@@ -177,6 +177,10 @@ public class CoordinationUpdateAction extends Action {
     }
     protected BehaviourPlan applyActivity(String operation,BehaviourPlan reply,Event event,PolicyRuntime runtime) { return reply; }
     protected BehaviourPlan interpretationReply(String operation,JsonElement raw) { return controlReply(operation,raw); }
+    protected boolean replacementRequested(String text) {
+        return CoreTaskVoice.normalize(text).matches(
+                ".*\\b(replace|replacement|instead|switch|new task|different task)\\b.*|.*\\bchange\\b.*\\b(trigger|limit|role|roles|checks|preparation|timing|session|condition|success|criterion|confidence|cooldown|samples|responsibilities)\\b.*");
+    }
     private boolean explicitCueStart(String text, String invitation) {
         var draft = CoordinationMemory.agreement(getStorage(), CoordinationMemory.DRAFT);
         return draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
@@ -217,8 +221,7 @@ public class CoordinationUpdateAction extends Action {
         var previous = CoordinationMemory.agreement(storage, storage.containsKey(CoordinationMemory.DRAFT) ? CoordinationMemory.DRAFT : CoordinationMemory.AGREEMENT);
         if (operation.equals("PROPOSE") && previous != null && previous.complete()
                 && !"CONVERSATION".equals(CoordinationMemory.stage(storage)) && !previous.sameTerms(proposed)) throw new UnexpectedTerms();
-        if (operation.equals("REPLACE") && !CoreTaskVoice.normalize(text).matches(
-                ".*\\b(replace|replacement|instead|switch|new task|different task)\\b.*|.*\\bchange\\b.*\\b(trigger|limit|role|roles|checks|preparation|timing|session|condition|success|criterion|confidence|cooldown|samples|responsibilities)\\b.*")) throw new UnexpectedTerms();
+        if (operation.equals("REPLACE") && !replacementRequested(text)) throw new UnexpectedTerms();
         if (assent && (!Set.of("KEEP", "START").contains(operation)
                 || operation.equals("START") && CoreTaskVoice.deferredQuestion(invitation))) throw new IllegalArgumentException();
         switch (operation) {

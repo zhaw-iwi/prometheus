@@ -16,7 +16,8 @@ import static ch.zhaw.prometheus.application.study.StudySessions.*;
 @Service
 public class StudyProcedure {
     public record Activity(String revision,boolean predictionRequired,boolean predictionSaved,String game,
-            String revisionInstruction,String probeInstruction,String context,String scene,long sceneVersion,boolean sceneApplied,int sceneProbeStep,List<Integer> sceneProbe) {}
+            String revisionInstruction,String probeInstruction,String context,String scene,long sceneVersion,boolean sceneApplied,int sceneProbeStep,List<Integer> sceneProbe,
+            String signs,String signScope) {}
     private final StudySessions sessions;
     private final StudyFormRepository forms;
     private final AgentRepository agents;
@@ -32,7 +33,7 @@ public class StudyProcedure {
     @Transactional(readOnly=true)
     public Activity view(String token) {
         var attempt=sessions.require(token,false); open(attempt);
-        if(attempt.agentId==null) return new Activity("0",false,false,null,null,null,null,null,0,true,0,List.of());
+        if(attempt.agentId==null) return new Activity("0",false,false,null,null,null,null,null,0,true,0,List.of(),null,null);
         var storage=storage(attempt); var scenario=materials.scenario(attempt.scenario);
         boolean applied=sceneApplied(attempt);var observedScene=ch.zhaw.prometheus.agentdefs.study.StudyContext.scene(storage);
         var accepted=CoordinationMemory.agreement(storage,CoordinationMemory.AGREEMENT);
@@ -42,8 +43,10 @@ public class StudyProcedure {
                 StudyGuessing.state(storage)==null?null:StudyGuessing.state(storage).toString(),
                 played?scenario.revision().prompt():null,played?scenario.probe().prompt():null,
                 storage.containsKey(CoordinationMemory.CONTEXT_STATE)?storage.get(CoordinationMemory.CONTEXT_STATE).toString():null,
-                applied&&observedScene!=null?observedScene.toString():attempt.scenePayload,attempt.sceneVersion,applied,attempt.sceneProbeStep,scenario.sceneProbe());
+                applied&&observedScene!=null?observedScene.toString():attempt.scenePayload,attempt.sceneVersion,applied,attempt.sceneProbeStep,scenario.sceneProbe(),
+                text(ch.zhaw.prometheus.agentdefs.study.StudySigns.state(storage)),text(ch.zhaw.prometheus.agentdefs.study.StudySigns.scope(storage)));
     }
+    private static String text(JsonObject value){return value==null?null:value.toString();}
     @Transactional
     public Activity predict(String token,Map<String,String> answer) {
         var attempt=sessions.require(token,true); open(attempt);
@@ -79,5 +82,10 @@ public class StudyProcedure {
         String required=switch(step){case 0->"WAITING_FOR_ONE";case 1->"WAITING_FOR_ANSWER";default->"POSTPONED";};
         if(storage.containsKey(CoordinationMemory.DRAFT) || !required.equals(ch.zhaw.prometheus.agentdefs.study.StudyContext.status(task)))
             throw failure(HttpStatus.CONFLICT,"Reach the planned check-in stage first");
+    }
+    void validateSign(StudyAttempt attempt,JsonObject payload) {
+        if(!"signs".equals(attempt.scenario))throw failure(HttpStatus.CONFLICT,"This task has no sign simulation");
+        String rejected=ch.zhaw.prometheus.agentdefs.study.StudySigns.rejection(storage(attempt),payload,java.time.Instant.now());
+        if(rejected!=null)throw failure(HttpStatus.CONFLICT,"Simulated sign not applied: "+rejected);
     }
 }

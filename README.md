@@ -2059,7 +2059,9 @@ revision with preserved pending-question progress. A confirmed guess, exhausted
 budget and early stop have distinct outcomes. The fictional contextual check-in
 uses negotiated question/response wording and disclosed scene simulation, with
 privacy postponement, explicit resumption and departure ending. Scene changes
-fence pending old-scene responses. Negotiated signs and full assessments follow.
+fence pending old-scene responses. Negotiated sign answers add optional preparation
+demonstrations, question-bound simulated thumbs/open palm, wait/resume and renewed
+acceptance for mapping changes. Full assessments and operational qualification follow.
 
 Study-only checks use the existing disposable local MySQL runner:
 `python tests/gptlive/run_acceptance.py --study --browser`.
@@ -2069,6 +2071,7 @@ It caps provider requests/tokens, keeps evidence under ignored `target/`, and
 requires separate semantic review. No participant media is requested.
 Add `--study-scenario guess` to exercise the bounded guessing-game journey.
 Use `--study-scenario context` for the fictional contextual check-in journey.
+Use `--study-scenario signs` for the negotiated simulated-sign journey.
 
 The recorded scissors interaction has a repeatable acceptance script in
 `tests/gptlive/README.md` ("Recorded scissors interaction"). For an unchanged

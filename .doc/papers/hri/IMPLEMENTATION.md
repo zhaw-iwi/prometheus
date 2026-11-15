@@ -273,6 +273,54 @@ probe progress. Full context/scene state is included in research TURN records.
 New persistence fields are additive; fresh study agents are required for the
 definition-owned scene transitions. All human readiness flags remain false.
 
+## Negotiated sign-answer execution
+
+`SignAnswerContract` adds a typed bounded question list:
+
+```json
+{"kind":"SIGN_ANSWERS","questions":["Would you like a short activity?"],"yesSign":"THUMBS_UP","noSign":"THUMBS_DOWN","waitSign":"OPEN_PALM","resume":"EXPLICIT_TEXT","demonstrate":true}
+```
+
+There are 1–8 distinct exact questions, at most 160 characters each. Either thumb
+can mean YES, the other NO. Open palm waits without answering; explicit text Resume
+continues the same question. The executor asks saved questions and acknowledges
+answers deterministically, completing with `ANSWERS_RECORDED`; it infers no health
+outcome. The derived contribution budget is question count plus one. Plain text
+yes/no does not answer a task configured for sign answers.
+
+With `demonstrate:true`, all three fresh signs must be demonstrated after the
+proposal. Demonstrations populate ordinary preparation evidence, never answers,
+and are copied into immutable acceptance snapshots. The shared readiness check
+consults this typed preparation contract. A sign cannot accept a draft. Private
+prediction and explicit conversation acceptance still precede the first question.
+
+`POST /api/study/sign` takes `{requestId,expectedTurn,observationId,sign,mode,
+revision,run,question,observedAt}`. `/activity.signScope` supplies the current scope:
+DEMONSTRATE uses the proposal revision and null run/question; ANSWER uses the
+accepted agreement revision, run UUID and pending question UUID. `/activity.signs`
+contains saved progress. UUIDs/timestamps/mappings are validated before inference
+and again by the executor. A fresh command has a 15-second age bound/two-second
+future skew. Idempotent request retries return their durable receipt. A distinct
+request cannot reuse an observation ID, even across preparation and execution.
+The bounded observation ledger admits at most 256 accepted signs per instance;
+it never silently evicts old identities to permit replay.
+
+The study-only event type is `obs.study.sign`, actor `study-simulation`, with
+`simulation:true` and `source:controlled_study`. It is declared only by the study
+profile and produced by the scoped study API. The existing `obs.hand.sign`
+rock/scissor/paper sensor and motion contracts remain unchanged. No camera or sign
+recognition model is involved. UI clicks are fresh discrete observations; holding
+a visual sign is not simulated. Pending signs use the ordinary durable turn path.
+
+Changing an ongoing mapping suspends execution and requires renewed demonstrations
+if agreed, a new prediction and explicit acceptance. Questions, wait/resume rules,
+human role and success commitments are preserved. The pending question and already
+recorded answers survive, but run/revision authority changes: old signs cannot be
+reinterpreted. Other question-list changes require ending and agreeing a fresh
+activity. The shared replacement-request guard has a study-only extension for
+explicit “swap/reverse/change … signs/mappings” requests. Baseline guards are
+unchanged. Full sign state accompanies each research TURN record.
+
 ## Verification commands
 
 `python tests/gptlive/run_acceptance.py --study` runs the study foundations against
@@ -284,6 +332,8 @@ Add `--study-scenario guess` for the bounded guessing/acceptance/revision/pause/
 exhaustion/export trial. The foundation greeting smoke remains the default.
 `--study-scenario context` selects the fictional check-in, privacy interruption,
 revision, explicit resumption and exact-response trial.
+`--study-scenario signs` selects demonstration, scoped answers, wait/resume,
+opposite mapping revision and bounded completion.
 Study runs compile into their own artifact directory through
 `-Dprometheus.build.directory=...`, isolating acceptance from an editor's concurrent
 incremental compiler. Ordinary Maven builds still use `target`. Reports, compiled

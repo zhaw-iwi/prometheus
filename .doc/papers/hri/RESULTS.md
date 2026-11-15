@@ -305,3 +305,50 @@ selected simulation persists until another accepted command changes it.
 Runner preflight: **14 passed**. JavaScript syntax and `git diff --check` passed.
 Human collection remains closed; signs, full assessments and capacity qualification
 are subsequent milestones.
+
+## OS-08 — Negotiated simulated sign answers (15 November 2026)
+
+Added an exact question-list/sign contract, optional observation-backed preparation,
+question/run/accepted-revision scope, persistent observation deduplication, wait
+and explicit resumption, opposite-mapping revision with retained answers, and
+participant simulation controls. A study-only observation leaves the existing
+rock/scissor/paper contract intact. Fresh study agents are required. The ordinary
+durable receipt and transactional research recorder own persistence and export.
+
+Actual evidence uses owned disposable loopback MySQL schemas/accounts (cleaned up)
+and artifacts under ignored `target/gptlive-acceptance-<suffix>`:
+
+| Run | Result and follow-up |
+| --- | --- |
+| `cab17f4851`, focused sign/material/shared tests | 33 passes, two failures and one error. “Swap” was not recognized by the replacement guard; added a study-only extension. A second fixture setup invoked an existing Mockito stub with null while restubbing; corrected it to `doAnswer` |
+| `8e14cbb83e` | Compilation failed on a misplaced package-private normalization-helper reference; used local study request normalization |
+| `815987e3f3`, focused Java + browser | 36 Java checks passed; ten browser passes and one final export-assertion failure (`payload` instead of actual `data`). The sign journey itself reached completion; corrected the assertion |
+| `a1269efb4c`, `--study --browser` | **50 Java and 11 browser checks passed**, zero failures/errors/skips/retries; includes observation deduplication across demonstration and execution |
+| `a27694dd4f`, paid signs | Failed at mapping revision after nine requests. Three OpenAI calls, 17,346 tokens. The generated replacement also rewrote the human-role wording; the activity guard preserved the prior agreement. Strengthened exact-copy guidance and the full unaffected-field guard; retained a regression |
+| `a625c90558`, focused shared/all-executor checks + paid signs | **45 Java checks passed**; 15-request paid script passed technical assertions, four calls, 24,672 tokens. Independent semantic review **failed** the success string, which included stopping early as an alternative to recording all answers. Executor cancellation/completion remained distinct; clarified the prompt |
+| `80f30c6d76`, final focused sign browser | **One browser journey passed**, zero skips/retries; final plain-language sign labels and complete desktop/mobile flow |
+| `2316d51feb`, final sign unit/DB + paid journey | **Six Java checks passed**; all 15 requests passed, four OpenAI calls, 24,723 tokens; independent bounded semantic review passed |
+
+The live scripts use synthetic display reports, distinct from the actual browser
+rendering checks. Both failed provider trials are retained; HTTP/schema success
+alone is not semantic acceptance. Core Coordination and revision regressions passed
+in the 36- and 45-check selections. General model reliability, gesture recognition,
+human understanding and clinical usefulness are not established by these scripts.
+
+Independent review of `2316d51feb`: **PASS for this bounded script**. Exact question
+order, mapping, observation preparation, private prediction and acceptance were
+preserved. Open palm spent no question; Resume and revised acceptance kept the
+same pending question ID. Only `activity.yesSign/noSign` changed between exact
+snapshots. The first original-mapping answer and the two revised-mapping answers
+remain YES, YES, NO. Success now requires every agreed question to have an answer;
+early Stop is separate. Actual provider requests contain no private intention,
+preference or prediction markers. The export retains 15 receipts, two snapshots
+with three demonstration proofs each, 43 records, ten private-answer rows and
+16 synthetic display reports. Procedure remains incomplete pending OS-09.
+
+Desktop demonstration and mobile wait/ended screenshots were inspected, including
+the final desktop and ended views in `80f30c6d76`: controls wrap, show simulation
+provenance and disable answers while paused/ended. Final runner preflight: 14
+passed; JavaScript syntax and `git diff --check` passed. The final prompt-only
+correction was verified by the six sign checks and paid trial after the 50-check
+study and 45-check shared/executor regressions. All human collection stays closed.

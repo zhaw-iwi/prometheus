@@ -16,6 +16,7 @@ public final class CoordinationMemory {
             RUN = "coordination.run", OUTCOMES = "coordination.outcomes", LOG_DROPPED = "coordination.logDropped";
     public static final String CONCISE_CONTROLS = "coordination.conciseControls";
     public static final String GUESSING_STATE = "coordination.guessing";
+    public static final String SIGN_STATE = "coordination.signAnswers", SIGN_OBSERVATIONS="coordination.signObservations";
     public static final String CONTEXT_STATE = "coordination.contextCheckIn", STUDY_SCENE="coordination.studyScene";
     private CoordinationMemory() {}
     public static CoordinationAgreement agreement(Storage storage, String key) {
@@ -33,7 +34,10 @@ public final class CoordinationMemory {
     }
     public static boolean ready(Storage storage) {
         var draft = agreement(storage, DRAFT);
-        return draft != null && draft.complete() && evidence(storage).size() == draft.checks().size();
+        if(draft==null || !draft.complete())return false;
+        if(draft.activity()!=null && "SIGN_ANSWERS".equals(draft.activity().get("kind").getAsString()))
+            return SignAnswerContract.parse(draft.activity()).prepared(evidence(storage));
+        return evidence(storage).size() == draft.checks().size();
     }
     public static String acceptancePrompt(Storage storage) {
         var draft = agreement(storage, DRAFT);
@@ -46,8 +50,12 @@ public final class CoordinationMemory {
     public static String proposalPrompt(Storage storage) {
         var draft = agreement(storage, DRAFT);
         if (draft.activity()!=null && draft.complete()) return "Proposed task: "+draft.goal()+". "
-                +(draft.activity().get("kind").getAsString().equals("GUESSING")?GuessingContract.parse(draft.activity()).review()
-                    :ContextCheckInContract.parse(draft.activity()).review())+" "+acceptancePrompt(storage);
+                +switch(draft.activity().get("kind").getAsString()) {
+                    case "GUESSING" -> GuessingContract.parse(draft.activity()).review();
+                    case "CONTEXT_CHECKIN" -> ContextCheckInContract.parse(draft.activity()).review();
+                    case "SIGN_ANSWERS" -> SignAnswerContract.parse(draft.activity()).review();
+                    default -> throw new IllegalArgumentException("Unknown activity");
+                }+" "+(ready(storage)?acceptancePrompt(storage):"Complete the agreed demonstrations before acceptance. The task is not active.");
         int count = draft.reactions() == null ? draft.dialogueLimit() : draft.reactions().maxActions();
         String limit = " Limit: " + count + " " + (draft.reactions() == null ? "agent contribution" : "sensor action")
                 + (count == 1 ? "" : "s") + (draft.reactions() == null ? ", including questions and feedback" : "") + ". Stop can end earlier.";
@@ -167,5 +175,5 @@ public final class CoordinationMemory {
         return prefix + cue + (key.equals(DRAFT) ? "PROPOSAL, NOT ACTIVE. Recognised preparation checks: " + evidence(storage).keySet()
                 + ". " : "Accepted agreement: ") + agreement.json();
     }
-    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, LOG_DROPPED, REVIEW, LAST_CUE, RUN, OUTCOMES, GUESSING_STATE, CONTEXT_STATE, STUDY_SCENE, CoordinationRecovery.KEY, CoordinationSupport.LIVE_HELP); }
+    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, LOG_DROPPED, REVIEW, LAST_CUE, RUN, OUTCOMES, GUESSING_STATE, CONTEXT_STATE, STUDY_SCENE, SIGN_STATE, SIGN_OBSERVATIONS, CoordinationRecovery.KEY, CoordinationSupport.LIVE_HELP); }
 }

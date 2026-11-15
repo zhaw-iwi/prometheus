@@ -92,4 +92,32 @@ private repetition; explicit resumption with preserved question; revision fideli
 and truthful departure/self-report outcomes. Score actual ordered-probe completion
 and missingness separately. Unknown/stale evidence must not be scored as absence.
 This is controlled context-conditioned interaction, not sensor accuracy or clinical
-privacy effectiveness. Scenario C follows with OS-08.
+privacy effectiveness.
+
+## C — Negotiated simulated sign answers (OS-08)
+
+Agree on a short ordered set of fictional, nonclinical preference questions,
+thumbs-up/down as YES/NO (either mapping), open palm as WAIT, explicit text Resume
+and completion after all answers or Stop. The executor supports 1–8 distinct
+questions, with optional demonstrations of all three signs before acceptance.
+The acceptance fixture uses three preference questions and demonstrations.
+
+1. Specify questions, mappings, scope and control rules. Demonstrate the agreed
+   signs using the disclosed simulation buttons. Verbal claims cannot satisfy
+   preparation. Save a private prediction, review and accept.
+2. Answer the first question with a fresh button click. Each sign is bound to its
+   pending question/run/revision, with a separate observation identity.
+3. Signal open palm on the next question. Refresh if desired; wait retains the
+   question and spent count. Type Resume before another answer can count.
+4. Request the opposite YES/NO mapping with all other terms unchanged. Demonstrate
+   again if agreed, predict and accept. The pending question and earlier answers
+   remain, while only fresh observations can use the new mapping.
+5. Answer remaining questions or Stop/Finish. Recording a preference is not a
+   clinical outcome, and demonstration/WAIT never counts as an answer.
+
+Code mapping/scope fidelity, preparation before acceptance, exactly one answer per
+pending question, wait/resume identity, revised acceptance before use, untouched
+commitments and outcome accuracy separately as 1/0/NA. Earlier answers must retain
+their original meaning after a mapping swap. Compare private preferences, expressed
+requirements, snapshots and predictions separately, following A's rubric. This
+validates negotiated symbolic interaction, not visual gesture recognition.

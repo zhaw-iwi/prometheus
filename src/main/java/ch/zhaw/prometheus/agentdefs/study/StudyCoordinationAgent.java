@@ -34,10 +34,13 @@ public class StudyCoordinationAgent extends CoordinationAgent {
         var action=new StudySceneAction(storage);
         var decision=new ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision(Event.TYPE_HUMAN_PRESENCE);
         for(var state:states)state.addTransition(new ch.zhaw.prometheus.model.Transition(decision,action,routing));
+        var signAction=new StudySignAction(storage);
+        var signDecision=new ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision(StudySigns.EVENT);
+        for(var state:states)state.addTransition(new ch.zhaw.prometheus.model.Transition(signDecision,signAction,routing));
     }
     @Override public Agent createAgent() {
         var agent=createAgent("Coordination Assistant", "Text-based task agreement and revision for the online study.",
-                VOICE, AgentInteractionProfile.of(List.of(Event.TYPE_USER_UTTERANCE,Event.TYPE_HUMAN_PRESENCE),
+                VOICE, AgentInteractionProfile.of(List.of(Event.TYPE_USER_UTTERANCE,Event.TYPE_HUMAN_PRESENCE,StudySigns.EVENT),
                         List.of(AgentInteractionProfile.MODALITY_SPEECH), List.of("study.hri", "study.text")), false, false);
         ((TaskPolicy)agent.getCurrentState().ownPolicy()).storage().put(
                 ch.zhaw.prometheus.model.coordination.CoordinationMemory.CONCISE_CONTROLS,new com.google.gson.JsonPrimitive(true));

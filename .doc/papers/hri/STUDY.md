@@ -114,7 +114,7 @@ to learn internal operation names such as REPLACE.
 | --- | --- |
 | A: Twenty Questions-style game | OS-06 implements a dedicated question/guess counter, private secret and explicit stopping outcomes. Pilot role fidelity, question quality and participant understanding; see IMPLEMENTATION.md and RESULTS.md for current evidence |
 | B: contextual medication check-in | OS-07 implements a fictional question/response encounter with controlled scene interruption and explicit resumption. Pilot the disclosed simulation and wording; distinguish person count from identity or proof of privacy. Current contract/evidence: IMPLEMENTATION.md and RESULTS.md |
-| C: negotiated gesture answers | Add a question-bound response mapping, single consumption, and explicit wait/resume behavior. A generic sensor WAIT effect does not implement a pending-question pause. The current browser maps fist/palm/victory to rock/paper/scissor; simulated thumbs-up/down require an explicit supported event interpretation |
+| C: negotiated hand-sign answers | OS-08 implements scoped simulated thumbs/open-palm answers, optional demonstrations, wait/resume and renewed acceptance for mapping changes. Pilot the mapping and pending-question explanation; this is not visual sign recognition. Current contract/evidence: IMPLEMENTATION.md and RESULTS.md |
 
 For B/C, use visibly labeled simulated scene/sign events, such as a small scene
 panel or symbol buttons. Emit them through the event boundary with source,

@@ -52,7 +52,8 @@ public final class StudyGuessing {
     public static JsonObject start(Storage storage,CoordinationAgreement draft,EventHistory events,PolicyRuntime runtime) {
         var old=state(storage);
         String prior=TaskMemory.text(storage,CoordinationMemory.PREVIOUS_PHASE,"CONFIGURATION");
-        boolean continuing=old!=null && Set.of("RUNNING","PAUSED").contains(prior) && !old.has("outcome");
+        boolean continuing=game(CoordinationMemory.agreement(storage,CoordinationMemory.AGREEMENT))
+                && old!=null && Set.of("RUNNING","PAUSED").contains(prior) && !old.has("outcome");
         if (continuing) return old;
         var result=new JsonObject(); result.addProperty("questions",0); result.add("answers",new JsonArray());
         return next(result,draft,events,runtime);

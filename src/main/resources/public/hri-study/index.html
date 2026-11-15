@@ -50,6 +50,11 @@
             <button type="button" class="secondary" data-scene="0">Nobody visible</button><button type="button" class="secondary" data-scene="unknown">Scene unknown</button>
           </div><p id="checkin-progress" class="hint"></p>
         </section>
+        <section id="sign-panel" class="scene-panel" hidden><h3>Simulated hand signs</h3><p class="hint">No camera is used. Each click is one fresh simulated sign for the displayed demonstration or pending question. Signs cannot accept a proposal. Open palm waits; type Resume before answering again.</p>
+          <p id="sign-status" role="status"></p><div class="tools scene-buttons">
+            <button type="button" class="secondary" data-sign="THUMBS_UP">Thumbs up</button><button type="button" class="secondary" data-sign="THUMBS_DOWN">Thumbs down</button><button type="button" class="secondary" data-sign="OPEN_PALM">Open palm</button>
+          </div><p id="sign-progress" class="hint"></p>
+        </section>
         <div id="messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
         <p id="game-progress" class="hint" hidden></p>
         <form id="prediction-form" class="pending" hidden><label for="prediction">Before starting, what do you expect the assistant to do next?</label>

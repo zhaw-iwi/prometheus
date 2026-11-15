@@ -75,6 +75,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-08 (2026-11-15, **complete**, study application branch): negotiated sign
+  answers with optional demonstrations, question/run/revision-bound simulation,
+  durable observation deduplication, wait/resume and accepted mapping changes.
+  All 50 study Java and 11 browser checks passed; 45 focused shared/executor
+  checks and final six sign checks passed separately. Final 15-request OpenAI
+  trial passed independent bounded semantic review after retained role-copy and
+  success-wording failures. Desktop/mobile views inspected. Human collection
+  remains closed; OS-09 assessments/operations is next. Evidence:
+  `.doc/papers/hri/RESULTS.md`.
+
 - OS-07 (2026-11-15, **complete**, study application branch): fictional contextual
   check-in with exact negotiated words, controlled scene simulation, privacy
   postponement, explicit resumption and pending-question-preserving revision.

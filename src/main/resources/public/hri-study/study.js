@@ -96,7 +96,7 @@ function renderPage(page) {
   }
 }
 function renderAgreement(conversation) {
-  state.hasDraft=!!conversation.draft;
+  state.hasDraft=!!conversation.draft;state.phase=conversation.phase;
   const phase={CONVERSATION:'Exploring an activity',COORDINATION:'Clarifying the activity',PREPARATION:'Checking agreed conditions',READY:'Proposal ready for review',EXECUTION:'Activity running',PAUSED:'Activity paused',REFLECTION:'Activity ended',UNCERTAIN:'Activity needs review',FINISHING:'Activity finishing'};
   $('activity-status').textContent=phase[conversation.phase]??'Preparing';
   const signature=JSON.stringify([conversation.draft,conversation.agreement]);if(signature===state.agreementSignature)return;
@@ -119,6 +119,12 @@ function renderAgreement(conversation) {
         ['Scene rules','A fresh one-person scene starts the question after acceptance. Two or more postpone it. Resume with one visible person continues it. Departure ends an ongoing encounter; return does not restart it. Unknown means wait.']])
         list.append(node('dt',term),node('dd',value));
     }
+    if(agreement.activity?.kind==='SIGN_ANSWERS') {
+      const task=agreement.activity;
+      for(const [term,value] of [['Yes sign',task.yesSign.replaceAll('_',' ').toLowerCase()],['No sign',task.noSign.replaceAll('_',' ').toLowerCase()],
+        ['Wait and resume','Open palm preserves the question. Type Resume before answering again.'],['Demonstrations',task.demonstrate?'All three signs before acceptance':'Not required'],
+        ['Questions in order',task.questions.map((q,i)=>`${i+1}. ${q}`).join(' ')]] )list.append(node('dt',term),node('dd',value));
+    }
     $('agreement').append(list);
   }
   if(!conversation.draft&&!conversation.agreement)$('agreement').append(node('p','No activity has been agreed yet.','hint'));
@@ -140,7 +146,14 @@ function renderActivity(activity) {
   state.canProbe=step<script.length&&checkin?.status===required&&!state.hasDraft;
   $('scene-probe').textContent=step<script.length?`Next planned scene: ${script[step]===1?'one person':'two people'}`:'Planned scene sequence complete';
   $('scene-probe').disabled=!state.canProbe||state.pending?.kind==='scene';
+  $('sign-panel').hidden=state.page.session.scenario!=='signs';
+  state.signScope=parse(activity.signScope);const signs=parse(activity.signs);
+  $('sign-status').textContent=state.signScope?.mode==='DEMONSTRATE'?'Demonstration only: show each remaining sign.':state.hasDraft?'Review and accept the proposal after completing its preparation.':signs?.pending?`Pending question: ${signs.pending.words}`:'No sign answer is currently expected.';
+  $('sign-progress').textContent=signs?`${signs.answers.length} answer(s) recorded. ${signs.status==='WAITING'?'Waiting: type Resume to continue.':signs.outcome?'Recorded result: '+signs.outcome.toLowerCase().replaceAll('_',' '):''}`:'';
+  signButtons();
 }
+function signButtons(){document.querySelectorAll('[data-sign]').forEach(button=>button.disabled=!!state.pending||state.busy||!state.signScope
+  ||(state.signScope.mode==='DEMONSTRATE'?!state.signScope.remaining.includes(button.dataset.sign):state.phase!=='EXECUTION'));}
 function renderEvents(events) {
   const follow=$('messages').scrollTop+$('messages').clientHeight >= $('messages').scrollHeight-60 || state.events.size===0;
   let appended=false;
@@ -166,6 +179,7 @@ function renderPending(receipt=state.receipt,unknown=state.unknown) {
   $('pending-panel').hidden=!state.pending;$('send').disabled=state.busy||!!state.pending;
   document.querySelectorAll('[data-scene]').forEach(button=>button.disabled=state.pending?.kind==='scene');
   $('scene-probe').disabled=!state.canProbe||state.pending?.kind==='scene';
+  signButtons();
   if(!state.pending)return;
   $('pending-text').textContent=state.pending.text;
   $('pending-status').textContent=receipt?.status==='UNCERTAIN'?'The result is uncertain. Check the saved conversation, then discard this submission to continue.'
@@ -200,6 +214,8 @@ async function refresh() {
           if(entry.receipt.inputType==='obs.human.presence') {
             const scene=parse(entry.input);pending({kind:'scene',requestId:entry.receipt.requestId,expectedScene:entry.receipt.expectedTurn,
               humanCount:scene.humanCount,observedAt:scene.ts,probeStep:scene.probeStep,text:'A simulated scene change'});
+          } else if(entry.receipt.inputType==='obs.study.sign') {
+            const sign=parse(entry.input);pending({kind:'sign',requestId:entry.receipt.requestId,expectedTurn:entry.receipt.expectedTurn,...sign,observedAt:sign.ts,text:'A simulated hand sign'});
           } else pending({requestId:entry.receipt.requestId,expectedTurn:entry.receipt.expectedTurn,text:entry.input});
         }
       }
@@ -214,7 +230,7 @@ async function refresh() {
 }
 async function sendSaved() {
   if(state.busy||!state.pending)return;state.busy=true;renderPending();notice();
-  try {reconcile(await api(state.pending.kind==='scene'?'scene':'turns',state.pending));}
+  try {reconcile(await api(state.pending.kind==='scene'?'scene':state.pending.kind==='sign'?'sign':'turns',state.pending));}
   catch(error) {notice(problem(error));telemetry('ERROR',String(error.status??'network'));}
   finally {state.busy=false;await refresh();renderPending();}
 }
@@ -230,6 +246,12 @@ async function changeScene(humanCount,probeStep) {
 }
 document.querySelectorAll('[data-scene]').forEach(button=>button.addEventListener('click',()=>changeScene(button.dataset.scene==='unknown'?null:Number(button.dataset.scene))));
 $('scene-probe').addEventListener('click',()=>changeScene(state.activity.sceneProbe[state.activity.sceneProbeStep],state.activity.sceneProbeStep));
+document.querySelectorAll('[data-sign]').forEach(button=>button.addEventListener('click',()=>{
+  if(!state.signScope||state.pending||state.busy)return;
+  const {mode,revision,run,question}=state.signScope;
+  pending({kind:'sign',requestId:crypto.randomUUID(),expectedTurn:state.page.session.turnVersion,observationId:crypto.randomUUID(),
+    sign:button.dataset.sign,mode,revision,run,question,observedAt:new Date().toISOString(),text:'Simulated sign: '+button.textContent});void sendSaved();
+}));
 $('step-form').addEventListener('submit',async event=>{
   event.preventDefault();if(state.busy)return;state.busy=true;$('continue').disabled=true;notice();
   try {

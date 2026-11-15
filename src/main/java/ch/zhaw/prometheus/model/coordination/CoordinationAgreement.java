@@ -58,6 +58,7 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
                 int requiredLimit=switch(activity.get("kind").getAsString()) {
                     case "GUESSING" -> GuessingContract.parse(activity).questionLimit()+1;
                     case "CONTEXT_CHECKIN" -> { ContextCheckInContract.parse(activity); yield 2; }
+                    case "SIGN_ANSWERS" -> SignAnswerContract.parse(activity).questions().size()+1;
                     default -> throw new IllegalArgumentException("Unknown activity");
                 };
                 if (task!=null || !checks.isEmpty() || turns!=requiredLimit) throw new IllegalArgumentException();
