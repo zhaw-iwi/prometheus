@@ -73,7 +73,7 @@ export class EmbodimentState {
     const active = elapsed !== null && elapsed < duration && this.visible && !this.reduced;
     // Static previews show a representative pose; completed gestures return home.
     const gesture = elapsed === null ? 1 : active ? Math.sin(Math.PI * elapsed / duration) : 0;
-    return { pose: this.pose, gesture, active,
+    return { pose: this.pose, gesture, active, transition: elapsed === null ? 1 : Math.min(1, elapsed / 450),
       ambient: this.visible && !this.reduced ? this.pose.energy * (1 - this.pose.stillness) : 0 };
   }
 }

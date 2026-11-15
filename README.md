@@ -205,6 +205,33 @@ Displays without an ID keep the existing uncorrelated sensor behavior.
 
 #### Cockpit lifecycle contract
 
+The Behaviour column has **Details / Robot** views. Speech stays above the middle
+region and Latest Behaviour Event below it. Details is the default; the browser
+remembers the choice, including detached windows. Robot renders the same plans
+as an original shaded 3D character with expressive eyes/head, arms and fingers.
+Its integrated display shows text/game fields and expandable complete display
+data. The view adds no inference, sensor emission, database polling or audio.
+
+Supported embodiment includes the six ordinary gesture labels, common facial
+expression aliases and symbolic gaze directions, bounded energy/stillness and
+rock/paper/scissor hand poses. Explicit signs take priority on the selected hand;
+user signs stay display information. Unmapped labels are reported with neutral
+poses. This is a visual embodiment, not a physical robotics simulator or gaze
+tracker. Speech still uses the existing card and player, without new lip-sync.
+
+Fresh visible acknowledged/live plans animate once. History/reconnect and view
+switches show static representative poses; native speech-only updates preserve
+nonverbal state. New plans replace old motion; disconnect/reset clears the view.
+Hidden views stop animation and reduced-motion preference uses static poses.
+If WebGL is unavailable, Details remains available with an explanatory notice.
+The separate HRI study interface and protocol do not acquire this view.
+
+The pinned Three.js browser modules and MIT license are served locally. After
+`npm ci`, `npm run vendor:embodiment` reproduces them. Focused checks:
+`npm run test:embodiment:unit` and `npm run test:embodiment:browser` (with a local
+server, or the ordinary Playwright application startup). Roadmap/evidence:
+`.agents/PLAN_EMBODIMENT.md` and `.agents/EMBODIMENT_RESULTS.md`.
+
 The sensing, interaction, and behaviour columns represent the currently
 connected agent only. An empty column contains no agent-derived history,
 starter message, sensing value, or behaviour value; operator lifecycle notices
