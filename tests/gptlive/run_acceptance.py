@@ -54,7 +54,7 @@ def main():
         if args.classroom_capacity or args.live_only or args.coordination_scenario != 'baseline':
             parser.error('--study cannot select unrelated capacity/Live/Coordination scenarios')
         if args.java_tests == 'LiveCockpitSmokeIntegrationTest':
-            args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest,StudySessionsIntegrationTest,StudyRestartIntegrationTest,StudyTurnsIntegrationTest,StudyRecorderIntegrationTest,StudyGuessingTest,StudyGuessingIntegrationTest,StudyContextTest,StudyContextIntegrationTest,StudySignsTest,StudySignsIntegrationTest'
+            args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest,StudySessionsIntegrationTest,StudyRestartIntegrationTest,StudyTurnsIntegrationTest,StudyRecorderIntegrationTest,StudyGuessingTest,StudyGuessingIntegrationTest,StudyContextTest,StudyContextIntegrationTest,StudySignsTest,StudySignsIntegrationTest,StudyAssessmentTest,StudyOperationsIntegrationTest'
         if args.java_tests == 'none' and not (args.browser or args.paid_core):
             parser.error('--study requires a test, browser, or provider selection')
         if args.browser:

@@ -41,3 +41,6 @@ Before project work, follow the repository bootstrap:
 The immediate next work is the study-system implementation scoped in PLAN.md,
 alongside finalizing the protocol and annotated paper draft. Research procedures
 marked as proposals must not be described as completed methods or findings.
+
+Implementation instrument and coding freeze: [INSTRUMENTS.md](INSTRUMENTS.md).
+Operator/API details: [IMPLEMENTATION.md](IMPLEMENTATION.md).

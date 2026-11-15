@@ -8,13 +8,15 @@ import com.google.gson.Gson;
 /** Versioned research materials, kept separate from model instructions and participant responses. */
 @Component
 public class StudyMaterials {
-    public record Item(String id, String prompt, String kind) {}
+    public record Item(String id, String prompt, String kind,boolean optional,String section) {
+        public Item(String id,String prompt,String kind){this(id,prompt,kind,false,null);}
+    }
     public record Scenario(String id, String title, boolean ready, String task, String privatePrompt,
             Item revision, Item probe, List<Item> understanding, List<String> rubric,List<Integer> sceneProbe) {
         public Scenario { understanding = List.copyOf(understanding); rubric = List.copyOf(rubric);sceneProbe=sceneProbe==null?List.of():List.copyOf(sceneProbe); }
     }
     public record Manifest(String version, String language, List<Scenario> scenarios,
-            List<Item> pre, List<Item> post) {
+            List<Item> pre, List<Item> post,String debrief) {
         public Manifest { scenarios = List.copyOf(scenarios); pre = List.copyOf(pre); post = List.copyOf(post); }
     }
     private static final Set<String> SCENARIOS = Set.of("guess", "context", "signs");
@@ -22,7 +24,7 @@ public class StudyMaterials {
     private static final Set<String> QUALIFIED = Set.of();
     private final Manifest manifest;
     public StudyMaterials() {
-        try (var input = StudyMaterials.class.getResourceAsStream("/hri-study/materials-v1.json")) {
+        try (var input = StudyMaterials.class.getResourceAsStream("/hri-study/materials-v2.json")) {
             manifest = parse(new String(Objects.requireNonNull(input).readAllBytes(), StandardCharsets.UTF_8));
         } catch (java.io.IOException failure) { throw new IllegalStateException("Study materials unavailable", failure); }
     }

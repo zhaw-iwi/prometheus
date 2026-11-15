@@ -17,17 +17,30 @@ public class StudyController {
     private final StudyEvidence evidence;
     private final StudyProcedure procedure;
     private final String adminToken;
-    public record Invite(StudyAttempt.Mode mode, String scenario, UUID predecessor) {}
+    private final StudyOperations operations;
+    public record Invite(StudyAttempt.Mode mode, String scenario, UUID predecessor,boolean foundation) {}
     public record Consent(String version) {}
     public record Finish(String reason) {}
-    public StudyController(StudySessions sessions, StudyTurns turns, StudyEvidence evidence, StudyProcedure procedure,@Value("${prometheus.admin.token:}") String adminToken) {
+    public StudyController(StudySessions sessions, StudyTurns turns, StudyEvidence evidence, StudyProcedure procedure,StudyOperations operations,@Value("${prometheus.admin.token:}") String adminToken) {
         this.sessions=sessions; this.turns=turns; this.evidence=evidence; this.procedure=procedure;this.adminToken=adminToken;
+        this.operations=operations;
     }
     @PostMapping("/admin/study/attempts")
     public StudySessions.Invitation invite(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false) String token,
             @RequestBody Invite request) {
-        admin(token); return sessions.invite(request.mode(),request.scenario(),request.predecessor());
+        admin(token); return sessions.invite(request.mode(),request.scenario(),request.predecessor(),request.foundation());
     }
+    @GetMapping("/admin/study/attempts")
+    public StudyOperations.Listing list(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false) String token,
+            @RequestParam StudyAttempt.Mode mode,@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="50")int size){admin(token);return operations.list(mode,page,size);}
+    @PostMapping("/admin/study/batches")
+    public StudyOperations.BatchResult provision(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false)String token,@RequestBody StudyOperations.BatchRequest request){admin(token);return operations.provision(request);}
+    @PostMapping("/admin/study/attempts/{id}/assistance")
+    public ResponseEntity<Void> assist(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false)String token,@PathVariable UUID id,@RequestBody StudyOperations.Assistance note){admin(token);operations.assist(id,note);return ResponseEntity.noContent().build();}
+    @GetMapping("/admin/study/export")
+    public com.fasterxml.jackson.databind.JsonNode dataset(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false)String token,@RequestParam StudyAttempt.Mode mode){admin(token);return operations.dataset(mode);}
+    @GetMapping(value="/admin/study/assessments.csv",produces="text/csv")
+    public String csv(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false)String token,@RequestParam StudyAttempt.Mode mode){admin(token);return StudyOperations.csv(operations.dataset(mode));}
     @GetMapping("/admin/study/attempts/{id}")
     public StudySessions.View inspect(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false) String token,
             @PathVariable UUID id) { admin(token); return sessions.inspect(id); }
@@ -51,6 +64,8 @@ public class StudyController {
     @PostMapping("/api/study/finish")
     public StudySessions.View finish(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
             @RequestBody Finish request) { return sessions.finish(token,request.reason()); }
+    @PostMapping("/api/study/complete")
+    public StudySessions.View complete(@RequestHeader(name=TOKEN_HEADER,required=false) String token){return sessions.complete(token);}
     @PostMapping("/api/study/consent")
     public StudySessions.View consent(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
             @RequestBody Consent consent) { return sessions.consent(token,consent.version()); }

@@ -1,3 +1,4 @@
+import {completeAssessment} from './complete.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
@@ -11,7 +12,7 @@ async function say(text){if(report.turns.length>=12)throw Error('Study turn cap'
 async function predict(){const activity=await api('/api/study/activity');assert.equal(activity.predictionRequired,true);await api('/api/study/predictions',{revision:activity.revision,prediction:'Private fixture prediction: retain the pending question after revision, otherwise ask one yes/no question.'});}
 try{
   const invitation=await api('/admin/study/attempts',{mode:'SYNTHETIC',scenario:'guess'});headers={'X-Prometheus-Study-Token':invitation.token};
-  const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v1.json','utf8'));
+  const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v2.json','utf8'));
   await api('/api/study/consent',{version:'synthetic-test-v1'});
   await api('/api/study/forms/pre',Object.fromEntries(materials.pre.map(i=>[i.id,i.kind==='rating7'?'4':'Synthetic fixture'])));
   await api('/api/study/forms/intention',{intention:'A short guessing game'});await api('/api/study/forms/private',{private:'Hidden object: umbrella. I prefer short questions.'});
@@ -30,8 +31,8 @@ try{
   assert.equal(state.phase,'REFLECTION');assert.equal(state.actions,3);
   assert.equal(JSON.parse((await api('/api/study/activity')).game).outcome,'QUESTION_LIMIT_REACHED');
   for(const event of await api('/api/study/events'))if(event.type==='resp.behaviour_plan')await api('/api/study/display',{eventId:event.id,clientTime:new Date().toISOString()});
-  await api('/api/study/finish',{reason:'ACTIVITY_ENDED'});
+  await api('/api/study/finish',{reason:'ACTIVITY_ENDED'});await completeAssessment(api);
   headers={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};report.export=await api(`/admin/study/attempts/${invitation.session.id}/export`);
-  assert.equal(report.export.manifest.recordingComplete,true);assert.equal(report.export.agreements.length,2);assert.ok(!JSON.stringify(report.export).includes(invitation.token));report.passed=true;
+  assert.equal(report.export.manifest.recordingComplete,true);assert.equal(report.export.manifest.procedureComplete,true);assert.equal(report.export.agreements.length,2);assert.ok(!JSON.stringify(report.export).includes(invitation.token));report.passed=true;
 }catch(error){report.error=error.message;process.exitCode=1;}
 finally{await fs.writeFile(output,JSON.stringify(report,null,2));console.log(JSON.stringify({passed:report.passed,turns:report.turns.length,error:report.error}));}

@@ -42,6 +42,14 @@ class StudyGuessingIntegrationTest {
         var answer=Map.of("revision",procedure.view(token).revision(),"prediction","private-prediction-fixture");
         procedure.predict(token,answer);return answer;
     }
+    @Test void assignedExecutorAndOneRevisionCardAreEnforced() {
+        var invite=ready();String token=invite.token();var generic=contract(3).deepCopy();generic.remove("activity");
+        operation=update("PROPOSE",generic);say(token,"Propose a generic conversation.");assertNull(turns.conversation(token).draft());
+        operation=update("PROPOSE",contract(3));say(token,"Propose a three-question game.");predict(token);
+        operation=update("START",null);say(token,"Start now");assertTrue(procedure.view(token).revisionInstruction().contains("five"));
+        operation=update("REPLACE",contract(5));say(token,"Change the limit to five in total.");assertTrue(procedure.view(token).revisionInstruction().contains("five"));
+        predict(token);operation=update("START",null);say(token,"Start now");assertNull(procedure.view(token).revisionInstruction());
+    }
     @Test void persistedGameRevisionAndPrivatePredictionsSurviveReloadAndExport() {
         var invite=ready();String token=invite.token();operation=update("PROPOSE",contract(5));say(token,"Propose my game, do not start.");
         assertTrue(procedure.view(token).predictionRequired());

@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-09 (2026-11-15, **complete**, study application branch): full locked
+  assessment/debrief/receipt, v2 frozen materials, balanced allocation/replacements,
+  operator assistance/progress/JSON/CSV, assigned executors and coding protocol.
+  58 Java + 14 browser checks passed on disposable MySQL; five coding cases and
+  14 runner checks passed. Full live OpenAI guessing journey passed technical and
+  independent bounded semantic review (seven calls, 26,280 tokens). Human collection
+  stays closed; OS-10 integrated acceptance next. Evidence: `.doc/papers/hri/RESULTS.md`.
+
 - OS-08 (2026-11-15, **complete**, study application branch): negotiated sign
   answers with optional demonstrations, question/run/revision-bound simulation,
   durable observation deduplication, wait/resume and accepted mapping changes.

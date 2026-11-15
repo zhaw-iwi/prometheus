@@ -22,9 +22,11 @@ public class StudyProcedure {
     private final StudyFormRepository forms;
     private final AgentRepository agents;
     private final StudyRecorder recorder;
-    private final StudyMaterials materials;
-    public StudyProcedure(StudySessions sessions,StudyFormRepository forms,AgentRepository agents,StudyRecorder recorder,StudyMaterials materials) {
-        this.sessions=sessions;this.forms=forms;this.agents=agents;this.recorder=recorder;this.materials=materials;
+    private final StudyRecordRepository records;
+    private final StudyProtocol protocol;
+    public StudyProcedure(StudySessions sessions,StudyFormRepository forms,AgentRepository agents,StudyRecorder recorder,StudyRecordRepository records,StudyProtocol protocol) {
+        this.sessions=sessions;this.forms=forms;this.agents=agents;this.recorder=recorder;this.records=records;
+        this.protocol=protocol;
     }
     Storage storage(StudyAttempt attempt) { return ((TaskPolicy)agents.findById(attempt.agentId).orElseThrow().getCurrentState().ownPolicy()).storage(); }
     static String revision(Storage storage) { return TaskMemory.text(storage,TaskMemory.REVISION,"0"); }
@@ -34,19 +36,27 @@ public class StudyProcedure {
     public Activity view(String token) {
         var attempt=sessions.require(token,false); open(attempt);
         if(attempt.agentId==null) return new Activity("0",false,false,null,null,null,null,null,0,true,0,List.of(),null,null);
-        var storage=storage(attempt); var scenario=materials.scenario(attempt.scenario);
+        var storage=storage(attempt); var scenario=protocol.scenario(attempt);
         boolean applied=sceneApplied(attempt);var observedScene=ch.zhaw.prometheus.agentdefs.study.StudyContext.scene(storage);
         var accepted=CoordinationMemory.agreement(storage,CoordinationMemory.AGREEMENT);
         boolean played=accepted!=null && accepted.activity()!=null
                 && !"REFLECTION".equals(CoordinationMemory.stage(storage));
+        var acceptances=records.findByAttemptIdOrderByRecordedAt(attempt.id).stream().filter(r->r.kind.equals("ACCEPTANCE")).toList();
+        String revisionCard=played && acceptances.size()==1?revisionInstruction(CoordinationAgreement.parse(
+                JsonParser.parseString(acceptances.getFirst().payload).getAsJsonObject().get("agreement")),scenario):null;
         return new Activity(revision(storage),required(storage),saved(attempt,storage),
                 StudyGuessing.state(storage)==null?null:StudyGuessing.state(storage).toString(),
-                played?scenario.revision().prompt():null,played?scenario.probe().prompt():null,
+                revisionCard,played?scenario.probe().prompt():null,
                 storage.containsKey(CoordinationMemory.CONTEXT_STATE)?storage.get(CoordinationMemory.CONTEXT_STATE).toString():null,
                 applied&&observedScene!=null?observedScene.toString():attempt.scenePayload,attempt.sceneVersion,applied,attempt.sceneProbeStep,scenario.sceneProbe(),
                 text(ch.zhaw.prometheus.agentdefs.study.StudySigns.state(storage)),text(ch.zhaw.prometheus.agentdefs.study.StudySigns.scope(storage)));
     }
     private static String text(JsonObject value){return value==null?null:value.toString();}
+    static String revisionInstruction(CoordinationAgreement accepted,StudyMaterials.Scenario scenario){
+        if(StudyGuessing.game(accepted) && GuessingContract.parse(accepted.activity()).questionLimit()==3)
+            return "Ask to change the question limit to five in total, including questions already asked, keeping the roles and other agreed requirements unchanged. Predict, review and accept the revised proposal.";
+        return scenario.revision().prompt();
+    }
     @Transactional
     public Activity predict(String token,Map<String,String> answer) {
         var attempt=sessions.require(token,true); open(attempt);
@@ -75,7 +85,7 @@ public class StudyProcedure {
     }
     void validateSceneProbe(StudyAttempt attempt,JsonObject payload) {
         if(!payload.has("probeStep"))return;
-        int step=payload.get("probeStep").getAsInt();var script=materials.scenario(attempt.scenario).sceneProbe();
+        int step=payload.get("probeStep").getAsInt();var script=protocol.scenario(attempt).sceneProbe();
         if(step!=attempt.sceneProbeStep || step<0 || step>=script.size() || payload.get("humanCount").isJsonNull()
                 || payload.get("humanCount").getAsInt()!=script.get(step))throw failure(HttpStatus.CONFLICT,"Use the next planned scene step");
         var storage=storage(attempt);var task=ch.zhaw.prometheus.agentdefs.study.StudyContext.state(storage);

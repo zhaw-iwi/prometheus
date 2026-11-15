@@ -330,3 +330,12 @@ independent coding rehearsal, and the documented operational workload. Report
 unverified provider, participant, or deployment behavior honestly. Update this
 document with implementation status and evidence links, and reconcile protocol
 changes with the brief. Stop for owner review without committing unless instructed.
+
+## Implemented assessment/procedure draft
+
+`hri-text-v2-draft` freezes the software study materials. See
+[INSTRUMENTS.md](INSTRUMENTS.md) for exact instrument source/scoring, open-reference
+understanding, adaptive one-revision timing and coding worksheet. Balanced task
+allocation and separate participant/attempt denominators are implemented; failed,
+withdrawn and replacement attempts remain in exports. This software freeze does
+not authorize human collection or replace the required pilot.

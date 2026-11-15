@@ -121,3 +121,9 @@ commitments and outcome accuracy separately as 1/0/NA. Earlier answers must reta
 their original meaning after a mapping swap. Compare private preferences, expressed
 requirements, snapshots and predictions separately, following A's rubric. This
 validates negotiated symbolic interaction, not visual gesture recognition.
+
+The v2 timing/card and assessment freeze is in [INSTRUMENTS.md](INSTRUMENTS.md).
+A first accepted guessing limit of three gets a change-to-five card; other first
+limits get change-to-three. The card is fixed from that first acceptance and is
+removed after a second acceptance. Record deviations rather than forcing a
+successful trial. Full protocol sessions reject a different/generic executor.

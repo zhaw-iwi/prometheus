@@ -27,7 +27,7 @@ class StudyRecorderIntegrationTest {
     @MockitoSpyBean StudyRecorder recorder;
     @MockitoBean LanguageModelGateway gateway;
     StudySessions.Invitation ready() {
-        var invitation=sessions.invite(StudyAttempt.Mode.SYNTHETIC,"guess",null);
+        var invitation=sessions.invite(StudyAttempt.Mode.SYNTHETIC,"guess",null,true);
         sessions.consent(invitation.token(),StudySessions.SYNTHETIC_CONSENT);
         var pre=new HashMap<String,String>();
         materials.manifest().pre().forEach(i -> pre.put(i.id(),i.kind().equals("rating7")?"4":"None"));

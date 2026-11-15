@@ -5,10 +5,11 @@ the evolving software contract; it is not a participant protocol or collection a
 
 ## Current boundary
 
-OS-01–04 provide materials, a study definition, durable attempts, private forms,
-recoverable text turns and research recording/export. The landing page is closed.
-Scenario execution and assessments are later milestones. Study attempts have independent procedural stages and own
-one agent after preparation. Agent task state remains owned by Coordination.
+OS-01–09 implement all three executable text scenarios, resumable sessions,
+private forms, durable turns, research evidence, assessments and operations.
+Human collection stays closed pending qualification and institutional arrangements.
+Study procedural stages own one agent after preparation; Coordination retains
+agreement and task authority.
 
 Additive Hibernate-managed tables are introduced: `study_attempt` (hashed
 credential, assignment, consent, procedural stage, predecessor and agent binding),
@@ -338,3 +339,45 @@ Study runs compile into their own artifact directory through
 `-Dprometheus.build.directory=...`, isolating acceptance from an editor's concurrent
 incremental compiler. Ordinary Maven builds still use `target`. Reports, compiled
 fixtures, browser screenshots and provider evidence belong to that one run.
+
+## Assessment and operations (OS-09)
+
+Default materials are `materials-v2.json` (`hri-text-v2-draft`). Metadata freezes
+the entire material/information snapshot at invitation creation. Participant pages,
+forms and cards use that snapshot on resume. Read [INSTRUMENTS.md](INSTRUMENTS.md)
+for item sources, scoring, protocol timing and human coding rules.
+
+After `/finish`, immutable `ASSESSMENT_REFERENCE` captures the accepted terms,
+run/revision and outcome. Stages are ASSESSMENT -> POST -> DEBRIEF -> COMPLETE.
+`forms/understanding` and `forms/post` require exact versioned keys; submitted
+answers cannot change. Identical retries return the saved result. Optional ratings
+support explicit SKIP; exploratory ratings also support NOT_APPLICABLE in the UI.
+Understanding is open-reference with explicit unknown/not-applicable answers.
+`POST /api/study/complete` saves the completion receipt. Completion means procedure
+completion, not task success. JSON exports include transparent UMUX-LITE scores,
+missingness and separately named exploratory ratings; free text needs human coding.
+
+`/hri-study/operator.html` holds the admin credential only in page memory.
+`POST /admin/study/batches` accepts `{requestId,mode,count}` (1-50), allocates
+random balanced blocks of three, and returns invitation credentials once. Retrying
+the same ID returns identities only; lost credentials require explicit replacements.
+`GET /admin/study/attempts?mode=SYNTHETIC&page=0&size=50` lists progress and failures.
+`POST /admin/study/attempts/{id}/assistance` accepts `{id,kind,note}` with TECHNICAL,
+PROCEDURAL or CONTENT and an idempotent immutable note. Dataset JSON at
+`GET /admin/study/export?mode=SYNTHETIC` and spreadsheet-safe answer CSV at
+`GET /admin/study/assessments.csv?mode=SYNTHETIC` retain every attempt, replacement,
+failure and missing answer. Dataset export is a bounded operator operation (1000
+attempts maximum); perform large exports outside participant waves.
+
+Additive schema: `study_allocation` persists shuffled block/index under a row lock;
+`study_batch` persists provisioning request identity and attempt IDs (no raw secrets).
+`study_attempt` adds participant identity, allocation metadata, frozen information
+and a synthetic-only foundation flag. Replacement copies identity/task and does
+not redraw. Each full session restricts proposals/acceptance to its assigned typed
+executor. Explicit `foundation:true` is available only for synthetic generic-runtime
+fixtures, recorded in metadata and excluded from scenario qualification. Private
+forms supply no task parameters; the assigned executor kind is a capability limit.
+
+Human provisioning additionally requires reviewed `prometheus.study.information-text`
+and `information-version`, collection enablement and qualified materials. All remain
+closed by default. No clinical/physical execution or human readiness is inferred.

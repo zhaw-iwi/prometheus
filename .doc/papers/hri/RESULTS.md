@@ -352,3 +352,46 @@ provenance and disable answers while paused/ended. Final runner preflight: 14
 passed; JavaScript syntax and `git diff --check` passed. The final prompt-only
 correction was verified by the six sign checks and paid trial after the 50-check
 study and 45-check shared/executor regressions. All human collection stays closed.
+
+## OS-09 - assessments, allocation and operations (2026-11-15)
+
+Base `6d0f583f`, branch `experiment/hri-2027-coordination`; v2 draft materials,
+source recorded as dirty while testing. Complete private understanding/post forms,
+debrief/receipt, frozen materials/information, assigned executor, first-agreement
+revision card, balanced randomized batches, replacement identity, assistance,
+operator UI, JSON/CSV and explicit missingness/UMUX-LITE scoring are implemented.
+See INSTRUMENTS.md for protocol/coding choices and primary instrument citation.
+
+All artifacts below are `target/gptlive-acceptance-<suffix>/` and retained locally.
+- `d04da37d22`: 14 attempted, 13 context errors caused by a duplicate new material
+  ID. Renamed the understanding ID to `.unchanged`; original failure retained.
+- `df40fc82e6`: 14 Java and 11 prior browser journeys passed after that correction.
+- `2f67e92a71`: seven new scoring/allocation/assessment DB checks passed.
+- `eb3d5c11a7`: 23 focused Java passed; 13/14 browser passed. The operator mobile
+  viewport overflowed. Corrected the grid minimum width; no journey bypass.
+- **`4161eee5d2`: `python tests/gptlive/run_acceptance.py --study --browser`:
+  58 Java and 14 browser checks passed, no skips/retries.** All A/B/C journeys
+  now finish understanding/post/debrief/receipt. No-agreement and technical-failure
+  journeys do too; operator allocation/assistance/revocation/export passes.
+- **`232a957f2e`: `--study --java-tests none --paid-core coordination-text
+  --study-scenario guess`: nine committed/replayed turns, seven real OpenAI
+  requests, 26,280 tokens, technical and independently reviewed bounded semantic
+  PASS.** Only question/dialogue limits changed (5 to 3); roles/conditions/success
+  stayed exact. Pending question survived pause/revision; exhaustion reported no
+  confirmed guess. Final export: 35 records, two agreements, 21 answer rows,
+  ten synthetic display receipts; recording/procedure/configuration/display all
+  complete, zero unresolved requests. Private preparation/prediction/assessment
+  markers absent from provider requests. Raw report retains semanticReview PENDING;
+  this paragraph is the separate independent review, not a model-judge result.
+- `node --test tests/hri/coding.test.mjs`: five labeled synthetic cases passed,
+  distinguishing instruction fidelity, understanding and execution, including
+  unspoken preference and no agreement. Runner preflight: 14 passed. JS syntax
+  and `git diff --check` passed.
+
+Inspected desktop/mobile understanding and questionnaire screenshots, mobile
+validation/focus, debrief/receipt and operator layouts. Participant forms wrap
+without horizontal overflow; operator table scrolls within its card. Assessed
+answers are open-reference, not unaided recall. Browser fixtures supply synthetic
+answers, not evidence of human comprehension. Allocation is procedural random
+assignment, not randomized treatment. Human collection, deployment, retention
+approval and pilot remain external pending gates. OS-10 integrated acceptance next.

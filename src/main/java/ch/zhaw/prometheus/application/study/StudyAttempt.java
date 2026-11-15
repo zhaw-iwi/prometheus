@@ -9,7 +9,7 @@ import jakarta.persistence.*;
 @Table(name = "study_attempt")
 public class StudyAttempt {
     public enum Mode { SYNTHETIC, PILOT, MAIN }
-    public enum Stage { INFORMATION, PRE, INTENTION, PRIVATE, COORDINATION, REVISION, TRIAL, ASSESSMENT,
+    public enum Stage { INFORMATION, PRE, INTENTION, PRIVATE, COORDINATION, REVISION, TRIAL, ASSESSMENT, POST, DEBRIEF,
         COMPLETE, WITHDRAWN, REVOKED, REPLACED }
     @Id @GeneratedValue UUID id;
     @Version long version;
@@ -23,6 +23,12 @@ public class StudyAttempt {
     @Column(nullable=false) Instant createdAt;
     @Column(nullable=false) Instant updatedAt;
     UUID predecessorId;
+    UUID participantId;
+    @Column(length=32) String allocationKind;
+    Long allocationOrdinal;
+    boolean foundation;
+    @Column(length=100) String informationVersion;
+    @Column(columnDefinition="text") String informationText;
     @Column(unique=true) UUID agentId;
     long turnVersion;
     UUID pendingRequest;

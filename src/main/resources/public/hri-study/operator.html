@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Study operations</title><link rel="stylesheet" href="study.css"><script src="operator.js" defer></script></head>
+<body><header class="topbar"><a class="brand" href="operator.html">Coordination study · Operations</a><span>Operator access</span></header><main>
+<h1>Study sessions</h1><p>Provision invitations, record assistance and export complete research records. Synthetic, pilot and main datasets stay separate.</p>
+<p id="operator-notice" class="notice" role="status" hidden></p>
+<section class="card"><form id="operator-login"><label for="admin-credential">Operator credential</label><input id="admin-credential" type="password" autocomplete="off" required><p class="hint">Held only in this page’s memory. Never give it to a participant.</p><button>Open operations</button></form></section>
+<div id="operations" hidden>
+<section class="card"><h2>Provision a balanced batch</h2><form id="batch-form"><label for="dataset-mode">Dataset</label><select id="dataset-mode"><option>SYNTHETIC</option><option>PILOT</option><option>MAIN</option></select>
+<label for="batch-count">Number of invitations</label><input id="batch-count" type="number" min="1" max="50" value="3" required><p class="hint">Tasks are randomly ordered within balanced blocks of three. Human collection requires a qualified release and reviewed participant information. Save invitations now: credentials are returned once.</p>
+<button id="provision">Create invitations</button><button id="retry-batch" type="button" class="secondary" hidden>Check the same provisioning request</button></form>
+<div id="invitations" hidden><h3>New invitations</h3><textarea id="invitation-links" rows="4" readonly aria-label="Participant invitation links"></textarea><button id="save-invitations" class="secondary">Save invitation file</button></div></section>
+<section class="card"><h2>Progress and failures</h2><div class="tools"><button id="refresh-attempts" class="secondary">Refresh sessions</button><button id="export-json" class="secondary">Export dataset JSON</button><button id="export-csv" class="secondary">Export assessment CSV</button></div><p id="listing-count" class="hint"></p>
+<div class="table-scroll"><table><thead><tr><th>Attempt</th><th>Task</th><th>Stage</th><th>Ending</th><th>Agreements</th><th>Unresolved</th><th>Assistance</th><th>Actions</th></tr></thead><tbody id="attempt-rows"></tbody></table></div>
+<div class="tools"><button id="previous-page" class="secondary">Previous page</button><button id="next-page" class="secondary">Next page</button></div></section>
+<section id="assistance-panel" class="card" hidden><h2>Record assistance</h2><p id="selected-attempt" class="hint"></p><form id="assistance-form"><label for="assistance-kind">Category</label><select id="assistance-kind"><option>TECHNICAL</option><option>PROCEDURAL</option><option>CONTENT</option></select><label for="assistance-note">What assistance was given?</label><textarea id="assistance-note" required maxlength="1000" rows="3"></textarea><p class="hint">Use a factual note and no names or unnecessary personal information. This record is not sent to the assistant.</p><button>Save assistance record</button></form></section>
+</div></main></body></html>

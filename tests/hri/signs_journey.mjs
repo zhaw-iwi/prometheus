@@ -1,3 +1,4 @@
+import {completeAssessment} from './complete.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
@@ -19,7 +20,7 @@ async function demonstrate(){for(const value of ['THUMBS_UP','THUMBS_DOWN','OPEN
 async function predict(){const activity=await api('/api/study/activity');assert.equal(activity.predictionRequired,true);await api('/api/study/predictions',{revision:activity.revision,prediction:'PRIVATE_SIGN_PREDICTION: ask the saved pending question, and use the current agreed mapping.'});}
 try{
   const invitation=await api('/admin/study/attempts',{mode:'SYNTHETIC',scenario:'signs'});headers={'X-Prometheus-Study-Token':invitation.token};
-  const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v1.json','utf8'));await api('/api/study/consent',{version:'synthetic-test-v1'});
+  const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v2.json','utf8'));await api('/api/study/consent',{version:'synthetic-test-v1'});
   await api('/api/study/forms/pre',Object.fromEntries(materials.pre.map(i=>[i.id,i.kind==='rating7'?'4':'Synthetic fixture'])));
   await api('/api/study/forms/intention',{intention:'PRIVATE_SIGN_INTENTION: fictional preferences'});await api('/api/study/forms/private',{private:'PRIVATE_SIGN_PREFERENCE: prefer explicit waiting.'});
   let state=await say('Propose, but do not start, a fictional preference check-in. You ask exactly these questions in order: "Would you like a short activity?", "Would you prefer a quiet activity?", "Would you like a break afterwards?" I answer using simulated buttons: thumbs up means yes, thumbs down means no, open palm means wait without answering. Only my explicit text Resume continues the same pending question. I want to demonstrate all three signs before acceptance. One fresh sign answers only its current pending question and must not carry over. End after recording all agreed answers; Stop ends earlier. Success means recording the answers, not any health outcome. No camera.');
@@ -33,8 +34,8 @@ try{
   await demonstrate();await predict();state=await say('I accept this revised proposal. Start it now.');assert.equal(state.phase,'EXECUTION');assert.equal(state.actions,2);
   assert.deepEqual(JSON.parse((await api('/api/study/activity')).signs).pending,pending);await sign('THUMBS_DOWN');state=await sign('THUMBS_UP');assert.equal(state.phase,'REFLECTION');
   const final=JSON.parse((await api('/api/study/activity')).signs);assert.equal(final.outcome,'ANSWERS_RECORDED');assert.deepEqual(final.answers.map(a=>a.answer),['YES','YES','NO']);
-  await api('/api/study/finish',{reason:'ACTIVITY_ENDED'});headers={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
-  report.export=await api(`/admin/study/attempts/${invitation.session.id}/export`);assert.equal(report.export.manifest.recordingComplete,true);assert.equal(report.export.agreements.length,2);
+  await api('/api/study/finish',{reason:'ACTIVITY_ENDED'});await completeAssessment(api);headers={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
+  report.export=await api(`/admin/study/attempts/${invitation.session.id}/export`);assert.equal(report.export.manifest.recordingComplete,true);assert.equal(report.export.manifest.procedureComplete,true);assert.equal(report.export.agreements.length,2);
   assert.ok(!JSON.stringify(report.export).includes(invitation.token));report.passed=true;
 }catch(error){report.error=error.message;process.exitCode=1;}
 finally{await fs.writeFile(output,JSON.stringify(report,null,2));console.log(JSON.stringify({passed:report.passed,turns:report.turns.length,error:report.error}));}

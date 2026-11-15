@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id);
 const interactive=new Set(['COORDINATION','REVISION','TRIAL']);
+const assessmentStages=new Set(['ASSESSMENT','POST']);
 const closed=new Set(['WITHDRAWN','REVOKED','REPLACED','COMPLETE']);
 const state={token:null,page:null,pending:null,busy:false,syncing:false,again:false,stage:null,events:new Set(),displayed:new Set(),stream:null,cursor:null};
 function notice(text='') { $('notice').textContent=text; $('notice').hidden=!text; }
@@ -54,26 +55,36 @@ async function stream() {
 }
 function renderPreparation(page) {
   const stage=page.session.stage;
-  $('step-heading').textContent=({INFORMATION:'Before you begin',PRE:'A little background',INTENTION:'Your initial intention',PRIVATE:'Your private choices'})[stage]??'Preparation';
-  $('information').textContent=stage==='INFORMATION'?page.information:stage==='PRIVATE'?'These answers are saved separately and are not shown to the assistant.':'Use fictional information. You can write “prefer not to say” for background questions.';
+  $('step-heading').textContent=({INFORMATION:'Before you begin',PRE:'A little background',INTENTION:'Your initial intention',PRIVATE:'Your private choices',ASSESSMENT:'Your interaction is saved',POST:'Your experience'})[stage]??'Preparation';
+  $('information').textContent=stage==='INFORMATION'?page.information:stage==='PRIVATE'?'These answers are saved separately and are not shown to the assistant.':assessmentStages.has(stage)
+    ?'Your answers are private and lock when submitted. You may review the saved conversation and terms below. Use “I don’t know” or “Not applicable” when needed. Feedback follows after both forms.':'Use fictional information. You can write “prefer not to say” for background questions.';
   $('preparation-task').textContent=page.task??''; $('preparation-task').hidden=!page.task;
   $('fields').replaceChildren(); const saved=parse(local(key('form.'+stage)),{});
   if(stage==='INFORMATION') {
     const label=node('label'); const input=node('input'); input.type='checkbox';input.id='consent-check';input.required=true;
-    label.append(input,node('span','I understand that this is a synthetic test and will use invented information.'));$('fields').append(label);
-    $('continue').textContent='Continue with synthetic test';
+    label.append(input,node('span',page.session.mode==='SYNTHETIC'?'I understand that this is a synthetic test and will use invented information.':'I have read the participant information and agree to participate.'));$('fields').append(label);
+    $('continue').textContent=page.session.mode==='SYNTHETIC'?'Continue with synthetic test':'Agree and continue';
   } else {
+    let section;
     for(const item of page.fields) {
+      if(item.section&&item.section!==section){section=item.section;$('fields').append(node('h3',section));}
       const wrapper=node('div'),label=node('label',item.prompt); const field=node(item.kind==='rating7'?'select':'textarea');
-      field.id='field-'+item.id; field.name=item.id;field.required=true;label.htmlFor=field.id;
+      field.id='field-'+item.id; field.name=item.id;field.required=item.kind==='rating7'||!item.optional;label.htmlFor=field.id;
       if(item.kind==='rating7') {
         const empty=node('option','Choose a rating');empty.value='';field.append(empty);
-        for(let i=1;i<=7;i++){const option=node('option',i===1?'1 — Not at all comfortable':i===7?'7 — Very comfortable':String(i));option.value=String(i);field.append(option);}
+        for(let i=1;i<=7;i++){const option=node('option',i===1?'1 — Strongly disagree':i===7?'7 — Strongly agree':String(i));option.value=String(i);field.append(option);}
+        if(item.optional){const skip=node('option','Prefer not to answer');skip.value='SKIP';field.append(skip);
+          if(!item.id.includes('.umux.')){const na=node('option','Not applicable');na.value='NOT_APPLICABLE';field.append(na);}}
       }else {field.maxLength=2000;field.rows=3;}
       field.value=saved[item.id]??'';field.addEventListener('input',()=>local(key('form.'+stage),JSON.stringify(Object.fromEntries(new FormData($('step-form'))))));
-      wrapper.append(label,field);$('fields').append(wrapper);
+      wrapper.append(label,field);
+      if(item.optional&&item.kind==='text')wrapper.append(node('p','Optional. Leave blank if you have nothing to add.','hint'));
+      if(stage==='ASSESSMENT'){
+        const choices=node('div',undefined,'tools');for(const text of ["I don't know.",'Not applicable.']){const button=node('button',text,'secondary');button.type='button';button.addEventListener('click',()=>{field.value=text;field.dispatchEvent(new Event('input'));});choices.append(button);}wrapper.append(choices);
+      }
+      $('fields').append(wrapper);
     }
-    $('continue').textContent=stage==='PRIVATE'?'Begin conversation':'Save and continue';
+    $('continue').textContent=stage==='PRIVATE'?'Begin conversation':stage==='ASSESSMENT'?'Save understanding answers':stage==='POST'?'Save questionnaire':'Save and continue';
   }
 }
 function renderPage(page) {
@@ -81,19 +92,23 @@ function renderPage(page) {
   $('entry').hidden=true;$('workspace').hidden=false;$('mode').textContent=session.mode==='SYNTHETIC'?'Synthetic test session':session.mode==='PILOT'?'Pilot session':'Study session';
   $('heading').textContent=page.title;$('heading').dataset.session=session.id;
   $('progress').textContent=interactive.has(session.stage)?'Conversation · Review and coordinate the activity in your own words.'
-    :session.stage==='ASSESSMENT'?'Interaction saved · Review stage':closed.has(session.stage)?'Session closed':'Preparation · Your progress is saved after each step.';
-  $('preparation').hidden=!['INFORMATION','PRE','INTENTION','PRIVATE'].includes(session.stage);
-  $('interaction').hidden=!interactive.has(session.stage);$('terminal').hidden=!closed.has(session.stage)&&session.stage!=='ASSESSMENT';
+    :assessmentStages.has(session.stage)?'Assessment · Task interaction has ended.':session.stage==='DEBRIEF'?'Answers saved · Debrief':closed.has(session.stage)?'Session closed':'Preparation · Your progress is saved after each step.';
+  $('preparation').hidden=!['INFORMATION','PRE','INTENTION','PRIVATE','ASSESSMENT','POST'].includes(session.stage);
+  $('interaction').hidden=!interactive.has(session.stage)&&!assessmentStages.has(session.stage);$('terminal').hidden=!closed.has(session.stage)&&session.stage!=='DEBRIEF';
+  $('composer').hidden=!interactive.has(session.stage);$('finish').hidden=!interactive.has(session.stage);
   $('withdraw').hidden=closed.has(session.stage);
   if(!$('preparation').hidden&&previous!==session.stage)renderPreparation(page);
-  if(interactive.has(session.stage)) { $('task-title').textContent=page.title;$('task-card').textContent=page.task;void stream(); }
+  if(interactive.has(session.stage)||assessmentStages.has(session.stage)) { $('task-title').textContent=page.title;$('task-card').textContent=page.task;if(interactive.has(session.stage))void stream();else stopStream(); }
   else stopStream();
+  if(assessmentStages.has(session.stage))$('connection').textContent='Saved conversation';
   if(!$('terminal').hidden) {
-    $('terminal-title').textContent=session.stage==='WITHDRAWN'?'You have withdrawn':session.stage==='ASSESSMENT'?'Your interaction is saved':'This session is closed';
-    $('terminal-copy').textContent=session.stage==='ASSESSMENT'?'The synthetic interface test ends here. Your conversation and ending reason have been saved for review.'
+    $('terminal-title').textContent=session.stage==='WITHDRAWN'?'You have withdrawn':session.stage==='DEBRIEF'?'About this study':session.stage==='COMPLETE'?'Your study is complete':'This session is closed';
+    $('terminal-copy').textContent=['DEBRIEF','COMPLETE'].includes(session.stage)?page.debrief
       :session.stage==='WITHDRAWN'?'Further interaction has stopped. The session is recorded as withdrawn.':'Your saved record is retained. Further task messages are unavailable in this session.';
     $('receipt').textContent='Session receipt: '+session.id;
+    $('complete').hidden=session.stage!=='DEBRIEF';
   }
+  if(previous!==session.stage && previous!=null && session.stage!=='INFORMATION'){window.scrollTo(0,0);telemetry('STAGE_VIEW',session.stage);}
 }
 function renderAgreement(conversation) {
   state.hasDraft=!!conversation.draft;state.phase=conversation.phase;
@@ -133,12 +148,12 @@ function renderActivity(activity) {
   state.activity=activity;
   const predictionKey=key('prediction.'+activity.revision);
   if(state.predictionKey!==predictionKey){state.predictionKey=predictionKey;$('prediction').value=local(predictionKey)??'';}
-  $('prediction-form').hidden=!activity.predictionRequired||activity.predictionSaved;
+  $('prediction-form').hidden=!interactive.has(state.stage)||!activity.predictionRequired||activity.predictionSaved;
   const game=parse(activity.game);$('game-progress').hidden=!game;
   $('game-progress').textContent=game?`Questions and guesses spent: ${game.questions}. ${game.outcome?'Recorded result: '+game.outcome.replaceAll('_',' ').toLowerCase():game.pending?'Pending: '+game.pending.words:''}`:'';
-  $('study-instructions').hidden=!activity.revisionInstruction;
+  $('study-instructions').hidden=!interactive.has(state.stage)||!activity.revisionInstruction;
   $('revision-card').textContent=activity.revisionInstruction??'';$('probe-card').textContent=activity.probeInstruction??'';
-  $('scene-panel').hidden=state.page.session.scenario!=='context';
+  $('scene-panel').hidden=!interactive.has(state.stage)||state.page.session.scenario!=='context';
   const scene=parse(activity.scene),checkin=parse(activity.context);
   const count=scene?.humanCount;$('scene-status').textContent=(count==null?'Scene unknown':count===0?'Nobody visible':count===1?'One person visible':`${count} people visible`)+(activity.sceneApplied?'':' · change awaiting processing');
   $('checkin-progress').textContent=checkin?`Check-in: ${checkin.status.toLowerCase().replaceAll('_',' ')}. ${checkin.outcome?'Recorded result: '+checkin.outcome.toLowerCase().replaceAll('_',' '):''}`:'';
@@ -146,7 +161,7 @@ function renderActivity(activity) {
   state.canProbe=step<script.length&&checkin?.status===required&&!state.hasDraft;
   $('scene-probe').textContent=step<script.length?`Next planned scene: ${script[step]===1?'one person':'two people'}`:'Planned scene sequence complete';
   $('scene-probe').disabled=!state.canProbe||state.pending?.kind==='scene';
-  $('sign-panel').hidden=state.page.session.scenario!=='signs';
+  $('sign-panel').hidden=!interactive.has(state.stage)||state.page.session.scenario!=='signs';
   state.signScope=parse(activity.signScope);const signs=parse(activity.signs);
   $('sign-status').textContent=state.signScope?.mode==='DEMONSTRATE'?'Demonstration only: show each remaining sign.':state.hasDraft?'Review and accept the proposal after completing its preparation.':signs?.pending?`Pending question: ${signs.pending.words}`:'No sign answer is currently expected.';
   $('sign-progress').textContent=signs?`${signs.answers.length} answer(s) recorded. ${signs.status==='WAITING'?'Waiting: type Resume to continue.':signs.outcome?'Recorded result: '+signs.outcome.toLowerCase().replaceAll('_',' '):''}`:'';
@@ -206,7 +221,7 @@ async function refresh() {
       state.pending=parse(local(key('pending')));$('message').value=local(key('draft'))??'';
     }
     renderPage(page);
-    if(interactive.has(page.session.stage)||page.session.stage==='ASSESSMENT') {
+    if(interactive.has(page.session.stage)||assessmentStages.has(page.session.stage)) {
       const [conversation,events,activity]=await Promise.all([api('conversation'),api('events'),api('activity')]);renderAgreement(conversation);renderEvents(events);renderActivity(activity);
       if(!state.pending&&page.session.pendingRequest) {
         const entry=conversation.turns.find(t=>t.receipt.requestId===page.session.pendingRequest);
@@ -256,8 +271,8 @@ $('step-form').addEventListener('submit',async event=>{
   event.preventDefault();if(state.busy)return;state.busy=true;$('continue').disabled=true;notice();
   try {
     const stage=state.page.session.stage;
-    if(stage==='INFORMATION')await api('consent',{version:'synthetic-test-v1'});
-    else await api('forms/'+({PRE:'pre',INTENTION:'intention',PRIVATE:'private'})[stage],Object.fromEntries(new FormData($('step-form'))));
+    if(stage==='INFORMATION')await api('consent',{version:state.page.informationVersion});
+    else await api('forms/'+state.page.formKind,Object.fromEntries(new FormData($('step-form'))));
     local(key('form.'+stage),null);await refresh();
   }catch(error){notice(problem(error));}
   finally{state.busy=false;$('continue').disabled=false;}
@@ -276,6 +291,7 @@ $('finish').addEventListener('click',()=>$('finish-dialog').showModal());$('keep
 $('finish-form').addEventListener('submit',async event=>{event.preventDefault();try{await api('finish',{reason:$('finish-reason').value});$('finish-dialog').close();notice();await refresh();}catch(error){notice(problem(error));}});
 $('withdraw').addEventListener('click',()=>$('withdraw-dialog').showModal());$('stay').addEventListener('click',()=>$('withdraw-dialog').close());
 $('confirm-withdraw').addEventListener('click',async()=>{try{await api('withdraw',{});$('withdraw-dialog').close();notice();await refresh();}catch(error){notice(problem(error));}});
+$('complete').addEventListener('click',async()=>{try{await api('complete',{});notice();await refresh();}catch(error){notice(problem(error));}});
 window.addEventListener('online',()=>{telemetry('RECONNECT','network');void refresh();void stream();});
 window.addEventListener('offline',()=>{state.wasOffline=true;$('connection').textContent='Offline · draft saved';notice('You are offline. Your draft is saved in this tab.');stopStream();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void refresh();});

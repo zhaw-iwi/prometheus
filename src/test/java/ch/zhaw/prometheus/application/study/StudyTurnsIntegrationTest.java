@@ -30,7 +30,7 @@ class StudyTurnsIntegrationTest {
     @MockitoBean ch.zhaw.prometheus.logging.AgentMonitorBroadcaster monitor;
     static final String ANSWER="{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{\"speech\":\"Tell me about your task.\"}}";
     StudySessions.Invitation ready() {
-        var invitation=sessions.invite(StudyAttempt.Mode.SYNTHETIC,"guess",null);
+        var invitation=sessions.invite(StudyAttempt.Mode.SYNTHETIC,"guess",null,true);
         sessions.consent(invitation.token(),StudySessions.SYNTHETIC_CONSENT);
         var pre=new HashMap<String,String>();
         materials.manifest().pre().forEach(i -> pre.put(i.id(),i.kind().equals("rating7")?"4":"None"));

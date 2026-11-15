@@ -14,6 +14,11 @@ import jakarta.persistence.*;
 /** Study-only executor; shared Coordination still owns all agreement/control transitions. */
 @Entity
 public class StudyCoordinationUpdateAction extends CoordinationUpdateAction {
+    public static final String REQUIRED_ACTIVITY="study.requiredActivity";
+    @Override protected String additionalInstructions() {
+        return getStorage().containsKey(REQUIRED_ACTIVITY)?"\nThis session supports only activity.kind="+getStorage().get(REQUIRED_ACTIVITY).getAsString()
+                +". Clarify missing terms before proposing. Every proposal must include that typed activity; do not substitute a generic dialogue or a different executor. No private participant choices are known.":"";
+    }
     @Transient private JsonObject preparedGame;
     @Transient private EventHistory currentEvents;
     @Transient private String contextPrior;
@@ -37,7 +42,7 @@ public class StudyCoordinationUpdateAction extends CoordinationUpdateAction {
     @Override public void execute(EventHistory events,PolicyRuntime runtime) {
         preparedGame=null; currentEvents=events; contextPrior=null;
         var storage=getStorage(); var accepted=CoordinationMemory.agreement(storage,CoordinationMemory.AGREEMENT);
-        if(!events.isEmpty() && StudySigns.task(accepted) && !storage.containsKey(CoordinationMemory.DRAFT)
+        if(!events.isEmpty() && StudySigns.task(accepted) && StudySigns.state(storage)!=null && !StudySigns.state(storage).has("outcome") && !storage.containsKey(CoordinationMemory.DRAFT)
                 && StudyGuessing.answer(events.toList().getLast().getPayload())!=null) {
             storage.put(TaskMemory.REPLY,BehaviourPlan.speechOnly("Use a fresh simulated sign for the pending question. Text answers do not consume it.").toJsonObject());return;
         }
@@ -67,6 +72,10 @@ public class StudyCoordinationUpdateAction extends CoordinationUpdateAction {
     @Override protected BehaviourPlan prepareActivity(String operation,CoordinationAgreement proposed,BehaviourPlan reply,Event event,PolicyRuntime runtime) {
         var storage=getStorage(); var accepted=CoordinationMemory.agreement(storage,CoordinationMemory.AGREEMENT);
         var draft=CoordinationMemory.agreement(storage,CoordinationMemory.DRAFT);
+        var candidate=operation.equals("START")?draft:proposed;
+        if(candidate!=null && storage.containsKey(REQUIRED_ACTIVITY) && (candidate.activity()==null
+                || !storage.get(REQUIRED_ACTIVITY).equals(candidate.activity().get("kind"))))
+            throw new IllegalArgumentException("Use the assigned study executor");
         if(operation.equals("START") && (StudyContext.task(draft)||StudySigns.task(draft)))contextPrior=
                 accepted!=null && accepted.activity()!=null && accepted.activity().get("kind").equals(draft.activity().get("kind"))
                 ?TaskMemory.text(storage,CoordinationMemory.PREVIOUS_PHASE,"CONFIGURATION"):"CONFIGURATION";

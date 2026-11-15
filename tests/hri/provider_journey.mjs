@@ -26,10 +26,10 @@ async function turn(text) {
   report.turns.push({input:text,response,conversation}); return conversation;
 }
 try {
-  const invitation=await api('/admin/study/attempts','POST',{mode:'SYNTHETIC',scenario:'guess'});
+  const invitation=await api('/admin/study/attempts','POST',{mode:'SYNTHETIC',scenario:'guess',foundation:true});
   headers={'X-Prometheus-Study-Token':invitation.token};
   await api('/api/study/consent','POST',{version:'synthetic-test-v1'});
-  const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v1.json','utf8'));
+  const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v2.json','utf8'));
   await api('/api/study/forms/pre','POST',Object.fromEntries(materials.pre.map(i=>[i.id,i.kind==='rating7'?'4':'Synthetic fixture'])));
   await api('/api/study/forms/intention','POST',{intention:'Arrange a short welcoming activity'});
   await api('/api/study/forms/private','POST',{private:'Withheld fixture preference'});

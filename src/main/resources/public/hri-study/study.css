@@ -30,3 +30,5 @@ dialog { border:1px solid #bdcbd6; border-radius:14px; max-width:600px; width:ca
 .scene-buttons { flex-wrap:wrap; }
 .scene-panel { padding:1rem 1.5rem; border-bottom:1px solid #d4e1e8; background:#f7fafc; }
 .scene-panel h3 { margin:0; }.scene-panel .scene-buttons { margin-top:.8rem; }
+#preparation { margin-bottom:1.5rem; } #fields h3 { font-size:1rem; margin:1.5rem 0 .5rem; } #fields .tools { margin-top:.6rem; }
+#operations { display:grid; grid-template-columns:minmax(0,1fr); gap:1.5rem; margin-top:1.5rem; } #operations>.card { min-width:0; } #selected-attempt { overflow-wrap:anywhere; } .table-scroll { overflow-x:auto; margin:1rem 0; } table { border-collapse:collapse; width:100%; font-size:.85rem; } th,td { text-align:left; vertical-align:top; border-bottom:1px solid #dce3ea; padding:.6rem; } td button { display:block; margin-bottom:.4rem; white-space:nowrap; } td:first-child { max-width:170px; overflow-wrap:anywhere; }

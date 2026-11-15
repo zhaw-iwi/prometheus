@@ -18,7 +18,7 @@ class StudyRestartIntegrationTest {
         UUID responseId;
         try (var first=new SpringApplicationBuilder(PrometheusApplication.class).web(WebApplicationType.NONE).run()) {
             var sessions=first.getBean(StudySessions.class);
-            var invitation=sessions.invite(StudyAttempt.Mode.SYNTHETIC,"signs",null);
+            var invitation=sessions.invite(StudyAttempt.Mode.SYNTHETIC,"signs",null,true);
             token=invitation.token(); id=invitation.session().id();
             sessions.consent(token,StudySessions.SYNTHETIC_CONSENT);
             var answers=new HashMap<String,String>();

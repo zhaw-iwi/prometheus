@@ -23,17 +23,21 @@ public class StudyRecorder {
     private final OpenAIProperties inference;
     private final String sourceRevision;
     private final boolean sourceDirty;
+    private final ch.zhaw.prometheus.repositories.AgentRepository agents;
     public StudyRecorder(StudyRecordRepository records,StudyMaterials materials,ObjectMapper json,OpenAIProperties inference,
             @Value("${prometheus.study.source-revision:UNKNOWN}") String revision,
-            @Value("${prometheus.study.source-dirty:true}") boolean dirty) {
+            @Value("${prometheus.study.source-dirty:true}") boolean dirty,ch.zhaw.prometheus.repositories.AgentRepository agents) {
         this.records=records; this.materials=materials; this.json=json; this.inference=inference;
         sourceRevision=revision; sourceDirty=dirty;
+        this.agents=agents;
     }
     public void created(StudyAttempt attempt) {
         var metadata=json.createObjectNode(); metadata.put("schema",SCHEMA);
         metadata.put("sourceRevision",sourceRevision); metadata.put("sourceDirty",sourceDirty);
         metadata.put("language","en"); metadata.put("definition",StudyCoordinationAgent.KEY);
         metadata.put("persona",StudyCoordinationAgent.VOICE);
+        metadata.put("foundationFixture",attempt.foundation);
+        metadata.put("informationVersion",attempt.informationVersion);metadata.put("informationText",attempt.informationText);
         metadata.set("materials",json.valueToTree(materials.manifest()));
         metadata.put("provider",Objects.toString(inference.getOpenaivsazureopenai(),"unconfigured"));
         var routes=metadata.putObject("configuredRoutes");
@@ -54,6 +58,14 @@ public class StudyRecorder {
     public void provisioned(StudyAttempt attempt,Agent agent) {
         var value=json.createObjectNode(); value.set("events",events(agent,0));
         append(attempt.id,"provision","PROVISION",value);
+    }
+    public void assessment(StudyAttempt attempt){
+        var value=json.createObjectNode();value.put("materialsVersion",attempt.materialsVersion);value.put("access","OPEN_REFERENCE");value.put("finishReason",attempt.finishReason);
+        if(attempt.agentId!=null){var storage=((TaskPolicy)agents.findById(attempt.agentId).orElseThrow().getCurrentState().ownPolicy()).storage();
+            for(String key:List.of(CoordinationMemory.AGREEMENT,CoordinationMemory.RUN,CoordinationMemory.OUTCOME,TaskMemory.REVISION))
+                if(storage.containsKey(key))value.set(key,parse(storage.get(key).toString()));
+        }
+        append(attempt.id,"assessment","ASSESSMENT_REFERENCE",value);
     }
     public void turn(StudyAttempt attempt,StudyTurn receipt,Agent agent,long sourcePosition) {
         var storage=((TaskPolicy)agent.getCurrentState().ownPolicy()).storage();

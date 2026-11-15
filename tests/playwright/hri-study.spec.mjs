@@ -3,13 +3,13 @@ import fs from 'node:fs/promises';
 
 const admin={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
 const agreement={goal:'Write a brief greeting',humanRole:'Judge the wording',agentRole:'Write a greeting',success:'The participant accepts the wording',questions:[],checks:[],dialogueLimit:5,reactions:null};
-async function invite(request,ready=false,scenario='guess') {
+async function invite(request,ready=false,scenario='guess',foundation=true) {
   expect(process.env.PROMETHEUS_ADMIN_TOKEN,'Use the isolated acceptance runner').toBeTruthy();
-  const response=await request.post('/admin/study/attempts',{headers:admin,data:{mode:'SYNTHETIC',scenario}});expect(response.ok()).toBeTruthy();
+  const response=await request.post('/admin/study/attempts',{headers:admin,data:{mode:'SYNTHETIC',scenario,foundation}});expect(response.ok()).toBeTruthy();
   const invitation=await response.json();
   if(ready) {
     const headers={'X-Prometheus-Study-Token':invitation.token};
-    const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v1.json','utf8'));
+    const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v2.json','utf8'));
     for(const [path,data] of [['consent',{version:'synthetic-test-v1'}],['forms/pre',Object.fromEntries(materials.pre.map(i=>[i.id,i.kind==='rating7'?'4':'None']))],
       ['forms/intention',{intention:'A short friendly greeting'}],['forms/private',{private:'private-umbrella'}]])
       expect((await request.post('/api/study/'+path,{headers,data})).ok()).toBeTruthy();
@@ -27,9 +27,30 @@ async function noMedia(page) {
   const requests=[];page.on('request',r=>{if(/\/(live|speech|transcription)\//.test(r.url()))requests.push(r.url());});
   await page.addInitScript(()=>{window.mediaRequests=0;navigator.mediaDevices.getUserMedia=()=>{window.mediaRequests++;throw Error('Study must not request media');};});return requests;
 }
+async function assessment(page,request,invitation,info,missing=false) {
+  await expect(page.locator('#step-heading')).toHaveText('Your interaction is saved');
+  await expect(page.locator('#composer')).toBeHidden();
+  await page.getByRole('button',{name:'Save understanding answers'}).click();
+  expect(await page.locator('#fields textarea:invalid').count()).toBe(3);
+  await screenshot(page,info,'understanding-validation-mobile',390);
+  for(const field of await page.locator('#fields textarea').all())await field.fill(missing?'Not applicable.':'Synthetic coding response: the saved roles and conditions remain, except the requested revision.');
+  await screenshot(page,info,'understanding-desktop');
+  await page.getByRole('button',{name:'Save understanding answers'}).focus();await page.keyboard.press('Enter');
+  await expect(page.locator('#step-heading')).toHaveText('Your experience');
+  for(const field of await page.locator('#fields select').all())await field.selectOption(missing?'SKIP':'4');
+  await screenshot(page,info,'questionnaire-desktop');await screenshot(page,info,'questionnaire-mobile',390);
+  await page.reload();await expect(page.locator('#fields select').first()).toHaveValue(missing?'SKIP':'4');
+  await page.getByRole('button',{name:'Save questionnaire'}).click();await expect(page.locator('#terminal-title')).toHaveText('About this study');
+  await screenshot(page,info,'debrief-mobile',390);await page.getByRole('button',{name:'Finish study and save receipt'}).click();
+  await expect(page.locator('#terminal-title')).toHaveText('Your study is complete');await page.reload();await expect(page.locator('#receipt')).toContainText(invitation.session.id);
+  const data=await exported(request,invitation);expect(data.manifest.procedureComplete).toBe(true);expect(data.manifest.recordingComplete).toBe(true);
+  expect(data.assessment.umuxLite.raw0to100).toBe(missing?null:50);
+  expect(data.records.filter(r=>r.kind==='ASSESSMENT_REFERENCE')).toHaveLength(1);
+  expect((await request.post('/api/study/forms/understanding',{headers:{'X-Prometheus-Study-Token':invitation.token},data:{changed:'after feedback'}})).ok()).toBe(false);
+}
 
 test('guessing game predicts, plays, revises and ends with a reported result',async({page,request},info)=>{
-  const invitation=await invite(request,true);const media=await noMedia(page);
+  const invitation=await invite(request,true,'guess',false);const media=await noMedia(page);
   const terms={goal:'Guess an everyday object',humanRole:'Keep the secret and answer',agentRole:'Ask and guess',success:'The human confirms a specific guess',
     questions:[],checks:[],reactions:null,dialogueLimit:6,activity:{kind:'GUESSING',secretOwner:'HUMAN',answers:['YES','NO','UNKNOWN'],questionLimit:5,guessesCount:true}};
   const control=async(operation,agreement=null)=>expect((await request.post('/__live-fixture/study-reply',{data:{response:JSON.stringify({operation,agreement,reply:{speech:'Ready.'}})}})).ok()).toBeTruthy();
@@ -54,13 +75,14 @@ test('guessing game predicts, plays, revises and ends with a reported result',as
   await screenshot(page,info,'guess-ended-mobile',390);
   await page.getByRole('button',{name:'Finish interaction'}).click();await page.getByRole('button',{name:'Save and finish'}).click();
   await expect(page.getByRole('heading',{name:'Your interaction is saved'})).toBeVisible();
+  await assessment(page,request,invitation,info);
   const data=await exported(request,invitation);expect(data.agreements).toHaveLength(2);expect(data.manifest.recordingComplete).toBe(true);
   expect(JSON.stringify(data.answers)).toContain('private-prediction-browser');
   expect(await page.locator('#messages').innerText()).not.toContain('private-prediction-browser');expect(media).toEqual([]);
 });
 
 test('negotiated signs demonstrate, wait, revise and answer each question once',async({page,request},info)=>{
-  const invitation=await invite(request,true,'signs');const media=await noMedia(page);
+  const invitation=await invite(request,true,'signs',false);const media=await noMedia(page);
   const terms={goal:'A fictional preference check-in',humanRole:'Answer with the agreed simulated signs',agentRole:'Ask the saved questions in order',success:'The agreed answers are recorded',questions:[],checks:[],dialogueLimit:4,reactions:null,
     activity:{kind:'SIGN_ANSWERS',questions:['Would you like a short activity?','Would you prefer a quiet activity?','Would you like a break afterwards?'],yesSign:'THUMBS_UP',noSign:'THUMBS_DOWN',waitSign:'OPEN_PALM',resume:'EXPLICIT_TEXT',demonstrate:true}};
   const control=async(operation,agreement=null)=>expect((await request.post('/__live-fixture/study-reply',{data:{response:JSON.stringify({operation,agreement,reply:{speech:'Ready.'}})}})).ok()).toBeTruthy();
@@ -80,13 +102,14 @@ test('negotiated signs demonstrate, wait, revise and answer each question once',
   await sign('Thumbs down');await expect(page.locator('#sign-progress')).toContainText('2 answer(s)');await sign('Thumbs up');
   await expect(page.locator('#activity-status')).toHaveText('Activity ended');await expect(page.locator('#sign-progress')).toContainText('answers recorded');await screenshot(page,info,'signs-ended-mobile',390);
   await page.getByRole('button',{name:'Finish interaction'}).click();await page.getByRole('button',{name:'Save and finish'}).click();await expect(page.getByRole('heading',{name:'Your interaction is saved'})).toBeVisible();
+  await assessment(page,request,invitation,info);
   const data=await exported(request,invitation);expect(data.agreements).toHaveLength(2);expect(Object.keys(data.agreements[1].evidence)).toHaveLength(3);expect(data.manifest.recordingComplete).toBe(true);
   const value=data.records.filter(r=>r.kind==='TURN').at(-1).data;
   expect(value['coordination.signAnswers'].answers.map(a=>a.answer)).toEqual(['YES','YES','NO']);expect(media).toEqual([]);expect(await page.evaluate(()=>mediaRequests)).toBe(0);
 });
 
 test('context check-in interrupts held output, revises and resumes a pending question',async({page,request},info)=>{
-  const invitation=await invite(request,true,'context');const media=await noMedia(page);
+  const invitation=await invite(request,true,'context',false);const media=await noMedia(page);
   const terms={goal:'A fictional routine check-in',humanRole:'Report yes or no in the fictional scenario',agentRole:'Ask once and offer the agreed response',success:'The agreed fictional response is delivered',questions:[],checks:[],dialogueLimit:2,reactions:null,
     activity:{kind:'CONTEXT_CHECKIN',question:'In this fictional scenario, was the medication routine completed?',yesReply:'Thank you for letting me know.',noReply:'You can consider the reminder in the fictional care plan.',startCount:1,postponeAt:2,departure:'END',resume:'EXPLICIT_WHEN_ONE'}};
   const control=async(operation,agreement=null,speech='Ready.')=>expect((await request.post('/__live-fixture/study-reply',{data:{response:JSON.stringify({operation,agreement,reply:{speech}})}})).ok()).toBeTruthy();
@@ -114,6 +137,7 @@ test('context check-in interrupts held output, revises and resumes a pending que
   await expect(page.locator('#messages').getByText(revised.activity.noReply,{exact:true})).toBeVisible();await expect(page.locator('#activity-status')).toHaveText('Activity ended');
   await screenshot(page,info,'context-ended-desktop',1440);await scene('Nobody visible');await scene('One person');await expect(page.locator('#activity-status')).toHaveText('Activity ended');
   await page.getByRole('button',{name:'Finish interaction'}).click();await page.getByRole('button',{name:'Save and finish'}).click();
+  await assessment(page,request,invitation,info);
   const data=await exported(request,invitation);expect(data.agreements).toHaveLength(2);expect(data.manifest.recordingComplete).toBe(true);
   expect(data.requests.some(r=>r.receipt.reason==='scene_changed')).toBe(true);expect(media).toEqual([]);
 });
@@ -231,4 +255,26 @@ test('offline drafts survive reconnect and long untrusted text renders safely',a
   await expect(page.locator('#messages').getByText(text,{exact:true})).toBeVisible();expect(await page.locator('#messages img').count()).toBe(0);
   await screenshot(page,info,'long-message-mobile',390);await screenshot(page,info,'long-message-desktop');
   expect(media).toEqual([]);expect(await page.evaluate(()=>window.mediaRequests)).toBe(0);
+});
+
+for(const reason of ['NO_AGREEMENT','TECHNICAL'])test(`unsuccessful ${reason} reaches assessment and debrief`,async({page,request},info)=>{
+  const invitation=await invite(request,true);await open(page,invitation);
+  if(reason==='TECHNICAL'){
+    await page.route('**/api/study/turns',r=>r.fulfill({status:503,body:'Fault fixture'}),{times:1});
+    await page.locator('#message').fill('Please discuss the task.');await page.locator('#send').click();await expect(page.locator('#notice')).toBeVisible();
+  }
+  await page.locator('#finish').click();await page.locator('#finish-reason').selectOption(reason);await page.getByRole('button',{name:'Save and finish'}).click();
+  await assessment(page,request,invitation,info,true);const data=await exported(request,invitation);expect(data.session.finishReason).toBe(reason);expect(data.agreements).toHaveLength(0);
+});
+test('operator provisions balanced invitations, records help and exports retained failures',async({page,request},info)=>{
+  await page.goto('/hri-study/operator.html');await page.getByLabel('Operator credential').fill(process.env.PROMETHEUS_ADMIN_TOKEN);await page.getByRole('button',{name:'Open operations'}).click();
+  await expect(page.locator('#operations')).toBeVisible();await page.locator('#batch-count').fill('3');await page.getByRole('button',{name:'Create invitations'}).click();
+  await expect(page.locator('#invitation-links')).toHaveValue(/guess[\s\S]*|signs[\s\S]*|context[\s\S]*/);
+  const links=await page.locator('#invitation-links').inputValue();for(const task of ['guess','context','signs'])expect(links).toContain(task+':');
+  const id=links.split(' ')[0],row=page.locator('#attempt-rows tr').filter({hasText:id});await row.getByRole('button',{name:'Record help'}).click();
+  await page.locator('#assistance-note').fill('Explained the invitation and refresh procedure.');await page.getByRole('button',{name:'Save assistance record'}).click();await expect(page.locator('#operator-notice')).toContainText('Assistance recorded');
+  await row.getByRole('button',{name:'Revoke',exact:true}).click();await expect(row).toContainText('REVOKED');
+  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export assessment CSV'}).click();expect((await download).suggestedFilename()).toBe('study-synthetic.csv');
+  expect(await page.evaluate(()=>JSON.stringify([localStorage,sessionStorage]))).not.toContain(process.env.PROMETHEUS_ADMIN_TOKEN);
+  await screenshot(page,info,'operator-desktop');await screenshot(page,info,'operator-mobile',390);
 });

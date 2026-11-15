@@ -2039,7 +2039,7 @@ definition uses the shared Coordination graph with a neutral English text-only
 profile. Existing saved agents retain their definitions; create a fresh instance
 to use this profile. `/hri-study/` provides the resumable text study interface;
 entry requires an operator-issued invitation. Its public landing remains closed.
-Versioned materials are in `src/main/resources/hri-study/materials-v1.json`;
+Versioned materials are in `src/main/resources/hri-study/materials-v2.json`;
 all scenarios remain unready. Pilot and main attempts are distinct persisted
 designations; neither is authorized for human collection by a material manifest.
 Preparation forms, conversation, saved-term review, recovery and finish/withdraw
@@ -2935,3 +2935,10 @@ a specific occurrence can be correlated with this evidence and physical listenin
 future opt-in browser-local recording paired with this event trace. It is planned,
 not implemented; current telemetry contains no audio recording. The plan retains
 its original Gala trial evidence and references to files on the `agents` branch.
+
+Study assessment and operator workflows are available at `/hri-study/` and
+`/hri-study/operator.html`. Balanced allocation, replacement links, assistance notes,
+locked understanding/post forms, debrief and JSON/CSV exports are described in the
+[study implementation](.doc/papers/hri/IMPLEMENTATION.md) and
+[instrument/coding protocol](.doc/papers/hri/INSTRUMENTS.md). Human collection stays
+closed; use synthetic invitations for software validation.

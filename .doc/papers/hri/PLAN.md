@@ -1,6 +1,6 @@
 # Online student study system: implementation roadmap
 
-Prepared **15 November 2026**. Status: **OS-01–08 complete; OS-09 next**.
+Prepared **15 November 2026**. Status: **OS-01–09 complete; OS-10 next**.
 Actual verification is recorded in [RESULTS.md](RESULTS.md). Read [STUDY.md](STUDY.md) for requirements and
 [PAPER_BRIEF.md](PAPER_BRIEF.md) for research context. This roadmap owns milestone
 sequence, dependencies, acceptance, and implementation evidence.
@@ -96,7 +96,7 @@ not claims that those tests exist.
 | OS-06 | Executable guessing-game coordination | OS-05 | COMPLETE |
 | OS-07 | Executable contextual check-in | OS-06 | COMPLETE |
 | OS-08 | Executable negotiated sign answers | OS-07 | COMPLETE |
-| OS-09 | Full assessment, allocation and operator workflow | OS-06, OS-07, OS-08 | NOT STARTED |
+| OS-09 | Full assessment, allocation and operator workflow | OS-06, OS-07, OS-08 | COMPLETE |
 | OS-10 | Integrated offline acceptance and analysis rehearsal | OS-09 | NOT STARTED |
 | OS-11 | Bounded real-provider semantic acceptance | OS-10 | NOT STARTED |
 | OS-12 | Capacity-qualified package and pilot handoff | OS-11 | NOT STARTED |

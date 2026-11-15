@@ -83,7 +83,7 @@ public class CoordinationUpdateAction extends Action {
                 operation = "SUPPORT"; reply = BehaviourPlan.speechOnly(CoordinationSupport.explain(storage, now));
             } else {
                 boolean selectedStart = CoordinationMemory.ready(storage) && CoordinationAcceptance.explicit(text);
-                String prompt = getPolicy().describe() + "\n" + CoordinationMemory.facts(storage)
+                String prompt = getPolicy().describe() + additionalInstructions() + "\n" + CoordinationMemory.facts(storage)
                         + CoordinationSupport.GUIDANCE
                         + CoordinationTaskContract.GUIDANCE
                         + CoordinationSocialContract.GUIDANCE
@@ -176,6 +176,7 @@ public class CoordinationUpdateAction extends Action {
         return reply;
     }
     protected BehaviourPlan applyActivity(String operation,BehaviourPlan reply,Event event,PolicyRuntime runtime) { return reply; }
+    protected String additionalInstructions() { return ""; }
     protected BehaviourPlan interpretationReply(String operation,JsonElement raw) { return controlReply(operation,raw); }
     protected boolean replacementRequested(String text) {
         return CoreTaskVoice.normalize(text).matches(

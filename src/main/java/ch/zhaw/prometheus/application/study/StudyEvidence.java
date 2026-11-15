@@ -51,7 +51,7 @@ public class StudyEvidence {
     @Transactional
     public void client(String token,ClientEvent event) {
         var attempt=sessions.require(token,true); open(attempt);
-        if (event==null || event.id()==null || event.type()==null || !Set.of("DISCONNECT","RECONNECT","HELP","ERROR").contains(event.type())
+        if (event==null || event.id()==null || event.type()==null || !Set.of("DISCONNECT","RECONNECT","HELP","ERROR","STAGE_VIEW").contains(event.type())
                 || event.code()==null || !event.code().matches("[a-zA-Z0-9_.-]{0,80}"))
             throw failure(HttpStatus.BAD_REQUEST,"Invalid client evidence");
         clientTime(event.clientTime()); String key="client:"+event.id();
@@ -129,10 +129,13 @@ public class StudyEvidence {
         if (attempt.agentId!=null) agents.findById(attempt.agentId).orElseThrow().getEventHistory().toList()
                 .forEach(e -> actualEvents.add(e.getId().toString()));
         var formKinds=new HashSet<>(privateForms.stream().map(f -> f.kind).toList());
-        boolean formsComplete=recordedForms.equals(formKinds) && (attempt.agentId==null || formKinds.containsAll(Set.of("pre","intention","private")));
-        boolean complete=metadata && committed.equals(recordedRequests) && expectedAcceptances.equals(acceptedRequests)
+        boolean formsComplete=recordedForms.equals(formKinds) && (attempt.agentId==null || formKinds.containsAll(Set.of("pre","intention","private")))
+                && (attempt.stage!=StudyAttempt.Stage.COMPLETE || formKinds.containsAll(Set.of("understanding","post")));
+        boolean assessmentReference=attempt.finishReason==null || evidence.stream().anyMatch(r->r.kind.equals("ASSESSMENT_REFERENCE"));
+        boolean complete=metadata && assessmentReference && committed.equals(recordedRequests) && expectedAcceptances.equals(acceptedRequests)
                 && actualEvents.equals(recordedEvents.keySet()) && formsComplete;
         if (!metadata) issues.add("metadata_missing");
+        if (!assessmentReference) issues.add("assessment_reference_missing");
         if (!committed.equals(recordedRequests)) issues.add("turn_record_mismatch");
         if (!expectedAcceptances.equals(acceptedRequests)) issues.add("acceptance_snapshot_mismatch");
         if (!actualEvents.equals(recordedEvents.keySet())) issues.add("canonical_event_mismatch");
@@ -155,7 +158,7 @@ public class StudyEvidence {
                 answer.put("serverRecordedAt",form.createdAt.toString());
             });
         }
-        manifest.put("answerRows",answers.size()); return result;
+        manifest.put("answerRows",answers.size());result.set("assessment",StudyAssessment.score(result)); return result;
     }
     private Map<String,JsonNode> events(List<StudyRecord> evidence) {
         var result=new LinkedHashMap<String,JsonNode>();
