@@ -1,0 +1,48 @@
+{
+  "version": "hri-text-v1-draft", "language": "en",
+  "scenarios": [
+    {
+      "id": "guess", "title": "A short guessing game", "ready": false,
+      "task": "Arrange a short Twenty Questions-style game for a fictional cognitive activity. You choose an everyday object in secret. Agree who asks, answers and guesses, what answers are allowed, the limit, and how to stop. Use your own words; you may negotiate a supported alternative.",
+      "privatePrompt": "Privately record the object and one preference for the activity. Do not reveal the object to the assistant.",
+      "revision": {"id":"guess.revision","kind":"instruction","prompt":"Ask to change the question limit to three, keeping the roles and other agreed requirements unchanged. Review and accept the revised proposal."},
+      "probe": {"id":"guess.probe","kind":"instruction","prompt":"During the game, ask to pause, then explicitly resume when ready."},
+      "understanding": [{"id":"guess.roles","kind":"text","prompt":"Who knows the secret, who asks the questions, and who guesses?"},{"id":"guess.limit","kind":"text","prompt":"What will happen when the agreed question limit is reached?"}],
+      "rubric": ["Secret ownership and roles faithfully agreed", "Answer types and question/guess budget explicit", "Revision changes only requested terms", "Pause preserves the game; budget exhaustion is not success"]
+    },
+    {
+      "id":"context","title":"A fictional routine check-in","ready":false,
+      "task":"Arrange a fictional medication-routine check-in. Agree when it may begin, how to respond if the fictional routine is not completed, what to do when more people are visible, and what departure or return means. Do not provide personal medical information.",
+      "privatePrompt":"Privately record one preference for supportive wording and one condition under which you want the check-in postponed.",
+      "revision":{"id":"context.revision","kind":"instruction","prompt":"Ask for shorter, neutral support wording while preserving all agreed context and stopping conditions."},
+      "probe":{"id":"context.probe","kind":"instruction","prompt":"The simulated scene will change from one visible person to two, then to one again. Predict and observe what happens."},
+      "understanding":[{"id":"context.privacy","kind":"text","prompt":"What should happen when two people are visible?"},{"id":"context.return","kind":"text","prompt":"What permits the check-in to resume after postponement?"}],
+      "rubric":["Observable conditions explicitly agreed without identity claims", "Support is fictional and nonjudgmental", "Postponement and resumption preserve agreement", "Absence, stale evidence, and completion remain distinct"]
+    },
+    {
+      "id":"signs","title":"Agreeing on answer signs","ready":false,
+      "task":"Arrange a short fictional check-in using simulated hand signs. Negotiate thumbs-up and thumbs-down as answers and open palm as wait. Agree which question a sign answers, how to resume, and how to finish. No camera is used.",
+      "privatePrompt":"Privately record your preferred yes/no mapping and one requirement for waiting or resuming.",
+      "revision":{"id":"signs.revision","kind":"instruction","prompt":"Request the opposite yes/no mapping, preserving the agreed wait and stopping rules. Review and accept the change."},
+      "probe":{"id":"signs.probe","kind":"instruction","prompt":"Use open palm while a question is pending, then resume according to your agreement and answer it."},
+      "understanding":[{"id":"signs.mapping","kind":"text","prompt":"Which sign currently means yes, and which means no?"},{"id":"signs.wait","kind":"text","prompt":"What happens to the pending question when you signal wait?"}],
+      "rubric":["Mappings and their scope explicitly agreed", "One sign answers one pending question", "Wait preserves the question", "Revised mapping needs acceptance and does not reinterpret prior answers"]
+    }
+  ],
+  "pre":[
+    {"id":"pre.chatbot","kind":"text","prompt":"How often have you used a conversational AI system?"},
+    {"id":"pre.robot","kind":"text","prompt":"What experience have you had interacting with robots?"},
+    {"id":"pre.prometheus","kind":"text","prompt":"Have you used PROMETHEUS before? If so, briefly describe how."},
+    {"id":"pre.english","kind":"rating7","prompt":"I am comfortable completing this activity in English."}
+  ],
+  "post":[
+    {"id":"post.umux.capabilities","kind":"rating7","prompt":"This system's capabilities meet my requirements."},
+    {"id":"post.umux.ease","kind":"rating7","prompt":"This system is easy to use."},
+    {"id":"post.clarity","kind":"rating7","prompt":"The agreement was clear to me."},
+    {"id":"post.correction","kind":"rating7","prompt":"I could correct the assistant's misunderstandings."},
+    {"id":"post.control","kind":"rating7","prompt":"I could control changes to the agreed activity."},
+    {"id":"post.effort","kind":"rating7","prompt":"Establishing and revising the agreement required a lot of effort."},
+    {"id":"post.misunderstood","kind":"text","prompt":"What, if anything, did the assistant misunderstand?"},
+    {"id":"post.unexpected","kind":"text","prompt":"Describe a moment when its behavior differed from your expectations, if any."}
+  ]
+}

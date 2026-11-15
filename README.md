@@ -2032,6 +2032,23 @@ prototype-oriented.
 
 ### Coordination Agent
 
+The online HRI study application is being implemented on
+`experiment/hri-2027-coordination`; see [.doc/papers/hri/PLAN.md](.doc/papers/hri/PLAN.md)
+and [verification evidence](.doc/papers/hri/RESULTS.md). Its `study.coordination`
+definition uses the shared Coordination graph with a neutral English text-only
+profile. Existing saved agents retain their definitions; create a fresh instance
+to use this profile. `/hri-study/` currently shows a closed preparation page.
+Versioned materials are in `src/main/resources/hri-study/materials-v1.json`;
+all scenarios remain unready. Pilot and main attempts will be distinct persisted
+designations; neither is authorized for human collection by a material manifest.
+
+Study-only checks use the existing disposable local MySQL runner:
+`python tests/gptlive/run_acceptance.py --study --browser`.
+An explicitly authorized paid foundation smoke is
+`python tests/gptlive/run_acceptance.py --study --java-tests none --paid-core coordination-text`.
+It caps provider requests/tokens, keeps evidence under ignored `target/`, and
+requires separate semantic review. No participant media is requested.
+
 The recorded scissors interaction has a repeatable acceptance script in
 `tests/gptlive/README.md` ("Recorded scissors interaction"). For an unchanged
 ON_CUE sensor proposal, explicit commands such as "Yes, let's start now" and

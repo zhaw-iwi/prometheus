@@ -6,6 +6,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
 public class StaticRedirectController {
+    @GetMapping({"/hri-study", "/hri-study/"})
+    public String hriStudy(HttpServletRequest request) {
+        return redirectWithQuery("/hri-study/index.html", request);
+    }
 
     @GetMapping({ "/", "/valerian", "/valerian/" })
     public String valerian(HttpServletRequest request) {

@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-01 (2026-11-15, **complete**, application branch
+  `experiment/hri-2027-coordination`): versioned English materials for all three
+  study scenarios, a neutral text-only Coordination definition using the shared
+  graph, and isolated study acceptance fixtures. Participant collection remains
+  closed and scenarios unready. Verified 37 selected Java checks against disposable
+  MySQL, 13 runner preflight checks, one browser check at two reviewed viewports,
+  and a real OpenAI proposal/acceptance/pause smoke. Evidence, limitations and next
+  milestones: `.doc/papers/hri/RESULTS.md` and `PLAN.md`.
+
 - ES-08 (2026-11-12, **behavioural scope complete**): the owner approved
   the existing Speech service for committed Coordination replies. Live input,
   backend task authority, budgets and playback confirmation remain. The new path

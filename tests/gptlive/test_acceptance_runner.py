@@ -10,6 +10,12 @@ RUNNER = Path(__file__).with_name('run_acceptance.py')
 
 
 class AcceptanceRunnerTest(unittest.TestCase):
+    def test_study_rejects_empty_and_unrelated_paid_selections(self):
+        self.run_rejected(['--study', '--java-tests', 'none'], {}, 'requires a test, browser, or provider selection')
+        self.run_rejected(['--study', '--paid-core', 'live'], {}, 'requires --paid-core coordination-text')
+    def test_study_remote_database_is_rejected_before_provisioning(self):
+        self.run_rejected(['--study'], {'GPTLIVE_MYSQL_ADMIN_URL': 'jdbc:mysql://example.invalid/research'},
+                          'no remote database is permitted')
     def test_escalation_requires_real_live_transport(self):
         for scenario in ('escalation-recovery', 'escalation-dialogue', 'escalation-social'):
             self.run_rejected(['--paid-core', 'coordination-text', '--coordination-scenario', scenario], {},

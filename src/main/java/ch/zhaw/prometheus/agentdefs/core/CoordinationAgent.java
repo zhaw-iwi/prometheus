@@ -27,7 +27,7 @@ public class CoordinationAgent implements AgentDefinition {
             Explain capabilities from the declared profile and fresh evidence; supported sensors need not be enabled.
             Distinguish a human's reported outcome, generated output, recognised observation and physical execution.
             """;
-    static final String CONFIGURE = VOICE + GenericMultimodalBehaviour.OUTPUT + """
+    private static final String AGREEMENT_INSTRUCTIONS = """
 
             Interpret the latest USER utterance and return exactly {"operation":"...","agreement":null,"reply":{...}}.
             Operations: SUPPORT (the person is struggling, confused, reports unexpected behaviour or needs guidance),
@@ -112,31 +112,44 @@ public class CoordinationAgent implements AgentDefinition {
                Example rule: {"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"rock",
                "action":"Tell one short dry joke","effect":"ACT","minConfidence":0,"samples":1,"cooldownSeconds":3}.
             """;
+    static final String CONFIGURE = configurationInstructions(VOICE);
+    protected static String configurationInstructions(String voice) {
+        return voice + GenericMultimodalBehaviour.OUTPUT + AGREEMENT_INSTRUCTIONS;
+    }
     @Override public String key() { return KEY; }
     @Override public String languageCode() { return LANGUAGE_ENGLISH; }
     @Override public boolean capabilityAwareness() { return true; }
     @Override public boolean externalRealtimeSpeech() { return true; }
     @Override public Agent createAgent() { return createAgent(reception); }
     public Agent createAgent(boolean presenceReception) {
+        var base = ValerianCoreAgentFactory.multimodalBehaviourProfile();
+        return createAgent("Valerian Core - Coordination Agent",
+                "Valerian coordinates conversational and multimodal tasks through shared agreements, preparation, execution and reflection.",
+                VOICE, AgentInteractionProfile.of(base.getSupportedObservations(), base.getSupportedBehaviourModalities(),
+                        List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination")), true, presenceReception);
+    }
+    /** Definition-owned presentation reuses the authoritative coordination graph. */
+    protected Agent createAgent(String name, String description, String voice, AgentInteractionProfile profile,
+            boolean ambient, boolean presenceReception) {
         var storage = new Storage();
         storage.put(CoordinationDelivery.ENABLED, new JsonPrimitive(true));
-        storage.put(DecorativeGestures.ENABLED, new JsonPrimitive(true));
-        storage.put(CoreTaskVoice.ENABLED, new JsonPrimitive(true));
-        storage.put(SensoryRemarks.ENABLED, new JsonPrimitive(true));
+        storage.put(DecorativeGestures.ENABLED, new JsonPrimitive(ambient));
+        storage.put(CoreTaskVoice.ENABLED, new JsonPrimitive(ambient));
+        storage.put(SensoryRemarks.ENABLED, new JsonPrimitive(ambient));
         if (presenceReception) storage.put(CoreReception.ENABLED, new JsonPrimitive(true));
         var states = new LinkedHashMap<String, TaskState>();
         for (String phase : List.of("CONVERSATION", "COORDINATION", "PREPARATION", "READY", "EXECUTION", "PAUSED", "FINISHING", "UNCERTAIN", "REFLECTION"))
             states.put(phase, new TaskState("Coordination " + (phase.equals("COORDINATION") ? "agreement" : phase.equals("READY") ? "awaiting acceptance" : phase.toLowerCase(Locale.ROOT)),
-                    new CoordinationPolicy(storage, VOICE), true));
-        var routing = new TaskState("Coordination routing", new CoordinationPolicy(storage, VOICE), false);
+                    new CoordinationPolicy(storage, voice), true));
+        var routing = new TaskState("Coordination routing", new CoordinationPolicy(storage, voice), false);
         for (var entry : states.entrySet()) routing.addTransition(new Transition(new CoordinationDecision(storage, entry.getKey()), entry.getValue()));
         routing.addTransition(new Transition(states.get("CONVERSATION")));
         // These stateless operations share this agent's storage in every phase. Reuse
         // their persisted nodes rather than loading nine copies of the same operation.
         var delivery = new CoordinationDeliveryAction(storage);
-        var update = new CoordinationUpdateAction(storage, CONFIGURE);
+        var update = new CoordinationUpdateAction(storage, configurationInstructions(voice));
         var preparation = new CoordinationPreparationAction(storage);
-        var presence = new SocialSpaceResponseAction(storage, GenericMultimodalBehaviour.behaviourInstructions(VOICE));
+        var presence = new SocialSpaceResponseAction(storage, GenericMultimodalBehaviour.behaviourInstructions(voice));
         var deliveryDecision = new CoordinationDecision(storage, "DELIVERY");
         var utteranceDecision = new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE);
         var preparationDecision = new CoordinationDecision(storage, "OBSERVE_PREPARATION");
@@ -145,15 +158,12 @@ public class CoordinationAgent implements AgentDefinition {
             state.addTransition(new Transition(deliveryDecision, delivery, routing));
             state.addTransition(new Transition(utteranceDecision, update, routing));
             state.addTransition(new Transition(preparationDecision, preparation, routing));
-            state.addTransition(new Transition(presenceDecision, presence, routing));
+            if (ambient) state.addTransition(new Transition(presenceDecision, presence, routing));
         }
         states.get("EXECUTION").addTransition(new Transition(new TaskDecision(storage, "CUE"),
-                new CoordinationCueAction(storage, GenericMultimodalBehaviour.behaviourInstructions(VOICE)), routing));
-        var agent = new Agent("Valerian Core - Coordination Agent",
-                "Valerian coordinates conversational and multimodal tasks through shared agreements, preparation, execution and reflection.", states.get("CONVERSATION"), storage);
-        var base = ValerianCoreAgentFactory.multimodalBehaviourProfile();
-        agent.setInteractionProfile(AgentInteractionProfile.of(base.getSupportedObservations(), base.getSupportedBehaviourModalities(),
-                List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination")).withPresenceControlledLive(presenceReception));
+                new CoordinationCueAction(storage, GenericMultimodalBehaviour.behaviourInstructions(voice)), routing));
+        var agent = new Agent(name, description, states.get("CONVERSATION"), storage);
+        agent.setInteractionProfile(profile.withPresenceControlledLive(presenceReception));
         return applyDefinitionMetadata(agent);
     }
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {

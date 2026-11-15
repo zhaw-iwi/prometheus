@@ -16,6 +16,7 @@ import socket
 import subprocess
 import time
 import uuid
+import xml.etree.ElementTree as ET
 import pymysql
 
 
@@ -34,6 +35,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
+    parser.add_argument('--study', action='store_true', help='Select online-study fixtures/specs; real inference uses --paid-core coordination-text')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--browser-mode', choices=['both', 'enabled', 'disabled'], default='both', help='Select fixture modes for focused browser checks')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
@@ -43,6 +45,17 @@ def main():
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
+    if args.study:
+        if args.paid_core and args.paid_core != 'coordination-text':
+            parser.error('--study paid inference requires --paid-core coordination-text')
+        if args.classroom_capacity or args.live_only or args.coordination_scenario != 'baseline':
+            parser.error('--study cannot select unrelated capacity/Live/Coordination scenarios')
+        if args.java_tests == 'LiveCockpitSmokeIntegrationTest':
+            args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest'
+        if args.java_tests == 'none' and not (args.browser or args.paid_core):
+            parser.error('--study requires a test, browser, or provider selection')
+        if args.browser:
+            args.browser_mode = 'disabled'
     if args.classroom_capacity and (args.paid_core or args.browser):
         parser.error('--classroom-capacity requires a separate offline run')
     if args.classroom_capacity and args.java_tests != 'ClassroomCapacityIntegrationTest':
@@ -157,9 +170,21 @@ def main():
         print('Disposable schema: ' + schema + '; artifacts: ' + str(artifacts), flush=True)
         if args.java_tests != 'none':
             selection = [] if args.java_tests == 'all' else ['-Dtest=' + args.java_tests]
+            test_started = time.time()
             # Every cached Spring context owns a pool. Bound aggregate local connections
             # for full-suite runs without changing any application's production pool size.
             run([*maven, '-q', '-Dspring.test.context.cache.maxSize=4', *selection, 'test'], 'java')
+            if args.study:
+                reports = [p for p in (root / 'target/surefire-reports').glob('TEST-*.xml') if p.stat().st_mtime >= test_started]
+                totals = dict.fromkeys(('tests', 'failures', 'errors', 'skipped'), 0)
+                for report in reports:
+                    suite = ET.parse(report).getroot()
+                    for key in totals:
+                        totals[key] += int(suite.attrib.get(key, 0))
+                    shutil.copy2(report, artifacts / report.name)
+                (artifacts / 'study-tests.json').write_text(json.dumps(totals, indent=2), encoding='utf-8')
+                if not totals['tests'] or any(totals[k] for k in ('failures', 'errors', 'skipped')):
+                    raise SystemExit('Study acceptance requires nonempty passing tests without skipped cases')
             if args.classroom_capacity:
                 capacity = root / 'target/classroom-capacity-report.json'
                 if not capacity.exists():
@@ -177,6 +202,10 @@ def main():
                 PROMETHEUS_SPEECH_URL='https://api.openai.com/v1/audio/speech',
                 PROMETHEUS_LIVE_SESSIONS_URL='https://api.openai.com/v1/live/sessions',
                 PROMETHEUS_LIVE_ENABLED='true', PROMETHEUS_LIVE_REQUEST_TIMEOUT_MS='30000')
+            if args.study:
+                env.update(PROMETHEUS_LIVE_ENABLED='false', PROMETHEUS_PROVIDER_MAX_REQUESTS='20',
+                    PROMETHEUS_PROVIDER_MAX_TOKENS='80000', PROMETHEUS_PROVIDER_MAX_SESSIONS='0',
+                    OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000')
             if escalation:
                 env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='24', PROMETHEUS_PROVIDER_MAX_TOKENS='200000',
                     PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
@@ -211,7 +240,8 @@ def main():
                 else:
                     raise RuntimeError('Isolated real-provider app startup timed out.')
                 journey = 'coordination_text_journey.mjs' if args.paid_core == 'coordination-text' else 'core_backend_journey.mjs'
-                run(['node', 'tests/gptlive/' + journey, '--allow-paid-provider', str(artifacts / 'journey.json'),
+                journey_path = 'tests/hri/provider_journey.mjs' if args.study else 'tests/gptlive/' + journey
+                run(['node', journey_path, '--allow-paid-provider', str(artifacts / 'journey.json'),
                     '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()
         if args.browser:
@@ -252,9 +282,17 @@ def main():
                         if not args.live_only:
                             specs += ['tests/playwright/valerian-lifecycle.spec.mjs', 'tests/playwright/valerian-transcription.spec.mjs',
                                 'tests/playwright/valerian-column-expansion.spec.mjs', 'tests/playwright/valerian-classroom-smoke.spec.mjs']
+                    if args.study:
+                        specs = ['tests/playwright/hri-study.spec.mjs']
+                        env['PLAYWRIGHT_JSON_OUTPUT_FILE'] = str(artifacts / 'study-browser.json')
                     run([npm, 'playwright', 'test', '--config=playwright.config.mjs', *specs,
+                        *(['--reporter=list,json'] if args.study else []),
                         '--output=' + str(artifacts / ('browser-' + enabled)),
                         *(['--grep', args.browser_grep] if args.browser_grep else [])], 'browser-' + enabled)
+                    if args.study:
+                        stats = json.loads((artifacts / 'study-browser.json').read_text(encoding='utf-8'))['stats']
+                        if not stats['expected'] or stats['unexpected'] or stats['skipped'] or stats['flaky']:
+                            raise SystemExit('Study browser acceptance requires passing selected cases without skips or retries')
                     stop()
     finally:
         stop()
