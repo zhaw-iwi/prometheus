@@ -28,7 +28,7 @@ public class StudySessions {
         @Override public String toString() { return "StudyInvitation[session="+session.id()+", credential=REDACTED]"; }
     }
     public record Page(View session,String title,String task,List<StudyMaterials.Item> fields,String information,
-            String informationVersion,String formKind,String debrief) {}
+            String informationVersion,String formKind,String debrief,boolean camera,Instant serverTime) {}
     private final StudyAttemptRepository attempts;
     private final StudyFormRepository forms;
     private final StudyMaterials materials;
@@ -93,7 +93,7 @@ public class StudySessions {
         attempt.participantId=participant;attempt.informationVersion=mode==Mode.SYNTHETIC?SYNTHETIC_CONSENT:informationVersion;
         attempt.allocationKind=predecessor!=null?"REPLACEMENT":allocation==null?"ASSIGNED_SYNTHETIC":"BALANCED_RANDOM";
         attempt.allocationOrdinal=allocation==null?null:allocation.ordinal();
-        attempt.informationText=mode==Mode.SYNTHETIC?SYNTHETIC_INFORMATION:informationText;
+        attempt.informationText=mode==Mode.SYNTHETIC?(camera(attempt)?"Synthetic camera software test: use invented information. Camera images are processed locally; only derived face/person/sign observations are transmitted and stored. No microphone is used. Private preparation is not shown to the assistant.":SYNTHETIC_INFORMATION):informationText;
         attempt=attempts.saveAndFlush(attempt);
         recorder.created(attempt); recorder.procedure(attempt,"created");
         return new Invitation(view(attempt),token);
@@ -125,7 +125,7 @@ public class StudySessions {
         return new Page(view(attempt),scenario.title(),task,fields,
                 attempt.informationText==null?SYNTHETIC_INFORMATION:attempt.informationText,
                 attempt.informationVersion==null?SYNTHETIC_CONSENT:attempt.informationVersion,kind,
-                Set.of(Stage.DEBRIEF,Stage.COMPLETE).contains(attempt.stage)?frozen.debrief():null);
+                Set.of(Stage.DEBRIEF,Stage.COMPLETE).contains(attempt.stage)?frozen.debrief():null,camera(attempt),Instant.now());
     }
     public org.springframework.web.servlet.mvc.method.annotation.SseEmitter stream(String token,String cursor) {
         var attempt=require(token,false); open(attempt);
@@ -193,6 +193,8 @@ public class StudySessions {
             if(!attempt.foundation)((ch.zhaw.prometheus.model.task.TaskPolicy)agent.getCurrentState().ownPolicy()).storage().put(
                     ch.zhaw.prometheus.agentdefs.study.StudyCoordinationUpdateAction.REQUIRED_ACTIVITY,new com.google.gson.JsonPrimitive(
                             switch(attempt.scenario){case "guess"->"GUESSING";case "context"->"CONTEXT_CHECKIN";case "signs"->"SIGN_ANSWERS";default->throw new IllegalStateException();}));
+            ((ch.zhaw.prometheus.model.task.TaskPolicy)agent.getCurrentState().ownPolicy()).storage().put(
+                    ch.zhaw.prometheus.agentdefs.study.StudyVision.ENABLED,new com.google.gson.JsonPrimitive(camera(attempt)));
             attempt.agentId=agent.getId();
             attempt.interactionStartedAt=Instant.now();
             ownership.provision(agent.getId());
@@ -226,6 +228,7 @@ public class StudySessions {
         return (lock?attempts.lockByHash(digest):attempts.findByTokenHash(digest))
                 .orElseThrow(() -> failure(HttpStatus.UNAUTHORIZED,"Invalid study credential"));
     }
+    static boolean camera(StudyAttempt attempt){return "hri-text-v3-draft".equals(attempt.materialsVersion);}
     static void open(StudyAttempt attempt) {
         if (attempt.closed()) throw failure(HttpStatus.CONFLICT,"Attempt is closed");
     }

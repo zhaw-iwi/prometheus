@@ -250,10 +250,15 @@ sensor input, rendered output or confirmed action completion.
 
 ## Online HRI Study Application Branch
 
-`experiment/hri-2027-coordination` adds the English text-only study application
+`experiment/hri-2027-coordination` adds the English typed-dialogue study application
 under `application/study`, `agentdefs/study` and `/hri-study/`. It reuses the shared
 Coordination graph and canonical events, with typed guessing, fictional contextual
-check-in and simulated-sign executors. Private preparation/assessment data stays
+check-in and scoped-sign executors. New v3 attempts use browser camera detectors
+for face estimates, person counts and hand signs; v2 simulation fixtures remain
+separate. The contextual task uses a participant-arranged consenting adult helper.
+Raw camera images and audio are not uploaded or stored. Read
+`.doc/papers/hri/CAMERA.md` for lifecycle, provenance, limits and validation gates.
+Private preparation/assessment data stays
 outside agent prompts. Durable request receipts, accepted snapshots and research
 records are separate from runtime journals. Admission and ownership assume one
 application process with scheduled ticks disabled. Do not move study protocol or

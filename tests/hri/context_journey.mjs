@@ -7,14 +7,20 @@ if(!process.argv.includes('--allow-paid-provider'))throw Error('Explicit paid se
 const output=process.argv[process.argv.indexOf('--allow-paid-provider')+1],base=process.env.PROMETHEUS_BASE_URL;
 if(!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(base))throw Error('Owned loopback app required');
 const report={scenario:'study-context-checkin',semanticReview:'PENDING',passed:false,turns:[]};
+const camera=process.env.PROMETHEUS_STUDY_SENSING==='camera';report.sensing=camera?'camera contract with synthetic detector observations':'controlled simulation';
 let headers={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN},cursor=0;
 const displayed=new Set();
 async function api(path,body){const r=await fetch(base+path,{method:body===undefined?'GET':'POST',headers:{...headers,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(60000)});if(!r.ok)throw Error(`${path}: ${r.status}`);return r.status===204?null:r.json();}
 async function record(input,response){assert.equal(response.status,'COMMITTED');const state=await api('/api/study/conversation'),activity=await api('/api/study/activity');cursor=state.turnVersion;
   report.turns.push({input,response,state,activity});if(report.turns.length>20)throw Error('Study request cap');
   for(const event of await api('/api/study/events'))if(event.type==='resp.behaviour_plan'&&!displayed.has(event.id)){await api('/api/study/display',{eventId:event.id,clientTime:new Date().toISOString(),disposition:event.withheld?'WITHHELD':'DISPLAY'});displayed.add(event.id);}return state;}
-async function say(text){const request={requestId:randomUUID(),expectedTurn:cursor,text};const response=await api('/api/study/turns',request);assert.deepEqual(await api('/api/study/turns',request),response);return record(text,response);}
-async function scene(count,planned=false){const activity=await api('/api/study/activity');const request={requestId:randomUUID(),expectedScene:activity.sceneVersion,humanCount:count,observedAt:new Date().toISOString(),...(planned?{probeStep:activity.sceneProbeStep}:{})};const response=await api('/api/study/scene',request);assert.deepEqual(await api('/api/study/scene',request),response);return record({simulatedCount:count},response);}
+async function say(text){if(camera){
+    const a=await api('/api/study/activity');const reading=JSON.parse(a.scene??'null');
+    const r=await api('/api/study/vision',{requestId:randomUUID(),expectedScene:a.sceneVersion,humanCount:reading?.humanCount??1,emotion:'neutral',confidence:.9,observedAt:new Date().toISOString()});
+    assert.equal(r.status,'COMMITTED');cursor=r.committedTurn;
+    text=text.replaceAll('simulated','camera-detected').replace('No real camera or patient identification.','Camera detection does not identify a patient.').replace('No sensors.','Facial estimates do not answer game questions.');
+  }const request={requestId:randomUUID(),expectedTurn:cursor,text};const response=await api('/api/study/turns',request);assert.deepEqual(await api('/api/study/turns',request),response);return record(text,response);}
+async function scene(count,planned=false){const activity=await api('/api/study/activity');const request={requestId:randomUUID(),expectedScene:activity.sceneVersion,humanCount:count,observedAt:new Date().toISOString(),...(planned?{probeStep:activity.sceneProbeStep}:{})};const response=await api(camera?'/api/study/vision':'/api/study/scene',request);assert.deepEqual(await api(camera?'/api/study/vision':'/api/study/scene',request),response);return record({simulatedCount:count},response);}
 async function predict(){const activity=await api('/api/study/activity');assert.equal(activity.predictionRequired,true);await api('/api/study/predictions',{revision:activity.revision,prediction:'PRIVATE_CONTEXT_PREDICTION: wait for a fresh one-person scene; explicit resumption for postponement.'});}
 try{
   const invitation=await api('/admin/study/attempts',{mode:'SYNTHETIC',scenario:'context'});headers={'X-Prometheus-Study-Token':invitation.token};

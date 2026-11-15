@@ -70,7 +70,7 @@ public class StudyEvidence {
         return events(evidence).values().stream().sorted(Comparator.comparingLong(e -> e.path("position").asLong())).map(event->{
             if(!withheld(attempt,event.path("id").asText(),receipts,evidence))return event;
             ObjectNode projected=event.deepCopy();projected.put("withheld",true);
-            projected.put("payload","{\"speech\":\"A response was withheld because the simulated scene changed before confirmed display.\"}");
+            projected.put("payload","{\"speech\":\"A response was withheld because the scene changed before confirmed display.\"}");
             return (JsonNode)projected;
         }).toList();
     }

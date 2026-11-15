@@ -1,13 +1,13 @@
-# Procedure and coding freeze: hri-text-v2-draft
+# Procedure and coding draft: hri-text-v3-draft
 
 This is the software/pilot draft, not ethics approval or a validated coordination
 scale. Exact item wording, IDs and sections live in
-`src/main/resources/hri-study/materials-v2.json`; each invitation freezes that full
+`src/main/resources/hri-study/materials-v3.json`; each invitation freezes that full
 manifest and the participant information. Existing attempts never adopt later
 materials. Use a new version/build after a pilot change.
 
 The neutral Coordination Assistant, deterministic saved proposal/accepted-terms
-panel and disclosed text simulations are part of the studied design. Three tasks
+panel and camera-derived observations are part of the studied design. Three tasks
 are allocated in persisted random blocks of three, separately for each dataset
 and material version. A replacement keeps participant identity and task, has a new
 attempt ID and does not consume another allocation. Report both denominators.
@@ -74,3 +74,15 @@ the participant accepted it. A faithful agreement can still be misunderstood or
 poorly executed. `tests/hri/coding.test.mjs` rehearses these distinctions with
 independently authored synthetic labels; it is not an automatic free-text judge.
 Use SCENARIOS.md for task-specific rubrics and PAPER_BRIEF.md for inference limits.
+
+## Camera-condition amendment
+
+The owner confirmed real sensing and a participant-arranged consenting adult helper
+for B. Use the physical one–two–one probe and actual hand signs; label v2 simulated
+fixtures separately. Code detector failure/uncertain readings separately from
+coordination failure. Annotate observation source, confidence, capture time and
+question/revision scope; participant intent is not established by a facial label.
+Keep the current eight post items: original UMUX-LITE wording/anchors, four
+exploratory items and two comments. Understanding remains open-reference and is
+locked before feedback. Do not aggregate sensor accuracy into a validated usability
+scale. Pilot the approximately 20-minute estimate and helper instructions before freeze.

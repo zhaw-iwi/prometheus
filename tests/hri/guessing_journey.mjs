@@ -7,9 +7,15 @@ if(!process.argv.includes('--allow-paid-provider'))throw Error('Explicit paid pr
 const output=process.argv[process.argv.indexOf('--allow-paid-provider')+1],base=process.env.PROMETHEUS_BASE_URL;
 if(!/^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(base))throw Error('Owned loopback app required');
 const report={scenario:'study-guessing',semanticReview:'PENDING',passed:false,turns:[]};
+const camera=process.env.PROMETHEUS_STUDY_SENSING==='camera';report.sensing=camera?'camera contract with synthetic detector observations':'controlled simulation';
 let headers={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN},cursor=0;
 async function api(path,body){const r=await fetch(base+path,{method:body===undefined?'GET':'POST',headers:{...headers,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(60000)});if(!r.ok)throw Error(`${path}: ${r.status}`);return r.status===204?null:r.json();}
-async function say(text){if(report.turns.length>=12)throw Error('Study turn cap');const input={requestId:randomUUID(),expectedTurn:cursor,text};const response=await api('/api/study/turns',input);assert.equal(response.status,'COMMITTED');assert.deepEqual(await api('/api/study/turns',input),response);const state=await api('/api/study/conversation');cursor=state.turnVersion;const activity=await api('/api/study/activity');report.turns.push({input:text,response,state,activity});return state;}
+async function say(text){if(camera){
+    const a=await api('/api/study/activity');const reading=JSON.parse(a.scene??'null');
+    const r=await api('/api/study/vision',{requestId:randomUUID(),expectedScene:a.sceneVersion,humanCount:reading?.humanCount??1,emotion:'neutral',confidence:.9,observedAt:new Date().toISOString()});
+    assert.equal(r.status,'COMMITTED');cursor=r.committedTurn;
+    text=text.replaceAll('simulated','camera-detected').replace('No real camera or patient identification.','Camera detection does not identify a patient.').replace('No sensors.','Facial estimates do not answer game questions.');
+  }if(report.turns.length>=12)throw Error('Study turn cap');const input={requestId:randomUUID(),expectedTurn:cursor,text};const response=await api('/api/study/turns',input);assert.equal(response.status,'COMMITTED');assert.deepEqual(await api('/api/study/turns',input),response);const state=await api('/api/study/conversation');cursor=state.turnVersion;const activity=await api('/api/study/activity');report.turns.push({input:text,response,state,activity});return state;}
 async function predict(){const activity=await api('/api/study/activity');assert.equal(activity.predictionRequired,true);await api('/api/study/predictions',{revision:activity.revision,prediction:'Private fixture prediction: retain the pending question after revision, otherwise ask one yes/no question.'});}
 try{
   const invitation=await api('/admin/study/attempts',{mode:'SYNTHETIC',scenario:'guess'});headers={'X-Prometheus-Study-Token':invitation.token};

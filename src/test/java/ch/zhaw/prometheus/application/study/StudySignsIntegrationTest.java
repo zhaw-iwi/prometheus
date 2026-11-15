@@ -15,7 +15,7 @@ import ch.zhaw.prometheus.spi.*;
 import static ch.zhaw.prometheus.application.study.StudyGuessingTest.update;
 import static ch.zhaw.prometheus.application.study.StudySignsTest.contract;
 
-@SpringBootTest(properties="prometheus.runtime.tick.enabled=false")
+@SpringBootTest(properties={"prometheus.runtime.tick.enabled=false","prometheus.study.sensing=simulation"})
 class StudySignsIntegrationTest {
     @Autowired StudySessions sessions; @Autowired StudyTurns turns; @Autowired StudyProcedure procedure;
     @Autowired StudyMaterials materials; @Autowired StudyEvidence evidence; @MockitoBean LanguageModelGateway gateway;

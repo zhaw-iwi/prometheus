@@ -23,8 +23,10 @@ public class StudyMaterials {
     // Executors alone do not qualify a scenario for the complete research procedure.
     private static final Set<String> QUALIFIED = Set.of();
     private final Manifest manifest;
-    public StudyMaterials() {
-        try (var input = StudyMaterials.class.getResourceAsStream("/hri-study/materials-v2.json")) {
+    public StudyMaterials() { this("camera"); }
+    @org.springframework.beans.factory.annotation.Autowired
+    public StudyMaterials(@org.springframework.beans.factory.annotation.Value("${prometheus.study.sensing:camera}") String sensing) {
+        try (var input = StudyMaterials.class.getResourceAsStream("/hri-study/materials-"+("simulation".equals(sensing)?"v2":"v3")+".json")) {
             manifest = parse(new String(Objects.requireNonNull(input).readAllBytes(), StandardCharsets.UTF_8));
         } catch (java.io.IOException failure) { throw new IllegalStateException("Study materials unavailable", failure); }
     }

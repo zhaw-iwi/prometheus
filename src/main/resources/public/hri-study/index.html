@@ -9,14 +9,16 @@
   <script type="module" src="study.js"></script>
 </head>
 <body>
-<header class="topbar"><a href="index.html" class="brand">Coordination study</a><span>Text conversation · English</span></header>
+<header class="topbar"><a href="index.html" class="brand">Coordination study</a><span>Typed conversation + camera · English</span></header>
 <main>
   <div id="notice" class="notice" role="alert" hidden></div>
   <section id="entry" class="welcome card">
     <span class="badge">Preparation in progress</span>
     <h1>Coordinating an activity together</h1>
     <p>Explore how people specify, review and revise a shared activity with an assistant.</p>
-    <p>Participant sessions are not open yet. No microphone or camera is required.</p>
+    <p>Participant sessions are not open yet. The planned study uses typed conversation and your camera; no microphone is used. Allow about 20 minutes.</p>
+    <p>You will be assigned one of three fictional activities. The contextual check-in needs a consenting adult helper who can briefly enter and leave the camera view.</p>
+    <details><summary>What participation involves</summary><p>Read the participant information, make a few private choices, coordinate and try your activity, then answer a short questionnaire. You can finish or withdraw at any time. Participation is voluntary.</p><p>Face, person and hand detectors process images in your browser. Only derived observations, your conversation, saved agreements and study answers are transmitted and recorded. Images and microphone audio are not uploaded or stored. The participant information supplied with your invitation explains contacts, retention and withdrawal arrangements.</p></details>
     <form id="entry-form"><label for="credential">Session invitation</label>
       <input id="credential" type="password" autocomplete="off" required maxlength="43" aria-describedby="invitation-hint">
       <p id="invitation-hint" class="hint">If you have a synthetic test invitation, paste it here to resume that session.</p>
@@ -39,22 +41,30 @@
           <details id="agreement-details" open><summary>Review saved terms</summary><p class="hint">A proposal becomes active when you accept it in the conversation.</p>
           <div id="agreement"></div></details>
         </section>
+        <section id="camera-panel" class="card" hidden><h2>Your camera</h2><video id="camera-video" muted playsinline aria-label="Local camera preview"></video>
+          <p id="camera-status" role="status">Camera not started</p><p id="detector-status" class="hint"></p>
+          <p class="hint">Images stay in this browser. Face, person-count and hand-sign estimates are sent to the assistant and recorded. These estimates can be wrong. Lower your hand between signs.</p>
+          <div class="tools"><button id="camera-start" type="button" class="secondary">Start camera</button><button id="camera-stop" type="button" class="quiet">Stop camera</button></div>
+        </section>
+        <p id="finish-ready" class="hint" hidden>The activity has ended. If you have completed the requested study steps, continue to the questionnaire.</p>
+        <button id="finish-next" class="wide" hidden>Continue to questionnaire</button>
         <button id="finish" class="secondary wide">Finish interaction</button>
         <section id="study-instructions" class="card" hidden><details id="study-step-details" open><summary>Next study steps</summary><p id="revision-card"></p><p id="probe-card"></p></details></section>
       </aside>
       <section class="card conversation" aria-label="Conversation">
         <div class="conversation-heading"><h2>Conversation</h2><span id="connection" class="hint">Connecting…</span></div>
-        <section id="scene-panel" class="scene-panel" hidden><h3>Simulated scene</h3><p class="hint">Controlled simulation; no camera. Advance the planned one–two–one sequence before answering. Each scene stays selected until changed. A change can interrupt a pending response.</p>
+        <section id="scene-panel" class="scene-panel" hidden><h3 id="scene-title">Simulated scene</h3><p id="scene-explanation" class="hint">Controlled simulation; no camera. Advance the planned one–two–one sequence before answering. Each scene stays selected until changed. A change can interrupt a pending response.</p>
           <p id="scene-status" role="status">Scene unknown</p><button id="scene-probe" type="button">Next planned scene</button>
           <div class="tools scene-buttons"><button type="button" class="secondary" data-scene="1">One person</button><button type="button" class="secondary" data-scene="2">Two people</button>
             <button type="button" class="secondary" data-scene="0">Nobody visible</button><button type="button" class="secondary" data-scene="unknown">Scene unknown</button>
           </div><p id="checkin-progress" class="hint"></p>
         </section>
-        <section id="sign-panel" class="scene-panel" hidden><h3>Simulated hand signs</h3><p class="hint">No camera is used. Each click is one fresh simulated sign for the displayed demonstration or pending question. Signs cannot accept a proposal. Open palm waits; type Resume before answering again.</p>
+        <section id="sign-panel" class="scene-panel" hidden><h3 id="sign-title">Simulated hand signs</h3><p id="sign-explanation" class="hint">No camera is used. Each click is one fresh simulated sign for the displayed demonstration or pending question. Signs cannot accept a proposal. Open palm waits; type Resume before answering again.</p>
           <p id="sign-status" role="status"></p><div class="tools scene-buttons">
             <button type="button" class="secondary" data-sign="THUMBS_UP">Thumbs up</button><button type="button" class="secondary" data-sign="THUMBS_DOWN">Thumbs down</button><button type="button" class="secondary" data-sign="OPEN_PALM">Open palm</button>
           </div><p id="sign-progress" class="hint"></p>
         </section>
+        <p id="camera-shield" class="notice" hidden>The check-in conversation and saved terms are hidden while the camera view is unknown or does not show exactly one person.</p>
         <div id="messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
         <p id="game-progress" class="hint" hidden></p>
         <form id="prediction-form" class="pending" hidden><label for="prediction">Before starting, what do you expect the assistant to do next?</label>
@@ -75,7 +85,7 @@
 </main>
 <dialog id="help-dialog"><h2>Help with this interaction</h2><p>Describe the activity in your own words. You can ask the assistant to clarify, change, pause or stop it. Review the saved proposal before accepting.</p>
   <p>A pending message has not yet produced a confirmed result. Check its status before sending it again. Discarding a pending submission keeps the last saved conversation; it does not ask the assistant to pause an activity.</p>
-  <p>You may finish the interaction or withdraw at any point. No microphone or camera is used.</p><form method="dialog"><button>Back to session</button></form>
+  <p>You may finish the interaction or withdraw at any point. Camera sessions use local visual detectors. Start camera requests browser permission; Stop camera stops capture. No microphone is used. A camera or detector problem can be reported by finishing with a technical problem.</p><form method="dialog"><button>Back to session</button></form>
 </dialog>
 <dialog id="finish-dialog"><h2>Finish the interaction</h2><p>This saves how the interaction ended. It does not mark the agreed task successful.</p>
   <form id="finish-form"><label for="finish-reason">What best describes the ending?</label><select id="finish-reason" required>

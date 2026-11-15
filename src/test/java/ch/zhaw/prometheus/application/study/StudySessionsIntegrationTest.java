@@ -19,7 +19,7 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import ch.zhaw.prometheus.controllers.StudyController;
 import static ch.zhaw.prometheus.application.study.StudyAttempt.*;
 
-@SpringBootTest(properties={"prometheus.runtime.tick.enabled=false","prometheus.admin.token=study-test-admin"})
+@SpringBootTest(properties={"prometheus.study.sensing=simulation","prometheus.runtime.tick.enabled=false","prometheus.admin.token=study-test-admin"})
 @AutoConfigureMockMvc
 class StudySessionsIntegrationTest {
     @Autowired StudySessions sessions;

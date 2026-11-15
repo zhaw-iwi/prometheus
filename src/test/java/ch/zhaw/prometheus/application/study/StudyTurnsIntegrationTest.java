@@ -17,7 +17,7 @@ import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.repositories.AgentRepository;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
-@SpringBootTest(properties="prometheus.runtime.tick.enabled=false")
+@SpringBootTest(properties={"prometheus.runtime.tick.enabled=false","prometheus.study.sensing=simulation"})
 class StudyTurnsIntegrationTest {
     @Autowired StudySessions sessions;
     @Autowired StudyTurns turns;

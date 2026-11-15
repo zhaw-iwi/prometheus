@@ -16,8 +16,13 @@ public class StudyLimits {
     }
     public record Bounds(int maxTurns,int interactionMinutes){}
     public Bounds bounds(){return new Bounds(turns,minutes);}
+    void checkCamera(StudyAttempt attempt){
+        if(receipts.countByAttemptIdAndInputType(attempt.id,ch.zhaw.prometheus.agentdefs.study.StudyVision.EVENT)>=400
+                || attempt.interactionStartedAt!=null && !Instant.now().isBefore(attempt.interactionStartedAt.plusSeconds(minutes*60L)))
+            throw StudySessions.failure(HttpStatus.TOO_MANY_REQUESTS,"This interaction reached its study limit. Finish the interaction to save your assessments, or withdraw.");
+    }
     void check(StudyAttempt attempt){
-        if(receipts.countByAttemptId(attempt.id)>=turns || attempt.interactionStartedAt!=null && !Instant.now().isBefore(attempt.interactionStartedAt.plusSeconds(minutes*60L)))
+        if(receipts.countByAttemptId(attempt.id)-(StudySessions.camera(attempt)?receipts.countByAttemptIdAndInputType(attempt.id,ch.zhaw.prometheus.agentdefs.study.StudyVision.EVENT):0)>=turns || attempt.interactionStartedAt!=null && !Instant.now().isBefore(attempt.interactionStartedAt.plusSeconds(minutes*60L)))
             throw StudySessions.failure(HttpStatus.TOO_MANY_REQUESTS,"This interaction reached its study limit. Finish the interaction to save your assessments, or withdraw.");
     }
 }

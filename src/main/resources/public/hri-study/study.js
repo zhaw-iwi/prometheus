@@ -1,3 +1,4 @@
+import {StudyCamera} from './camera.js';
 const $=id=>document.getElementById(id);
 const interactive=new Set(['COORDINATION','REVISION','TRIAL']);
 const assessmentStages=new Set(['ASSESSMENT','POST']);
@@ -95,6 +96,7 @@ function renderPreparation(page) {
   }
 }
 function renderPage(page) {
+  state.clock={server:Date.parse(page.serverTime),local:performance.now()};
   const previous=state.stage;state.page=page;const session=page.session;state.stage=session.stage;
   $('entry').hidden=true;$('workspace').hidden=false;$('mode').textContent=session.mode==='SYNTHETIC'?'Synthetic test session':session.mode==='PILOT'?'Pilot session':'Study session';
   $('heading').textContent=page.title;$('heading').dataset.session=session.id;
@@ -109,6 +111,10 @@ function renderPage(page) {
   else stopStream();
   if(previous!==session.stage){state.admitted=false;if(interactive.has(session.stage))void renewPresence();}
   if(assessmentStages.has(session.stage))$('connection').textContent='Saved conversation';
+  $('camera-panel').hidden=!page.camera||!interactive.has(session.stage);
+  if(page.camera&&interactive.has(session.stage)&&state.cameraAttempt!==session.id){state.cameraAttempt=session.id;void camera.start();}
+  else if(!interactive.has(session.stage)&&(camera.running||camera.starting)){camera.stop('Camera off. Your interaction has ended.');}
+  shield();
   if(!$('terminal').hidden) {
     $('terminal-title').textContent=session.stage==='WITHDRAWN'?'You have withdrawn':session.stage==='DEBRIEF'?'About this study':session.stage==='COMPLETE'?'Your study is complete':'This session is closed';
     $('terminal-copy').textContent=['DEBRIEF','COMPLETE'].includes(session.stage)?page.debrief
@@ -122,6 +128,8 @@ function renderAgreement(conversation) {
   state.hasDraft=!!conversation.draft;state.phase=conversation.phase;
   const phase={CONVERSATION:'Exploring an activity',COORDINATION:'Clarifying the activity',PREPARATION:'Checking agreed conditions',READY:'Proposal ready for review',EXECUTION:'Activity running',PAUSED:'Activity paused',REFLECTION:'Activity ended',UNCERTAIN:'Activity needs review',FINISHING:'Activity finishing'};
   $('activity-status').textContent=phase[conversation.phase]??'Preparing';
+  const ended=conversation.phase==='REFLECTION'&&interactive.has(state.stage);
+  $('finish-ready').hidden=!ended;$('finish-next').hidden=!ended;
   const signature=JSON.stringify([conversation.draft,conversation.agreement]);if(signature===state.agreementSignature)return;
   state.agreementSignature=signature;$('agreement').replaceChildren();
   for(const [label,agreement] of [['Saved proposal',conversation.draft],['Accepted terms',conversation.agreement]]) {
@@ -165,6 +173,12 @@ function renderActivity(activity) {
   const scene=parse(activity.scene),checkin=parse(activity.context);
   const count=scene?.humanCount;$('scene-status').textContent=(count==null?'Scene unknown':count===0?'Nobody visible':count===1?'One person visible':`${count} people visible`)+(activity.sceneApplied?'':' · change awaiting processing');
   $('checkin-progress').textContent=checkin?`Check-in: ${checkin.status.toLowerCase().replaceAll('_',' ')}. ${checkin.outcome?'Recorded result: '+checkin.outcome.toLowerCase().replaceAll('_',' '):''}`:'';
+  if(state.page.camera){
+    $('scene-title').textContent='Camera scene';$('scene-explanation').textContent='Use the live camera view with your consenting helper. The detected one?two?one sequence is recorded; unknown readings mean wait, not departure.';
+    $('sign-title').textContent='Camera hand signs';$('sign-explanation').textContent='Show the agreed sign to the camera. Lower your hand between signs and questions. A demonstration is not acceptance. Open palm waits; type Resume before answering again.';
+  }
+  $('scene-probe').hidden=!!state.page.camera;
+  document.querySelectorAll('[data-scene],[data-sign]').forEach(button=>button.hidden=!!state.page.camera);
   const step=activity.sceneProbeStep,script=activity.sceneProbe??[],required=['WAITING_FOR_ONE','WAITING_FOR_ANSWER','POSTPONED'][step];
   state.canProbe=step<script.length&&checkin?.status===required&&!state.hasDraft;
   $('scene-probe').textContent=step<script.length?`Next planned scene: ${script[step]===1?'one person':'two people'}`:'Planned scene sequence complete';
@@ -185,13 +199,13 @@ function renderEvents(events) {
     const assistant=event.type==='resp.behaviour_plan'; const text=assistant?(parse(event.payload,{})?.speech??'No text response.'):event.payload;
     // A scene command creates a local release barrier before its HTTP request.
     // Old responses arriving during that request wait for the scoped projection.
-    if(assistant&&state.pending?.kind==='scene'&&!state.events.has(event.id))continue;
+    if(assistant&&(state.pending?.kind==='scene'||state.cameraBarrier)&&!state.events.has(event.id))continue;
     if(!state.events.has(event.id)) {
       const message=node('div',undefined,'message'+(assistant?'':' user'));message.dataset.eventId=event.id;
       message.append(node('span',assistant?'Assistant':'You','speaker'),node('p',text));$('messages').append(message);state.events.add(event.id);
       appended=true;
     }
-    if(assistant&&!state.displayed.has(event.id)&&interactive.has(state.page.session.stage)&&document.visibilityState==='visible') {
+    if(assistant&&!state.displayed.has(event.id)&&interactive.has(state.page.session.stage)&&document.visibilityState==='visible'&&!state.shielded) {
       state.displayed.add(event.id);void api('display',{eventId:event.id,clientTime:new Date().toISOString(),disposition:event.withheld?'WITHHELD':'DISPLAY'}).catch(()=>state.displayed.delete(event.id));
     }
   }
@@ -199,7 +213,7 @@ function renderEvents(events) {
 }
 function renderPending(receipt=state.receipt,unknown=state.unknown) {
   state.receipt=receipt;state.unknown=unknown;
-  $('pending-panel').hidden=!state.pending;$('send').disabled=state.busy||!!state.pending||!state.admitted||state.limitReached;
+  $('pending-panel').hidden=!state.pending;$('send').disabled=state.busy||!!state.pending||!state.admitted||state.limitReached||state.cameraSending||(state.page?.camera&&(!state.cameraReady||!state.lastVision||Date.parse(observationTime())-Date.parse(state.lastVision.observedAt)>15000));
   document.querySelectorAll('[data-scene]').forEach(button=>button.disabled=(!state.admitted||state.limitReached)||state.pending?.kind==='scene');
   $('scene-probe').disabled=(!state.admitted||state.limitReached)||!state.canProbe||state.pending?.kind==='scene';
   signButtons();
@@ -225,16 +239,19 @@ async function refresh() {
   try {
     const page=await api('page');const changed=state.page?.session.id!==page.session.id;
     if(changed) {
-      state.stage=null;state.limitReached=false;state.agreementSignature=null;state.events.clear();state.displayed.clear();state.cursor=null;$('messages').replaceChildren();state.page=page;
+      state.stage=null;state.limitReached=false;state.lastVision=null;state.cameraRequest=null;state.agreementSignature=null;state.events.clear();state.displayed.clear();state.cursor=null;$('messages').replaceChildren();state.page=page;
       state.pending=parse(local(key('pending')));$('message').value=local(key('draft'))??'';
     }
+    if(changed&&(camera.running||camera.starting))camera.stop();
     renderPage(page);
     if(interactive.has(page.session.stage)||assessmentStages.has(page.session.stage)) {
       const [conversation,events,activity]=await Promise.all([api('conversation'),api('events'),api('activity')]);renderAgreement(conversation);renderEvents(events);renderActivity(activity);
       if(!state.pending&&page.session.pendingRequest) {
         const entry=conversation.turns.find(t=>t.receipt.requestId===page.session.pendingRequest);
         if(entry) {
-          if(entry.receipt.inputType==='obs.human.presence') {
+          if(entry.receipt.inputType==='obs.study.vision'){
+            state.cameraRequest={requestId:entry.receipt.requestId};
+          } else if(entry.receipt.inputType==='obs.human.presence') {
             const scene=parse(entry.input);pending({kind:'scene',requestId:entry.receipt.requestId,expectedScene:entry.receipt.expectedTurn,
               humanCount:scene.humanCount,observedAt:scene.ts,probeStep:scene.probeStep,text:'A simulated scene change'});
           } else if(entry.receipt.inputType==='obs.study.sign') {
@@ -301,6 +318,7 @@ $('cancel').addEventListener('click',async()=>{if(!state.pending)return;const id
   catch(error){if(error.status===404){pending(null);notice('The unsent submission was discarded. Your draft is preserved.');}else notice(problem(error));}
   finally{await refresh();renderPending();}});
 $('help').addEventListener('click',()=>{$('help-dialog').showModal();telemetry('HELP','interface');});
+$('finish-next').addEventListener('click',()=>{$('finish-reason').value='ACTIVITY_ENDED';$('finish-dialog').showModal();});
 $('finish').addEventListener('click',()=>$('finish-dialog').showModal());$('keep-working').addEventListener('click',()=>$('finish-dialog').close());
 $('finish-form').addEventListener('submit',async event=>{event.preventDefault();try{await api('finish',{reason:$('finish-reason').value});$('finish-dialog').close();notice();await refresh();}catch(error){notice(problem(error));}});
 $('withdraw').addEventListener('click',()=>$('withdraw-dialog').showModal());$('stay').addEventListener('click',()=>$('withdraw-dialog').close());
@@ -313,6 +331,69 @@ setInterval(()=>{if(state.pending&&navigator.onLine)void refresh();},2500);
 setInterval(()=>{if(document.visibilityState==='visible')void renewPresence();},30000);
 window.addEventListener('online',()=>void renewPresence());
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void renewPresence();});
+function observationTime(){return new Date((state.clock?.server??Date.now())+performance.now()-(state.clock?.local??performance.now())).toISOString();}
+function shield(){
+  state.shielded=!!(state.page?.camera&&interactive.has(state.stage)&&state.page.session.scenario==='context'&&(!state.cameraReady||state.cameraCount!==1));
+  $('camera-shield').hidden=!state.shielded;$('messages').hidden=state.shielded;$('agreement-details').hidden=state.shielded;
+}
+const camera=new StudyCamera({video:$('camera-video'),clock:observationTime,
+  scope:()=>state.page?.session.scenario==='signs'&&!state.pending&&!state.busy&&!state.cameraSending&&state.admitted&&state.signScope
+    &&(state.signScope.mode==='DEMONSTRATE'||state.phase==='EXECUTION')?structuredClone(state.signScope):null,
+  onStatus:(message,ready)=>{
+    state.cameraReady=ready;$('camera-status').textContent=message;$('camera-start').disabled=ready||camera.starting;$('camera-stop').disabled=!ready&&!camera.starting;
+    if(!ready){state.cameraCount=null;if(state.lastVision)void cameraFrame({humanCount:null,emotion:null,confidence:null,observedAt:observationTime()},true);}
+    shield();renderPending();
+  },onFrame:frame=>void cameraFrame(frame)});
+async function cameraFrame(frame,stopped=false){
+  state.cameraCount=frame.humanCount;shield();
+  $('detector-status').textContent=stopped?'No current observations.':`People: ${frame.humanCount??'unknown'} · Expression estimate: ${frame.emotion??'uncertain'} · Hand: ${frame.gesture??'none'}`;
+  if(!interactive.has(state.stage)||!state.admitted||!navigator.onLine||state.limitReached||state.cameraSending||performance.now()<(state.cameraRetryAt??0))return;
+  const attemptId=state.page.session.id;
+  const changed=frame.humanCount!==state.lastVision?.humanCount;
+  const needsScene=state.page.session.scenario==='context'&&parse(state.activity?.context)?.status==='WAITING_FOR_ONE';
+  const due=!state.lastVision||changed||needsScene||performance.now()-(state.visionAt??0)>=10000;
+  if(state.pending&&(!changed||state.page.session.scenario!=='context'))return;
+  if(state.busy&&(!changed||state.page.session.scenario!=='context'))return;
+  if(!due&&!frame.sign&&!state.cameraRequest)return;
+  state.cameraSending=true;state.cameraBarrier=changed&&state.page.session.scenario==='context';renderPending();
+  try{
+    if(state.cameraRequest){
+      // Reconcile an unknown POST, then cancel before a fresh frame. Never replay old visual evidence.
+      try{const old=await api('turns/'+state.cameraRequest.requestId);if(old.status==='PENDING'||old.status==='UNCERTAIN')await api('turns/'+state.cameraRequest.requestId+'/cancel',{});}
+      catch(error){if(error.status===404)await api('turns/'+state.cameraRequest.requestId+'/cancel',{});else throw error;}
+      state.cameraRequest=null;await refresh();return;
+    }
+    if(due&&state.activity){
+      const request={requestId:crypto.randomUUID(),expectedScene:state.activity.sceneVersion,humanCount:frame.humanCount,emotion:frame.emotion,confidence:frame.confidence,observedAt:frame.observedAt};
+      state.cameraRequest=request;const receipt=await api('vision',request);
+      if(state.page.session.id!==attemptId)return;state.cameraRequest=null;
+      if(receipt.status!=='COMMITTED')throw Error('Camera observation was not confirmed.');
+      state.lastVision=frame;state.visionAt=performance.now();state.cameraBarrier=false;state.cameraFailures=0;state.cameraRetryAt=0;await refresh();
+    }
+    if(frame.sign&&!state.pending&&!state.busy&&camera.running){
+      const {remaining,...scope}=frame.sign;
+      // A question may have changed while the frame was being recognized or delivered.
+      if(['mode','revision','run','question'].every(k=>scope[k]===state.signScope?.[k])){
+        pending({kind:'sign',requestId:crypto.randomUUID(),expectedTurn:state.page.session.turnVersion,observationId:crypto.randomUUID(),
+          ...scope,camera:true,observedAt:frame.observedAt,text:'Camera sign: '+scope.sign.toLowerCase().replaceAll('_',' ')});
+        await sendSaved();
+      }
+    }
+  }catch(error){
+    if(error.status===409||error.status===400){state.cameraRequest=null;await refresh();}
+    else {
+      if(error.code==='INTERACTION_LIMIT'){state.limitReached=true;state.cameraRequest=null;}
+      if(error.code==='CAPACITY'){state.admitted=false;state.cameraRequest=null;state.capacityBlocked=true;}
+      state.cameraFailures=(state.cameraFailures??0)+1;state.cameraRetryAt=performance.now()+Math.min(60000,5000*2**Math.min(4,state.cameraFailures-1));
+      $('camera-status').textContent='Observation delivery is interrupted. We will check again shortly; finishing remains available.';
+    }
+  }finally{state.cameraSending=false;state.cameraBarrier=false;renderPending();
+    if(!camera.running&&state.lastVision?.humanCount!=null)void cameraFrame({humanCount:null,emotion:null,confidence:null,observedAt:observationTime()},true);}
+}
+$('camera-start').addEventListener('click',()=>void camera.start());$('camera-stop').addEventListener('click',()=>camera.stop());
+window.addEventListener('pagehide',()=>{stopStream();camera.stop('Camera off.');});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'&&(camera.running||camera.starting))camera.stop('Camera paused while this tab is hidden. Select Start camera to continue.');});
+
 const fragment=new URLSearchParams(location.hash.slice(1));state.token=fragment.get('token')??local('hri.token');
 const compact=matchMedia('(max-width:760px)');function layout(){for(const id of ['task-details','agreement-details','study-step-details'])$(id).open=!compact.matches;requestAnimationFrame(()=>$('messages').scrollTop=$('messages').scrollHeight);}compact.addEventListener('change',layout);layout();
 if(fragment.has('token')){history.replaceState(null,'',location.pathname);local('hri.token',state.token);}

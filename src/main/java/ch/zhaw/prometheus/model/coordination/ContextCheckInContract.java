@@ -3,7 +3,7 @@ package ch.zhaw.prometheus.model.coordination;
 import java.util.Set;
 import com.google.gson.JsonObject;
 
-/** One fictional question/answer encounter, interrupted by explicit simulated scene evidence. */
+/** One fictional question/answer encounter, interrupted by scoped scene observations. */
 public record ContextCheckInContract(String question,String yesReply,String noReply) {
     public static ContextCheckInContract parse(JsonObject value) {
         CoordinationAgreement.exact(value,Set.of("kind","question","yesReply","noReply","startCount","postponeAt","departure","resume"));
@@ -25,7 +25,7 @@ public record ContextCheckInContract(String question,String yesReply,String noRe
         return raw.getAsString().strip();
     }
     public String review() {
-        return "After acceptance, a fresh simulated scene with one visible person starts the check-in. "
+        return "After acceptance, a fresh scene observation with one visible person starts the check-in. "
                 +"Two or more postpone it; Resume is required once one person is visible again. "
                 +"Departure ends an ongoing encounter; return alone cannot restart it. Unknown evidence pauses without establishing absence. "
                 +"One question and one answer response are authorized. Counts do not establish identity or real privacy.";

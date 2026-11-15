@@ -1,6 +1,6 @@
 # Online student study system: implementation roadmap
 
-Prepared **15 November 2026**. Status: **OS-01–12 complete; human-readiness gates pending**.
+Prepared **15 November 2026**. Status: **OS-01–13 software complete; camera capacity and human-readiness gates pending**.
 Actual verification is recorded in [RESULTS.md](RESULTS.md). Read [STUDY.md](STUDY.md) for requirements and
 [PAPER_BRIEF.md](PAPER_BRIEF.md) for research context. This roadmap owns milestone
 sequence, dependencies, acceptance, and implementation evidence.
@@ -12,8 +12,7 @@ The owner confirmed:
 - Deliver **all three executable scenarios**: A, the guessing game; B, the
   contextual medication check-in; C, negotiated gesture answers. Implement A first.
 - Use **English** for the interface, task materials, questionnaires, and agent.
-- Use **text-to-text** interaction, with disclosed controlled simulations for
-  scene/sign observations. No participant microphone or camera is required.
+- Use **text-to-text dialogue with real camera perception**. The owner corrected the earlier simulation-only interpretation on 15 November. Run face, person and hand detectors; no microphone. For B, the participant arranges a consenting adult helper.
 - Plan for **asynchronous participation or scheduled waves**, not an assumption
   of 40-50 concurrent sessions.
 
@@ -80,6 +79,8 @@ baselines. A screenshot, valid JSON, or HTTP 200 alone is not journey acceptance
 
 ## 3. Milestone sequence and status
 
+OS-01–12 below describe the original disclosed simulation scope. OS-13 supersedes its camera exclusion; do not interpret the old no-media tests as acceptance of the new camera condition.
+
 Update this table as work proceeds and
 record actual commands, results, artifacts, failed attempts, and remaining limits
 in a companion `RESULTS.md` created during implementation. Do not copy old passing
@@ -100,6 +101,7 @@ not claims that those tests exist.
 | OS-10 | Integrated offline acceptance and analysis rehearsal | OS-09 | COMPLETE |
 | OS-11 | Bounded real-provider semantic acceptance | OS-10 | COMPLETE |
 | OS-12 | Capacity-qualified package and pilot handoff | OS-11 | COMPLETE |
+| OS-13 | Real camera ingress, participant lifecycle and assessment handoff | OS-12 and owner's sensing clarification | COMPLETE (software; release gates remain) |
 
 The sequence is deliberately incremental: recorder coverage precedes any human
 pilot; A exercises the complete shared path before B/C extend task semantics.
@@ -110,6 +112,26 @@ pushing each completed milestone, then continuing to the next, on this branch.
 Bounded live OpenAI/local-database happy-path checks are also authorized.
 Halt for an unforeseen material owner decision. Deployment and human recruitment
 remain separate from this implementation authorization.
+
+## OS-13 — Camera-based interaction and assessment handoff
+
+**Outcome:** new invitations use actual browser perception with accurate information,
+permission-gated startup, face/person/hand detectors, visible failure states and
+capture teardown. Preserve prior frozen simulation attempts. Keep raw images local.
+Facial estimates provide context; accepted contracts own person/sign task effects.
+Held signs need a physical release, and unknown evidence cannot mean departure.
+
+Retain the existing pre/post forms and private predictions. Offer a questionnaire
+handoff after task ending, with participant confirmation, without mistaking initial
+acceptance for completion. Use the confirmed participant-arranged consenting adult
+helper for the physical one–two–one probe. See [CAMERA.md](CAMERA.md).
+
+Acceptance requires lifecycle/gesture unit tests; actual local-DB source, freshness,
+scoped-execution and export tests; Playwright permission/model failures, A/B/C
+camera paths, desktop/mobile screenshots and teardown; and bounded live OpenAI
+journeys with explicitly synthetic detector provenance. Record actual results.
+Prior simulation capacity does not qualify the camera workload. Physical device,
+hosting capacity and human/helper pilot checks remain release gates.
 
 ## OS-01 — Study contract, materials, and fixtures
 

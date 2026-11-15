@@ -1,3 +1,10 @@
+> **15 November implementation clarification:** the participant study uses typed
+> dialogue **and real camera sensing**, with a participant-arranged consenting adult
+> helper for the contextual task. Earlier simulation examples below remain useful
+> for deterministic software validation, not a substitute for the participant condition.
+> See [STUDY.md](STUDY.md) and [CAMERA.md](CAMERA.md). Recognition quality and helper
+> feasibility must be evaluated in the pilot; no causal comparison is added.
+
 # HRI 2027 paper brief: PROMETHEUS and human-robot coordination
 
 Prepared: **15 November 2026**. Target: **HRI 2027 Late-Breaking Reports (LBR)**.
@@ -59,7 +66,7 @@ implementation milestones and testable outcomes. Read both alongside this brief
 before study-system work.
 
 Critical open matters: ethics/recruitment arrangements, participant perspective,
-simulated-observation presentation, feasible implementation of the two new coordination patterns,
+camera-based observation presentation with typed dialogue, feasible implementation of the two new coordination patterns,
 the operational rubric, recording infrastructure, and concurrent capacity.
 Section 12 orders these decisions and the next work.
 

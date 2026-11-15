@@ -12,7 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import ch.zhaw.prometheus.spi.*;
 import static ch.zhaw.prometheus.application.study.StudyGuessingTest.*;
 
-@SpringBootTest(properties="prometheus.runtime.tick.enabled=false")
+@SpringBootTest(properties={"prometheus.runtime.tick.enabled=false","prometheus.study.sensing=simulation"})
 class StudyGuessingIntegrationTest {
     @Autowired StudySessions sessions;
     @Autowired StudyTurns turns;

@@ -2035,11 +2035,18 @@ prototype-oriented.
 The online HRI study application is implemented on
 `experiment/hri-2027-coordination`; see [.doc/papers/hri/PLAN.md](.doc/papers/hri/PLAN.md)
 and [verification evidence](.doc/papers/hri/RESULTS.md). Its `study.coordination`
-definition uses the shared Coordination graph with a neutral English text-only
+definition uses the shared Coordination graph with neutral English typed dialogue
 profile. Existing saved agents retain their definitions; create a fresh instance
 to use this profile. `/hri-study/` provides the resumable text study interface;
 entry requires an operator-issued invitation. Its public landing remains closed.
-Versioned materials are in `src/main/resources/hri-study/materials-v2.json`;
+New attempts default to `src/main/resources/hri-study/materials-v3.json`, combining
+typed dialogue with browser face/person/hand detectors. Camera permission is
+requested after preparation; the microphone stays off. Only derived observations
+are transmitted, with source, capture time and task scope. The contextual task
+uses a participant-arranged consenting adult helper. See the
+[camera implementation and test boundary](.doc/papers/hri/CAMERA.md).
+`prometheus.study.sensing=simulation` selects the earlier v2 synthetic fixtures;
+existing frozen attempts retain their materials. All versions remain drafts and
 their human-collection readiness flags remain false. Pilot and main attempts are distinct persisted
 designations; neither is authorized for human collection by a material manifest.
 Preparation forms, conversation, saved-term review, recovery and finish/withdraw
@@ -2057,16 +2064,18 @@ The study guessing executor supports a human-held secret, negotiated yes/no/unkn
 answers, a question budget including guesses, private pre-start predictions and
 revision with preserved pending-question progress. A confirmed guess, exhausted
 budget and early stop have distinct outcomes. The fictional contextual check-in
-uses negotiated question/response wording and disclosed scene simulation, with
+uses negotiated question/response wording and observed person counts, with
 privacy postponement, explicit resumption and departure ending. Scene changes
 fence pending old-scene responses. Negotiated sign answers add optional preparation
-demonstrations, question-bound simulated thumbs/open palm, wait/resume and renewed
+demonstrations, question-bound camera thumbs/open palm, wait/resume and renewed
 acceptance for mapping changes. Locked assessments, debrief, balanced allocation,
 operator workflows and analysis exports are implemented. A sustained local test
-qualifies four concurrent text sessions at up to two such waves/hour on its bounded
+qualifies four concurrent v2 simulation sessions at up to two such waves/hour on its bounded
 workload; the eight-session candidate exceeded the documented query allowance.
+This does not qualify the camera observation workload or participant-device CPU.
 Admission defaults to four with 120-second presence leases; new interaction is
-bounded to 50 receipts or 45 minutes, while finishing/assessments stay available.
+bounded to 50 message/sign receipts or 45 minutes, while finishing/assessments stay
+available. Camera observations have a separate bound of 400 receipts.
 Read the [operator runbook](.doc/papers/hri/RUNBOOK.md) and
 [capacity evidence](.doc/papers/hri/RESULTS.md) before operation. Human collection,
 remote-hosting/provider checks and the actual pilot remain separate pending gates.
@@ -2076,10 +2085,12 @@ Study-only checks use the existing disposable local MySQL runner:
 An explicitly authorized paid foundation smoke is
 `python tests/gptlive/run_acceptance.py --study --java-tests none --paid-core coordination-text`.
 It caps provider requests/tokens, keeps evidence under ignored `target/`, and
-requires separate semantic review. No participant media is requested.
+requires separate semantic review. These legacy fixtures request no media. Add
+`--study-camera` for v3 browser/provider checks, which use controlled detector
+observations rather than claiming physical-camera accuracy.
 Add `--study-scenario guess` to exercise the bounded guessing-game journey.
 Use `--study-scenario context` for the fictional contextual check-in journey.
-Use `--study-scenario signs` for the negotiated simulated-sign journey.
+Use `--study-scenario signs` for the negotiated-sign journey.
 
 The recorded scissors interaction has a repeatable acceptance script in
 `tests/gptlive/README.md` ("Recorded scissors interaction"). For an unchanged

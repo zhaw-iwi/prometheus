@@ -1,3 +1,8 @@
+> **Camera follow-up:** the four-session/two-waves result below qualifies the v2
+> simulated-observation workload only. It does not qualify v3 continuous browser
+> detection or its observation traffic. Keep human collection closed until the
+> camera workload and participant hardware have been assessed.
+
 # OS-12 capacity protocol
 
 Predeclared on 2026-11-15, before the first study capacity probe. Results belong

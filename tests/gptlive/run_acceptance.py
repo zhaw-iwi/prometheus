@@ -38,6 +38,8 @@ def main():
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--study', action='store_true', help='Select online-study fixtures/specs; real inference uses --paid-core coordination-text')
+    parser.add_argument('--study-models', action='store_true', help='Network smoke for real detector model loading/inference on generated browser video')
+    parser.add_argument('--study-camera', action='store_true', help='Use live-camera study materials and camera browser checks; media remains synthetic in automation')
     parser.add_argument('--study-wave',type=int,default=8,help='Capacity candidate size, 3..8; initially eight, reduce only after measured failure')
     parser.add_argument('--study-capacity',type=int,metavar='SECONDS',help='Dedicated eight-session offline workload; acceptance requires at least 1800 seconds')
     parser.add_argument('--study-acceptance', action='store_true', help='Complete offline study regression, analysis and configuration-free package smoke')
@@ -51,6 +53,10 @@ def main():
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
+    if args.study_models and not (args.study_camera and args.study and args.browser) :parser.error('--study-models requires --study --study-camera --browser')
+    if args.study_camera and not args.study:parser.error('--study-camera requires --study')
+    if args.study_camera and (args.study_acceptance or args.study_capacity):
+        parser.error('Camera checks run separately from the v2 integrated/capacity workload')
     if args.study_wave!=8 and args.study_capacity is None:
         parser.error('--study-wave requires --study-capacity')
     if args.study_capacity is not None:
@@ -131,7 +137,7 @@ def main():
         sources += [root/'pom.xml',root/'tests/gptlive/run_acceptance.py',root/'playwright.config.mjs']
         manifest={'schema':'hri-acceptance-v1','sourceRevision':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
                   'dirty':bool(subprocess.check_output(['git','status','--porcelain'],text=True).strip()),
-                  'selection':{'java':args.java_tests,'browser':args.browser,'scenario':args.study_scenario,'paid':bool(args.paid_core),'integrated':args.study_acceptance,'capacitySeconds':args.study_capacity,'capacityWave':args.study_wave if args.study_capacity else None},
+                  'selection':{'java':args.java_tests,'browser':args.browser,'scenario':args.study_scenario,'paid':bool(args.paid_core),'camera':args.study_camera,'realModels':args.study_models,'integrated':args.study_acceptance,'capacitySeconds':args.study_capacity,'capacityWave':args.study_wave if args.study_capacity else None},
                   'files':{str(p.relative_to(root)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
                   'limits':{'dbPool':10,'scheduledTicks':False,'providerCalls':20 if args.paid_core else 0,'providerTokens':80000 if args.paid_core else 0}}
         (artifacts/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
@@ -149,6 +155,7 @@ def main():
         PROMETHEUS_RUNTIME_TICK_ENABLED='false', SERVER_SHUTDOWN='immediate', PROMETHEUS_ADMIN_TOKEN=secrets.token_hex(20),
         PROMETHEUS_STUDY_MAX_ACTIVE=str(args.study_wave) if args.study_capacity else '4' if args.study and args.paid_core else '0',
         PROMETHEUS_STUDY_WAVE=str(args.study_wave),
+        PROMETHEUS_STUDY_SENSING='camera' if args.study_camera else 'simulation',
         SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE='10',
         PROMETHEUS_SKIP_WEBSERVER='true')
     env['PROMETHEUS_CLASSROOM_CAPACITY'] = 'true' if args.classroom_capacity else 'false'
@@ -362,7 +369,7 @@ def main():
                             specs += ['tests/playwright/valerian-lifecycle.spec.mjs', 'tests/playwright/valerian-transcription.spec.mjs',
                                 'tests/playwright/valerian-column-expansion.spec.mjs', 'tests/playwright/valerian-classroom-smoke.spec.mjs']
                     if args.study:
-                        specs = ['tests/playwright/hri-study.spec.mjs']
+                        specs = ['tests/playwright/hri-camera-models.spec.mjs' if args.study_models else 'tests/playwright/hri-camera.spec.mjs' if args.study_camera else 'tests/playwright/hri-study.spec.mjs']
                         env['PLAYWRIGHT_JSON_OUTPUT_FILE'] = str(artifacts / 'study-browser.json')
                     run([npm, 'playwright', 'test', '--config=playwright.config.mjs', *specs,
                         *(['--reporter=list,json'] if args.study else []),

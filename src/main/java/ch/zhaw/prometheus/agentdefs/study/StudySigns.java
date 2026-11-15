@@ -9,11 +9,11 @@ import ch.zhaw.prometheus.model.coordination.*;
 import ch.zhaw.prometheus.model.event.*;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 
-/** Study-owned observation protocol: no camera recognition or generic RPS sign reinterpretation. */
+/** Study-owned observation protocol: camera and synthetic provenance remain distinct from generic RPS signs. */
 public final class StudySigns {
     public static final String EVENT="obs.study.sign";
     public static final String GUIDANCE="""
-        STUDY SIGN EXTENSION: Negotiate a short fictional, nonclinical check-in with simulated hand-sign answers.
+        STUDY SIGN EXTENSION: Negotiate a short fictional, nonclinical check-in with scoped hand-sign answers.
         This is a bounded ordered list of exact yes/no questions, not independent sensor reactions.
         Use optional agreement.activity exactly:
         {"kind":"SIGN_ANSWERS","questions":["Would you like a short activity?","Would you prefer a quiet activity?","Would you like a break afterwards?"],
@@ -21,8 +21,9 @@ public final class StudySigns {
         Examples are not imposed preferences. Clarify missing questions, mappings and demonstration preference with the human.
         Support 1–8 exact distinct yes/no questions of at most 160 characters. Either thumb may mean YES, the other means NO.
         OPEN_PALM means WAIT, preserving the pending question and count. Only explicit text Resume permits further answers.
-        Demonstration, if agreed, needs three fresh simulated button events before acceptance; verbal claims do not count.
-        There is no camera and no general hand-sign recognition. The backend binds a fresh sign to one pending question, run and accepted revision.
+        Text Resume is a control, NEVER an answer. Describe the human role as answering with signs and using Resume only to continue.
+        Demonstration, if agreed, needs three fresh recognized sign events before acceptance; verbal claims do not count.
+        Camera attempts use browser recognition; synthetic fixtures use disclosed simulated signs. The backend binds a fresh sign to one pending question, run and accepted revision.
         Use checks:[], reactions:null and dialogueLimit equal to questions.length+1. Do not duplicate the numeric budget in roles/success.
         Success means ONLY recording an answer to EVERY agreed question, not a clinical outcome.
         Early Stop is cancellation, NEVER an alternative success criterion. Do not include "or stopped" in the success field.
@@ -71,7 +72,9 @@ public final class StudySigns {
     }
     public static String rejection(Storage storage,JsonObject payload,Instant now) {
         try {
-            if(!payload.get("simulation").getAsBoolean() || !"controlled_study".equals(payload.get("source").getAsString()))return "wrong_source";
+            if(StudyVision.enabled(storage)) {
+                if(!StudyVision.camera(payload) || payload.get("confidence").getAsDouble()<.65 || payload.get("stabilityFrames").getAsInt()<3)return "wrong_source";
+            } else if(!payload.get("simulation").getAsBoolean() || !"controlled_study".equals(payload.get("source").getAsString()))return "wrong_source";
             UUID.fromString(payload.get("observationId").getAsString());
             var seen=observations(storage);
             if(seen.has(payload.get("observationId").getAsString()))return "duplicate_sign";
@@ -94,15 +97,15 @@ public final class StudySigns {
         } catch(RuntimeException invalid) { return "invalid_sign"; }
     }
     public static void observe(Storage storage,Event event,Instant now) {
-        if(!EVENT.equals(event.getType()) || !"study-simulation".equals(event.getActor()))return;
+        if(!EVENT.equals(event.getType()) || !Set.of("study-simulation","study-camera").contains(event.getActor()))return;
         var payload=JsonParser.parseString(event.getPayload()).getAsJsonObject();String rejected=rejection(storage,payload,now);
         String before=CoordinationMemory.stage(storage);
-        if(rejected!=null) { reply(storage,"That simulated sign was not applied ("+rejected.replace('_',' ')+"). The pending question and answers are unchanged.");CoordinationMemory.record(storage,"SIGN_REJECTED",before,event,now);return; }
+        if(rejected!=null) { reply(storage,"That sign was not applied ("+rejected.replace('_',' ')+"). The pending question and answers are unchanged.");CoordinationMemory.record(storage,"SIGN_REJECTED",before,event,now);return; }
         var seen=observations(storage);seen.addProperty(payload.get("observationId").getAsString(),payload.get("ts").getAsString());storage.put(CoordinationMemory.SIGN_OBSERVATIONS,seen);
         String sign=payload.get("sign").getAsString();
         if("DEMONSTRATE".equals(payload.get("mode").getAsString())) {
             var evidence=CoordinationMemory.evidence(storage);evidence.add("sign."+sign,payload.deepCopy());storage.put(CoordinationMemory.EVIDENCE,evidence);
-            CoordinationMemory.revise(storage);reply(storage,"Simulated "+sign.replace('_',' ').toLowerCase()+" demonstration recorded. "
+            CoordinationMemory.revise(storage);reply(storage,"Recognized "+sign.replace('_',' ').toLowerCase()+" demonstration recorded. "
                     +(CoordinationMemory.ready(storage)?"All demonstrations are complete. Review the proposal and save your prediction before accepting it.":"Demonstrate the remaining signs before acceptance."));
             CoordinationMemory.record(storage,"SIGN_DEMONSTRATION",before,event,now);return;
         }

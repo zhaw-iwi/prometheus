@@ -9,7 +9,7 @@ import ch.zhaw.prometheus.model.coordination.*;
 import ch.zhaw.prometheus.model.event.*;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 
-/** Deterministic execution of agreed words; controlled simulations never establish physical privacy. */
+/** Deterministic execution of agreed words; observed counts never establish physical privacy. */
 public final class StudyContext {
     public static final String GUIDANCE="""
         STUDY CONTEXT EXTENSION: A fictional medication-routine check-in is a one-question encounter, not independent sensor reactions.
@@ -22,10 +22,10 @@ public final class StudyContext {
         The numeric scene thresholds, departure and resumption rules are FIXED capabilities of this executor, not negotiable examples.
         Do not offer a different visible-person threshold or automatic resumption. Explain the supported policy and ask whether it is acceptable;
         if it is not, keep negotiating without starting or let the participant end the interaction. Do not promise unsupported alternatives.
-        Supported rules: after acceptance, a FRESH simulated one-person scene starts one yes/no question;
+        Supported rules: after acceptance, a FRESH one-person observation starts one yes/no question;
         two or more visible people postpone immediately; explicit Resume with a current one-person scene continues;
         departure ends an already begun encounter. Return alone never restarts it. Unknown evidence pauses, not absence.
-        Counts do not identify a patient or prove real privacy. No actual camera or medication information is obtained.
+        Counts do not identify a patient or prove real privacy. The session mode determines camera or simulated observations; use only fictional medication information.
         A generic non-sensitive postponement message is supplied by the backend; it never repeats the medication question.
         question, yesReply, noReply: max 200 characters each. question is one yes/no question; replies are final statements, no follow-up question.
         No diagnosis, dosage instruction, coercion, adherence verification or clinical success claim is supported.
@@ -39,7 +39,7 @@ public final class StudyContext {
     public static JsonObject state(Storage storage) { return storage.containsKey(CoordinationMemory.CONTEXT_STATE)?storage.get(CoordinationMemory.CONTEXT_STATE).getAsJsonObject().deepCopy():null; }
     public static JsonObject scene(Storage storage) { return storage.containsKey(CoordinationMemory.STUDY_SCENE)?storage.get(CoordinationMemory.STUDY_SCENE).getAsJsonObject().deepCopy():null; }
     public static String status(JsonObject value) { return value==null?"NONE":value.get("status").getAsString(); }
-    public static int count(Storage storage) { var scene=scene(storage);return scene==null || scene.get("humanCount").isJsonNull()?-1:scene.get("humanCount").getAsInt(); }
+    public static int count(Storage storage) { var scene=scene(storage);return scene==null || (StudyVision.camera(scene) && !StudyVision.fresh(scene,Instant.now())) || scene.get("humanCount").isJsonNull()?-1:scene.get("humanCount").getAsInt(); }
     public static String start(Storage storage,String priorPhase) {
         var previous=state(storage);boolean ongoing=previous!=null && !previous.has("outcome")
                 && Set.of("RUNNING","PAUSED").contains(priorPhase);
@@ -49,12 +49,12 @@ public final class StudyContext {
         if(!value.has("actions"))value.addProperty("actions",0);
         storage.put(CoordinationMemory.CONTEXT_STATE,value);storage.put(TaskMemory.ACTIONS,value.get("actions"));
         if("POSTPONED".equals(status(value)))CoordinationMemory.phase(storage,"PAUSED");
-        return "The check-in is accepted. Show a fresh simulated scene with one visible person. A postponed question also requires Resume.";
+        return "The check-in is accepted. Show a fresh scene with one visible person. A postponed question also requires Resume.";
     }
     public static void observe(Storage storage,Event event,Instant now) {
-        if(!"study-simulation".equals(event.getActor()))return;
+        if(!Set.of("study-simulation","study-camera").contains(event.getActor()))return;
         var incoming=JsonParser.parseString(event.getPayload()).getAsJsonObject();
-        if(!incoming.has("simulation") || !incoming.get("simulation").getAsBoolean())return;
+        if(!incoming.has("simulation") || (!incoming.get("simulation").getAsBoolean() && !StudyVision.camera(incoming)))return;
         long sequence=incoming.get("sequence").getAsLong();var old=scene(storage);
         if(old!=null && sequence<=old.get("sequence").getAsLong())return;
         var observed=incoming.deepCopy();
@@ -66,18 +66,23 @@ public final class StudyContext {
         if(!task(accepted) || value==null || value.has("outcome") || storage.containsKey(CoordinationMemory.DRAFT)
                 || !Set.of("RUNNING","PAUSED").contains(TaskMemory.phase(storage)))return;
         String before=CoordinationMemory.stage(storage);int count=count(storage);String words=null;
-        if(count==0 && value.has("pending")) {
-            value.addProperty("status","ENDED");value.addProperty("outcome","SIMULATED_DEPARTURE");value.remove("pending");
+        boolean gap=old!=null && StudyVision.camera(old) && !StudyVision.fresh(old,now);
+        if(!gap && old!=null && old.get("humanCount").equals(observed.get("humanCount")) && !"WAITING_FOR_ONE".equals(status(value)))return;
+        if(gap && count==1 && "WAITING_FOR_ANSWER".equals(status(value))) {
+            value.addProperty("status","POSTPONED");CoordinationMemory.phase(storage,"PAUSED");
+            words="Camera information was interrupted. The pending question is unchanged; say Resume when you are ready to continue.";
+        } else if(count==0 && value.has("pending")) {
+            value.addProperty("status","ENDED");value.addProperty("outcome",StudyVision.camera(incoming)?"OBSERVED_DEPARTURE":"SIMULATED_DEPARTURE");value.remove("pending");
             CoordinationMemory.phase(storage,"COMPLETED");storage.put(CoordinationMemory.OUTCOME,value.get("outcome"));
-            words="The simulated person is no longer visible. This encounter has ended; return alone will not restart it.";
+            words="The person is no longer detected in view. This encounter has ended; return alone will not restart it.";
         } else if(count<0 || count>=2) {
             value.addProperty("status","POSTPONED");CoordinationMemory.phase(storage,"PAUSED");
             words=count<0?"The scene is unknown. We will wait for current scene information before continuing."
-                    :"More than one person is visible in the simulation. We can continue later; say Resume when one person is visible again.";
+                    :"More than one person is detected in view. We can continue later; say Resume when one person is visible again.";
         } else if(count==1 && "WAITING_FOR_ONE".equals(status(value)) && TaskMemory.active(storage)
                 && sequence>value.get("afterScene").getAsLong()) {
             words=ask(storage,value,accepted);
-        } else if(count==1 && "POSTPONED".equals(status(value))) words="One person is visible in the simulation. The check-in remains paused until you say Resume.";
+        } else if(count==1 && "POSTPONED".equals(status(value))) words="One person is detected in view. The check-in remains paused until you say Resume.";
         storage.put(CoordinationMemory.CONTEXT_STATE,value);
         if(words!=null)reply(storage,words);
         CoordinationMemory.revise(storage);CoordinationMemory.record(storage,"SCENE",before,event,now);
@@ -110,7 +115,7 @@ public final class StudyContext {
     public static void answer(Storage storage,String answer,Event event) {
         var value=state(storage);
         if(!Set.of("YES","NO").contains(answer) || !"WAITING_FOR_ANSWER".equals(status(value)) || count(storage)!=1 || !TaskMemory.active(storage)) {
-            reply(storage,"The pending question is unchanged. Use yes or no only when the check-in is running with one simulated person visible.");return;
+            reply(storage,"The pending question is unchanged. Use yes or no only when the check-in is running with one person currently detected.");return;
         }
         var contract=ContextCheckInContract.parse(CoordinationMemory.agreement(storage,CoordinationMemory.AGREEMENT).activity());
         value.add("answeredQuestion",value.get("pending").deepCopy());value.remove("pending");value.addProperty("answer",answer);value.addProperty("actions",2);

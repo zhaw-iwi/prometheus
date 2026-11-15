@@ -5,6 +5,12 @@ the evolving software contract; it is not a participant protocol or collection a
 
 ## Current boundary
 
+The camera follow-up uses v3 materials and browser-derived observations by default;
+read [CAMERA.md](CAMERA.md) for the current source, lifecycle, freshness and resource
+contracts. The OS-04/07/08 descriptions below retain the v2 simulation behavior
+for existing attempts and regression fixtures. They do not describe v3's sensing
+condition. There is no raw-media upload or storage, and text remains the output.
+
 OS-01–09 implement all three executable text scenarios, resumable sessions,
 private forms, durable turns, research evidence, assessments and operations.
 Human collection stays closed pending institutional, deployment and pilot readiness;

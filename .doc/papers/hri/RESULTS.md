@@ -654,3 +654,99 @@ collection remains closed: institutional arrangements, reviewed information and
 retention rules, deployment checks, actual 4-6-person pilot, issue resolution and
 protocol/build freeze are explicitly PENDING in RUNBOOK.md. No physical robot,
 clinical effectiveness, universal model reliability or human-usability result is claimed.
+
+
+## OS-13 — Camera perception and participant handoff (15 November 2026)
+
+**Software complete.** The owner corrected the earlier interpretation of text-to-text:
+participants use typed dialogue **and actual camera perception**, including face,
+person and hand detectors. The owner also selected a participant-arranged consenting
+adult helper for the contextual one–two–one probe. V3 materials and the participant
+landing now describe this condition. V2 frozen simulation attempts remain separate.
+See CAMERA.md for the complete current contract and release gates.
+
+The study client starts the camera and all detectors after preparation/connection,
+subject to browser permission. Images stay local; derived observations enter the
+assigned agent through durable, scoped study receipts. Facial labels are fallible
+context, not task controls. Person changes fence older output; stale evidence and
+camera loss are unknown, and a stale gap cannot silently resume a pending question.
+Hand answers require stable recognition, current revision/question/run scope and
+neutral release between signs. Low-confidence or unclassified hands cannot count
+as release. Capture stops on finish, withdrawal, hidden tab and navigation; visible
+permission/model/delivery failures preserve finishing. Capacity rejection stops
+sensor retries until readmission and other delivery failures back off.
+
+Activity ending now offers a confirmed questionnaire handoff without equating
+initial acceptance with completion. Existing private pre-interaction choices,
+open-reference comprehension, two UMUX-LITE items, four exploratory ratings and two
+optional comments remain; answers lock before debrief. No database schema change,
+raw-media storage, microphone or physical robot control was added.
+
+### Actual verification
+
+| Check | Result and retained evidence under `target/` |
+| --- | --- |
+| `node --test` across all `tests/js` and `tests/hri/coding.test.mjs` | **230 passed**, including six camera edge/lifecycle checks; `hri-camera-js.log` |
+| `python tests/gptlive/test_acceptance_runner.py` | **17 passed**, including camera/model selection and rejection of misleading v2 capacity/integrated combinations |
+| `--study --java-tests 'Study*Test' --browser` | **71 Java + 15 legacy browser tests passed**, zero skips/retries; `gptlive-acceptance-c0a97e20a9`. The camera Java class explicitly uses v3 even in this legacy browser run |
+| `--study --study-camera --java-tests none --browser` | **4 camera browser tests passed**, zero skips/retries; `gptlive-acceptance-39381501b9`. Real HTTP/DB, generated video and controlled detector outputs: permission/model failure, face context, context postponement/unknown camera, sign demonstration/wait/revision/held-sign exclusion, questionnaire and teardown |
+| `--study --study-camera --study-models --java-tests none --browser` | **1 passed**, `gptlive-acceptance-d931c049b1`: actual detector bundles/weights loaded and processed generated blank video, producing zero people; no external non-GET requests or browser errors. This does not establish physical recognition accuracy |
+| Final sign-prompt refinement: `--study --study-camera --java-tests StudySignsTest,StudySignsIntegrationTest,StudyCameraIntegrationTest --paid-core coordination-text --study-scenario signs` | **10 focused Java checks and the live journey passed**, `gptlive-acceptance-74b68de6db` |
+
+The four camera cases cover A/B/C and failures, not four participants. Screenshots
+at 390 and 1440 pixels were inspected; layout/controls were readable without
+horizontal overflow. The real-model screenshot was also inspected. Temporary
+apps, random loopback MySQL schemas and restricted accounts were removed by the
+runner. Selected acceptance manifests reported `sourceChangedDuringRun: []`.
+
+### Live OpenAI acceptance and retained failures
+
+All paid trials used the camera protocol with **synthetic detector observations**,
+local disposable MySQL, `gpt-5.6-luna` / `none`, and the existing per-trial caps of
+20 calls / 80,000 tokens. No participant camera recording was sent to OpenAI.
+Canonical text, accepted/revised terms, pending questions, outcomes and exports
+were inspected independently of executable assertions.
+
+| Final journey | Calls / tokens | Evidence and bounded semantic result |
+| --- | --- | --- |
+| A: guessing | 8 / 33,180 | `970d9b960e`: PASS; roles, question limit, pause/resume and limit-only revision preserved; exhaustion distinct from success |
+| B: contextual check-in | 5 / 30,452 | `0e1e38aed0`: PASS; fresh scene start, one–two–one postponement, explicit resumption, wording-only revision and preserved pending question |
+| C: negotiated signs | 5 / 32,388 | `74b68de6db`: PASS; demonstrations, one-question sign scope, wait/resume, mapping-only revision with renewed preparation/acceptance; correct remaining answers and ending |
+
+Each final export had two accepted snapshots, 21 assessment rows and complete
+recording/procedure/configuration/display flags with no unresolved requests.
+Final matrix: **18 calls, 96,020 tokens**; observed provider-call median 1.407 s,
+nearest-rank p95/max 3.563 s. These are bounded scripted outcomes, not a model
+reliability rate. A's all-No fixture tests contract fidelity, not secret-consistent
+guessing quality. `semantic-review.json` records each review alongside its journey.
+
+Earlier evidence remains available:
+
+- `7655cb97de`: initial Java profile assertion failed because it still expected the
+  pre-camera event list. Updated the expected declared capability.
+- `f8f5f593e6`: seven Java checks and three camera browser cases passed; the fourth
+  reached assessment but queried form controls before the new stage appeared.
+  Corrected the test to await the questionnaire heading before filling it.
+- `52141c487e`, `794c1cb078`, `b2056641b3`, `14bfcbb8e7`: passing intermediate
+  regressions retained; later checks cover subsequent fixes.
+- `5ea52b0e1f` and `69dc9869f5`: B/C execution passed, but semantic review rejected
+  stale deterministic “simulated” proposal wording. C's fixture also retained a
+  contradictory “No camera” sentence and ambiguous Resume role wording. Corrected
+  source-neutral contract reviews, the fixture and role guidance.
+- `e7ba58c2bc`: corrected C fixture exposed unsupported generic hand checks added
+  alongside typed demonstrations. The guard rejected the proposal before activation.
+  Strengthened the study-only instruction that `activity.demonstrate` owns this
+  preparation and `checks` must remain empty; final C passed afterward.
+
+Across all six paid trials, including retained failures: **30 calls, 169,117 tokens**.
+Guards were preserved; failed model output was not silently repaired or accepted.
+
+### Remaining limits
+
+Human collection remains disabled. Physical sign/face/person recognition across
+student devices, lighting and occlusion; consenting-helper feasibility; actual
+participant usability; reviewed information/retention; hosting/provider limits;
+and the human pilot/freeze remain pending. The four-session/two-wave OS-12 result
+qualifies **v2 simulations only**. Periodic v3 camera traffic and client detector
+CPU need a separate capacity qualification before release. No human, clinical,
+physical-robot, causal-comparison or universal reliability result is claimed.

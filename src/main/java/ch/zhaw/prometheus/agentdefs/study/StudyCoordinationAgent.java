@@ -19,7 +19,9 @@ public class StudyCoordinationAgent extends CoordinationAgent {
             Use concise, respectful, neutral language. Do not claim to be a clinician or a physical robot.
             Help the participant specify an achievable activity, clarify roles and conditions, review an agreement,
             and deliberately accept or revise it. Ask one meaningful missing question at a time.
-            Reply in text only. There is no microphone, camera, gaze, gesture renderer or physical action.
+            Reply in text only. There is no microphone, gaze tracking, gesture renderer or physical action.
+            Visual observations may come from browser detectors or disclosed synthetic fixtures; follow the session mode.
+            Never equate a facial-expression estimate with feelings or a visible-person count with identity or privacy.
             Do not claim access to private forms or the person's unspoken secret. Do not invent their preferences.
             Distinguish a proposal, accepted terms, generated output, and a participant-reported outcome.
             Capability limits are part of negotiation. Do not promise unsupported execution.
@@ -33,14 +35,15 @@ public class StudyCoordinationAgent extends CoordinationAgent {
     @Override protected void addActivityTransitions(java.util.Collection<TaskState> states,ch.zhaw.prometheus.model.Storage storage,TaskState routing) {
         var action=new StudySceneAction(storage);
         var decision=new ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision(Event.TYPE_HUMAN_PRESENCE);
-        for(var state:states)state.addTransition(new ch.zhaw.prometheus.model.Transition(decision,action,routing));
+        for(var state:states){state.addTransition(new ch.zhaw.prometheus.model.Transition(decision,action,routing));
+            state.addTransition(new ch.zhaw.prometheus.model.Transition(new ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision(StudyVision.EVENT),action,routing));}
         var signAction=new StudySignAction(storage);
         var signDecision=new ch.zhaw.prometheus.model.commons.decisions.LatestEventTypeDecision(StudySigns.EVENT);
         for(var state:states)state.addTransition(new ch.zhaw.prometheus.model.Transition(signDecision,signAction,routing));
     }
     @Override public Agent createAgent() {
         var agent=createAgent("Coordination Assistant", "Text-based task agreement and revision for the online study.",
-                VOICE, AgentInteractionProfile.of(List.of(Event.TYPE_USER_UTTERANCE,Event.TYPE_HUMAN_PRESENCE,StudySigns.EVENT),
+                VOICE, AgentInteractionProfile.of(List.of(Event.TYPE_USER_UTTERANCE,Event.TYPE_HUMAN_PRESENCE,StudySigns.EVENT,StudyVision.EVENT),
                         List.of(AgentInteractionProfile.MODALITY_SPEECH), List.of("study.hri", "study.text")), false, false);
         ((TaskPolicy)agent.getCurrentState().ownPolicy()).storage().put(
                 ch.zhaw.prometheus.model.coordination.CoordinationMemory.CONCISE_CONTROLS,new com.google.gson.JsonPrimitive(true));

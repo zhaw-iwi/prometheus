@@ -12,7 +12,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
-@SpringBootTest(properties={"prometheus.runtime.tick.enabled=false","prometheus.study.max-active=1","prometheus.study.max-turns=2","prometheus.study.interaction-minutes=1"})
+@SpringBootTest(properties={"prometheus.study.sensing=simulation","prometheus.runtime.tick.enabled=false","prometheus.study.max-active=1","prometheus.study.max-turns=2","prometheus.study.interaction-minutes=1"})
 class StudyAdmissionIntegrationTest {
     @Autowired StudySessions sessions;
     @Autowired StudyAdmission admission;

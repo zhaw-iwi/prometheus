@@ -17,7 +17,7 @@ import com.google.gson.*;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import static ch.zhaw.prometheus.application.study.StudyAttempt.*;
 
-@SpringBootTest(properties={"prometheus.runtime.tick.enabled=false","prometheus.admin.token=study-test-admin"})
+@SpringBootTest(properties={"prometheus.study.sensing=simulation","prometheus.runtime.tick.enabled=false","prometheus.admin.token=study-test-admin"})
 @AutoConfigureMockMvc
 class StudyOperationsIntegrationTest {
     @Autowired StudySessions sessions;@Autowired StudyOperations operations;@Autowired StudyEvidence evidence;@Autowired StudyProtocol protocol;

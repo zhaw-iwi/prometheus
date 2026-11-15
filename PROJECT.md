@@ -75,6 +75,19 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-13 (2026-11-15, **software complete**, study application branch): typed
+  dialogue now includes real browser camera perception. V3 materials, local
+  face/person/hand detectors, permission/lifecycle handling, scoped sign edges,
+  fresh contextual evidence and questionnaire handoff preserve agreement authority.
+  Scenario B uses a participant-arranged consenting adult helper. No raw media is
+  uploaded/stored. Verification: 71 study Java tests plus 10 focused final checks,
+  230 JS/coding checks, 17 runner checks, 15 legacy and four camera browser cases,
+  real detector loading/inference on generated video, and final live OpenAI A/B/C
+  journeys (18 calls, 96,020 tokens). Earlier failures are retained in RESULTS.md.
+  Physical recognition accuracy, camera-workload capacity, helper/human pilot and
+  institutional/deployment gates remain pending; human collection stays closed.
+  See `.doc/papers/hri/CAMERA.md` and `RESULTS.md`.
+
 - OS-12 (2026-11-15, **complete**, study application branch): bounded admission
   and interaction, direct shared-storage reads, capacity runner and operator/schema/
   pilot handoff. Eight sessions exceeded the query target; four passed a full

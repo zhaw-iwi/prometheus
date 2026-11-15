@@ -40,6 +40,12 @@ public class StudyRecorder {
         metadata.put("language","en"); metadata.put("definition",StudyCoordinationAgent.KEY);
         metadata.put("persona",StudyCoordinationAgent.VOICE);
         metadata.put("foundationFixture",attempt.foundation);
+        if(StudySessions.camera(attempt)) {
+            var sensing=metadata.putObject("sensing");sensing.put("mode","BROWSER_CAMERA");sensing.put("rawMediaStored",false);
+            sensing.put("face","face-api.js@0.22.2/tinyFaceDetector+faceExpressionNet");sensing.put("people","coco-ssd@2.2.3/lite_mobilenet_v2");
+            sensing.put("hands","mediapipe-tasks-vision@0.10.35/gesture_recognizer");sensing.put("refreshSeconds",10);sensing.put("freshnessSeconds",15);
+            sensing.put("maxVisualReceipts",400);sensing.put("handConfidence",.65);sensing.put("stableHandFrames",3);sensing.put("neutralReleaseFrames",2);
+        }
         metadata.set("interactionBounds",json.valueToTree(limits.bounds()));metadata.set("admission",json.valueToTree(admission.status()));
         metadata.put("informationVersion",attempt.informationVersion);metadata.put("informationText",attempt.informationText);
         metadata.set("materials",json.valueToTree(materials.manifest()));
@@ -78,7 +84,7 @@ public class StudyRecorder {
         record.set("events",events(agent,sourcePosition)); record.put("phase",CoordinationMemory.stage(storage));
         for (String key:List.of(CoordinationMemory.DRAFT,CoordinationMemory.AGREEMENT,CoordinationMemory.ACCEPTED_EVIDENCE,
                 CoordinationMemory.RUN,CoordinationMemory.OUTCOME,TaskMemory.REVISION,TaskMemory.ACTIONS,
-                ch.zhaw.prometheus.agentdefs.study.StudyGuessing.KEY,CoordinationMemory.CONTEXT_STATE,CoordinationMemory.STUDY_SCENE,CoordinationMemory.SIGN_STATE))
+                ch.zhaw.prometheus.agentdefs.study.StudyGuessing.KEY,CoordinationMemory.CONTEXT_STATE,CoordinationMemory.STUDY_SCENE,CoordinationMemory.SIGN_STATE,ch.zhaw.prometheus.agentdefs.study.StudyVision.LATEST))
             if (storage.containsKey(key)) record.set(key,parse(storage.get(key).toString()));
         var journal=record.putArray("journal");
         if (storage.containsKey(CoordinationMemory.LOG)) for (var entry:storage.get(CoordinationMemory.LOG).getAsJsonArray()) {

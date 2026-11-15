@@ -9,12 +9,19 @@ or collected results.
 
 ## 1. Direction and scope
 
-The owner's latest direction is **text input and text output** for the student
-experiment. This resolves the brief's previously open primary interaction mode.
-Microphone capture, speech synthesis, camera access, and physical robot control
-are outside the default participant journey. Multimodal situations can be
-represented by explicitly disclosed, controlled observations; this evaluates
-coordination and response logic, not perception accuracy or embodied interaction.
+The owner's clarified direction is **typed conversation with real camera sensing**.
+Text-to-text describes dialogue input/output, not the available perception channels.
+The browser runs face-expression, visible-person and hand-sign detectors. It sends
+only derived observations; no microphone, speech synthesis, raw-image upload or
+physical robot control is part of the participant journey. Facial estimates are
+fallible conversational context, never implicit consent or answers. Person counts
+and hand signs affect execution through the accepted scenario contract.
+
+For scenario B, the owner confirmed that the participant arranges a **consenting
+adult helper** to enter and leave view. Participant/helper information and the
+pilot must cover this role. Never substitute synthetic people or signs without
+making a different study condition explicit. See [CAMERA.md](CAMERA.md) for the
+implementation boundary, version transition, test requirements and remaining gates.
 
 Implementation direction, including the owner's roadmap decisions:
 
@@ -81,7 +88,7 @@ their time limits and exact wording after the pilot.
 
 | Stage | Required behavior and recording |
 | --- | --- |
-| Entry and information | Resolve a pseudonymous session; show reviewed information/consent and the text-only setup. Do not silently request media permissions |
+| Entry and information | Resolve a pseudonymous session; show reviewed information/consent and the typed-dialogue/camera setup. Do not silently request media permissions |
 | Pre-interaction form | Capture concise background information; check that the participant can use the interface and understands the fictional setting |
 | Task preparation | Show the assigned task card; capture initial free-form intention before a detailed checklist, then any private preferences. Keep these records out of the model context |
 | Coordination | Let the participant specify the task in their own words. Record proposals, clarifications, acceptance, and the committed agreement snapshot |
@@ -113,15 +120,14 @@ to learn internal operation names such as REPLACE.
 | Scenario | Implementation requirement before an executable study |
 | --- | --- |
 | A: Twenty Questions-style game | OS-06 implements a dedicated question/guess counter, private secret and explicit stopping outcomes. Pilot role fidelity, question quality and participant understanding; see IMPLEMENTATION.md and RESULTS.md for current evidence |
-| B: contextual medication check-in | OS-07 implements a fictional question/response encounter with controlled scene interruption and explicit resumption. Pilot the disclosed simulation and wording; distinguish person count from identity or proof of privacy. Current contract/evidence: IMPLEMENTATION.md and RESULTS.md |
-| C: negotiated hand-sign answers | OS-08 implements scoped simulated thumbs/open-palm answers, optional demonstrations, wait/resume and renewed acceptance for mapping changes. Pilot the mapping and pending-question explanation; this is not visual sign recognition. Current contract/evidence: IMPLEMENTATION.md and RESULTS.md |
+| B: contextual medication check-in | OS-07 implements a fictional question/response encounter with controlled scene interruption and explicit resumption. Pilot real person detection, the consenting-helper procedure and wording; distinguish person count from identity or proof of privacy. Current contract/evidence: IMPLEMENTATION.md and RESULTS.md |
+| C: negotiated hand-sign answers | OS-08 implements scoped simulated thumbs/open-palm answers, optional demonstrations, wait/resume and renewed acceptance for mapping changes. Pilot the mapping and pending-question explanation; the camera version must validate recognition and hand-release behavior separately from the executor. Current contract/evidence: IMPLEMENTATION.md and RESULTS.md |
 
-For B/C, use visibly labeled simulated scene/sign events, such as a small scene
-panel or symbol buttons. Emit them through the event boundary with source,
-timestamp, and simulation provenance; do not mutate task state directly. A typed
-claim that a sign was shown is not equivalent to a recognition observation or a
-passed preparation check. Control probe order, relative timing, and accepted
-revision; do not secretly improvise events for individual participants.
+For B/C, admit browser-derived observations with source, capture timestamp,
+confidence/stability where applicable, and the current task scope. A typed claim
+that a sign was shown is not recognition evidence. Control the physical probe
+instructions, relative timing and accepted revision. The old disclosed simulations
+remain software fixtures only; existing versioned attempts retain their materials.
 
 Include one planned change request and one bounded interruption/recovery or
 contextual probe per applicable task. Do not bundle unrelated changes. Choose
@@ -333,7 +339,7 @@ changes with the brief. Stop for owner review without committing unless instruct
 
 ## Implemented assessment/procedure draft
 
-`hri-text-v2-draft` freezes the software study materials. See
+`hri-text-v2-draft` is the earlier simulation material snapshot; new camera attempts use `hri-text-v3-draft`. Neither is a human-study freeze. See
 [INSTRUMENTS.md](INSTRUMENTS.md) for exact instrument source/scoring, open-reference
 understanding, adaptive one-revision timing and coding worksheet. Balanced task
 allocation and separate participant/attempt denominators are implemented; failed,

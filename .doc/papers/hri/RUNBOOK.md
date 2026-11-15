@@ -106,8 +106,9 @@ are not a complete runtime restore format.
 
 ## During and after interaction
 
-- Participants use text and explicitly simulated scenes/signs. No microphone,
-  camera, real patient data or actual medication recommendation is involved.
+- Participants use typed dialogue and real camera-derived observations. No microphone,
+  raw-image upload, real patient data or actual medication recommendation is involved.
+  Scenario B requires a participant-arranged consenting adult helper; see CAMERA.md.
 - Visible pages renew presence every 30 seconds. After 120 seconds hidden/offline,
   a slot may be reassigned. Returning pages reacquire; assignment/history stay saved.
   The UI explains a full wave and retains Finish/withdrawal. There is no queued
@@ -160,7 +161,7 @@ software qualification, pilot authorization and main-study readiness.
   checks within the deployment authorization. Freeze the tested release/config.
 - [ ] Authorize and enable PILOT with reviewed information and versioned materials.
 - [ ] Run an actual 4-6-person pilot across all three scenarios. Observe role
-  comprehension, task wording, revision/probe timing, sign/scene simulation,
+  comprehension, task wording, revision/probe timing, physical sign recognition, person detection and helper feasibility,
   questionnaire clarity, duration, accessibility, admission/reconnect and export.
 - [ ] Review unsuccessful/uncertain cases and operator help, resolve pilot issues,
   version changed code/materials and repeat affected automated/live checks.
@@ -168,3 +169,13 @@ software qualification, pilot authorization and main-study readiness.
 - [ ] Separately approve MAIN invitations and the final 40-50-student schedule.
 
 No automated test substitutes for these observed human and deployment gates.
+
+## Camera condition
+
+New instances default to `prometheus.study.sensing=camera` and v3 materials.
+`simulation` is for legacy synthetic regression only; it creates v2 attempts.
+Use HTTPS for participant camera access (localhost is sufficient in local tests).
+Camera permission and model availability are visible requirements. Permit the
+Valerian detector asset hosts documented in CAMERA.md. Do not expose raw recordings.
+The prior capacity qualification is not a camera-workload qualification. Pilot/main
+material flags and collection remain closed; this change is not recruitment approval.

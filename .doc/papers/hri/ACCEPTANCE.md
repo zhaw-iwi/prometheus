@@ -19,6 +19,21 @@ Selected Java/browser cases cannot be empty, skipped, retried or silently filter
 It uses test providers with external inference disabled. Paid trials require a
 separate explicit command; there is no automatic provider fallback.
 
+That integrated command retains the v2 simulation browser/dataset workload.
+For the camera condition, additionally run:
+
+```powershell
+python tests/gptlive/run_acceptance.py --study --study-camera --java-tests StudyCameraIntegrationTest,StudyMaterialsTest --browser
+python tests/gptlive/run_acceptance.py --study --study-camera --study-models --java-tests none --browser
+python tests/gptlive/run_acceptance.py --study --study-camera --java-tests none --paid-core coordination-text --study-scenario guess
+```
+
+Repeat the paid command with `context` and `signs`, then inspect canonical replies
+and agreements independently of the executable assertions. The second command
+downloads real detector assets and processes generated video; it does not test
+physical recognition accuracy. See CAMERA.md. Camera selection cannot be combined
+with the v2 integrated/capacity workload to imply a new capacity qualification.
+
 The evidence directory is printed as `target/gptlive-acceptance-<id>/`:
 
 | Artifact | Interpretation |

@@ -16,6 +16,7 @@ import ch.zhaw.prometheus.model.task.TaskPolicy;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 import com.fasterxml.jackson.databind.*;
 import static ch.zhaw.prometheus.application.study.StudySessions.*;
+import ch.zhaw.prometheus.agentdefs.study.StudyVision;
 
 /** Durable ingress. Pending provider work owns no transaction and can commit only through its receipt. */
 @Service
@@ -25,7 +26,10 @@ public class StudyTurns {
         public SceneRequest(UUID requestId,long expectedScene,Integer humanCount,String observedAt){this(requestId,expectedScene,humanCount,observedAt,null);}
     }
     public record SignRequest(UUID requestId,long expectedTurn,UUID observationId,String sign,String mode,
-            String revision,UUID run,UUID question,String observedAt) {}
+            String revision,UUID run,UUID question,String observedAt,boolean camera,Double confidence,Integer stabilityFrames) {
+        public SignRequest(UUID requestId,long expectedTurn,UUID observationId,String sign,String mode,String revision,UUID run,UUID question,String observedAt){this(requestId,expectedTurn,observationId,sign,mode,revision,run,question,observedAt,false,null,null);}
+    }
+    public record VisionRequest(UUID requestId,long expectedScene,Integer humanCount,String emotion,Double confidence,String observedAt) {}
     public record View(UUID requestId,StudyTurn.Status status,Long committedTurn,UUID inputEventId,
             UUID responseEventId,String responseType,String responsePayload,Instant receivedAt,Instant finishedAt,String reason,
             String inputType,long expectedTurn,long sceneVersion,boolean sceneSensitive) {}
@@ -59,25 +63,42 @@ public class StudyTurns {
     public View scene(String token,SceneRequest request) {
         if(request==null || request.requestId()==null || request.expectedScene()<0 || request.expectedScene()>1_000_000
                 || request.humanCount()!=null && (request.humanCount()<0 || request.humanCount()>3) || request.observedAt()==null || request.observedAt().length()>40)
-            throw failure(HttpStatus.BAD_REQUEST,"Invalid simulated scene");
+            throw failure(HttpStatus.BAD_REQUEST,"Invalid scene");
         var payload=new com.google.gson.JsonObject();payload.addProperty("simulation",true);payload.addProperty("source","controlled_study");
         payload.addProperty("sequence",request.expectedScene()+1);payload.addProperty("humanCount",request.humanCount());payload.addProperty("ts",request.observedAt());
         if(request.probeStep()!=null)payload.addProperty("probeStep",request.probeStep());
         return submit(token,new Request(request.requestId(),request.expectedScene(),payload.toString()),Event.TYPE_HUMAN_PRESENCE);
+    }
+    public View vision(String token,VisionRequest request) {
+        if(request==null || request.expectedScene()<0 || request.expectedScene()>1_000_000
+                || request.humanCount()!=null && (request.humanCount()<0 || request.humanCount()>3)
+                || request.emotion()!=null && !StudyVision.EXPRESSIONS.contains(request.emotion())
+                || request.confidence()!=null && (!Double.isFinite(request.confidence()) || request.confidence()<0 || request.confidence()>1)
+                || request.emotion()!=null && (request.confidence()==null || request.confidence()<.55)
+                || request.observedAt()==null || request.observedAt().length()>40)
+            throw failure(HttpStatus.BAD_REQUEST,"Invalid camera observation");
+        var payload=new com.google.gson.JsonObject();payload.addProperty("simulation",false);payload.addProperty("source","study.browser.camera");
+        payload.addProperty("sequence",request.expectedScene()+1);payload.addProperty("humanCount",request.humanCount());payload.addProperty("ts",request.observedAt());
+        payload.addProperty("emotion",request.emotion());payload.addProperty("confidence",request.confidence());
+        return submit(token,new Request(request.requestId(),request.expectedScene(),payload.toString()),StudyVision.EVENT);
     }
     public View sign(String token,SignRequest request) {
         if(request==null || request.observationId()==null || request.sign()==null || request.sign().length()>24
                 || request.mode()==null || !Set.of("DEMONSTRATE","ANSWER").contains(request.mode()) || request.revision()==null
                 || !request.revision().matches("[0-9]{1,9}") || request.observedAt()==null || request.observedAt().length()>40)
             throw failure(HttpStatus.BAD_REQUEST,"Invalid simulated sign");
-        var payload=new com.google.gson.JsonObject();payload.addProperty("simulation",true);payload.addProperty("source","controlled_study");
+        if(request.camera() && (request.confidence()==null || !Double.isFinite(request.confidence()) || request.confidence()<.65 || request.confidence()>1
+                || request.stabilityFrames()==null || request.stabilityFrames()<3 || request.stabilityFrames()>100))throw failure(HttpStatus.BAD_REQUEST,"Unstable camera sign");
+        var payload=new com.google.gson.JsonObject();payload.addProperty("simulation",!request.camera());payload.addProperty("source",request.camera()?"study.browser.camera":"controlled_study");
+        if(request.camera()){payload.addProperty("confidence",request.confidence());payload.addProperty("stabilityFrames",request.stabilityFrames());}
         payload.addProperty("observationId",request.observationId().toString());payload.addProperty("sign",request.sign());payload.addProperty("mode",request.mode());
         payload.addProperty("revision",request.revision());payload.addProperty("run",request.run()==null?null:request.run().toString());
         payload.addProperty("question",request.question()==null?null:request.question().toString());payload.addProperty("ts",request.observedAt());
         return submit(token,new Request(request.requestId(),request.expectedTurn(),payload.toString()),ch.zhaw.prometheus.agentdefs.study.StudySigns.EVENT);
     }
     private View submit(String token,Request request,String type) {
-        boolean scene=Event.TYPE_HUMAN_PRESENCE.equals(type);
+        boolean visual=StudyVision.EVENT.equals(type);
+        boolean scene=visual || Event.TYPE_HUMAN_PRESENCE.equals(type);
         boolean sign=ch.zhaw.prometheus.agentdefs.study.StudySigns.EVENT.equals(type);
         if (request==null || request.requestId()==null || request.expectedTurn()<0 || request.text()==null
                 || request.text().isBlank() || request.text().length()>2000)
@@ -94,14 +115,21 @@ public class StudyTurns {
                 return new Claim(attempt.id,attempt.agentId,false,view(receipt),false,attempt.sceneVersion);
             }
             open(attempt); interaction(attempt);
-            limits.check(attempt);
+            if(visual && !camera(attempt) || Event.TYPE_HUMAN_PRESENCE.equals(type) && camera(attempt))throw failure(HttpStatus.CONFLICT,"Observation source does not match this attempt");
+            if(visual)limits.checkCamera(attempt);else limits.check(attempt);
             admission.acquire(attempt.id);
             if(scene) {
-                if(!"context".equals(attempt.scenario) || request.expectedTurn()!=attempt.sceneVersion) throw failure(HttpStatus.CONFLICT,"Refresh the simulated scene first");
+                if(!visual && !"context".equals(attempt.scenario) || request.expectedTurn()!=attempt.sceneVersion) throw failure(HttpStatus.CONFLICT,"Refresh the scene first");
                 var payload=com.google.gson.JsonParser.parseString(request.text()).getAsJsonObject();
                 if(!ch.zhaw.prometheus.model.event.ObservationEvidence.fresh(ch.zhaw.prometheus.model.event.ObservationEvidence.observed(payload),Instant.now(),15,2))
-                    throw failure(HttpStatus.BAD_REQUEST,"The simulated scene command is no longer current");
+                    throw failure(HttpStatus.BAD_REQUEST,"The observation is no longer current");
                 procedure.validateSceneProbe(attempt,payload);
+                if(visual && attempt.scenePayload!=null) {
+                    var old=com.google.gson.JsonParser.parseString(attempt.scenePayload).getAsJsonObject();
+                    boolean changed=!java.util.Objects.equals(old.get("humanCount"),payload.get("humanCount"));
+                    if(attempt.pendingRequest!=null && (!"context".equals(attempt.scenario) || !changed))
+                        throw failure(HttpStatus.CONFLICT,"Wait for the pending text before refreshing observations");
+                }
                 // Claim the changed environment before waiting on the agent's serial
                 // turn lock. The old inference can no longer commit or publish.
                 if(attempt.pendingRequest!=null) {
@@ -114,8 +142,11 @@ public class StudyTurns {
             }
             if (attempt.pendingRequest!=null) throw failure(HttpStatus.CONFLICT,"Reconcile the pending request first");
             if (!scene && request.expectedTurn()!=attempt.turnVersion) throw failure(HttpStatus.CONFLICT,"Refresh the conversation before submitting");
+            if(camera(attempt) && !scene && !request.text().strip().matches("(?i)(please )?(stop|pause)[.!]?")
+                    && (attempt.scenePayload==null || !StudyVision.fresh(com.google.gson.JsonParser.parseString(attempt.scenePayload).getAsJsonObject(),Instant.now())))
+                throw failure(HttpStatus.CONFLICT,"Start the camera and wait for current observations before continuing");
             if(sign)procedure.validateSign(attempt,com.google.gson.JsonParser.parseString(request.text()).getAsJsonObject());
-            if(!scene && !procedure.sceneApplied(attempt))throw failure(HttpStatus.CONFLICT,"Apply a current simulated scene before continuing");
+            if(!scene && !procedure.sceneApplied(attempt))throw failure(HttpStatus.CONFLICT,"Apply a current scene before continuing");
             boolean predicted=scene || procedure.permitsStart(attempt);
             if (!predicted && (ch.zhaw.prometheus.agentdefs.core.CoordinationAcceptance.explicit(request.text())
                     || ch.zhaw.prometheus.agentdefs.core.CoordinationAcceptance.assent(request.text())))
@@ -127,7 +158,7 @@ public class StudyTurns {
         });
         if (!claim.claimed()) return claim.view();
         try {
-            agents.acknowledge(claim.agentId(),new EventRequest(type,scene||sign?"study-simulation":Event.ACTOR_USER,
+            agents.acknowledge(claim.agentId(),new EventRequest(type,visual || sign && !com.google.gson.JsonParser.parseString(request.text()).getAsJsonObject().get("simulation").getAsBoolean()?"study-camera":scene||sign?"study-simulation":Event.ACTOR_USER,
                     Event.KIND_OBSERVATION,request.text()),OutputProfile.FULL_PLAN,(candidate,position,response,persist) ->
                 transaction.execute(tx -> {
                     var attempt=attempts.lockById(claim.attemptId()).orElseThrow();
@@ -137,6 +168,9 @@ public class StudyTurns {
                             || receipt.status!=StudyTurn.Status.PENDING || !Instant.now().isBefore(receipt.deadline))
                         throw new IllegalStateException("Study turn authority expired");
                     var candidateStorage=((TaskPolicy)candidate.getCurrentState().ownPolicy()).storage();
+                    if(camera(attempt) && !visual && !request.text().strip().matches("(?i)(please )?(stop|pause)[.!]?") && "context".equals(attempt.scenario) && candidateStorage.containsKey(StudyVision.LATEST)
+                            && !StudyVision.fresh(candidateStorage.get(StudyVision.LATEST).getAsJsonObject(),Instant.now()))
+                        throw new IllegalStateException("Camera evidence expired during the turn");
                     receipt.sceneSensitive=ch.zhaw.prometheus.agentdefs.study.StudyContext.task(CoordinationMemory.agreement(candidateStorage,CoordinationMemory.AGREEMENT));
                     if (!claim.predicted() && candidateStorage.containsKey(CoordinationMemory.LOG))
                         for (var entry:candidateStorage.get(CoordinationMemory.LOG).getAsJsonArray()) {
@@ -148,6 +182,9 @@ public class StudyTurns {
                     if(scene) {
                         var payload=com.google.gson.JsonParser.parseString(request.text()).getAsJsonObject();
                         if(payload.has("probeStep"))attempt.sceneProbeStep=payload.get("probeStep").getAsInt()+1;
+                        else if(visual && "context".equals(attempt.scenario) && attempt.sceneProbeStep<3
+                                && !payload.get("humanCount").isJsonNull() && payload.get("humanCount").getAsInt()==java.util.List.of(1,2,1).get(attempt.sceneProbeStep)
+                                && candidateStorage.containsKey(CoordinationMemory.CONTEXT_STATE))attempt.sceneProbeStep++;
                     }
                     var events=saved.getEventHistory().toList();
                     receipt.inputEventId=events.stream().filter(e -> Long.valueOf(position).equals(e.sourcePosition()))

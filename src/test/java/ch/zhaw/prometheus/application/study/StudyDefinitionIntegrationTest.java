@@ -19,7 +19,7 @@ import ch.zhaw.prometheus.model.coordination.CoordinationMemory;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 /** Disposable local MySQL only, through the isolated acceptance runner. */
-@SpringBootTest(properties="prometheus.runtime.tick.enabled=false")
+@SpringBootTest(properties={"prometheus.runtime.tick.enabled=false","prometheus.study.sensing=simulation"})
 class StudyDefinitionIntegrationTest {
     @Autowired ScopedDemoService demo;
     @Autowired AccessCodeAdminService admin;

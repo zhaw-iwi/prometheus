@@ -16,8 +16,12 @@ import jakarta.persistence.*;
 public class StudyCoordinationUpdateAction extends CoordinationUpdateAction {
     public static final String REQUIRED_ACTIVITY="study.requiredActivity";
     @Override protected String additionalInstructions() {
-        return getStorage().containsKey(REQUIRED_ACTIVITY)?"\nThis session supports only activity.kind="+getStorage().get(REQUIRED_ACTIVITY).getAsString()
-                +". Clarify missing terms before proposing. Every proposal must include that typed activity; do not substitute a generic dialogue or a different executor. No private participant choices are known.":"";
+        return StudyVision.guidance(getStorage())+(getStorage().containsKey(REQUIRED_ACTIVITY)?"\nThis session supports only activity.kind="+getStorage().get(REQUIRED_ACTIVITY).getAsString()
+                +". Clarify missing terms before proposing. Every proposal must include that typed activity; do not substitute a generic dialogue or a different executor. No private participant choices are known.":"")
+                +(getStorage().containsKey(REQUIRED_ACTIVITY)&&"SIGN_ANSWERS".equals(getStorage().get(REQUIRED_ACTIVITY).getAsString())
+                    ?"\nSIGN_ANSWERS overrides the generic sensor-check examples: checks MUST be [] and reactions MUST be null, including when the camera is running. "
+                     +"activity.demonstrate:true is the complete declaration of all three recognition demonstrations. Never add obs.hand.sign checks for thumbs or open palm. "
+                     +"The study executor admits camera signs with its own question/revision scope. The generic rock/paper/scissors checks cannot represent these demonstrations.":"");
     }
     @Transient private JsonObject preparedGame;
     @Transient private EventHistory currentEvents;
@@ -43,17 +47,19 @@ public class StudyCoordinationUpdateAction extends CoordinationUpdateAction {
     }
     @Override public void execute(EventHistory events,PolicyRuntime runtime) {
         preparedGame=null; currentEvents=events; contextPrior=null;
+        if(!events.isEmpty()) {String perception=StudyVision.answer(getStorage(),events.toList().getLast().getPayload());
+            if(perception!=null){StudyContext.reply(getStorage(),perception);return;}}
         var storage=getStorage(); var accepted=CoordinationMemory.agreement(storage,CoordinationMemory.AGREEMENT);
         if(!events.isEmpty() && StudySigns.task(accepted) && StudySigns.state(storage)!=null && !StudySigns.state(storage).has("outcome") && !storage.containsKey(CoordinationMemory.DRAFT)
                 && StudyGuessing.answer(events.toList().getLast().getPayload())!=null) {
-            storage.put(TaskMemory.REPLY,BehaviourPlan.speechOnly("Use a fresh simulated sign for the pending question. Text answers do not consume it.").toJsonObject());return;
+            storage.put(TaskMemory.REPLY,BehaviourPlan.speechOnly("Use a fresh recognized sign for the pending question. Text answers do not consume it.").toJsonObject());return;
         }
         if(!events.isEmpty() && StudyContext.task(accepted) && StudyContext.state(storage)!=null) {
             String text=events.toList().getLast().getPayload(), command=text.toLowerCase(java.util.Locale.ROOT).strip().replaceAll("[.!]+$","");
             boolean closed=StudyContext.state(storage).has("outcome") || "COMPLETED".equals(TaskMemory.phase(storage));
             if(StudyContext.count(storage)!=1 && !command.matches("(please )?(stop|pause|resume)( (the |this )?task)?|return to (general )?conversation")) {
                 StudyContext.reply(storage,closed?"This encounter has ended. No private question or answer will be repeated in this scene."
-                        :"The check-in is waiting for a one-person simulated scene and explicit resumption. No private question or answer will be repeated here.");return;
+                        :"The check-in is waiting for a one-person scene and explicit resumption. No private question or answer will be repeated here.");return;
             }
             String answer=StudyGuessing.answer(text);if(answer==null && command.equals("not yet"))answer="NO";
             if(!closed && answer!=null && !storage.containsKey(CoordinationMemory.DRAFT)) {

@@ -3,7 +3,7 @@ package ch.zhaw.prometheus.model.coordination;
 import java.util.*;
 import com.google.gson.*;
 
-/** A bounded list of agreed questions answered by explicitly simulated signs. */
+/** A bounded list of agreed questions answered by scoped sign observations. */
 public record SignAnswerContract(List<String> questions,String yesSign,String noSign,boolean demonstrate) {
     public static final Set<String> SIGNS=Set.of("THUMBS_UP","THUMBS_DOWN","OPEN_PALM");
     public static SignAnswerContract parse(JsonObject value) {
@@ -26,5 +26,5 @@ public record SignAnswerContract(List<String> questions,String yesSign,String no
     public boolean prepared(JsonObject evidence) { return !demonstrate || evidence.keySet().containsAll(SIGNS.stream().map(s->"sign."+s).toList()); }
     public String review() { return "Ask the "+questions.size()+" saved questions in order. "+yesSign.replace('_',' ').toLowerCase(Locale.ROOT)+" means yes; "+noSign.replace('_',' ').toLowerCase(Locale.ROOT)
             +" means no. Open palm waits without answering. Explicit text Resume continues the same question. "
-            +(demonstrate?"Demonstrate all three simulated signs before acceptance. ":"")+"Each fresh sign answers only its current question; Stop can end earlier."; }
+            +(demonstrate?"Demonstrate all three signs before acceptance. ":"")+"Each fresh sign answers only its current question; Stop can end earlier."; }
 }

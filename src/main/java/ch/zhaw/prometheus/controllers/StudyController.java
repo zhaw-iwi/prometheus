@@ -81,6 +81,8 @@ public class StudyController {
             @RequestBody StudyTurns.Request request) { return turns.submit(token,request); }
     @PostMapping("/api/study/scene")
     public StudyTurns.View scene(@RequestHeader(name=TOKEN_HEADER,required=false) String token,@RequestBody StudyTurns.SceneRequest request) { return turns.scene(token,request); }
+    @PostMapping("/api/study/vision")
+    public StudyTurns.View vision(@RequestHeader(name=TOKEN_HEADER,required=false) String token,@RequestBody StudyTurns.VisionRequest request) { return turns.vision(token,request); }
     @PostMapping("/api/study/sign")
     public StudyTurns.View sign(@RequestHeader(name=TOKEN_HEADER,required=false) String token,@RequestBody StudyTurns.SignRequest request) { return turns.sign(token,request); }
     @GetMapping("/api/study/turns/{requestId}")
