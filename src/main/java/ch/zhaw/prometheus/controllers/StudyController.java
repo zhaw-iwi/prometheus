@@ -13,11 +13,12 @@ import ch.zhaw.prometheus.application.study.*;
 public class StudyController {
     public static final String TOKEN_HEADER="X-Prometheus-Study-Token";
     private final StudySessions sessions;
+    private final StudyTurns turns;
     private final String adminToken;
     public record Invite(StudyAttempt.Mode mode, String scenario, UUID predecessor) {}
     public record Consent(String version) {}
-    public StudyController(StudySessions sessions, @Value("${prometheus.admin.token:}") String adminToken) {
-        this.sessions=sessions; this.adminToken=adminToken;
+    public StudyController(StudySessions sessions, StudyTurns turns, @Value("${prometheus.admin.token:}") String adminToken) {
+        this.sessions=sessions; this.turns=turns; this.adminToken=adminToken;
     }
     @PostMapping("/admin/study/attempts")
     public StudySessions.Invitation invite(@RequestHeader(name=AdminAccessCodeController.ADMIN_TOKEN_HEADER,required=false) String token,
@@ -40,6 +41,17 @@ public class StudyController {
             @PathVariable String kind, @RequestBody Map<String,String> answers) { return sessions.form(token,kind,answers); }
     @PostMapping("/api/study/withdraw")
     public StudySessions.View withdraw(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return sessions.withdraw(token); }
+    @PostMapping("/api/study/turns")
+    public StudyTurns.View submit(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
+            @RequestBody StudyTurns.Request request) { return turns.submit(token,request); }
+    @GetMapping("/api/study/turns/{requestId}")
+    public StudyTurns.View lookup(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
+            @PathVariable UUID requestId) { return turns.lookup(token,requestId); }
+    @GetMapping("/api/study/conversation")
+    public StudyTurns.Conversation conversation(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return turns.conversation(token); }
+    @PostMapping("/api/study/turns/{requestId}/cancel")
+    public StudyTurns.View cancel(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
+            @PathVariable UUID requestId) { return turns.cancel(token,requestId); }
     private void admin(String token) {
         if (token==null || adminToken.isBlank() || !MessageDigest.isEqual(token.getBytes(StandardCharsets.UTF_8),adminToken.getBytes(StandardCharsets.UTF_8)))
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);

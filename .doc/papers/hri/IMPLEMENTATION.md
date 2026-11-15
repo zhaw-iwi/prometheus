@@ -5,14 +5,16 @@ the evolving software contract; it is not a participant protocol or collection a
 
 ## Current boundary
 
-OS-01/02 provide materials, a study definition, durable attempts and private forms.
-The landing page is closed. Turn submission, execution, assessments and exports
-are later milestones. Study attempts have independent procedural stages and own
+OS-01–03 provide materials, a study definition, durable attempts, private forms
+and recoverable text turns. The landing page is closed. Scenario execution,
+assessments and exports are later milestones. Study attempts have independent procedural stages and own
 one agent after preparation. Agent task state remains owned by Coordination.
 
-Two additive Hibernate-managed tables are introduced: `study_attempt` (hashed
-credential, assignment, consent, procedural stage, predecessor and agent binding)
-and `study_form` (unique attempt/form, material version, private answers and time).
+Additive Hibernate-managed tables are introduced: `study_attempt` (hashed
+credential, assignment, consent, procedural stage, predecessor and agent binding),
+`study_form` (unique attempt/form, material version, private answers and time), and
+`study_turn` (unique attempt/request, input, pending/terminal status and canonical
+event/result correlation).
 Use the repository's normal schema setup on a separate study database. No data
 backfill or modification of baseline saved agents is required.
 
@@ -55,7 +57,46 @@ information text, retention and withdrawal policy remain owner prerequisites.
 Allocation is currently operator-selected and stable; balanced random allocation
 and the complete operator workflow belong to OS-09.
 
-## Verification
+## Durable text submission
+
+Use one application process with `prometheus.runtime.tick.enabled=false` for this
+study procedure. All task activity currently enters through participant requests;
+autonomous scheduled evaluation is outside the tested study configuration.
+
+`POST /api/study/turns` takes `{ "requestId":"<UUID>", "expectedTurn":0,
+"text":"..." }` with the study header. Preparation must be complete. The
+`expectedTurn` cursor comes from the session or conversation view. Text is limited
+to 2000 characters. Concurrent different requests and stale cursors return 409.
+The same ID and identical content return the same durable receipt without another
+inference; changing either text or expected cursor under that ID returns 409.
+
+`GET /api/study/turns/{requestId}` returns only the credential's own receipt.
+`GET /api/study/conversation` returns its turn inputs/receipts and deterministic
+saved draft, accepted terms, phase and contribution count. Neither returns forms.
+Receipt fields include `status`, canonical `inputEventId` and `responseEventId`,
+`responseType`, canonical JSON-string `responsePayload`, `committedTurn`, times
+and a bounded diagnostic `reason`. Preserve IDs when reconciling delivery.
+
+- PENDING means received and claimed, not accepted as an agent mutation.
+- COMMITTED means the agent mutation and receipt committed atomically. It does not
+  establish task success, instruction fidelity, display, or participant comprehension.
+- UNCERTAIN means interrupted work or an elapsed 120-second deadline, with no
+  automatic provider retry. The session blocks further turns pending reconciliation.
+- REJECTED includes explicit cancellation or closure fencing pending work.
+
+Provider waits hold no database transaction. A short commit transaction checks
+current attempt/receipt authority, saves the agent and canonical result, and moves
+the cursor together. Monitor publication is deferred until commit. Failure before
+commit rolls all those changes back; failure after commit can be recovered through
+lookup. A crash can leave PENDING until its deadline; elapsed work becomes UNCERTAIN
+on lookup. None of this guarantees exactly-once provider billing.
+
+`POST /api/study/turns/{requestId}/cancel` explicitly fences unfinished work and
+advances the cursor without replaying it. Refresh the conversation before composing
+a new request. It is a submission-recovery action, distinct from negotiating Pause
+or Stop with the Coordination agent. Withdrawal/revocation also fence late commits.
+
+## Verification commands
 
 `python tests/gptlive/run_acceptance.py --study` runs the study foundations against
 an owned disposable local MySQL schema, including two independently started

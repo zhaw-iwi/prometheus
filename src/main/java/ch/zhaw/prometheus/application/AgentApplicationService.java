@@ -342,6 +342,16 @@ public class AgentApplicationService {
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile) {
+        return acknowledge(agentID, request, outputProfile, null);
+    }
+
+    /** Applications can atomically persist their receipt alongside the canonical agent mutation.
+     * The callback runs after inference, inside this agent's serialization boundary. */
+    @FunctionalInterface
+    public interface TurnCommit {
+        Agent commit(Agent candidate, long sourcePosition, Event response, java.util.function.Supplier<Agent> persist);
+    }
+    public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile, TurnCommit commit) {
         return activity(agentID, "acknowledge", Event.TYPE_USER_UTTERANCE.equals(request.getType()), () -> {
         return serialized(agentID, () -> persistenceTurn(() -> {
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
@@ -360,7 +370,8 @@ public class AgentApplicationService {
                     Event response = LatencyTrace.measure("acknowledge", () -> agent.acknowledge(event, turnRuntime));
                     Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, turnRuntime);
                     Event responseToReturn = computedResponse == null ? response : computedResponse;
-                    Agent saved = this.persistAndPublishMonitor(agent);
+                    Agent saved = commit == null ? this.persistAndPublishMonitor(agent)
+                            : commit.commit(agent, sourcePosition, responseToReturn, () -> this.persistAndPublishMonitor(agent));
                     saved.getEventHistory().toList().stream().filter(input -> Long.valueOf(sourcePosition).equals(input.sourcePosition()))
                             .findFirst().ifPresent(input -> ch.zhaw.prometheus.logging.ActivityTrace.bind(null, null, input.getId()));
                     this.publishBehaviour(saved, responseToReturn);
@@ -479,7 +490,7 @@ public class AgentApplicationService {
 
     private Agent persistAndPublishMonitor(Agent agent) {
         Agent saved = LatencyTrace.measure("persist", () -> this.repository.save(agent));
-        LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
+        AfterCommit.run(() -> LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; }));
         committed(saved);
         return saved;
     }

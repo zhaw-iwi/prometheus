@@ -22,7 +22,7 @@ public class StudySessions {
     public static final String SYNTHETIC_CONSENT = "synthetic-test-v1";
     public record View(UUID id, long version, Mode mode, String scenario, String materialsVersion,
             Stage stage, String consentVersion, Instant consentedAt, Instant createdAt, Instant updatedAt,
-            UUID predecessorId) {}
+            UUID predecessorId, long turnVersion, UUID pendingRequest) {}
     public record Invitation(View session, String token) {}
     private final StudyAttemptRepository attempts;
     private final StudyFormRepository forms;
@@ -130,7 +130,7 @@ public class StudySessions {
     View saved(StudyAttempt attempt) { return view(attempts.saveAndFlush(attempt)); }
     static View view(StudyAttempt a) {
         return new View(a.id,a.version,a.mode,a.scenario,a.materialsVersion,a.stage,a.consentVersion,a.consentedAt,
-                a.createdAt,a.updatedAt,a.predecessorId);
+                a.createdAt,a.updatedAt,a.predecessorId,a.turnVersion,a.pendingRequest);
     }
     static String hash(String token) {
         if (token==null || !token.matches("[A-Za-z0-9_-]{43}")) throw failure(HttpStatus.UNAUTHORIZED,"Invalid study credential");

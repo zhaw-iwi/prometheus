@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-03 (2026-11-15, **complete**, study application branch): durable text receipts
+  with atomic agent/result commit, replay, canonical event IDs, stale/concurrent
+  request rejection, pending/uncertain recovery and cancellation/closure fencing.
+  Local-DB fault/restart and baseline service/Live regression checks passed. The
+  real OpenAI session smoke preserved receipt identity and task control, but its
+  one-sentence request yielded two sentences; this is a recorded semantic limit,
+  not an instruction-fidelity pass. OS-04 research recording is next. Details:
+  `.doc/papers/hri/RESULTS.md` and `IMPLEMENTATION.md`.
+
 - OS-02 (2026-11-15, **complete**, study application branch): durable isolated
   attempt/consent/private-form records, atomic agent provisioning, replacement and
   closure, and protection from underlying workbench routes. Human collection is

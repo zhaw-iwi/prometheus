@@ -28,6 +28,7 @@ class StudySessionsIntegrationTest {
     @Autowired StudyMaterials materials;
     @Autowired AgentRepository agents;
     @Autowired MockMvc http;
+    @Autowired ch.zhaw.prometheus.controllers.AgentMetaController legacy;
     @MockitoBean LanguageModelGateway gateway;
     @MockitoSpyBean AgentApplicationService agentService;
     StudySessions.Invitation invite() { return sessions.invite(Mode.SYNTHETIC,"guess",null); }
@@ -124,10 +125,29 @@ class StudySessionsIntegrationTest {
             http.perform(get(route).header(StudyController.TOKEN_HEADER,invitation.token())).andExpect(status().isNotFound());
         http.perform(post("/"+agent+"/acknowledge").contentType("application/json")
                 .content("{\"type\":\"obs.user_utterance\",\"payload\":\"Start now\"}")).andExpect(status().isNotFound());
-        for (String list:List.of("/agent","/agent/eventhistory")) {
-            String body=http.perform(get(list)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-            assertFalse(body.contains(agent.toString()));
-        }
+        String body=http.perform(get("/agent")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertFalse(body.contains(agent.toString()));
+        // Some unrelated legacy policy types are not JSON-serializable. Assert this
+        // collection's filtering before serialization, independent of other fixtures.
+        assertTrue(legacy.findAllEventHistory().getBody().stream().noneMatch(a -> a.getId().equals(agent)));
+        verifyNoInteractions(gateway);
+    }
+    @Test void httpTurnResultIsScopedAndRecoverable() throws Exception {
+        var first=invite(); prepare(first); sessions.form(first.token(),"private",Map.of("private","secret"));
+        var second=invite(); UUID request=UUID.randomUUID();
+        String payload="{\"requestId\":\""+request+"\",\"expectedTurn\":0,\"text\":\"What is our current state?\"}";
+        http.perform(post("/api/study/turns").header(StudyController.TOKEN_HEADER,first.token())
+                .contentType("application/json").content(payload)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMMITTED")).andExpect(jsonPath("$.inputEventId").isNotEmpty());
+        http.perform(get("/api/study/turns/"+request).header(StudyController.TOKEN_HEADER,first.token()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.committedTurn").value(1));
+        http.perform(get("/api/study/turns/"+request).header(StudyController.TOKEN_HEADER,second.token()))
+                .andExpect(status().isNotFound());
+        http.perform(get("/api/study/conversation").header(StudyController.TOKEN_HEADER,first.token()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.turnVersion").value(1))
+                .andExpect(jsonPath("$.turns.length()").value(1));
+        http.perform(get("/api/study/conversation").header(StudyController.TOKEN_HEADER,second.token()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.turns.length()").value(0));
         verifyNoInteractions(gateway);
     }
 }

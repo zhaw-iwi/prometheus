@@ -67,3 +67,43 @@ Remaining limits: no participant text client or export yet; operator-selected
 assignment precedes balanced allocation in OS-09; retention policy and human
 information remain unresolved, so no human collection is enabled.
 Runner preflight was rerun: 13 passed. `git diff --check` also passed.
+
+## OS-03 — Durable text ingress (15 November 2026)
+
+Added request receipts, canonical event IDs/results, replay and cursor checks,
+pending/uncertain reconciliation, explicit submission cancellation and late-commit
+fencing. A small shared AgentApplicationService hook permits an application-owned
+transaction after inference; task authority stays in the existing agent. Monitor
+publication follows commit. The study conversation projection contains committed
+agreements and receipt-linked turns, excluding private forms.
+
+Actual verification:
+
+| Run | Evidence |
+| --- | --- |
+| `--study --java-tests StudyTurnsIntegrationTest,StudyRestartIntegrationTest,StudySessionsIntegrationTest,CoordinationAgentUnitTest` | Initial run `c146675b24`: 29 passed, one rollback-test spy setup error. After correction, `d4cb769fc4`: **30 passed**, no skips, including provider-outside-transaction assertion, concurrent retry/ordering, injected rollback, post-commit response loss, cancellation/revocation during inference, expired receipts and real application restart |
+| `--study --java-tests StudyTurnsIntegrationTest,AgentApplicationServiceUnitTest --paid-core coordination-text` | `0589524542`: **six study checks passed** (the additional named class does not exist; service coverage is the separate run below). Real OpenAI three-turn session path passed receipt/state assertions, including repeated IDs. Two provider calls, 7,488 cumulative tokens recorded |
+| `--study --java-tests StudySessionsIntegrationTest,AgentApplicationService*UnitTest,AgentTurnSerialiserUnitTest,LiveTranscriptIngressIntegrationTest,LiveTranscriptClaimIntegrationTest` | Mixed-fixture run `6bac9f8f51` exposed existing aggregate-history JSON serialization failure for an unrelated EventSelector policy. Adjusted the list-isolation assertion to the controller boundary, retaining HTTP denial and ordinary-list checks. Rerun `96091b165d`: **28 passed**, zero failures/errors/skips |
+
+Commands above use `python tests/gptlive/run_acceptance.py`; artifact directories
+are `target/gptlive-acceptance-<run>`. Failed logs/XML are retained. Disposable
+MySQL schemas/accounts were cleaned up by the runner.
+
+Independent semantic review of `0589524542`: task-control and durable-replay
+criteria **PASS**; strict wording fidelity **FAIL**. Proposal did not execute;
+acceptance preserved roles, success and limit two; one contribution was counted;
+pause preserved the accepted terms. However, the requested single welcome sentence
+was rendered as “Welcome! We’re glad to have you here.”, two sentences. This
+non-deterministic wording deviation is retained for later semantic qualification,
+not hidden by a successful HTTP/JSON result. Raw `semanticReview: PENDING` remains
+unchanged; this paragraph records the independent assessment. No human-study
+finding or general instruction-fidelity claim follows from this smoke.
+
+Limitations: one study application process, scheduled ticks disabled; no claim of
+exactly-once provider billing or client display. Full immutable research snapshots
+and export are OS-04; participant UI and all three task executors remain pending.
+
+Final targeted rerun after adding rollback-publication coverage:
+`--study --java-tests StudyTurnsIntegrationTest`, artifact `1eb58f1427`, **six
+passed**, including no monitor publication for a rolled-back mutation. Runner
+preflight: 13 passed. Node syntax and `git diff --check` passed.
