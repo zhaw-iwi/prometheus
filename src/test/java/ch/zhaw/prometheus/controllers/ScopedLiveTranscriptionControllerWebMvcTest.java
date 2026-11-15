@@ -28,6 +28,7 @@ import ch.zhaw.prometheus.controllers.views.LiveTranscriptionEffectiveSettingsVi
 import ch.zhaw.prometheus.controllers.views.LiveTranscriptionSessionView;
 import ch.zhaw.prometheus.spi.LiveTranscriptionProviderException;
 
+@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAttemptRepository.class)
 @WebMvcTest(controllers = ScopedLiveTranscriptionController.class)
 class ScopedLiveTranscriptionControllerWebMvcTest {
 

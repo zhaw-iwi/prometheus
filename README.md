@@ -2039,8 +2039,13 @@ definition uses the shared Coordination graph with a neutral English text-only
 profile. Existing saved agents retain their definitions; create a fresh instance
 to use this profile. `/hri-study/` currently shows a closed preparation page.
 Versioned materials are in `src/main/resources/hri-study/materials-v1.json`;
-all scenarios remain unready. Pilot and main attempts will be distinct persisted
+all scenarios remain unready. Pilot and main attempts are distinct persisted
 designations; neither is authorized for human collection by a material manifest.
+The session/private-form foundation is implemented; see the
+[study API contract](.doc/papers/hri/IMPLEMENTATION.md). Synthetic attempts are
+operator-created fixtures. Human collection defaults to disabled. Study-owned
+agents are excluded from generic workbench lists and inaccessible through its
+direct routes; participant requests must use the study procedure.
 
 Study-only checks use the existing disposable local MySQL runner:
 `python tests/gptlive/run_acceptance.py --study --browser`.

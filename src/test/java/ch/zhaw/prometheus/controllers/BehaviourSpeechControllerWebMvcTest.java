@@ -34,6 +34,7 @@ import ch.zhaw.prometheus.logging.SpeechDeliveryTrace;
 import ch.zhaw.prometheus.spi.SpeechAudio;
 import ch.zhaw.prometheus.spi.SpeechSynthesisException;
 
+@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAttemptRepository.class)
 @WebMvcTest(controllers = BehaviourSpeechController.class)
 class BehaviourSpeechControllerWebMvcTest {
     private static final UUID AGENT_ID = UUID.randomUUID();

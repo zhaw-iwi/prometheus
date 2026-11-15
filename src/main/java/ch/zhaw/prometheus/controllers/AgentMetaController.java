@@ -20,19 +20,25 @@ import ch.zhaw.prometheus.model.Agent;
 @RestController
 public class AgentMetaController {
     private final AgentApplicationService agentService;
+    private final StudyAccessBoundary studyAccess;
 
-    public AgentMetaController(AgentApplicationService agentService) {
+    public AgentMetaController(AgentApplicationService agentService, StudyAccessBoundary studyAccess) {
         this.agentService = agentService;
+        this.studyAccess = studyAccess;
     }
 
     @GetMapping("agent")
     public ResponseEntity<List<AgentInfoView>> findAll() {
-        return new ResponseEntity<List<AgentInfoView>>(this.agentService.listAgents(), HttpStatus.OK);
+        var agents = this.agentService.listAgents();
+        var hidden = studyAccess.privateAgents();
+        return new ResponseEntity<>(agents.stream().filter(a -> !hidden.contains(a.getID())).toList(), HttpStatus.OK);
     }
 
     @GetMapping("agent/eventhistory")
     public ResponseEntity<List<Agent>> findAllEventHistory() {
-        return new ResponseEntity<List<Agent>>(this.agentService.listAgentAggregates(), HttpStatus.OK);
+        var agents = this.agentService.listAgentAggregates();
+        var hidden = studyAccess.privateAgents();
+        return new ResponseEntity<>(agents.stream().filter(a -> !hidden.contains(a.getId())).toList(), HttpStatus.OK);
     }
 
     @GetMapping("agent/{id}")

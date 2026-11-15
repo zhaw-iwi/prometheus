@@ -36,3 +36,34 @@ Known observations for later milestones: canonical replies can contain unused
 nonverbal fields although the study client renders text only; pause wording still
 exposes runtime terminology. Participant sessions, durable submissions, recorder,
 task execution, forms and operational qualification are not yet implemented.
+
+## OS-02 — Sessions and access (15 November 2026)
+
+Implemented persisted SYNTHETIC/PILOT/MAIN attempt identity, stable assignment,
+consent, staged private forms, hashed participant credentials, atomic agent
+provisioning, withdrawal/revocation/replacement, and operator-only provisioning.
+Study-owned agents are hidden from legacy lists and blocked on direct legacy
+routes. The two new tables are additive. Human collection remains disabled.
+
+Actual verification:
+
+- Initial selected Java run in `target/gptlive-acceptance-96fe388a3d` failed:
+  the restart guard used the wrong schema prefix, a test attempted Gson reflection
+  on Instant, and MVC slices lacked the new repository dependency. Failed XML/logs
+  are retained. Six session tests and 13 baseline scoped tests passed in that run.
+- After fixes,
+  `python tests/gptlive/run_acceptance.py --study --java-tests StudySessionsIntegrationTest,StudyRestartIntegrationTest,ScopedDemoControllerIntegrationTest,*WebMvcTest`
+  passed **76 checks, zero failures/errors/skips**, in
+  `target/gptlive-acceptance-429d785256`. This includes actual independent
+  application-context shutdown/restart with stable assignment, forms and agent
+  identity; simultaneous provisioning; rollback after an injected post-save
+  failure; private-answer separation; closed/gated sessions; and legacy endpoint
+  isolation. The owned MySQL schema/account were removed after each run.
+- No inference code changed in this milestone; provisioning is deterministic and
+  tests assert no model calls. The OS-01 real-provider evidence remains scoped to
+  that foundation journey. Full participant turn handling follows in OS-03.
+
+Remaining limits: no participant text client or export yet; operator-selected
+assignment precedes balanced allocation in OS-09; retention policy and human
+information remain unresolved, so no human collection is enabled.
+Runner preflight was rerun: 13 passed. `git diff --check` also passed.

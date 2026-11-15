@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import ch.zhaw.prometheus.application.*;
 import ch.zhaw.prometheus.spi.live.LiveProviderException;
 
+@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAttemptRepository.class)
 @WebMvcTest(ScopedLiveSessionController.class)
 class ScopedLiveSessionControllerWebMvcTest {
     @Autowired MockMvc mvc;

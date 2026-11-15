@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-02 (2026-11-15, **complete**, study application branch): durable isolated
+  attempt/consent/private-form records, atomic agent provisioning, replacement and
+  closure, and protection from underlying workbench routes. Human collection is
+  closed. Verified 76 selected checks against disposable MySQL, including
+  concurrency, injected rollback, HTTP authorization, baseline MVC regression and
+  two independent application contexts. OS-03 durable text turns are next; see
+  `.doc/papers/hri/RESULTS.md` and `IMPLEMENTATION.md`.
+
 - OS-01 (2026-11-15, **complete**, application branch
   `experiment/hri-2027-coordination`): versioned English materials for all three
   study scenarios, a neutral text-only Coordination definition using the shared

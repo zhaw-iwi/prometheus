@@ -1,6 +1,6 @@
 # Online student study system: implementation roadmap
 
-Prepared **15 November 2026**. Status: **OS-01 complete; OS-02 next**.
+Prepared **15 November 2026**. Status: **OS-01/02 complete; OS-03 next**.
 Actual verification is recorded in [RESULTS.md](RESULTS.md). Read [STUDY.md](STUDY.md) for requirements and
 [PAPER_BRIEF.md](PAPER_BRIEF.md) for research context. This roadmap owns milestone
 sequence, dependencies, acceptance, and implementation evidence.
@@ -89,7 +89,7 @@ not claims that those tests exist.
 | Milestone | Outcome | Depends on | Status |
 | --- | --- | --- | --- |
 | OS-01 | Versioned study contract, materials, agent seam and isolated fixtures | Bootstrap | COMPLETE |
-| OS-02 | Durable, isolated participant sessions and provisioning | OS-01 | NOT STARTED |
+| OS-02 | Durable, isolated participant sessions and provisioning | OS-01 | COMPLETE |
 | OS-03 | Recoverable text turns with durable request identity | OS-02 | NOT STARTED |
 | OS-04 | Complete research recording and initial export | OS-03 | NOT STARTED |
 | OS-05 | Resumable participant text interface | OS-04 | NOT STARTED |

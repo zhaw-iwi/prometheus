@@ -52,3 +52,7 @@ prometheus.core.coordination.reception=false
 # cross-origin browser clients, for example an external Valerian cockpit
 prometheus.cors.allowed-origins=
 prometheus.cors.allowed-origin-patterns=
+# Human study collection stays closed until readiness and reviewed materials are configured.
+# SYNTHETIC attempts are operator-created software fixtures, never participant invitations.
+prometheus.study.collection-enabled=false
+prometheus.study.information-version=
