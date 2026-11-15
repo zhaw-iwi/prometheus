@@ -11,7 +11,7 @@
       "rubric": ["Secret ownership and roles faithfully agreed", "Answer types and question/guess budget explicit", "Revision changes only requested terms", "Pause preserves the game; budget exhaustion is not success"]
     },
     {
-      "id":"context","title":"A fictional routine check-in","ready":false,
+      "id":"context","title":"A fictional routine check-in","ready":false,"sceneProbe":[1,2,1],
       "task":"Arrange a fictional medication-routine check-in. Agree when it may begin, how to respond if the fictional routine is not completed, what to do when more people are visible, and what departure or return means. Do not provide personal medical information.",
       "privatePrompt":"Privately record one preference for supportive wording and one condition under which you want the check-in postponed.",
       "revision":{"id":"context.revision","kind":"instruction","prompt":"Ask for shorter, neutral support wording while preserving all agreed context and stopping conditions."},

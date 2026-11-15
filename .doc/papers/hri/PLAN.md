@@ -94,7 +94,7 @@ not claims that those tests exist.
 | OS-04 | Complete research recording and initial export | OS-03 | COMPLETE |
 | OS-05 | Resumable participant text interface | OS-04 | COMPLETE |
 | OS-06 | Executable guessing-game coordination | OS-05 | COMPLETE |
-| OS-07 | Executable contextual check-in | OS-06 | NOT STARTED |
+| OS-07 | Executable contextual check-in | OS-06 | COMPLETE |
 | OS-08 | Executable negotiated sign answers | OS-07 | NOT STARTED |
 | OS-09 | Full assessment, allocation and operator workflow | OS-06, OS-07, OS-08 | NOT STARTED |
 | OS-10 | Integrated offline acceptance and analysis rehearsal | OS-09 | NOT STARTED |

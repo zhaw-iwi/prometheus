@@ -75,6 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-07 (2026-11-15, **complete**, study application branch): fictional contextual
+  check-in with exact negotiated words, controlled scene simulation, privacy
+  postponement, explicit resumption and pending-question-preserving revision.
+  Scene claims fence old in-flight work; display/withheld/late evidence stays
+  distinct. Final 44 study Java and ten browser checks passed, with desktop/mobile
+  visual inspection. A 12-request live OpenAI journey passed independent bounded
+  semantic review (four calls, 21,359 tokens). Human collection remains closed.
+  OS-08 negotiated signs is next; evidence: `.doc/papers/hri/RESULTS.md`.
+
 - OS-06 (2026-11-15, **complete**, study application branch): typed human-secret
   guessing executor with real question/guess limits, pending-answer identity,
   explicit outcome categories, revision preserving progress, private pre-start

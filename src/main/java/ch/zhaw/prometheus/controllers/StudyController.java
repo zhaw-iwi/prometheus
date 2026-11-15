@@ -62,6 +62,8 @@ public class StudyController {
     @PostMapping("/api/study/turns")
     public StudyTurns.View submit(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
             @RequestBody StudyTurns.Request request) { return turns.submit(token,request); }
+    @PostMapping("/api/study/scene")
+    public StudyTurns.View scene(@RequestHeader(name=TOKEN_HEADER,required=false) String token,@RequestBody StudyTurns.SceneRequest request) { return turns.scene(token,request); }
     @GetMapping("/api/study/turns/{requestId}")
     public StudyTurns.View lookup(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
             @PathVariable UUID requestId) { return turns.lookup(token,requestId); }

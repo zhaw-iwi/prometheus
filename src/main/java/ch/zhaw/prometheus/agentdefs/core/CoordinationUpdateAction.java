@@ -349,7 +349,9 @@ public class CoordinationUpdateAction extends Action {
             case "PROPOSE" -> BehaviourPlan.speechOnly(CoordinationMemory.proposalPrompt(storage));
             case "REPLACE" -> BehaviourPlan.speechOnly("This is a replacement proposal; the earlier task is not executing. " + CoordinationMemory.proposalPrompt(storage));
             case "RETURN_TO_CONVERSATION" -> BehaviourPlan.speechOnly("We are now in Conversation. Task execution has ended; our earlier conversation and recorded outcomes are preserved.");
-            case "STOP", "PAUSE", "RESUME", "DISCARD", "COMPLETE" -> BehaviourPlan.speechOnly(CoordinationMemory.controls(storage)
+            case "RESUME" -> accepted!=null && accepted.activity()!=null ? reply : BehaviourPlan.speechOnly(CoordinationMemory.controls(storage)
+                    + " Recorded outcome: " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".");
+            case "STOP", "PAUSE", "DISCARD", "COMPLETE" -> BehaviourPlan.speechOnly(CoordinationMemory.controls(storage)
                     + " Recorded outcome: " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".");
             default -> reply;
         };

@@ -36,7 +36,7 @@ def main():
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--study', action='store_true', help='Select online-study fixtures/specs; real inference uses --paid-core coordination-text')
-    parser.add_argument('--study-scenario', choices=['foundation','guess'],default='foundation',help='Bounded real-provider study journey')
+    parser.add_argument('--study-scenario', choices=['foundation','guess','context'],default='foundation',help='Bounded real-provider study journey')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--browser-mode', choices=['both', 'enabled', 'disabled'], default='both', help='Select fixture modes for focused browser checks')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
@@ -54,7 +54,7 @@ def main():
         if args.classroom_capacity or args.live_only or args.coordination_scenario != 'baseline':
             parser.error('--study cannot select unrelated capacity/Live/Coordination scenarios')
         if args.java_tests == 'LiveCockpitSmokeIntegrationTest':
-            args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest,StudySessionsIntegrationTest,StudyRestartIntegrationTest,StudyTurnsIntegrationTest,StudyRecorderIntegrationTest,StudyGuessingTest,StudyGuessingIntegrationTest'
+            args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest,StudySessionsIntegrationTest,StudyRestartIntegrationTest,StudyTurnsIntegrationTest,StudyRecorderIntegrationTest,StudyGuessingTest,StudyGuessingIntegrationTest,StudyContextTest,StudyContextIntegrationTest'
         if args.java_tests == 'none' and not (args.browser or args.paid_core):
             parser.error('--study requires a test, browser, or provider selection')
         if args.browser:
@@ -253,6 +253,7 @@ def main():
                 journey = 'coordination_text_journey.mjs' if args.paid_core == 'coordination-text' else 'core_backend_journey.mjs'
                 journey_path = 'tests/hri/provider_journey.mjs' if args.study else 'tests/gptlive/' + journey
                 if args.study and args.study_scenario=='guess': journey_path='tests/hri/guessing_journey.mjs'
+                if args.study and args.study_scenario=='context': journey_path='tests/hri/context_journey.mjs'
                 run(['node', journey_path, '--allow-paid-provider', str(artifacts / 'journey.json'),
                     '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()

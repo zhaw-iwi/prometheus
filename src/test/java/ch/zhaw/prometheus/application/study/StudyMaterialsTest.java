@@ -24,7 +24,7 @@ class StudyMaterialsTest {
     }
     @Test void studyPresentationReusesControlWithoutCorePersonaOrVoice() {
         var study = new StudyCoordinationAgent().createAgent(); var core = new CoordinationAgent().createAgent();
-        assertEquals(java.util.List.of(Event.TYPE_USER_UTTERANCE), study.getInteractionProfile().getSupportedObservations());
+        assertEquals(java.util.List.of(Event.TYPE_USER_UTTERANCE,Event.TYPE_HUMAN_PRESENCE), study.getInteractionProfile().getSupportedObservations());
         assertFalse(study.getInteractionProfile().isExternalRealtimeSpeech());
         assertEquals("en", study.getLanguageCode());
         assertFalse(study.getCurrentState().getTotalPolicy().contains("Laureline"));

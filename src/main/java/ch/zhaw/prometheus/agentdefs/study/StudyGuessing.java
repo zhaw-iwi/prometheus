@@ -39,7 +39,7 @@ public final class StudyGuessing {
         For ordinary nongame activities omit activity entirely; do not add null or empty activity.
         """;
     private StudyGuessing() {}
-    public static boolean game(CoordinationAgreement agreement) { return agreement!=null && agreement.activity()!=null; }
+    public static boolean game(CoordinationAgreement agreement) { return agreement!=null && agreement.activity()!=null && "GUESSING".equals(agreement.activity().get("kind").getAsString()); }
     public static JsonObject state(Storage storage) { return storage.containsKey(KEY)?storage.get(KEY).getAsJsonObject().deepCopy():null; }
     public static String answer(String text) {
         return switch(text.toLowerCase(Locale.ROOT).strip().replaceAll("[.!]+$","")) {

@@ -224,6 +224,55 @@ collapsing panels. Assessment instruments remain OS-09. Scenario readiness flags
 remain false until the complete study procedure is qualified; implementation of
 the guessing executor alone does not authorize human collection.
 
+## Contextual check-in execution
+
+`ContextCheckInContract` adds `activity.kind:CONTEXT_CHECKIN`: one exact question,
+`yesReply` and `noReply` (each at most 200 characters), `startCount:1`,
+`postponeAt:2`, `departure:END` and `resume:EXPLICIT_WHEN_ONE`. It has no independent
+sensor reactions/preparation checks and uses two task contributions. The study
+profile accepts controlled `obs.human.presence` through a definition-owned scene
+transition; ordinary Coordination profiles and saved graphs remain unchanged.
+
+Acceptance arms the encounter without asking its question. A fresh one-person
+scene asks it; two or more people or unknown evidence postpone it without repeating
+private content. Returning to one person needs explicit Resume. Fresh absence ends
+an encounter already begun; return alone never restarts it. Stale absence becomes
+unknown, not confirmed departure. The controlled scene persists until changed,
+as disclosed in the UI; this is not a real camera's privacy guarantee. YES/NO
+responses deliver the exact accepted words and record fictional self-report,
+not adherence verification. Revision preserves pending question identity/progress,
+requires a prediction and renewed acceptance, then a fresh scene and Resume.
+
+`POST /api/study/scene` accepts `{requestId,expectedScene,humanCount,observedAt,
+probeStep?}`. Counts are 0–3 or null (unknown). New commands require a timestamp
+within 15 seconds (two seconds future skew); identical accepted retries retain
+their durable result. Scene claims advance a persisted scene epoch before waiting
+for agent serialization, fence in-flight old-scene inference, and commit through
+the existing event/receipt/recorder boundary. Normal text is blocked until the
+current scene has been applied or a new scene resolves uncertainty. No provider
+inference is needed for context execution. Scene requests, application and receipts
+retain source, request identity, client timestamp and server times.
+
+The versioned planned probe is user-paced **1 → 2 → 1**. Its optional `probeStep`
+must match the saved next step and expected task state; progress advances only on
+commit, survives reload and is idempotent. Manual scene buttons permit additional
+exploration. Neither sequence timing nor experimental compliance is inferred from
+the button alone; preserve its actual times and completion/missingness in analysis.
+
+Participant `/events` projections withhold unreported old-scene responses. During
+a pending scene change, the browser also delays new assistant rendering. A display
+receipt has optional `disposition:DISPLAY|WITHHELD`; a late DISPLAY is separately
+recorded as LATE_DISPLAY and cannot authorize old content on refresh. Canonical
+operator/receipt records retain original generation. Already displayed text cannot
+be recalled. Export distinguishes display completion from delivery accounting,
+withheld notices and ambiguous late reports. Only the scoped event projection is
+display authority; raw receipt/SSE content must not be rendered directly.
+
+`/activity` includes context state, current/applied scene, scene epoch and planned
+probe progress. Full context/scene state is included in research TURN records.
+New persistence fields are additive; fresh study agents are required for the
+definition-owned scene transitions. All human readiness flags remain false.
+
 ## Verification commands
 
 `python tests/gptlive/run_acceptance.py --study` runs the study foundations against
@@ -233,6 +282,8 @@ selected study browser suite. Paid checks remain explicit through
 `--paid-core coordination-text`. Never point fixture cleanup at a shared database.
 Add `--study-scenario guess` for the bounded guessing/acceptance/revision/pause/
 exhaustion/export trial. The foundation greeting smoke remains the default.
+`--study-scenario context` selects the fictional check-in, privacy interruption,
+revision, explicit resumption and exact-response trial.
 Study runs compile into their own artifact directory through
 `-Dprometheus.build.directory=...`, isolating acceptance from an editor's concurrent
 incremental compiler. Ordinary Maven builds still use `target`. Reports, compiled

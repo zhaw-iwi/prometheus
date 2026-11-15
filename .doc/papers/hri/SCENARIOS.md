@@ -62,5 +62,34 @@ Question usefulness and natural wording need human semantic review alongside the
 deterministic budget checks. Generated text, rendering receipts and comprehension
 are separate evidence categories.
 
-Scenario B/C executor-specific notes follow with OS-07/08. No executable context or
-sign capability is claimed by the A milestone.
+## B — Contextual fictional check-in (OS-07)
+
+Negotiate one fictional yes/no question, exact YES acknowledgment and brief,
+nonjudgmental NO support. No diagnosis, dosage recommendation, real medication data
+or adherence verification is involved. Counts describe simulated visible people;
+they cannot identify a patient or prove privacy. Scene state persists until changed.
+
+1. Specify words and the one-person start, multiple-person postponement, explicit
+   resumption and departure-ending rules. Privately predict, then accept.
+2. Use the planned scene control for **1 → 2 → 1**, before answering. Its steps
+   are participant-paced and timestamped, not a fixed-delay automatic stimulus.
+   The first scene asks the question; two people pause it; return stays paused.
+3. Request shorter, neutral NO support while preserving the other terms. Predict
+   and accept the revised proposal. Use a fresh one-person scene and Resume.
+4. Answer yes/no, or Stop/Finish with a recorded failure reason. The same pending
+   question remains throughout postponement/revision. Neither Resume nor revision
+   spends another question. Absence during an unfinished question ends the encounter.
+
+The browser fixture additionally changes scene during held inference and proves
+the superseded output is not rendered. The live fixture uses manual scene controls
+for the same sequence. Canonical generation, actual/synthetic display reports,
+withholding and late reports remain separate evidence. Earlier displayed text
+cannot be recalled by a later privacy change.
+
+Code applicable facets as 1/0/NA using the rubric above: exact question/answer
+wording; count-policy fidelity; no pre-acceptance question; postponement without
+private repetition; explicit resumption with preserved question; revision fidelity;
+and truthful departure/self-report outcomes. Score actual ordered-probe completion
+and missingness separately. Unknown/stale evidence must not be scored as absence.
+This is controlled context-conditioned interaction, not sensor accuracy or clinical
+privacy effectiveness. Scenario C follows with OS-08.

@@ -55,8 +55,12 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
             if (task != null && !task.goal().equals(goal)) throw new IllegalArgumentException();
             JsonObject activity=object.has("activity") ? object.getAsJsonObject("activity").deepCopy() : null;
             if (activity!=null) {
-                var game=GuessingContract.parse(activity);
-                if (task!=null || !checks.isEmpty() || turns!=game.questionLimit()+1) throw new IllegalArgumentException();
+                int requiredLimit=switch(activity.get("kind").getAsString()) {
+                    case "GUESSING" -> GuessingContract.parse(activity).questionLimit()+1;
+                    case "CONTEXT_CHECKIN" -> { ContextCheckInContract.parse(activity); yield 2; }
+                    default -> throw new IllegalArgumentException("Unknown activity");
+                };
+                if (task!=null || !checks.isEmpty() || turns!=requiredLimit) throw new IllegalArgumentException();
             }
             var agreement = new CoordinationAgreement(goal, human, agent, success, List.copyOf(questions), List.copyOf(checks), turns, task,activity);
             if (agreement.json().toString().getBytes(StandardCharsets.UTF_8).length > 3000) throw new IllegalArgumentException();
@@ -71,6 +75,7 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
     private JsonObject protectedTerms() {
         var value = json();
         for (String key : List.of("goal", "agentRole", "questions")) value.remove(key);
+        if(activity!=null && "CONTEXT_CHECKIN".equals(activity.get("kind").getAsString())) value.getAsJsonObject("activity").remove("noReply");
         if (!value.get("reactions").isJsonNull()) {
             var task = value.getAsJsonObject("reactions"); task.remove("goal");
             for (var rule : task.getAsJsonArray("rules")) rule.getAsJsonObject().remove("action");

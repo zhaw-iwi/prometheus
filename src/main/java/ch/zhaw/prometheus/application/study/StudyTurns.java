@@ -21,11 +21,15 @@ import static ch.zhaw.prometheus.application.study.StudySessions.*;
 @Service
 public class StudyTurns {
     public record Request(UUID requestId,long expectedTurn,String text) {}
+    public record SceneRequest(UUID requestId,long expectedScene,Integer humanCount,String observedAt,Integer probeStep) {
+        public SceneRequest(UUID requestId,long expectedScene,Integer humanCount,String observedAt){this(requestId,expectedScene,humanCount,observedAt,null);}
+    }
     public record View(UUID requestId,StudyTurn.Status status,Long committedTurn,UUID inputEventId,
-            UUID responseEventId,String responseType,String responsePayload,Instant receivedAt,Instant finishedAt,String reason) {}
+            UUID responseEventId,String responseType,String responsePayload,Instant receivedAt,Instant finishedAt,String reason,
+            String inputType,long expectedTurn,long sceneVersion,boolean sceneSensitive) {}
     public record Entry(String input,View receipt) {}
     public record Conversation(long turnVersion,List<Entry> turns,String phase,JsonNode draft,JsonNode agreement,int actions) {}
-    private record Claim(UUID attemptId,UUID agentId,boolean claimed,View view,boolean predicted) {}
+    private record Claim(UUID attemptId,UUID agentId,boolean claimed,View view,boolean predicted,long sceneVersion) {}
     private final StudySessions sessions;
     private final StudyAttemptRepository attempts;
     private final StudyTurnRepository receipts;
@@ -44,6 +48,19 @@ public class StudyTurns {
         this.procedure=procedure;
     }
     public View submit(String token,Request request) {
+        return submit(token,request,Event.TYPE_USER_UTTERANCE);
+    }
+    public View scene(String token,SceneRequest request) {
+        if(request==null || request.requestId()==null || request.expectedScene()<0 || request.expectedScene()>1_000_000
+                || request.humanCount()!=null && (request.humanCount()<0 || request.humanCount()>3) || request.observedAt()==null || request.observedAt().length()>40)
+            throw failure(HttpStatus.BAD_REQUEST,"Invalid simulated scene");
+        var payload=new com.google.gson.JsonObject();payload.addProperty("simulation",true);payload.addProperty("source","controlled_study");
+        payload.addProperty("sequence",request.expectedScene()+1);payload.addProperty("humanCount",request.humanCount());payload.addProperty("ts",request.observedAt());
+        if(request.probeStep()!=null)payload.addProperty("probeStep",request.probeStep());
+        return submit(token,new Request(request.requestId(),request.expectedScene(),payload.toString()),Event.TYPE_HUMAN_PRESENCE);
+    }
+    private View submit(String token,Request request,String type) {
+        boolean scene=Event.TYPE_HUMAN_PRESENCE.equals(type);
         if (request==null || request.requestId()==null || request.expectedTurn()<0 || request.text()==null
                 || request.text().isBlank() || request.text().length()>2000)
             throw failure(HttpStatus.BAD_REQUEST,"A request ID, current turn and text of at most 2000 characters are required");
@@ -52,34 +69,54 @@ public class StudyTurns {
             var existing=receipts.findByAttemptIdAndRequestId(attempt.id,request.requestId());
             if (existing.isPresent()) {
                 var receipt=existing.get();
-                if (!receipt.input.equals(request.text()) || receipt.expectedTurn!=request.expectedTurn())
+                if (!receipt.input.equals(request.text()) || receipt.expectedTurn!=request.expectedTurn()
+                        || !type.equals(receipt.inputType==null?Event.TYPE_USER_UTTERANCE:receipt.inputType))
                     throw failure(HttpStatus.CONFLICT,"Request ID already used for different content");
                 reconcile(attempt,receipt);
-                return new Claim(attempt.id,attempt.agentId,false,view(receipt),false);
+                return new Claim(attempt.id,attempt.agentId,false,view(receipt),false,attempt.sceneVersion);
             }
             open(attempt); interaction(attempt);
+            if(scene) {
+                if(!"context".equals(attempt.scenario) || request.expectedTurn()!=attempt.sceneVersion) throw failure(HttpStatus.CONFLICT,"Refresh the simulated scene first");
+                var payload=com.google.gson.JsonParser.parseString(request.text()).getAsJsonObject();
+                if(!ch.zhaw.prometheus.model.event.ObservationEvidence.fresh(ch.zhaw.prometheus.model.event.ObservationEvidence.observed(payload),Instant.now(),15,2))
+                    throw failure(HttpStatus.BAD_REQUEST,"The simulated scene command is no longer current");
+                procedure.validateSceneProbe(attempt,payload);
+                // Claim the changed environment before waiting on the agent's serial
+                // turn lock. The old inference can no longer commit or publish.
+                if(attempt.pendingRequest!=null) {
+                    var old=receipts.findByAttemptIdAndRequestId(attempt.id,attempt.pendingRequest).orElseThrow();
+                    old.status=StudyTurn.Status.REJECTED;old.reason="scene_changed";old.finishedAt=StudyTurn.now();
+                    receipts.saveAndFlush(old);attempt.pendingRequest=null;attempt.turnVersion++;
+                }
+                attempt.sceneVersion++;attempt.scenePayload=request.text();
+                recorder.append(attempt.id,"scene:"+request.requestId(),"SCENE_REQUEST",json.valueToTree(request));
+            }
             if (attempt.pendingRequest!=null) throw failure(HttpStatus.CONFLICT,"Reconcile the pending request first");
-            if (request.expectedTurn()!=attempt.turnVersion) throw failure(HttpStatus.CONFLICT,"Refresh the conversation before submitting");
-            boolean predicted=procedure.permitsStart(attempt);
+            if (!scene && request.expectedTurn()!=attempt.turnVersion) throw failure(HttpStatus.CONFLICT,"Refresh the conversation before submitting");
+            if(!scene && !procedure.sceneApplied(attempt))throw failure(HttpStatus.CONFLICT,"Apply a current simulated scene before continuing");
+            boolean predicted=scene || procedure.permitsStart(attempt);
             if (!predicted && (ch.zhaw.prometheus.agentdefs.core.CoordinationAcceptance.explicit(request.text())
                     || ch.zhaw.prometheus.agentdefs.core.CoordinationAcceptance.assent(request.text())))
                 throw failure(HttpStatus.CONFLICT,"Save your private prediction before starting");
             var receipt=receipts.saveAndFlush(new StudyTurn(attempt,request.requestId(),request.expectedTurn(),request.text(),Instant.now()));
+            receipt.inputType=type;receipt.sceneVersion=attempt.sceneVersion;receipts.saveAndFlush(receipt);
             attempt.pendingRequest=request.requestId(); attempts.saveAndFlush(attempt);
-            return new Claim(attempt.id,attempt.agentId,true,view(receipt),predicted);
+            return new Claim(attempt.id,attempt.agentId,true,view(receipt),predicted,attempt.sceneVersion);
         });
         if (!claim.claimed()) return claim.view();
         try {
-            agents.acknowledge(claim.agentId(),new EventRequest(Event.TYPE_USER_UTTERANCE,Event.ACTOR_USER,
+            agents.acknowledge(claim.agentId(),new EventRequest(type,scene?"study-simulation":Event.ACTOR_USER,
                     Event.KIND_OBSERVATION,request.text()),OutputProfile.FULL_PLAN,(candidate,position,response,persist) ->
                 transaction.execute(tx -> {
                     var attempt=attempts.lockById(claim.attemptId()).orElseThrow();
                     var receipt=receipts.findByAttemptIdAndRequestId(attempt.id,request.requestId()).orElseThrow();
                     interaction(attempt);
-                    if (attempt.closed() || !request.requestId().equals(attempt.pendingRequest)
+                    if (attempt.closed() || attempt.sceneVersion!=claim.sceneVersion() || !request.requestId().equals(attempt.pendingRequest)
                             || receipt.status!=StudyTurn.Status.PENDING || !Instant.now().isBefore(receipt.deadline))
                         throw new IllegalStateException("Study turn authority expired");
                     var candidateStorage=((TaskPolicy)candidate.getCurrentState().ownPolicy()).storage();
+                    receipt.sceneSensitive=ch.zhaw.prometheus.agentdefs.study.StudyContext.task(CoordinationMemory.agreement(candidateStorage,CoordinationMemory.AGREEMENT));
                     if (!claim.predicted() && candidateStorage.containsKey(CoordinationMemory.LOG))
                         for (var entry:candidateStorage.get(CoordinationMemory.LOG).getAsJsonArray()) {
                             var item=entry.getAsJsonObject();
@@ -87,6 +124,10 @@ public class StudyTurns {
                                     && item.get("sourcePosition").getAsLong()>=position) throw new IllegalStateException("Prediction required before acceptance");
                         }
                     var saved=persist.get(); agentRepository.flush();
+                    if(scene) {
+                        var payload=com.google.gson.JsonParser.parseString(request.text()).getAsJsonObject();
+                        if(payload.has("probeStep"))attempt.sceneProbeStep=payload.get("probeStep").getAsInt()+1;
+                    }
                     var events=saved.getEventHistory().toList();
                     receipt.inputEventId=events.stream().filter(e -> Long.valueOf(position).equals(e.sourcePosition()))
                             .findFirst().orElseThrow().getId();
@@ -183,6 +224,6 @@ public class StudyTurns {
     }
     static View view(StudyTurn r) {
         return new View(r.requestId,r.status,r.committedTurn,r.inputEventId,r.responseEventId,r.responseType,
-                r.responsePayload,r.receivedAt,r.finishedAt,r.reason);
+                r.responsePayload,r.receivedAt,r.finishedAt,r.reason,r.inputType==null?Event.TYPE_USER_UTTERANCE:r.inputType,r.expectedTurn,r.sceneVersion,r.sceneSensitive);
     }
 }

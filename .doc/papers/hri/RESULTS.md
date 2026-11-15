@@ -254,3 +254,54 @@ wording. Final mobile revision/ended screenshots were inspected after the visual
 adjustments. Runner preflight: **14 passed**; JavaScript syntax and
 `git diff --check` passed. The separate 37-check shared/game regression and live
 trial above used the same final executor source.
+
+## OS-07 — Fictional contextual check-in (15 November 2026)
+
+Added the typed one-question encounter, exact accepted answer/support wording,
+fresh controlled scene ingress, privacy postponement, explicit resumption,
+departure ending, preserved pending-question revision and a timestamped user-paced
+1–2–1 probe. Scene claims fence earlier in-flight work before the agent lock;
+participant event projections and rendering receipts distinguish withheld,
+already displayed and late-reported content. No camera or clinical verification
+is involved. New fields/transitions require additive schema update/fresh agents.
+
+Actual local MySQL runner evidence (artifacts in ignored
+`target/gptlive-acceptance-<suffix>`; owned schemas/accounts cleaned up):
+
+| Run | Result |
+| --- | --- |
+| `2035257049`, context/game/material/shared Coordination | 30 Java checks passed |
+| `4ba6a4924a`, context/turn/recorder integration | 18 Java checks passed, including a held real application turn fenced by a concurrent scene claim |
+| `1172536c55`, `--study --browser` | 42 Java and ten browser checks passed; initial visual review led to moving scene controls into the conversation panel |
+| `a7c8cc7ffb`, `--study --java-tests none --paid-core coordination-text --study-scenario context` | 12 committed/replayed requests, four OpenAI calls, 21,359 cumulative tokens; bounded script passed |
+| `6802db5e8b`, expanded shared/context/probe tests | 36 passes, one fixture failure: the newly strengthened privacy guard correctly blocked a fresh proposal while two people were still visible after a finished encounter. Made the fixture establish one person before negotiating again |
+| `fb840163d3`, final `--study --browser` | **44 Java and ten browser checks passed**, zero failures/errors/skips/retries, including ordered-probe persistence and explicit Stop/status consistency |
+| `29d41bfa29`, final context/shared Coordination/revision regression | **32 Java checks passed**, zero failures/errors/skips |
+
+Independent semantic review of `a7c8cc7ffb`: **PASS for this bounded script**.
+Acceptance performed no private question; a fresh one-person scene asked the exact
+agreed question. Two people produced nonsensitive postponement and return remained
+paused. The two exact accepted snapshots differ only in `activity.noReply`, changed
+to “A reminder may help.” A new prediction/acceptance, fresh one-person scene and
+Resume retained the original pending question ID; NO delivered exactly the revised
+support and recorded `FICTIONAL_NO_REPORTED`. Subsequent absence/return did not
+restart it. Actual provider captures contain neither private preference nor
+prediction markers. The live script used manual scene controls; the subsequent
+planned-probe control is verified by local DB/browser tests, not that paid run.
+
+Its export contains 12 requests, two acceptance snapshots, 41 records, ten private
+answer rows and 11 synthetic display reports. Recording/configuration/display
+are complete, procedure incomplete. Paid display reports are synthetic; actual
+DOM withholding/rendering is independently exercised in Playwright. The raw
+semantic-review flag remains PENDING; this paragraph records the separate review.
+
+Final desktop ended and 390px mobile postponed screenshots in `fb840163d3` were
+inspected: scene controls are visible beside the conversation, wrap without
+overflow, and disclose persistent controlled simulation. A scene cannot erase
+previously displayed text or prove physical privacy. Late client reports remain
+explicitly ambiguous. Incoming commands have a 15-second freshness bound; the
+selected simulation persists until another accepted command changes it.
+
+Runner preflight: **14 passed**. JavaScript syntax and `git diff --check` passed.
+Human collection remains closed; signs, full assessments and capacity qualification
+are subsequent milestones.

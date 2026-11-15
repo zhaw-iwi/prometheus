@@ -26,6 +26,9 @@ public class StudyAttempt {
     @Column(unique=true) UUID agentId;
     long turnVersion;
     UUID pendingRequest;
+    long sceneVersion;
+    int sceneProbeStep;
+    @Column(columnDefinition="text") String scenePayload;
     @Column(length=24) String finishReason;
     protected StudyAttempt() {}
     StudyAttempt(String tokenHash, Mode mode, String scenario, String materialsVersion, UUID predecessorId) {

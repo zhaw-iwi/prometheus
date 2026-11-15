@@ -154,6 +154,7 @@ public class CoordinationAgent implements AgentDefinition {
         var utteranceDecision = new LatestEventTypeDecision(Event.TYPE_USER_UTTERANCE);
         var preparationDecision = new CoordinationDecision(storage, "OBSERVE_PREPARATION");
         var presenceDecision = new SocialSpacePresenceDecision(storage);
+        addActivityTransitions(states.values(),storage,routing);
         for (var state : states.values()) {
             state.addTransition(new Transition(deliveryDecision, delivery, routing));
             state.addTransition(new Transition(utteranceDecision, update, routing));
@@ -169,6 +170,7 @@ public class CoordinationAgent implements AgentDefinition {
     protected CoordinationUpdateAction createUpdateAction(Storage storage,String instructions) {
         return new CoordinationUpdateAction(storage,instructions);
     }
+    protected void addActivityTransitions(Collection<TaskState> states,Storage storage,TaskState routing) {}
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {
         var agent = createAgent();
         ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage().put(TaskMemory.REPLY, BehaviourPlan.speechOnly(

@@ -13,6 +13,9 @@ public class StudyTurn {
     @Column(name="request_id",nullable=false) UUID requestId;
     @Column(nullable=false,length=2000) String input;
     long expectedTurn;
+    @Column(length=80) String inputType;
+    long sceneVersion;
+    boolean sceneSensitive;
     @Enumerated(EnumType.STRING) @Column(nullable=false,length=16) Status status;
     @Column(nullable=false) Instant receivedAt;
     @Column(nullable=false) Instant deadline;

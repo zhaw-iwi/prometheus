@@ -27,3 +27,6 @@ dialog { border:1px solid #bdcbd6; border-radius:14px; max-width:600px; width:ca
 @media(max-width:760px) { main { padding:1.25rem .8rem 3rem; } .layout { grid-template-columns:1fr; } .topbar { padding:.8rem 1rem; } .topbar span { display:none; } .welcome { padding:1.5rem; } .session-heading { align-items:flex-start; } .session-heading .tools { flex-direction:column; gap:0; } .card { padding:1.1rem; } .conversation { padding:0; } .conversation-heading,#messages,#composer { padding:1rem; } #messages { max-height:65vh; } .composer-actions { align-items:flex-start; } .composer-actions .hint { max-width:55%; } .message { max-width:100%; } }
 
 #game-progress { padding: 0 1.5rem; }
+.scene-buttons { flex-wrap:wrap; }
+.scene-panel { padding:1rem 1.5rem; border-bottom:1px solid #d4e1e8; background:#f7fafc; }
+.scene-panel h3 { margin:0; }.scene-panel .scene-buttons { margin-top:.8rem; }

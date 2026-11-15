@@ -13,7 +13,9 @@ import static ch.zhaw.prometheus.application.study.StudySessions.*;
 
 @Service
 public class StudyEvidence {
-    public record Display(UUID eventId,String clientTime) {}
+    public record Display(UUID eventId,String clientTime,String disposition) {
+        public Display(UUID eventId,String clientTime){this(eventId,clientTime,null);}
+    }
     public record ClientEvent(UUID id,String type,String clientTime,String code) {}
     private final StudySessions sessions;
     private final StudyAttemptRepository attempts;
@@ -34,12 +36,17 @@ public class StudyEvidence {
         if (display==null || display.eventId()==null) throw failure(HttpStatus.BAD_REQUEST,"Event ID required");
         clientTime(display.clientTime()); String key="display:"+display.eventId();
         if (records.findByAttemptIdAndRecordKey(attempt.id,key).isPresent()) return;
-        var events=events(records.findByAttemptIdOrderByRecordedAt(attempt.id));
+        var evidence=records.findByAttemptIdOrderByRecordedAt(attempt.id);
+        var events=events(evidence);
         var event=events.get(display.eventId().toString());
         if (event==null || !Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.path("type").asText()))
             throw failure(HttpStatus.NOT_FOUND,"Unknown generated study response");
-        var payload=json.valueToTree(display);
-        recorder.append(attempt.id,key,"DISPLAY",payload);
+        boolean withheld=withheld(attempt,display.eventId().toString(),turns.findByAttemptIdOrderByReceivedAt(attempt.id),evidence);
+        String disposition=display.disposition()==null?"DISPLAY":display.disposition();
+        if(!Set.of("DISPLAY","WITHHELD").contains(disposition) || disposition.equals("WITHHELD")&&!withheld)
+            throw failure(HttpStatus.BAD_REQUEST,"Invalid rendering disposition");
+        ObjectNode payload=json.valueToTree(display);payload.put("serverSceneVersion",attempt.sceneVersion);
+        recorder.append(attempt.id,key,disposition.equals("WITHHELD")?"WITHHELD":withheld?"LATE_DISPLAY":"DISPLAY",payload);
     }
     @Transactional
     public void client(String token,ClientEvent event) {
@@ -59,8 +66,18 @@ public class StudyEvidence {
     @Transactional(readOnly=true)
     public List<JsonNode> participantEvents(String token) {
         var attempt=sessions.require(token,false);
-        return events(records.findByAttemptIdOrderByRecordedAt(attempt.id)).values().stream()
-                .sorted(Comparator.comparingLong(e -> e.path("position").asLong())).toList();
+        var evidence=records.findByAttemptIdOrderByRecordedAt(attempt.id);var receipts=turns.findByAttemptIdOrderByReceivedAt(attempt.id);
+        return events(evidence).values().stream().sorted(Comparator.comparingLong(e -> e.path("position").asLong())).map(event->{
+            if(!withheld(attempt,event.path("id").asText(),receipts,evidence))return event;
+            ObjectNode projected=event.deepCopy();projected.put("withheld",true);
+            projected.put("payload","{\"speech\":\"A response was withheld because the simulated scene changed before confirmed display.\"}");
+            return (JsonNode)projected;
+        }).toList();
+    }
+    private boolean withheld(StudyAttempt attempt,String event,List<StudyTurn> receipts,List<StudyRecord> evidence) {
+        boolean sensitive=receipts.stream().anyMatch(r->r.responseEventId!=null && r.responseEventId.toString().equals(event)
+                && r.sceneSensitive && r.sceneVersion<attempt.sceneVersion);
+        return sensitive && evidence.stream().noneMatch(r->r.kind.equals("DISPLAY") && r.recordKey.equals("display:"+event));
     }
     /** Authorized analysis includes private forms; callers must enforce the operator boundary. */
     @Transactional
@@ -74,7 +91,7 @@ public class StudyEvidence {
         var list=result.putArray("records"); var snapshots=result.putArray("agreements");
         var issues=manifest.putArray("issues"); var recordedRequests=new HashSet<String>();
         var acceptedRequests=new HashSet<String>(); var expectedAcceptances=new HashSet<String>();
-        var displayed=new HashSet<String>(); var recordedForms=new HashSet<String>();
+        var displayed=new HashSet<String>(); var withheldDisplays=new HashSet<String>();var lateDisplays=new HashSet<String>();var recordedForms=new HashSet<String>();
         boolean metadata=false, configurationComplete=false;
         for (var record:evidence) {
             var data=recorder.parse(record.payload); var row=list.addObject(); row.put("id",record.id.toString());
@@ -97,6 +114,8 @@ public class StudyEvidence {
                 }
                 case "ACCEPTANCE" -> { snapshots.add(data); acceptedRequests.add(data.path("requestId").asText()); }
                 case "DISPLAY" -> displayed.add(data.path("eventId").asText());
+                case "WITHHELD" -> withheldDisplays.add(data.path("eventId").asText());
+                case "LATE_DISPLAY" -> lateDisplays.add(data.path("eventId").asText());
                 default -> { }
             }
         }
@@ -124,6 +143,8 @@ public class StudyEvidence {
         manifest.put("configurationComplete",configurationComplete);
         manifest.put("displayComplete",displayed.size()==generated); manifest.put("generatedResponses",generated);
         manifest.put("displayReceipts",displayed.size()); manifest.put("unresolvedRequests",unresolved);
+        manifest.put("withheldRenderReports",withheldDisplays.size());manifest.put("lateDisplayReports",lateDisplays.size());
+        manifest.put("deliveryAccounted",displayed.size()+withheldDisplays.size()+lateDisplays.size()==generated);
         manifest.put("records",evidence.size()); manifest.put("turns",receipts.size()); manifest.put("agreements",snapshots.size());
         if (displayed.size()!=generated) issues.add("missing_display_evidence");
         var answers=result.putArray("answers");

@@ -62,7 +62,7 @@ public class StudyRecorder {
         record.set("events",events(agent,sourcePosition)); record.put("phase",CoordinationMemory.stage(storage));
         for (String key:List.of(CoordinationMemory.DRAFT,CoordinationMemory.AGREEMENT,CoordinationMemory.ACCEPTED_EVIDENCE,
                 CoordinationMemory.RUN,CoordinationMemory.OUTCOME,TaskMemory.REVISION,TaskMemory.ACTIONS,
-                ch.zhaw.prometheus.agentdefs.study.StudyGuessing.KEY))
+                ch.zhaw.prometheus.agentdefs.study.StudyGuessing.KEY,CoordinationMemory.CONTEXT_STATE,CoordinationMemory.STUDY_SCENE))
             if (storage.containsKey(key)) record.set(key,parse(storage.get(key).toString()));
         var journal=record.putArray("journal");
         if (storage.containsKey(CoordinationMemory.LOG)) for (var entry:storage.get(CoordinationMemory.LOG).getAsJsonArray()) {

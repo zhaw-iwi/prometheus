@@ -44,6 +44,12 @@
       </aside>
       <section class="card conversation" aria-label="Conversation">
         <div class="conversation-heading"><h2>Conversation</h2><span id="connection" class="hint">Connecting…</span></div>
+        <section id="scene-panel" class="scene-panel" hidden><h3>Simulated scene</h3><p class="hint">Controlled simulation; no camera. Advance the planned one–two–one sequence before answering. Each scene stays selected until changed. A change can interrupt a pending response.</p>
+          <p id="scene-status" role="status">Scene unknown</p><button id="scene-probe" type="button">Next planned scene</button>
+          <div class="tools scene-buttons"><button type="button" class="secondary" data-scene="1">One person</button><button type="button" class="secondary" data-scene="2">Two people</button>
+            <button type="button" class="secondary" data-scene="0">Nobody visible</button><button type="button" class="secondary" data-scene="unknown">Scene unknown</button>
+          </div><p id="checkin-progress" class="hint"></p>
+        </section>
         <div id="messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
         <p id="game-progress" class="hint" hidden></p>
         <form id="prediction-form" class="pending" hidden><label for="prediction">Before starting, what do you expect the assistant to do next?</label>

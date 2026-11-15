@@ -3,9 +3,9 @@ import fs from 'node:fs/promises';
 
 const admin={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
 const agreement={goal:'Write a brief greeting',humanRole:'Judge the wording',agentRole:'Write a greeting',success:'The participant accepts the wording',questions:[],checks:[],dialogueLimit:5,reactions:null};
-async function invite(request,ready=false) {
+async function invite(request,ready=false,scenario='guess') {
   expect(process.env.PROMETHEUS_ADMIN_TOKEN,'Use the isolated acceptance runner').toBeTruthy();
-  const response=await request.post('/admin/study/attempts',{headers:admin,data:{mode:'SYNTHETIC',scenario:'guess'}});expect(response.ok()).toBeTruthy();
+  const response=await request.post('/admin/study/attempts',{headers:admin,data:{mode:'SYNTHETIC',scenario}});expect(response.ok()).toBeTruthy();
   const invitation=await response.json();
   if(ready) {
     const headers={'X-Prometheus-Study-Token':invitation.token};
@@ -57,6 +57,39 @@ test('guessing game predicts, plays, revises and ends with a reported result',as
   const data=await exported(request,invitation);expect(data.agreements).toHaveLength(2);expect(data.manifest.recordingComplete).toBe(true);
   expect(JSON.stringify(data.answers)).toContain('private-prediction-browser');
   expect(await page.locator('#messages').innerText()).not.toContain('private-prediction-browser');expect(media).toEqual([]);
+});
+
+test('context check-in interrupts held output, revises and resumes a pending question',async({page,request},info)=>{
+  const invitation=await invite(request,true,'context');const media=await noMedia(page);
+  const terms={goal:'A fictional routine check-in',humanRole:'Report yes or no in the fictional scenario',agentRole:'Ask once and offer the agreed response',success:'The agreed fictional response is delivered',questions:[],checks:[],dialogueLimit:2,reactions:null,
+    activity:{kind:'CONTEXT_CHECKIN',question:'In this fictional scenario, was the medication routine completed?',yesReply:'Thank you for letting me know.',noReply:'You can consider the reminder in the fictional care plan.',startCount:1,postponeAt:2,departure:'END',resume:'EXPLICIT_WHEN_ONE'}};
+  const control=async(operation,agreement=null,speech='Ready.')=>expect((await request.post('/__live-fixture/study-reply',{data:{response:JSON.stringify({operation,agreement,reply:{speech}})}})).ok()).toBeTruthy();
+  const send=async text=>{await page.locator('#message').fill(text);await page.locator('#send').click();await expect(page.locator('#message')).toHaveValue('');await expect(page.locator('#pending-panel')).toBeHidden();};
+  const predict=async()=>{await expect(page.locator('#prediction-form')).toBeVisible();await page.locator('#prediction').fill('Private context prediction');await page.getByRole('button',{name:'Save private prediction'}).click();await expect(page.locator('#prediction-form')).toBeHidden();};
+  const scene=async label=>{await page.getByRole('button',{name:label,exact:true}).click();await expect(page.locator('#pending-panel')).toBeHidden();};
+  await control('PROPOSE',terms);await open(page,invitation);await send('Propose my fictional routine check-in with the agreed scene conditions.');await predict();
+  await control('START');await send('Start now');await expect(page.locator('#messages').getByText(terms.activity.question,{exact:true})).toHaveCount(0);
+  await page.locator('#scene-probe').click();await expect(page.locator('#pending-panel')).toBeHidden();await expect(page.locator('#messages').getByText(terms.activity.question,{exact:true})).toHaveCount(1);
+  await control('KEEP',null,'SENSITIVE_DELAYED_OUTPUT');await request.post('/__live-fixture/inference/hold');
+  try {
+    await page.locator('#message').fill('Please rephrase the question.');await page.locator('#send').click();await expect(page.locator('#pending-panel')).toBeVisible();
+    await page.locator('#scene-probe').click();
+    await expect.poll(async()=>{const r=await request.get('/api/study/activity',{headers:{'X-Prometheus-Study-Token':invitation.token}});return (await r.json()).sceneVersion;}).toBe(2);
+    await request.post('/__live-fixture/inference/clear');await expect(page.locator('#activity-status')).toHaveText('Activity paused');
+    await expect(page.locator('#pending-panel')).toBeHidden();await expect(page.locator('#messages')).not.toContainText('SENSITIVE_DELAYED_OUTPUT');
+  } finally {await request.post('/__live-fixture/inference/clear');}
+  await page.reload();await expect(page.locator('#checkin-progress')).toContainText('postponed');await screenshot(page,info,'context-postponed-mobile',390);
+  await page.locator('#scene-probe').click();await expect(page.locator('#pending-panel')).toBeHidden();await expect(page.locator('#activity-status')).toHaveText('Activity paused');
+  await expect(page.locator('#scene-probe')).toHaveText('Planned scene sequence complete');
+  const revised=structuredClone(terms);revised.activity.noReply='A reminder may help in this fictional scenario.';
+  await control('PROPOSE',revised);await send('Make the support shorter and neutral, preserving all scene and stopping conditions.');await predict();await control('START');await send('Start now');
+  await expect(page.locator('#activity-status')).toHaveText('Activity paused');await scene('One person');await send('Resume');
+  await expect(page.locator('#activity-status')).toHaveText('Activity running');await send('No');
+  await expect(page.locator('#messages').getByText(revised.activity.noReply,{exact:true})).toBeVisible();await expect(page.locator('#activity-status')).toHaveText('Activity ended');
+  await screenshot(page,info,'context-ended-desktop',1440);await scene('Nobody visible');await scene('One person');await expect(page.locator('#activity-status')).toHaveText('Activity ended');
+  await page.getByRole('button',{name:'Finish interaction'}).click();await page.getByRole('button',{name:'Save and finish'}).click();
+  const data=await exported(request,invitation);expect(data.agreements).toHaveLength(2);expect(data.manifest.recordingComplete).toBe(true);
+  expect(data.requests.some(r=>r.receipt.reason==='scene_changed')).toBe(true);expect(media).toEqual([]);
 });
 
 test('study preparation is clearly closed and text only', async ({page}, info) => {

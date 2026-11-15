@@ -112,8 +112,8 @@ to learn internal operation names such as REPLACE.
 
 | Scenario | Implementation requirement before an executable study |
 | --- | --- |
-| A: Twenty Questions-style game | Pilot role fidelity, withheld secret, answer handling, guessing, and stopping. Current dialogue limits count agent contributions, including questions and feedback; they are not a dedicated question counter. Define a truthful limit or implement a bounded task counter. Existing riddle tests do not establish full guessing-game correctness |
-| B: contextual medication check-in | Add explicit coordination between dialogue, observable encounter context, interruption, and resumption. Current independent sensor rules do not supply the complete dialogue workflow. Use the brief's fictional, bounded support policy and distinguish person count from identity or proof of privacy |
+| A: Twenty Questions-style game | OS-06 implements a dedicated question/guess counter, private secret and explicit stopping outcomes. Pilot role fidelity, question quality and participant understanding; see IMPLEMENTATION.md and RESULTS.md for current evidence |
+| B: contextual medication check-in | OS-07 implements a fictional question/response encounter with controlled scene interruption and explicit resumption. Pilot the disclosed simulation and wording; distinguish person count from identity or proof of privacy. Current contract/evidence: IMPLEMENTATION.md and RESULTS.md |
 | C: negotiated gesture answers | Add a question-bound response mapping, single consumption, and explicit wait/resume behavior. A generic sensor WAIT effect does not implement a pending-question pause. The current browser maps fist/palm/victory to rock/paper/scissor; simulated thumbs-up/down require an explicit supported event interpretation |
 
 For B/C, use visibly labeled simulated scene/sign events, such as a small scene

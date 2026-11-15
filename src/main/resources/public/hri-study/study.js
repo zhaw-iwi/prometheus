@@ -96,6 +96,7 @@ function renderPage(page) {
   }
 }
 function renderAgreement(conversation) {
+  state.hasDraft=!!conversation.draft;
   const phase={CONVERSATION:'Exploring an activity',COORDINATION:'Clarifying the activity',PREPARATION:'Checking agreed conditions',READY:'Proposal ready for review',EXECUTION:'Activity running',PAUSED:'Activity paused',REFLECTION:'Activity ended',UNCERTAIN:'Activity needs review',FINISHING:'Activity finishing'};
   $('activity-status').textContent=phase[conversation.phase]??'Preparing';
   const signature=JSON.stringify([conversation.draft,conversation.agreement]);if(signature===state.agreementSignature)return;
@@ -113,6 +114,11 @@ function renderAgreement(conversation) {
         node('dt','Allowed answers'),node('dd',agreement.activity.answers.join(', ')),
         node('dt','Ending'),node('dd','Your confirmation of a specific guess means reported success. Budget exhaustion is a separate result.'));
     }
+    if(agreement.activity?.kind==='CONTEXT_CHECKIN') {
+      for(const [term,value] of [['Check-in question',agreement.activity.question],['If yes',agreement.activity.yesReply],['If no',agreement.activity.noReply],
+        ['Scene rules','A fresh one-person scene starts the question after acceptance. Two or more postpone it. Resume with one visible person continues it. Departure ends an ongoing encounter; return does not restart it. Unknown means wait.']])
+        list.append(node('dt',term),node('dd',value));
+    }
     $('agreement').append(list);
   }
   if(!conversation.draft&&!conversation.agreement)$('agreement').append(node('p','No activity has been agreed yet.','hint'));
@@ -126,6 +132,14 @@ function renderActivity(activity) {
   $('game-progress').textContent=game?`Questions and guesses spent: ${game.questions}. ${game.outcome?'Recorded result: '+game.outcome.replaceAll('_',' ').toLowerCase():game.pending?'Pending: '+game.pending.words:''}`:'';
   $('study-instructions').hidden=!activity.revisionInstruction;
   $('revision-card').textContent=activity.revisionInstruction??'';$('probe-card').textContent=activity.probeInstruction??'';
+  $('scene-panel').hidden=state.page.session.scenario!=='context';
+  const scene=parse(activity.scene),checkin=parse(activity.context);
+  const count=scene?.humanCount;$('scene-status').textContent=(count==null?'Scene unknown':count===0?'Nobody visible':count===1?'One person visible':`${count} people visible`)+(activity.sceneApplied?'':' · change awaiting processing');
+  $('checkin-progress').textContent=checkin?`Check-in: ${checkin.status.toLowerCase().replaceAll('_',' ')}. ${checkin.outcome?'Recorded result: '+checkin.outcome.toLowerCase().replaceAll('_',' '):''}`:'';
+  const step=activity.sceneProbeStep,script=activity.sceneProbe??[],required=['WAITING_FOR_ONE','WAITING_FOR_ANSWER','POSTPONED'][step];
+  state.canProbe=step<script.length&&checkin?.status===required&&!state.hasDraft;
+  $('scene-probe').textContent=step<script.length?`Next planned scene: ${script[step]===1?'one person':'two people'}`:'Planned scene sequence complete';
+  $('scene-probe').disabled=!state.canProbe||state.pending?.kind==='scene';
 }
 function renderEvents(events) {
   const follow=$('messages').scrollTop+$('messages').clientHeight >= $('messages').scrollHeight-60 || state.events.size===0;
@@ -133,13 +147,16 @@ function renderEvents(events) {
   for(const event of events) {
     if(!['obs.user_utterance','resp.behaviour_plan'].includes(event.type))continue;
     const assistant=event.type==='resp.behaviour_plan'; const text=assistant?(parse(event.payload,{})?.speech??'No text response.'):event.payload;
+    // A scene command creates a local release barrier before its HTTP request.
+    // Old responses arriving during that request wait for the scoped projection.
+    if(assistant&&state.pending?.kind==='scene'&&!state.events.has(event.id))continue;
     if(!state.events.has(event.id)) {
       const message=node('div',undefined,'message'+(assistant?'':' user'));message.dataset.eventId=event.id;
       message.append(node('span',assistant?'Assistant':'You','speaker'),node('p',text));$('messages').append(message);state.events.add(event.id);
       appended=true;
     }
     if(assistant&&!state.displayed.has(event.id)&&interactive.has(state.page.session.stage)&&document.visibilityState==='visible') {
-      state.displayed.add(event.id);void api('display',{eventId:event.id,clientTime:new Date().toISOString()}).catch(()=>state.displayed.delete(event.id));
+      state.displayed.add(event.id);void api('display',{eventId:event.id,clientTime:new Date().toISOString(),disposition:event.withheld?'WITHHELD':'DISPLAY'}).catch(()=>state.displayed.delete(event.id));
     }
   }
   if(appended&&follow)$('messages').scrollTop=$('messages').scrollHeight;
@@ -147,6 +164,8 @@ function renderEvents(events) {
 function renderPending(receipt=state.receipt,unknown=state.unknown) {
   state.receipt=receipt;state.unknown=unknown;
   $('pending-panel').hidden=!state.pending;$('send').disabled=state.busy||!!state.pending;
+  document.querySelectorAll('[data-scene]').forEach(button=>button.disabled=state.pending?.kind==='scene');
+  $('scene-probe').disabled=!state.canProbe||state.pending?.kind==='scene';
   if(!state.pending)return;
   $('pending-text').textContent=state.pending.text;
   $('pending-status').textContent=receipt?.status==='UNCERTAIN'?'The result is uncertain. Check the saved conversation, then discard this submission to continue.'
@@ -154,11 +173,12 @@ function renderPending(receipt=state.receipt,unknown=state.unknown) {
   $('retry').hidden=!unknown;$('cancel').disabled=false;
 }
 function reconcile(receipt) {
-  if(!state.pending)return;
+  if(!state.pending||receipt.requestId!==state.pending.requestId)return;
   if(receipt.status==='COMMITTED'||receipt.status==='REJECTED') {
     if(receipt.status==='COMMITTED'){state.page.session.turnVersion=receipt.committedTurn;notice();}
     if(receipt.status==='COMMITTED'&&$('message').value===state.pending.text) { $('message').value='';local(key('draft'),''); }
     if(receipt.status==='REJECTED')notice('The pending submission was not applied. Your draft is preserved.');
+    if(state.pending.kind==='scene')state.again=true;
     pending(null);
   }
   renderPending(receipt);
@@ -176,7 +196,12 @@ async function refresh() {
       const [conversation,events,activity]=await Promise.all([api('conversation'),api('events'),api('activity')]);renderAgreement(conversation);renderEvents(events);renderActivity(activity);
       if(!state.pending&&page.session.pendingRequest) {
         const entry=conversation.turns.find(t=>t.receipt.requestId===page.session.pendingRequest);
-        if(entry)pending({requestId:entry.receipt.requestId,expectedTurn:page.session.turnVersion,text:entry.input});
+        if(entry) {
+          if(entry.receipt.inputType==='obs.human.presence') {
+            const scene=parse(entry.input);pending({kind:'scene',requestId:entry.receipt.requestId,expectedScene:entry.receipt.expectedTurn,
+              humanCount:scene.humanCount,observedAt:scene.ts,probeStep:scene.probeStep,text:'A simulated scene change'});
+          } else pending({requestId:entry.receipt.requestId,expectedTurn:entry.receipt.expectedTurn,text:entry.input});
+        }
       }
       if(state.pending) {
         try {reconcile(await api('turns/'+state.pending.requestId));}
@@ -189,13 +214,22 @@ async function refresh() {
 }
 async function sendSaved() {
   if(state.busy||!state.pending)return;state.busy=true;renderPending();notice();
-  try {reconcile(await api('turns',state.pending));}
+  try {reconcile(await api(state.pending.kind==='scene'?'scene':'turns',state.pending));}
   catch(error) {notice(problem(error));telemetry('ERROR',String(error.status??'network'));}
   finally {state.busy=false;await refresh();renderPending();}
 }
 $('entry-form').addEventListener('submit',event=>{event.preventDefault();stopStream();state.token=$('credential').value.trim();local('hri.token',state.token);state.page=null;notice();void refresh();});
 $('prediction').addEventListener('input',()=>local(state.predictionKey,$('prediction').value));
 $('prediction-form').addEventListener('submit',async event=>{event.preventDefault();try{await api('predictions',{revision:state.activity.revision,prediction:$('prediction').value});notice('Your prediction is saved. You may now accept the proposal in the conversation.');await refresh();}catch(error){notice(problem(error));}});
+async function changeScene(humanCount,probeStep) {
+  if(!state.activity||state.pending?.kind==='scene')return;
+  const request={kind:'scene',requestId:crypto.randomUUID(),expectedScene:state.activity.sceneVersion,humanCount,observedAt:new Date().toISOString(),probeStep,text:'Simulated scene: '+(humanCount==null?'unknown':humanCount+' visible')};
+  pending(request);renderPending();notice();
+  try{reconcile(await api('scene',request));}catch(error){notice(problem(error));}
+  finally{await refresh();renderPending();}
+}
+document.querySelectorAll('[data-scene]').forEach(button=>button.addEventListener('click',()=>changeScene(button.dataset.scene==='unknown'?null:Number(button.dataset.scene))));
+$('scene-probe').addEventListener('click',()=>changeScene(state.activity.sceneProbe[state.activity.sceneProbeStep],state.activity.sceneProbeStep));
 $('step-form').addEventListener('submit',async event=>{
   event.preventDefault();if(state.busy)return;state.busy=true;$('continue').disabled=true;notice();
   try {

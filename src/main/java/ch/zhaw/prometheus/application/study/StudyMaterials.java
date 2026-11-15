@@ -10,15 +10,15 @@ import com.google.gson.Gson;
 public class StudyMaterials {
     public record Item(String id, String prompt, String kind) {}
     public record Scenario(String id, String title, boolean ready, String task, String privatePrompt,
-            Item revision, Item probe, List<Item> understanding, List<String> rubric) {
-        public Scenario { understanding = List.copyOf(understanding); rubric = List.copyOf(rubric); }
+            Item revision, Item probe, List<Item> understanding, List<String> rubric,List<Integer> sceneProbe) {
+        public Scenario { understanding = List.copyOf(understanding); rubric = List.copyOf(rubric);sceneProbe=sceneProbe==null?List.of():List.copyOf(sceneProbe); }
     }
     public record Manifest(String version, String language, List<Scenario> scenarios,
             List<Item> pre, List<Item> post) {
         public Manifest { scenarios = List.copyOf(scenarios); pre = List.copyOf(pre); post = List.copyOf(post); }
     }
     private static final Set<String> SCENARIOS = Set.of("guess", "context", "signs");
-    private static final Set<String> IMPLEMENTED = Set.of("guess");
+    private static final Set<String> IMPLEMENTED = Set.of("guess","context");
     private final Manifest manifest;
     public StudyMaterials() {
         try (var input = StudyMaterials.class.getResourceAsStream("/hri-study/materials-v1.json")) {
@@ -38,6 +38,7 @@ public class StudyMaterials {
             for (Scenario scenario : value.scenarios()) {
                 require(SCENARIOS.contains(scenario.id()) && scenarios.add(scenario.id()));
                 require(!scenario.ready() || IMPLEMENTED.contains(scenario.id()));
+                require(scenario.id().equals("context")?scenario.sceneProbe().equals(List.of(1,2,1)):scenario.sceneProbe().isEmpty());
                 require(nonempty(scenario.title()) && nonempty(scenario.task()) && nonempty(scenario.privatePrompt()));
                 item(scenario.revision(), ids); item(scenario.probe(), ids);
                 require(!scenario.understanding().isEmpty() && !scenario.rubric().isEmpty());

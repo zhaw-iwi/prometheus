@@ -16,6 +16,7 @@ public final class CoordinationMemory {
             RUN = "coordination.run", OUTCOMES = "coordination.outcomes", LOG_DROPPED = "coordination.logDropped";
     public static final String CONCISE_CONTROLS = "coordination.conciseControls";
     public static final String GUESSING_STATE = "coordination.guessing";
+    public static final String CONTEXT_STATE = "coordination.contextCheckIn", STUDY_SCENE="coordination.studyScene";
     private CoordinationMemory() {}
     public static CoordinationAgreement agreement(Storage storage, String key) {
         return storage.containsKey(key) ? CoordinationAgreement.parse(storage.get(key)) : null;
@@ -45,7 +46,8 @@ public final class CoordinationMemory {
     public static String proposalPrompt(Storage storage) {
         var draft = agreement(storage, DRAFT);
         if (draft.activity()!=null && draft.complete()) return "Proposed task: "+draft.goal()+". "
-                +GuessingContract.parse(draft.activity()).review()+" "+acceptancePrompt(storage);
+                +(draft.activity().get("kind").getAsString().equals("GUESSING")?GuessingContract.parse(draft.activity()).review()
+                    :ContextCheckInContract.parse(draft.activity()).review())+" "+acceptancePrompt(storage);
         int count = draft.reactions() == null ? draft.dialogueLimit() : draft.reactions().maxActions();
         String limit = " Limit: " + count + " " + (draft.reactions() == null ? "agent contribution" : "sensor action")
                 + (count == 1 ? "" : "s") + (draft.reactions() == null ? ", including questions and feedback" : "") + ". Stop can end earlier.";
@@ -165,5 +167,5 @@ public final class CoordinationMemory {
         return prefix + cue + (key.equals(DRAFT) ? "PROPOSAL, NOT ACTIVE. Recognised preparation checks: " + evidence(storage).keySet()
                 + ". " : "Accepted agreement: ") + agreement.json();
     }
-    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, LOG_DROPPED, REVIEW, LAST_CUE, RUN, OUTCOMES, GUESSING_STATE, CoordinationRecovery.KEY, CoordinationSupport.LIVE_HELP); }
+    public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, LOG_DROPPED, REVIEW, LAST_CUE, RUN, OUTCOMES, GUESSING_STATE, CONTEXT_STATE, STUDY_SCENE, CoordinationRecovery.KEY, CoordinationSupport.LIVE_HELP); }
 }
