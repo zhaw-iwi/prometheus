@@ -16,6 +16,14 @@ test('display agent sign follows existing precedence; both hands are explicit',(
   assert.equal(normalizePlan({...plan,display:{agentSign:'scissor'}}).sign,'scissor');
   assert.equal(normalizePlan({motion:{handSign:'paper',effector:'both_hands'}}).hand,'both_hands');
 });
+test('legacy hand aliases and invalid display precedence agree with Details',()=>{
+  for(const [input,expected] of [['Stein','rock'],['Schere','scissor'],['scissors','scissor'],['Papier','paper']]) {
+    assert.equal(normalizePlan({motion:{handSign:input}}).sign,expected);
+    assert.equal(normalizePlan({display:{agentSign:input}}).sign,expected);
+  }
+  const p=normalizePlan({motion:{handSign:'rock'},display:{agentSign:'unknown'}});
+  assert.equal(p.sign,'rock');assert.match(p.warnings[0],/unknown/);
+});
 test('partial plans reset missing channels and invalid values fail neutrally',()=>{
   const p=normalizePlan({nonVerbal:{gesture:'BOUNCE',facialExpression:{type:'alien',intensity:Infinity},gaze:'moon'},
     motion:{handSign:'thumbs_up',energy:-2,stillness:8}});
@@ -24,6 +32,12 @@ test('partial plans reset missing channels and invalid values fail neutrally',()
   assert.equal(normalizePlan({motion:{handSign:'rock',effector:'head'}}).sign,'');
   assert.equal(normalizePlan({speech:'Only words'}).intensity,0);
   assert.equal(normalizePlan(null).gesture,'NONE');
+  assert.equal(normalizePlan({nonVerbal:{facialExpression:'warmNeutral'}}).warnings.length,0);
+  assert.equal(normalizePlan({nonVerbal:{facialExpression:'warmSmile'}}).face,'happy');
+});
+test('unknown labels cannot resolve inherited JavaScript object properties',()=>{
+  const p=normalizePlan({nonVerbal:{facialExpression:'constructor',gaze:'__proto__'},motion:{handSign:'constructor'}});
+  assert.equal(p.face,'neutral');assert.deepEqual(p.gaze,[0,0]);assert.equal(p.sign,'');assert.equal(p.warnings.length,3);
 });
 test('filters undeclared channels; scalar display content survives',()=>{
   const p=normalizePlan(plan,['speech']); assert.equal(p.gesture,'NONE');assert.equal(p.sign,'');assert.equal(p.display,null);

@@ -2,3 +2,4 @@
 tests/fixtures/needforspeed/*.json text eol=lf
 tests/fixtures/needforspeed/*.wav binary
 tests/fixtures/needforspeed/*.mp3 binary
+src/main/resources/public/valerian/embodiment/vendor/*.js text eol=lf linguist-vendored

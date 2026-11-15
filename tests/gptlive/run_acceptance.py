@@ -37,6 +37,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
+    parser.add_argument('--embodiment', action='store_true', help='Valerian robot browser regression or real-provider persisted-plan rendering smoke')
     parser.add_argument('--study', action='store_true', help='Select online-study fixtures/specs; real inference uses --paid-core coordination-text')
     parser.add_argument('--study-models', action='store_true', help='Network smoke for real detector model loading/inference on generated browser video')
     parser.add_argument('--study-camera', action='store_true', help='Use live-camera study materials and camera browser checks; media remains synthetic in automation')
@@ -53,6 +54,8 @@ def main():
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
+    if args.embodiment and (args.study or args.classroom_capacity or not (args.browser or args.paid_core == 'coordination-text')):
+        parser.error('--embodiment requires --browser or --paid-core coordination-text, without study/capacity modes')
     if args.study_models and not (args.study_camera and args.study and args.browser) :parser.error('--study-models requires --study --study-camera --browser')
     if args.study_camera and not args.study:parser.error('--study-camera requires --study')
     if args.study_camera and (args.study_acceptance or args.study_capacity):
@@ -131,13 +134,15 @@ def main():
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)
     artifacts.mkdir(parents=True)
-    if args.study:
+    if args.study or args.embodiment:
         sources=[p for directory in ('src/main','src/test','tests/hri','tests/playwright') for p in (root/directory).rglob('*')
                  if p.is_file() and p.suffix in ('.java','.js','.mjs','.json','.html','.css')]
         sources += [root/'pom.xml',root/'tests/gptlive/run_acceptance.py',root/'playwright.config.mjs']
+        if args.embodiment:
+            sources += [root/'tests/gptlive/embodiment_browser_smoke.mjs',root/'tests/gptlive/coordination_text_journey.mjs']
         manifest={'schema':'hri-acceptance-v1','sourceRevision':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
                   'dirty':bool(subprocess.check_output(['git','status','--porcelain'],text=True).strip()),
-                  'selection':{'java':args.java_tests,'browser':args.browser,'scenario':args.study_scenario,'paid':bool(args.paid_core),'camera':args.study_camera,'realModels':args.study_models,'integrated':args.study_acceptance,'capacitySeconds':args.study_capacity,'capacityWave':args.study_wave if args.study_capacity else None},
+                  'selection':{'java':args.java_tests,'browser':args.browser,'scenario':args.coordination_scenario if args.embodiment else args.study_scenario,'paid':bool(args.paid_core),'embodiment':args.embodiment,'camera':args.study_camera,'realModels':args.study_models,'integrated':args.study_acceptance,'capacitySeconds':args.study_capacity,'capacityWave':args.study_wave if args.study_capacity else None},
                   'files':{str(p.relative_to(root)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
                   'limits':{'dbPool':10,'scheduledTicks':False,'providerCalls':20 if args.paid_core else 0,'providerTokens':80000 if args.paid_core else 0}}
         (artifacts/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
@@ -165,8 +170,8 @@ def main():
     maven = ['mvnw.cmd'] if os.name == 'nt' else ['bash', './mvnw']
     # The editor's incremental compiler also writes target/classes. Study evidence
     # must come from the owned Maven build, never those transient IDE class files.
-    build_dir = artifacts / 'build' if args.study else root / 'target'
-    if args.study:
+    build_dir = artifacts / 'build' if args.study or args.embodiment else root / 'target'
+    if args.study or args.embodiment:
         maven.append('-Dprometheus.build.directory=' + str(build_dir))
     npm = 'npx.cmd' if os.name == 'nt' else 'npx'
 
@@ -260,6 +265,10 @@ def main():
                 env.update(PROMETHEUS_LIVE_ENABLED='false', PROMETHEUS_PROVIDER_MAX_REQUESTS='20',
                     PROMETHEUS_PROVIDER_MAX_TOKENS='80000', PROMETHEUS_PROVIDER_MAX_SESSIONS='0',
                     OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000')
+            if args.embodiment:
+                env.update(PROMETHEUS_LIVE_ENABLED='false', PROMETHEUS_PROVIDER_MAX_REQUESTS='24',
+                    PROMETHEUS_PROVIDER_MAX_TOKENS='200000', PROMETHEUS_PROVIDER_MAX_SESSIONS='0',
+                    OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000')
             if escalation:
                 env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='24', PROMETHEUS_PROVIDER_MAX_TOKENS='200000',
                     PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
@@ -298,6 +307,8 @@ def main():
                 if args.study and args.study_scenario=='guess': journey_path='tests/hri/guessing_journey.mjs'
                 if args.study and args.study_scenario=='context': journey_path='tests/hri/context_journey.mjs'
                 if args.study and args.study_scenario=='signs': journey_path='tests/hri/signs_journey.mjs'
+                if args.embodiment:
+                    env['PROMETHEUS_EMBODIMENT_SMOKE'] = 'true'
                 run(['node', journey_path, '--allow-paid-provider', str(artifacts / 'journey.json'),
                     '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()
@@ -371,6 +382,9 @@ def main():
                     if args.study:
                         specs = ['tests/playwright/hri-camera-models.spec.mjs' if args.study_models else 'tests/playwright/hri-camera.spec.mjs' if args.study_camera else 'tests/playwright/hri-study.spec.mjs']
                         env['PLAYWRIGHT_JSON_OUTPUT_FILE'] = str(artifacts / 'study-browser.json')
+                    if args.embodiment:
+                        specs = ['tests/playwright/valerian-embodiment.spec.mjs', 'tests/playwright/valerian-lifecycle.spec.mjs',
+                            'tests/playwright/valerian-transcription.spec.mjs', 'tests/playwright/valerian-column-expansion.spec.mjs']
                     run([npm, 'playwright', 'test', '--config=playwright.config.mjs', *specs,
                         *(['--reporter=list,json'] if args.study else []),
                         '--output=' + str(artifacts / ('browser-' + enabled)),
@@ -411,7 +425,7 @@ def main():
                 'localConfigurationExcluded':True,'fixtureClassesExcluded':True,'databaseHealth':'UP'}),encoding='utf-8')
     finally:
         stop()
-        if args.study:
+        if args.study or args.embodiment:
             final_hashes={str(p.relative_to(root)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources if p.exists()}
             manifest['filesAtEnd']=final_hashes
             manifest['sourceChangedDuringRun']=[name for name,value in manifest['files'].items() if final_hashes.get(name)!=value]

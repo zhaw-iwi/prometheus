@@ -75,12 +75,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- EV-01/EV-02 (2026-11-15): alternative Valerian Details / Robot view on
+- EV-01 through EV-03 (2026-11-15): alternative Valerian Details / Robot view on
   `feature/valerian-embodiment`. Speech and latest event remain; canonical plans
   drive locally authored 3D eyes/head/arms/fingers and an integrated display.
-  Eleven embodiment and 15 hand-sensor unit checks plus five WebGL browser cases
-  pass; screenshots reviewed. EV-03 real DB/provider and neighboring regression
-  follow. No study protocol or backend changes. `.agents/EMBODIMENT_RESULTS.md`.
+  Verification: 237 JS, 18 runner and 21 Java/local-MySQL checks; 52 browser cases
+  have passing evidence across the broad run and focused fixture correction.
+  Final five Robot cases and real OpenAI persisted-plan/browser smoke pass;
+  screenshots reviewed. An extended provider task proposal was rejected before
+  rendering; that failed trial is retained. No study protocol or backend changes.
+  Scope, exact checks and device/human limits: `.agents/EMBODIMENT_RESULTS.md`.
 
 - OS-13 (2026-11-15, **software complete**, study application branch): typed
   dialogue now includes real browser camera perception. V3 materials, local
