@@ -507,3 +507,150 @@ not an eight-session production capacity test. Aggregate local summary:
 performance are unproven. Create fresh invitations after prompt changes because
 agent instructions persist. OS-12 sustained capacity/package/pilot handoff is next;
 human collection remains closed.
+
+
+## OS-12 - capacity and pilot handoff (complete)
+
+Source base `7759a44d` plus recorded working-tree hashes. Predeclared criteria are
+in CAPACITY.md. Admission leases, persisted interaction bounds, clear pre-claim
+429 feedback, a dedicated capacity runner, production-package restart, and an
+operator/schema/pilot runbook are verified within the bounds below. Human collection stays closed.
+
+Early checks and retained probes:
+
+| Artifact suffix | Selection | Actual result |
+| --- | --- | --- |
+| `dafe39a0d6` | Admission/session/turn local-DB checks | 23 passed, zero failed/skipped |
+| `ca00ffdbcd` | First compressed eight-session probe | Failed ambiguous state assertion; driver cleanup required stopping its owned Node process; schema/account cleaned by runner |
+| `b5af0f4071` | Probe after forced fresh driver reads | Failed contextual revision prediction; script did not explicitly authorize its protected replacement |
+| `e4de8c3574` | Corrected 90-second eight-session probe | All procedures/restart passed; 28,094 queries, projected 56,188/hour for two waves, over the predeclared 28,800 target; not capacity-qualified |
+| `9f73198114` | Shared-storage projection, admission/scenario/query regressions plus capacity/limit browser | 23 Java + one browser passed; zero skips/retries; both 390px screenshots inspected |
+
+The failed script used a generic "revise the term" utterance while requesting
+REPLACE. The runtime correctly required explicit protected-term authorization;
+scenario-specific revision text fixed the fixture without relaxing the guard.
+The driver also now waits for an in-progress SSE refresh before forcing its next
+canonical state read, identifies the failing scenario/step, and exits cleanly on
+failure. The first successful probe's query volume motivated direct reads of the
+existing shared Coordination storage instead of repeatedly hydrating the full graph.
+
+The local disposable account had unlimited (zero) per-hour/concurrent account
+limits; server max connections 151, max user connections zero. This is not proof
+of the hosting quota. The documented 36,000/hour reference retains 20% headroom.
+Runner argument/preflight checks: 16 passed. New mobile feedback is readable, the
+draft remains intact, and Finish/withdrawal remain accessible. No media is used.
+
+`56d0c416e5` repeated the eight-session 90-second probe after the storage projection:
+all procedures passed, then a configuration-free production JAR restarted against
+the same schema with `ddl-auto=validate`. All eight completed exports and the ninth
+pending contextual question/receipt recovered; the latter completed a technical
+ending and assessments. No source hashes changed. Query volume fell to 21,759
+(setup 3,573; active 16,620; export 286), still projecting 43,518/hour before the
+extra presence renewals of a full-length wave. Eight remains unqualified. The
+next candidate is four sessions, as PLAN.md allows after measured quota failure;
+the numeric thresholds and 20% headroom remain unchanged.
+
+`5aa31fa847` ran the full integrated selection: all 1,082 Java tests (195 classes)
+and 224 JS/coding tests passed, but one of 15 browser cases failed. The new client
+cleared uncertain ingress for every HTTP 429, including an unrecognized proxy/rate
+response. It now applies pre-claim recovery only to the explicit CAPACITY and
+INTERACTION_LIMIT codes; unrecognized 429 keeps the original deliberate receipt
+recovery. Fourteen other browser cases passed. Analysis/package were not reached.
+The failing trace/screenshot is retained; the full command is rerun after the fix.
+
+Final integrated acceptance `87d364f964` passed: **1,082 Java tests / 195 classes,
+224 JS/coding tests, 15 browser cases**, dataset analysis and configuration-free
+production package/DB health. Zero failed, skipped, retried or flaky selected cases;
+source hashes unchanged. Command: `python tests/gptlive/run_acceptance.py --study-acceptance`.
+Package SHA-256: `4854312707f4ff11c8134444ebef1907afc1ebed16b2dddebb6b031d3cb6cca7`.
+The five full browser procedure exports (A/B/C plus technical/no-agreement endings)
+were complete. The combined fixture dataset has 78 attempts/75 issued identities,
+33 accepted snapshots, 44 intentionally incomplete recordings and 75 missing UMUX
+forms; baseline cleanup/fault fixtures remain included, not a production failure rate.
+
+Final live OpenAI regression `6b2df9fed9` passed on the OS-12 source with admission
+maximum four and the ordinary interaction bounds. Command:
+`python tests/gptlive/run_acceptance.py --study --java-tests none --paid-core coordination-text --study-scenario guess`.
+Eight actual gpt-5.6-luna/none calls used 31,817 tokens; nearest-rank provider p50
+1.306s, p95/max 3.066s. Independent review found clarification before proposal,
+separate acceptance, unchanged roles/answer choices/success through a 5-to-3 limit
+revision, preserved pending question, and honest QUESTION_LIMIT_REACHED after No
+answers. Raw decorative model fields again appeared but were correctly projected
+out of canonical speech-only output. Minor doubled punctuation remains cosmetic.
+All 37 records, two snapshots, 21 answer rows and 11 display reports were complete;
+zero unresolved requests, no private markers in provider requests, source hashes
+unchanged. This remains a bounded synthetic contract check, not a guessing-quality
+or human-usability claim. OS-11 retains the complete A/B/C live matrix and failures.
+
+
+### Accepted sustained capacity and production recovery
+
+`b63e461b75` passed the predeclared reduced candidate:
+`python tests/gptlive/run_acceptance.py --study-capacity 1800 --study-wave 4`.
+Measured duration **1,800.263 seconds**, including **1,440.318 seconds of active
+interaction**. Four complete procedures covered two guessing, one contextual and
+one sign task, each with two accepted snapshots, revision/probe, full histories,
+private predictions, assessments, display evidence and SSE/reconnect. The blocked
+fifth invitation retained its preparation state, later acquired a freed slot and
+left a committed pending contextual question for recovery. All source hashes stayed
+unchanged; no other test/database workload ran concurrently.
+
+| Measurement | Observed result |
+| --- | --- |
+| Total measured queries, including monitoring and extra recovery preparation | 12,012 |
+| Session setup | 1,809 queries / 1.974s |
+| Active interval | 8,897 queries / 24.005 minutes |
+| Final export | 153 queries / 0.248s |
+| Two waves/hour, including two setups/exports | **24,024 queries/hour** |
+| Active-interval hourly projection | 22,238 queries/hour |
+| Headroom against documented 36,000/hour allowance | **33.27%**, exceeding required 20% |
+| Active turn HTTP, including deliberate replays | p50 15.1ms / p95 1,081.8ms / max 2,081.0ms |
+| Fresh mutation server HTTP, matched by agent_queue trace | 52 requests; p50 63.4ms / p95 1,131.5ms / max 2,078.9ms |
+| Active reads/forms/presence HTTP | p50 6.4ms / p95 12.5ms / max 27.2ms |
+| Assessment non-turn HTTP | p95 18.4ms / max 82.0ms |
+| Setup / export non-turn HTTP p95 | 361.2ms / 158.9ms |
+| Agent queue | p50 0.015ms / p95 0.055ms / max 0.561ms |
+| JDBC pool | maximum 10; sampled peak active 4, waiting 0; idle SSE active/waiting 0 |
+| SSE | 8 connections including the four reconnects; 352 frames |
+| JVM process CPU during measurement | 31.219 CPU-seconds |
+| Sampled JVM heap / threads | peak used 222.3 MiB, committed 308 MiB; peak 40 threads |
+| Errors | Zero unexpected HTTP failures/timeouts, leaked session markers, duplicate committed effects or missing required snapshots |
+
+185 resource samples were collected; short transient resource peaks can be missed.
+Heap is not total process RSS. The local host was Windows 11 Pro 10.0.26300,
+Intel i7-9700K (8 cores/logical processors), approximately 32 GiB RAM, Java 24.0.2
+(compiling the project's Java 21 target), Node 24.13.1 and local MySQL. GLOBAL
+Questions conservatively includes monitoring and any other local-server traffic;
+local unlimited account limits do not certify remote hosting. Cold JVM/schema
+startup and the separate maintenance restart are outside the per-wave projection.
+
+The synthetic gateway delayed each call one second (28 calls including the extra
+recovery session). It did not call OpenAI. Real-provider evidence and demand
+estimates are separately recorded above/in RUNBOOK.md. All measured fresh mutation
+HTTP requests were below the predeclared five-second p95 bound, as well as the
+30-second maximum; readings/forms also passed their two-second bound.
+
+After the 30-minute run, the runner built a configuration-free production JAR,
+restarted it on the same DB with **ddl-auto=validate**, verified all four completed
+exports, reacquired the fifth session, preserved its exact pending question and
+replayed the committed receipt without inference. Its technical ending, assessments
+and complete export then passed. The owned app/schema/account were removed.
+Final recovery JAR SHA-256:
+`3a3edb5b2b053aab1e42e5572b4f30594977093c168d8280e588733073579f1d`.
+
+Evidence is under `target/gptlive-acceptance-b63e461b75/`: `capacity.json`,
+`capacity-export.json`, `local-quotas.json`, `capacity-package.json`,
+`capacity-recovery.json`, and the supplemental `capacity-review.json` (fresh
+mutation timings matched from content-free agent_queue/http trace IDs). Raw fixture
+credentials, exports and provider captures remain ignored, not committed.
+
+**Software milestones OS-01 through OS-12 are complete.** The measured operating
+envelope is one process, four concurrent text sessions, and no more than two such
+waves/hour with this bounded workload. Automatic admission limits concurrency;
+operator scheduling must limit intake. Longer human conversations, faster intake,
+different hardware/hosting or provider limits require remeasurement/pilot adjustment.
+The eight-session candidate failed the query target and is not qualified. Human
+collection remains closed: institutional arrangements, reviewed information and
+retention rules, deployment checks, actual 4-6-person pilot, issue resolution and
+protocol/build freeze are explicitly PENDING in RUNBOOK.md. No physical robot,
+clinical effectiveness, universal model reliability or human-usability result is claimed.

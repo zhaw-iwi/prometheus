@@ -1,6 +1,6 @@
 # Online student study system: implementation roadmap
 
-Prepared **15 November 2026**. Status: **OS-01–11 complete; OS-12 next**.
+Prepared **15 November 2026**. Status: **OS-01–12 complete; human-readiness gates pending**.
 Actual verification is recorded in [RESULTS.md](RESULTS.md). Read [STUDY.md](STUDY.md) for requirements and
 [PAPER_BRIEF.md](PAPER_BRIEF.md) for research context. This roadmap owns milestone
 sequence, dependencies, acceptance, and implementation evidence.
@@ -31,7 +31,7 @@ implementation when instructed. These remaining choices have later deadlines:
 | Persona and agreement presentation | Concise neutral study persona; plain, deterministic review of saved proposal/accepted terms, consistently available across scenarios | Material/UI freeze in OS-09; record this as part of the studied design |
 | Exact task cards, revision/probe timing, session limits and scoring | Draft from STUDY.md; short free-form intentions, one revision, understanding checks, bounded trial | Real-provider scenarios in OS-11, then pilot freeze |
 | Hosting, provider/model configuration, allowed spend and quotas | Isolated local development; finite budgets for provider trials; no deployment assumed | Real-provider configuration in OS-11 and capacity target in OS-12 |
-| Concurrent wave size and latency targets | Measure a candidate eight-session wave first; this is a test target, not proven capacity | OS-12 acceptance; adjust the operational cap to the measured result |
+| Concurrent wave size and latency targets | Four concurrent sessions / at most two waves per hour on the measured local workload; eight failed the query target | OS-12 accepted; hosting/provider and human pilot checks remain pending |
 | Ethics, participant information, recruitment, retention and withdrawal policy | Prepare implementable drafts; keep real collection disabled while required arrangements are unresolved | Any human pilot or main-study recruitment/collection |
 | Dates and support arrangements | Pilot first, then frozen main study; planned deadline remains in the brief | Pilot scheduling and participant release |
 
@@ -99,7 +99,7 @@ not claims that those tests exist.
 | OS-09 | Full assessment, allocation and operator workflow | OS-06, OS-07, OS-08 | COMPLETE |
 | OS-10 | Integrated offline acceptance and analysis rehearsal | OS-09 | COMPLETE |
 | OS-11 | Bounded real-provider semantic acceptance | OS-10 | COMPLETE |
-| OS-12 | Capacity-qualified package and pilot handoff | OS-11 | NOT STARTED |
+| OS-12 | Capacity-qualified package and pilot handoff | OS-11 | COMPLETE |
 
 The sequence is deliberately incremental: recorder coverage precedes any human
 pilot; A exercises the complete shared path before B/C extend task semantics.

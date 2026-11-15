@@ -2,7 +2,7 @@ const $=id=>document.getElementById(id);
 const interactive=new Set(['COORDINATION','REVISION','TRIAL']);
 const assessmentStages=new Set(['ASSESSMENT','POST']);
 const closed=new Set(['WITHDRAWN','REVOKED','REPLACED','COMPLETE']);
-const state={token:null,page:null,pending:null,busy:false,syncing:false,again:false,stage:null,events:new Set(),displayed:new Set(),stream:null,cursor:null};
+const state={token:null,page:null,pending:null,busy:false,admitted:false,syncing:false,again:false,stage:null,events:new Set(),displayed:new Set(),stream:null,cursor:null};
 function notice(text='') { $('notice').textContent=text; $('notice').hidden=!text; }
 function problem(error) { return !navigator.onLine?'You are offline. Your draft is saved in this tab.':error.status?error.message:'Connection lost. Your draft is saved. Check the saved result before sending again.'; }
 function local(key,value) {
@@ -17,15 +17,22 @@ function node(tag,text,className) { const result=document.createElement(tag); if
 async function api(path,body,options={}) {
   const response=await fetch('/api/study/'+path,{method:body===undefined?'GET':'POST',headers:{'X-Prometheus-Study-Token':state.token,'Content-Type':'application/json'},
     body:body===undefined?undefined:JSON.stringify(body),signal:options.signal??AbortSignal.timeout(40000),cache:'no-store'});
-  if(!response.ok) { const error=new Error(response.status===401?'This invitation is invalid. Reopen the session with your invitation.'
-    :response.status===429?'The service is busy. Your text is saved; check the submission status.'
+  if(!response.ok) { const detail=response.status===429?await response.json().catch(()=>({})):{};const error=new Error(response.status===401?'This invitation is invalid. Reopen the session with your invitation.'
+    :response.status===429?(detail.message??'The service is busy. Your text is saved; check the submission status.')
     :response.status===409?'The session has changed. Check its status before continuing.'
     :response.status>=500?'The service could not confirm the result. Your text is saved; check its status.'
-    :'The request could not be accepted. Check your input and session status.'); error.status=response.status; throw error; }
+    :'The request could not be accepted. Check your input and session status.'); error.status=response.status;error.code=detail.code; throw error; }
   return response.status===204?null:response.json();
 }
 function telemetry(type,code='') { if(state.page&&!closed.has(state.page.session.stage))void api('client-events',{id:crypto.randomUUID(),type,clientTime:new Date().toISOString(),code}).catch(()=>{}); }
 function stopStream() { state.stream?.abort(); state.stream=null; }
+async function renewPresence(){
+  if(!interactive.has(state.page?.session.stage)||!navigator.onLine||state.limitReached)return;
+  const attempt=state.page.session.id,valid=()=>state.page?.session.id===attempt&&interactive.has(state.page.session.stage);
+  try{await api('presence',{});if(!valid())return;state.admitted=true;if(state.capacityBlocked){notice();state.capacityBlocked=false;}}
+  catch(error){if(!valid())return;state.admitted=false;state.capacityBlocked=error.status===429;notice(state.capacityBlocked?'All study places are occupied. Your saved work and assignment are unchanged. We will check again shortly; you can still finish or withdraw.':problem(error));}
+  renderPending();
+}
 async function stream() {
   if(state.stream||!interactive.has(state.page?.session.stage))return;
   const controller=new AbortController(); state.stream=controller;
@@ -100,6 +107,7 @@ function renderPage(page) {
   if(!$('preparation').hidden&&previous!==session.stage)renderPreparation(page);
   if(interactive.has(session.stage)||assessmentStages.has(session.stage)) { $('task-title').textContent=page.title;$('task-card').textContent=page.task;if(interactive.has(session.stage))void stream();else stopStream(); }
   else stopStream();
+  if(previous!==session.stage){state.admitted=false;if(interactive.has(session.stage))void renewPresence();}
   if(assessmentStages.has(session.stage))$('connection').textContent='Saved conversation';
   if(!$('terminal').hidden) {
     $('terminal-title').textContent=session.stage==='WITHDRAWN'?'You have withdrawn':session.stage==='DEBRIEF'?'About this study':session.stage==='COMPLETE'?'Your study is complete':'This session is closed';
@@ -160,14 +168,14 @@ function renderActivity(activity) {
   const step=activity.sceneProbeStep,script=activity.sceneProbe??[],required=['WAITING_FOR_ONE','WAITING_FOR_ANSWER','POSTPONED'][step];
   state.canProbe=step<script.length&&checkin?.status===required&&!state.hasDraft;
   $('scene-probe').textContent=step<script.length?`Next planned scene: ${script[step]===1?'one person':'two people'}`:'Planned scene sequence complete';
-  $('scene-probe').disabled=!state.canProbe||state.pending?.kind==='scene';
+  $('scene-probe').disabled=(!state.admitted||state.limitReached)||!state.canProbe||state.pending?.kind==='scene';
   $('sign-panel').hidden=!interactive.has(state.stage)||state.page.session.scenario!=='signs';
   state.signScope=parse(activity.signScope);const signs=parse(activity.signs);
   $('sign-status').textContent=state.signScope?.mode==='DEMONSTRATE'?'Demonstration only: show each remaining sign.':state.hasDraft?'Review and accept the proposal after completing its preparation.':signs?.pending?`Pending question: ${signs.pending.words}`:'No sign answer is currently expected.';
   $('sign-progress').textContent=signs?`${signs.answers.length} answer(s) recorded. ${signs.status==='WAITING'?'Waiting: type Resume to continue.':signs.outcome?'Recorded result: '+signs.outcome.toLowerCase().replaceAll('_',' '):''}`:'';
   signButtons();
 }
-function signButtons(){document.querySelectorAll('[data-sign]').forEach(button=>button.disabled=!!state.pending||state.busy||!state.signScope
+function signButtons(){document.querySelectorAll('[data-sign]').forEach(button=>button.disabled=(!state.admitted||state.limitReached)||!!state.pending||state.busy||!state.signScope
   ||(state.signScope.mode==='DEMONSTRATE'?!state.signScope.remaining.includes(button.dataset.sign):state.phase!=='EXECUTION'));}
 function renderEvents(events) {
   const follow=$('messages').scrollTop+$('messages').clientHeight >= $('messages').scrollHeight-60 || state.events.size===0;
@@ -191,9 +199,9 @@ function renderEvents(events) {
 }
 function renderPending(receipt=state.receipt,unknown=state.unknown) {
   state.receipt=receipt;state.unknown=unknown;
-  $('pending-panel').hidden=!state.pending;$('send').disabled=state.busy||!!state.pending;
-  document.querySelectorAll('[data-scene]').forEach(button=>button.disabled=state.pending?.kind==='scene');
-  $('scene-probe').disabled=!state.canProbe||state.pending?.kind==='scene';
+  $('pending-panel').hidden=!state.pending;$('send').disabled=state.busy||!!state.pending||!state.admitted||state.limitReached;
+  document.querySelectorAll('[data-scene]').forEach(button=>button.disabled=(!state.admitted||state.limitReached)||state.pending?.kind==='scene');
+  $('scene-probe').disabled=(!state.admitted||state.limitReached)||!state.canProbe||state.pending?.kind==='scene';
   signButtons();
   if(!state.pending)return;
   $('pending-text').textContent=state.pending.text;
@@ -217,7 +225,7 @@ async function refresh() {
   try {
     const page=await api('page');const changed=state.page?.session.id!==page.session.id;
     if(changed) {
-      state.stage=null;state.agreementSignature=null;state.events.clear();state.displayed.clear();state.cursor=null;$('messages').replaceChildren();state.page=page;
+      state.stage=null;state.limitReached=false;state.agreementSignature=null;state.events.clear();state.displayed.clear();state.cursor=null;$('messages').replaceChildren();state.page=page;
       state.pending=parse(local(key('pending')));$('message').value=local(key('draft'))??'';
     }
     renderPage(page);
@@ -243,10 +251,16 @@ async function refresh() {
   } catch(error) {notice(problem(error));}
   finally {state.syncing=false;if(state.again){state.again=false;void refresh();}}
 }
+function rejectedSubmission(error){
+  // A 429 is issued before claiming a new request; no uncertain inference needs polling.
+  if(error.status!==429||!['CAPACITY','INTERACTION_LIMIT'].includes(error.code))return;
+  pending(null);
+  if(error.code==='INTERACTION_LIMIT')state.limitReached=true;else state.admitted=false;
+}
 async function sendSaved() {
   if(state.busy||!state.pending)return;state.busy=true;renderPending();notice();
   try {reconcile(await api(state.pending.kind==='scene'?'scene':state.pending.kind==='sign'?'sign':'turns',state.pending));}
-  catch(error) {notice(problem(error));telemetry('ERROR',String(error.status??'network'));}
+  catch(error) {rejectedSubmission(error);notice(problem(error));telemetry('ERROR',String(error.status??'network'));}
   finally {state.busy=false;await refresh();renderPending();}
 }
 $('entry-form').addEventListener('submit',event=>{event.preventDefault();stopStream();state.token=$('credential').value.trim();local('hri.token',state.token);state.page=null;notice();void refresh();});
@@ -256,7 +270,7 @@ async function changeScene(humanCount,probeStep) {
   if(!state.activity||state.pending?.kind==='scene')return;
   const request={kind:'scene',requestId:crypto.randomUUID(),expectedScene:state.activity.sceneVersion,humanCount,observedAt:new Date().toISOString(),probeStep,text:'Simulated scene: '+(humanCount==null?'unknown':humanCount+' visible')};
   pending(request);renderPending();notice();
-  try{reconcile(await api('scene',request));}catch(error){notice(problem(error));}
+  try{reconcile(await api('scene',request));}catch(error){rejectedSubmission(error);notice(problem(error));}
   finally{await refresh();renderPending();}
 }
 document.querySelectorAll('[data-scene]').forEach(button=>button.addEventListener('click',()=>changeScene(button.dataset.scene==='unknown'?null:Number(button.dataset.scene))));
@@ -296,6 +310,9 @@ window.addEventListener('online',()=>{telemetry('RECONNECT','network');void refr
 window.addEventListener('offline',()=>{state.wasOffline=true;$('connection').textContent='Offline · draft saved';notice('You are offline. Your draft is saved in this tab.');stopStream();});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void refresh();});
 setInterval(()=>{if(state.pending&&navigator.onLine)void refresh();},2500);
+setInterval(()=>{if(document.visibilityState==='visible')void renewPresence();},30000);
+window.addEventListener('online',()=>void renewPresence());
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void renewPresence();});
 const fragment=new URLSearchParams(location.hash.slice(1));state.token=fragment.get('token')??local('hri.token');
 const compact=matchMedia('(max-width:760px)');function layout(){for(const id of ['task-details','agreement-details','study-step-details'])$(id).open=!compact.matches;requestAnimationFrame(()=>$('messages').scrollTop=$('messages').scrollHeight);}compact.addEventListener('change',layout);layout();
 if(fragment.has('token')){history.replaceState(null,'',location.pathname);local('hri.token',state.token);}

@@ -20,6 +20,7 @@ public class StudyAttempt {
     @Column(nullable=false, length=64) String materialsVersion;
     @Column(length=100) String consentVersion;
     Instant consentedAt;
+    Instant interactionStartedAt;
     @Column(nullable=false) Instant createdAt;
     @Column(nullable=false) Instant updatedAt;
     UUID predecessorId;

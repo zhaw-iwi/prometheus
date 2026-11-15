@@ -54,6 +54,8 @@ public class StudyController {
     public StudySessions.View get(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return sessions.get(token); }
     @GetMapping("/api/study/page")
     public StudySessions.Page page(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return sessions.page(token); }
+    @PostMapping("/api/study/presence")
+    public StudyAdmission.Status presence(@RequestHeader(name=TOKEN_HEADER,required=false)String token){return sessions.presence(token);}
     @GetMapping("/api/study/activity")
     public StudyProcedure.Activity activity(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return procedure.view(token); }
     @PostMapping("/api/study/predictions")
@@ -105,4 +107,11 @@ public class StudyController {
     }
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Void> invalid() { return ResponseEntity.badRequest().build(); }
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<?> rejected(ResponseStatusException failure) {
+        // Only our bounded, participant-facing admission/limit messages are exposed.
+        return failure.getStatusCode().value()==429
+                ? ResponseEntity.status(429).body(Map.of("message",Objects.requireNonNullElse(failure.getReason(),"Study capacity reached."),"code",Objects.requireNonNullElse(failure.getReason(),"").startsWith("This interaction")?"INTERACTION_LIMIT":"CAPACITY"))
+                : ResponseEntity.status(failure.getStatusCode()).build();
+    }
 }

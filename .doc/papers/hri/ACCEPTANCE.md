@@ -51,3 +51,26 @@ For a focused correction, use `--study --java-tests ClassA,ClassB` and/or
 `--browser --browser-grep <title>` as appropriate. Such a run is focused evidence,
 not the complete acceptance command. Keep failed artifacts and document why a
 rerun was warranted. A screenshot or HTTP status alone does not prove semantics.
+
+## Sustained study capacity and production recovery
+
+```powershell
+# Diagnostic script rehearsal only, never capacity acceptance.
+python tests/gptlive/run_acceptance.py --study-capacity 90
+# Sustained reduced four-session candidate after the measured eight-session failure; run without other DB workloads.
+python tests/gptlive/run_acceptance.py --study-capacity 1800 --study-wave 4
+```
+
+This selection cannot mix paid providers, browser tests or a partial Java suite.
+It enables admission, runs actual HTTP/DB/SSE with a deterministic one-second
+provider, completes all three procedures, tests the blocked extra invitation,
+then restarts a configuration-free production JAR with `ddl-auto=validate`.
+The restart checks the wave's completed exports and one additional pending contextual
+question/receipt, followed by its technical ending and assessments.
+
+Artifacts: `capacity.json` (requests, distributions, resources, query phases and
+qualification), `capacity-export.json`, `local-quotas.json`, `capacity-package.json`
+(JAR hash and exclusions), and `capacity-recovery.json`. `recovery-private.json`
+contains synthetic invitation credentials only for this owned run; keep it ignored
+and never copy it into a human dataset or published artifact. Numeric/semantic
+limits and interpretation are in CAPACITY.md; actual results are in RESULTS.md.

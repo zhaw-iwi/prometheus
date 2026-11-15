@@ -24,12 +24,15 @@ public class StudyRecorder {
     private final String sourceRevision;
     private final boolean sourceDirty;
     private final ch.zhaw.prometheus.repositories.AgentRepository agents;
+    private final StudyLimits limits;
+    private final StudyAdmission admission;
     public StudyRecorder(StudyRecordRepository records,StudyMaterials materials,ObjectMapper json,OpenAIProperties inference,
             @Value("${prometheus.study.source-revision:UNKNOWN}") String revision,
-            @Value("${prometheus.study.source-dirty:true}") boolean dirty,ch.zhaw.prometheus.repositories.AgentRepository agents) {
+            @Value("${prometheus.study.source-dirty:true}") boolean dirty,ch.zhaw.prometheus.repositories.AgentRepository agents,StudyLimits limits,StudyAdmission admission) {
         this.records=records; this.materials=materials; this.json=json; this.inference=inference;
         sourceRevision=revision; sourceDirty=dirty;
         this.agents=agents;
+        this.limits=limits;this.admission=admission;
     }
     public void created(StudyAttempt attempt) {
         var metadata=json.createObjectNode(); metadata.put("schema",SCHEMA);
@@ -37,6 +40,7 @@ public class StudyRecorder {
         metadata.put("language","en"); metadata.put("definition",StudyCoordinationAgent.KEY);
         metadata.put("persona",StudyCoordinationAgent.VOICE);
         metadata.put("foundationFixture",attempt.foundation);
+        metadata.set("interactionBounds",json.valueToTree(limits.bounds()));metadata.set("admission",json.valueToTree(admission.status()));
         metadata.put("informationVersion",attempt.informationVersion);metadata.put("informationText",attempt.informationText);
         metadata.set("materials",json.valueToTree(materials.manifest()));
         metadata.put("provider",Objects.toString(inference.getOpenaivsazureopenai(),"unconfigured"));
@@ -61,7 +65,7 @@ public class StudyRecorder {
     }
     public void assessment(StudyAttempt attempt){
         var value=json.createObjectNode();value.put("materialsVersion",attempt.materialsVersion);value.put("access","OPEN_REFERENCE");value.put("finishReason",attempt.finishReason);
-        if(attempt.agentId!=null){var storage=((TaskPolicy)agents.findById(attempt.agentId).orElseThrow().getCurrentState().ownPolicy()).storage();
+        if(attempt.agentId!=null){var storage=agents.findStorageById(attempt.agentId).orElseThrow();
             for(String key:List.of(CoordinationMemory.AGREEMENT,CoordinationMemory.RUN,CoordinationMemory.OUTCOME,TaskMemory.REVISION))
                 if(storage.containsKey(key))value.set(key,parse(storage.get(key).toString()));
         }

@@ -248,6 +248,19 @@ See README for developer setup and `.agents/CAPABILITY_AWARENESS_RESULTS.md` for
 verification and rollout evidence. Capability support does not establish current
 sensor input, rendered output or confirmed action completion.
 
+## Online HRI Study Application Branch
+
+`experiment/hri-2027-coordination` adds the English text-only study application
+under `application/study`, `agentdefs/study` and `/hri-study/`. It reuses the shared
+Coordination graph and canonical events, with typed guessing, fictional contextual
+check-in and simulated-sign executors. Private preparation/assessment data stays
+outside agent prompts. Durable request receipts, accepted snapshots and research
+records are separate from runtime journals. Admission and ownership assume one
+application process with scheduled ticks disabled. Do not move study protocol or
+scenario assumptions into baseline agents. Read `.doc/papers/hri/PLAN.md`,
+`RESULTS.md` and `RUNBOOK.md` for verification, measured capacity and operation.
+Human collection remains closed pending institutional, deployment and pilot gates.
+
 ## GPT-Live Experiment
 
 Application-owned Live policies may disable pending-work acknowledgments through

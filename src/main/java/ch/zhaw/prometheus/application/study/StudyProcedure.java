@@ -28,7 +28,7 @@ public class StudyProcedure {
         this.sessions=sessions;this.forms=forms;this.agents=agents;this.recorder=recorder;this.records=records;
         this.protocol=protocol;
     }
-    Storage storage(StudyAttempt attempt) { return ((TaskPolicy)agents.findById(attempt.agentId).orElseThrow().getCurrentState().ownPolicy()).storage(); }
+    Storage storage(StudyAttempt attempt) { return agents.findStorageById(attempt.agentId).orElseThrow(); }
     static String revision(Storage storage) { return TaskMemory.text(storage,TaskMemory.REVISION,"0"); }
     boolean required(Storage storage) { var draft=CoordinationMemory.agreement(storage,CoordinationMemory.DRAFT);return CoordinationMemory.ready(storage) && draft.activity()!=null; }
     boolean saved(StudyAttempt attempt,Storage storage) { return forms.findByAttemptIdAndKind(attempt.id,"prediction."+revision(storage)).isPresent(); }

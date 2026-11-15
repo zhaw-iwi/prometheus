@@ -22,6 +22,7 @@ public class LiveSmokeConfiguration {
             public String infer(InferenceRequest request) {
                 try (var activity = ch.zhaw.prometheus.logging.ActivityTrace.stage("thinking")) {
                 provider.inferences.add(request);
+                if(provider.studyDelayMillis>0)try{Thread.sleep(provider.studyDelayMillis);}catch(InterruptedException interrupted){Thread.currentThread().interrupt();throw new IllegalStateException(interrupted);}
                 var gate = provider.inferenceGate;
                 if (gate != null) {
                     try { gate.get(25, TimeUnit.SECONDS); }
@@ -30,7 +31,15 @@ public class LiveSmokeConfiguration {
                 ch.zhaw.prometheus.logging.ActivityTrace.inference(request.requestId(), request.purpose().name(), "fixture-model", "low", 10, 5, 1);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
                 if (prompt.contains("STUDY_GUESSING_MOVE:")) return provider.gameReply;
-                if (prompt.contains("You are the Coordination Assistant in an English text-based research study.")) return provider.studyReply;
+                if (prompt.contains("You are the Coordination Assistant in an English text-based research study.")) {
+                    for(var message:request.messages()){
+                        String content=message.getContent();int at=content.lastIndexOf("\n{\"currentUserTurn\":");
+                        if(at>=0){var turn=JsonParser.parseString(content.substring(at+1)).getAsJsonObject().get("currentUserTurn").getAsString();
+                            if(provider.studyScript.containsKey(turn))return provider.studyScript.get(turn);}
+                    }
+                    if(!provider.studyScript.isEmpty())throw new IllegalStateException("Unscripted study inference");
+                    return provider.studyReply;
+                }
                 var data = responseCheckData(request);
                 if (data != null) {
                     var result = new JsonObject();
@@ -102,6 +111,8 @@ public class LiveSmokeConfiguration {
         public volatile String studyReply="{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{\"speech\":\"Tell me about your activity.\"}}";
         public volatile String gameReply="{\"kind\":\"QUESTION\",\"words\":\"Is it used indoors?\"}";
         public volatile CompletableFuture<Void> inferenceGate;
+        public volatile Map<String,String> studyScript=Map.of();
+        public volatile int studyDelayMillis;
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
         public final AtomicInteger tts = new AtomicInteger();
         public final List<InferenceRequest> inferences = new CopyOnWriteArrayList<>();
@@ -202,6 +213,22 @@ public class LiveSmokeConfiguration {
         private final com.zaxxer.hikari.HikariDataSource pool;
         FixtureApi(Provider provider, com.zaxxer.hikari.HikariDataSource pool) { this.provider = provider; this.pool = pool; }
         public record StudyReply(String response) {}
+        public record StudyScript(Map<String,String> replies,int delayMillis){}
+        @PostMapping("/__live-fixture/study-script") public Map<String,Boolean> script(@RequestBody StudyScript script){
+            if(script.replies()==null||script.replies().size()>100||script.delayMillis()<0||script.delayMillis()>2000)throw new IllegalArgumentException();
+            script.replies().forEach((key,value)->{if(key.length()>2000||value.length()>4096)throw new IllegalArgumentException();JsonParser.parseString(value).getAsJsonObject();});
+            provider.studyScript=Map.copyOf(script.replies());provider.studyDelayMillis=script.delayMillis();return Map.of("accepted",true);
+        }
+        @GetMapping("/__live-fixture/capacity") public Map<String,Object> capacity()throws Exception{
+            long questions;
+            try(var connection=pool.getConnection();var statement=connection.createStatement();var result=statement.executeQuery("SHOW GLOBAL STATUS LIKE 'Questions'")){result.next();questions=result.getLong(2);}
+            var os=(com.sun.management.OperatingSystemMXBean)java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+            var runtime=Runtime.getRuntime();var values=new LinkedHashMap<String,Object>();
+            values.put("questions",questions);values.put("pool",pool());values.put("processCpuNanos",os.getProcessCpuTime());
+            values.put("heapUsed",runtime.totalMemory()-runtime.freeMemory());values.put("heapCommitted",runtime.totalMemory());
+            values.put("threads",java.lang.management.ManagementFactory.getThreadMXBean().getThreadCount());
+            values.put("providerCalls",provider.inferences.size());return values;
+        }
         @PostMapping("/__live-fixture/game-reply") public Map<String,Boolean> gameReply(@RequestBody StudyReply reply) {
             if(reply.response()==null || reply.response().length()>4096) throw new IllegalArgumentException("Invalid game fixture");
             JsonParser.parseString(reply.response()).getAsJsonObject();provider.gameReply=reply.response();return Map.of("accepted",true);

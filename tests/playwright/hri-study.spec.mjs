@@ -3,6 +3,20 @@ import fs from 'node:fs/promises';
 
 const admin={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
 const agreement={goal:'Write a brief greeting',humanRole:'Judge the wording',agentRole:'Write a greeting',success:'The participant accepts the wording',questions:[],checks:[],dialogueLimit:5,reactions:null};
+test('capacity feedback preserves drafts and limits keep finishing available',async({page,request},info)=>{
+  const invitation=await invite(request,true);let full=true;
+  await page.route('**/api/study/presence',route=>full?route.fulfill({status:429,contentType:'application/json',body:JSON.stringify({code:'CAPACITY',message:'All study places are occupied.'})}):route.continue());
+  await open(page,invitation);await expect(page.locator('#notice')).toContainText('All study places');
+  await page.locator('#message').fill('My saved specification.');await expect(page.locator('#send')).toBeDisabled();
+  await expect(page.locator('#finish')).toBeVisible();await screenshot(page,info,'capacity-mobile',390);
+  full=false;await page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));
+  await expect(page.locator('#send')).toBeEnabled();await expect(page.locator('#message')).toHaveValue('My saved specification.');
+  await page.route('**/api/study/turns',route=>route.fulfill({status:429,contentType:'application/json',body:JSON.stringify({code:'INTERACTION_LIMIT',message:'This interaction reached its study limit. Finish the interaction to save your assessments, or withdraw.'})}));
+  await page.locator('#send').click();await expect(page.locator('#notice')).toContainText('study limit');
+  await expect(page.locator('#pending-panel')).toBeHidden();await expect(page.locator('#message')).toHaveValue('My saved specification.');await expect(page.locator('#send')).toBeDisabled();
+  await screenshot(page,info,'limit-mobile',390);await page.locator('#finish').click();await page.getByRole('button',{name:'Save and finish'}).click();
+  await expect(page.getByRole('heading',{name:'Your interaction is saved'})).toBeVisible();
+});
 async function invite(request,ready=false,scenario='guess',foundation=true) {
   expect(process.env.PROMETHEUS_ADMIN_TOKEN,'Use the isolated acceptance runner').toBeTruthy();
   const response=await request.post('/admin/study/attempts',{headers:admin,data:{mode:'SYNTHETIC',scenario,foundation}});expect(response.ok()).toBeTruthy();

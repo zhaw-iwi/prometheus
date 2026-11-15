@@ -28,6 +28,13 @@ class AcceptanceRunnerTest(unittest.TestCase):
     def test_classroom_capacity_must_select_its_dedicated_test(self):
         self.run_rejected(['--classroom-capacity', '--java-tests', 'all'], {}, 'ClassroomCapacityIntegrationTest alone')
 
+    def test_study_capacity_owns_selection_and_has_bounded_duration(self):
+        for extra in (['--paid-core','coordination-text'],['--browser'],['--study-acceptance'],['--java-tests','all']):
+            self.run_rejected(['--study-capacity','1800',*extra],{},'owns its offline selection')
+        self.run_rejected(['--study-capacity','1'],{},'owns its offline selection')
+        self.run_rejected(['--study-wave','4'],{},'requires --study-capacity')
+        self.run_rejected(['--study-capacity','1800','--study-wave','9'],{},'must be 3..8')
+
     def test_classroom_capacity_cannot_mix_provider_or_browser_traffic(self):
         self.run_rejected(['--classroom-capacity', '--java-tests', 'ClassroomCapacityIntegrationTest',
                            '--paid-core', 'coordination'], {}, 'requires a separate offline run')

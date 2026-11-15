@@ -41,13 +41,17 @@ public class StudyTurns {
     private final ObjectMapper json;
     private final StudyRecorder recorder;
     private final StudyProcedure procedure;
+    private final StudyAdmission admission;
+    private final StudyLimits limits;
     public StudyTurns(StudySessions sessions,StudyAttemptRepository attempts,StudyTurnRepository receipts,
-            AgentApplicationService agents,AgentRepository agentRepository,PlatformTransactionManager transactions,ObjectMapper json,StudyRecorder recorder,StudyProcedure procedure) {
+            AgentApplicationService agents,AgentRepository agentRepository,PlatformTransactionManager transactions,ObjectMapper json,StudyRecorder recorder,StudyProcedure procedure,StudyAdmission admission,StudyLimits limits) {
         this.sessions=sessions; this.attempts=attempts; this.receipts=receipts; this.agents=agents;
         this.agentRepository=agentRepository; transaction=new TransactionTemplate(transactions);
         this.json=json;
         this.recorder=recorder;
         this.procedure=procedure;
+        this.admission=admission;
+        this.limits=limits;
     }
     public View submit(String token,Request request) {
         return submit(token,request,Event.TYPE_USER_UTTERANCE);
@@ -90,6 +94,8 @@ public class StudyTurns {
                 return new Claim(attempt.id,attempt.agentId,false,view(receipt),false,attempt.sceneVersion);
             }
             open(attempt); interaction(attempt);
+            limits.check(attempt);
+            admission.acquire(attempt.id);
             if(scene) {
                 if(!"context".equals(attempt.scenario) || request.expectedTurn()!=attempt.sceneVersion) throw failure(HttpStatus.CONFLICT,"Refresh the simulated scene first");
                 var payload=com.google.gson.JsonParser.parseString(request.text()).getAsJsonObject();
@@ -182,8 +188,7 @@ public class StudyTurns {
             var entries=receipts.findByAttemptIdOrderByReceivedAt(attempt.id).stream()
                     .map(r -> new Entry(r.input,view(r))).toList();
             if (attempt.agentId==null) return new Conversation(attempt.turnVersion,entries,null,null,null,0);
-            var agent=agentRepository.findById(attempt.agentId).orElseThrow();
-            var storage=((TaskPolicy)agent.getCurrentState().ownPolicy()).storage();
+            var storage=agentRepository.findStorageById(attempt.agentId).orElseThrow();
             try {
                 JsonNode draft=storage.containsKey(CoordinationMemory.DRAFT)?json.readTree(storage.get(CoordinationMemory.DRAFT).toString()):null;
                 JsonNode agreement=storage.containsKey(CoordinationMemory.AGREEMENT)?json.readTree(storage.get(CoordinationMemory.AGREEMENT).toString()):null;

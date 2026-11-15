@@ -23,7 +23,7 @@ public class StudySessions {
     public static final String SYNTHETIC_INFORMATION="This is a synthetic software test, not research participation. Use invented information only. No microphone or camera is used. Private preparation answers are stored for testing and are not sent to the assistant.";
     public record View(UUID id, long version, Mode mode, String scenario, String materialsVersion,
             Stage stage, String consentVersion, Instant consentedAt, Instant createdAt, Instant updatedAt,
-            UUID predecessorId, long turnVersion, UUID pendingRequest, String finishReason,UUID participantId,String allocationKind,Long allocationOrdinal) {}
+            UUID predecessorId, long turnVersion, UUID pendingRequest, String finishReason,UUID participantId,String allocationKind,Long allocationOrdinal,Instant interactionStartedAt) {}
     public record Invitation(View session, String token) {
         @Override public String toString() { return "StudyInvitation[session="+session.id()+", credential=REDACTED]"; }
     }
@@ -44,11 +44,12 @@ public class StudySessions {
     private final StudyRecorder recorder;
     private final StudyTurnRepository receipts;
     private final StudyAgentRegistry ownership;
+    private final StudyAdmission admission;
     public StudySessions(StudyAttemptRepository attempts, StudyFormRepository forms, StudyMaterials materials,
             StudyCoordinationAgent definition, AgentApplicationService agents, PromptMessageAssembler prompts,
             LanguageModelGateway gateway, @Value("${prometheus.study.collection-enabled:false}") boolean enabled,
             @Value("${prometheus.study.information-version:}") String informationVersion,
-            @Value("${prometheus.study.information-text:}") String informationText,StudyProtocol protocol,StudyAllocator allocator,StudyRecorder recorder,StudyTurnRepository receipts,StudyAgentRegistry ownership) {
+            @Value("${prometheus.study.information-text:}") String informationText,StudyProtocol protocol,StudyAllocator allocator,StudyRecorder recorder,StudyTurnRepository receipts,StudyAgentRegistry ownership,StudyAdmission admission) {
         this.attempts=attempts; this.forms=forms; this.materials=materials; this.definition=definition;
         this.agents=agents; creation=new AgentCreationContext(prompts,gateway);
         collectionEnabled=enabled; this.informationVersion=informationVersion;
@@ -57,6 +58,7 @@ public class StudySessions {
         this.recorder=recorder;
         this.receipts=receipts;
         this.ownership=ownership;
+        this.admission=admission;
     }
     @Transactional
     public Invitation invite(Mode mode, String scenario, UUID predecessor) {
@@ -71,7 +73,7 @@ public class StudySessions {
         if(scenario==null){allocation=allocator.next(mode);scenario=allocation.scenario();}
         else if(mode!=Mode.SYNTHETIC && predecessor==null)throw failure(HttpStatus.BAD_REQUEST,"Human attempts use balanced random allocation");
         var task=materials.scenario(scenario);
-        if (mode!=Mode.SYNTHETIC && (!collectionEnabled || informationVersion.isBlank() || informationText.isBlank() || !task.ready()))
+        if (mode!=Mode.SYNTHETIC && (!collectionEnabled || !admission.enabled() || informationVersion.isBlank() || informationText.isBlank() || !task.ready()))
             throw failure(HttpStatus.CONFLICT,"Human collection is not open for this scenario");
         UUID participant=UUID.randomUUID();
         if (predecessor!=null) {
@@ -82,6 +84,7 @@ public class StudySessions {
             foundation=previous.foundation;
             previous.advance(Stage.REPLACED);
             attempts.saveAndFlush(previous); recorder.procedure(previous,"replaced");
+            release(previous);
         }
         byte[] secret=new byte[32]; new SecureRandom().nextBytes(secret);
         String token=Base64.getUrlEncoder().withoutPadding().encodeToString(secret);
@@ -97,6 +100,13 @@ public class StudySessions {
     }
     @Transactional(readOnly=true)
     public View get(String token) { return view(require(token,false)); }
+    @Transactional
+    public StudyAdmission.Status presence(String token){
+        var attempt=require(token,true);open(attempt);
+        if(Set.of(Stage.COORDINATION,Stage.REVISION,Stage.TRIAL).contains(attempt.stage))admission.acquire(attempt.id);
+        return admission.status();
+    }
+    private void release(StudyAttempt attempt){admission.releaseAfterCommit(attempt.id);}
     @Transactional(readOnly=true)
     public View inspect(UUID id) { return view(attempts.findById(id).orElseThrow(() -> failure(HttpStatus.NOT_FOUND,"Unknown attempt"))); }
     @Transactional(readOnly=true)
@@ -146,7 +156,7 @@ public class StudySessions {
             attempt.pendingRequest=null; attempt.turnVersion++;
         }
         attempt.finishReason=reason; attempt.advance(Stage.ASSESSMENT);
-        var result=saved(attempt); recorder.procedure(attempt,"finish");recorder.assessment(attempt); return result;
+        var result=saved(attempt); recorder.procedure(attempt,"finish");recorder.assessment(attempt);release(attempt); return result;
     }
     @Transactional
     public View consent(String token, String version) {
@@ -176,6 +186,7 @@ public class StudySessions {
         open(attempt);stage(attempt,expected);
         forms.save(new StudyForm(attempt,kind,encoded));
         if (expected==Stage.PRIVATE) {
+            admission.acquire(attempt.id);
             // This definition's starter is deterministic: no provider I/O in this transaction.
             // Agent and ownership binding commit together; no demo credential is issued.
             var agent=agents.persistCreatedAgent(definition.createInstance(creation));
@@ -183,6 +194,7 @@ public class StudySessions {
                     ch.zhaw.prometheus.agentdefs.study.StudyCoordinationUpdateAction.REQUIRED_ACTIVITY,new com.google.gson.JsonPrimitive(
                             switch(attempt.scenario){case "guess"->"GUESSING";case "context"->"CONTEXT_CHECKIN";case "signs"->"SIGN_ANSWERS";default->throw new IllegalStateException();}));
             attempt.agentId=agent.getId();
+            attempt.interactionStartedAt=Instant.now();
             ownership.provision(agent.getId());
             attempt.advance(Stage.COORDINATION);
             attempts.saveAndFlush(attempt); recorder.provisioned(attempt,agent);
@@ -200,14 +212,14 @@ public class StudySessions {
         var attempt=require(token,true);
         if (attempt.stage==Stage.WITHDRAWN) return view(attempt);
         open(attempt); attempt.advance(Stage.WITHDRAWN);
-        var result=saved(attempt); recorder.procedure(attempt,"withdrawn"); return result;
+        var result=saved(attempt); recorder.procedure(attempt,"withdrawn");release(attempt); return result;
     }
     @Transactional
     public View revoke(UUID id) {
         var attempt=attempts.lockById(id).orElseThrow(() -> failure(HttpStatus.NOT_FOUND,"Unknown attempt"));
         if (attempt.closed()) return view(attempt);
         attempt.advance(Stage.REVOKED);
-        var result=saved(attempt); recorder.procedure(attempt,"revoked"); return result;
+        var result=saved(attempt); recorder.procedure(attempt,"revoked");release(attempt); return result;
     }
     StudyAttempt require(String token, boolean lock) {
         String digest=hash(token);
@@ -235,7 +247,7 @@ public class StudySessions {
     View saved(StudyAttempt attempt) { return view(attempts.saveAndFlush(attempt)); }
     static View view(StudyAttempt a) {
         return new View(a.id,a.version,a.mode,a.scenario,a.materialsVersion,a.stage,a.consentVersion,a.consentedAt,
-                a.createdAt,a.updatedAt,a.predecessorId,a.turnVersion,a.pendingRequest,a.finishReason,a.participantId==null?a.id:a.participantId,a.allocationKind,a.allocationOrdinal);
+                a.createdAt,a.updatedAt,a.predecessorId,a.turnVersion,a.pendingRequest,a.finishReason,a.participantId==null?a.id:a.participantId,a.allocationKind,a.allocationOrdinal,a.interactionStartedAt);
     }
     static String hash(String token) {
         if (token==null || !token.matches("[A-Za-z0-9_-]{43}")) throw failure(HttpStatus.UNAUTHORIZED,"Invalid study credential");

@@ -7,7 +7,8 @@ the evolving software contract; it is not a participant protocol or collection a
 
 OS-01–09 implement all three executable text scenarios, resumable sessions,
 private forms, durable turns, research evidence, assessments and operations.
-Human collection stays closed pending qualification and institutional arrangements.
+Human collection stays closed pending institutional, deployment and pilot readiness;
+software qualification is recorded in RESULTS.md.
 Study procedural stages own one agent after preparation; Coordination retains
 agreement and task authority.
 
@@ -222,8 +223,9 @@ The initial and revised prediction are exported separately.
 
 The UI adds prediction, question progress and revision/probe cards, with mobile
 collapsing panels. Assessment instruments are specified in INSTRUMENTS.md. Scenario readiness flags
-remain false until the complete study procedure is qualified; implementation of
-the guessing executor alone does not authorize human collection.
+remain false pending reviewed materials, institutional/deployment checks and the
+pilot release process in RUNBOOK.md. Software qualification alone does not
+authorize human collection.
 
 ## Contextual check-in execution
 
@@ -410,3 +412,33 @@ modalities in its raw response, but they cannot enter the study's canonical outp
 Typed executors also emit text only. Baseline Coordination retains its multimodal
 behavior. The predeclared bounded matrix is in PROVIDER_MATRIX.md; independent
 semantic reviews and all attempts belong in RESULTS.md.
+
+## Admission, limits and operating handoff (OS-12)
+
+`POST /api/study/presence` renews a single-process 120-second interaction lease.
+The default maximum is four active attempts, subject to CAPACITY.md/RESULTS.md
+qualification. The participant page renews every 30 seconds while visible.
+Private-form provisioning and new turn claims require a slot; replaying an existing
+receipt does not. Finish, withdrawal, revocation and replacement release after
+commit. Failed provisioning rolls back its form, agent, stage and new lease.
+A restart clears leases; persisted attempts rejoin through ordinary presence.
+
+Admission and interaction limits return HTTP 429 with `{code,message}`. Codes are
+`CAPACITY` and `INTERACTION_LIMIT`; these are pre-claim rejections, so the client
+preserves the draft without polling a nonexistent uncertain receipt. New ingress
+is bounded to 50 stored requests and 45 minutes from `interactionStartedAt` (also
+exported in the session/procedure views). Finish and assessments remain available.
+Other study rejection statuses use an empty response body; unrecognized HTTP 429
+responses retain deliberate saved-request recovery in the client. `max-active=0` is a
+synthetic-regression setting and prevents human provisioning.
+
+Study activity, prediction gating, conversation terms and assessment snapshots read
+persisted shared Coordination storage directly with `AgentRepository.findStorageById`.
+The definition already shares that storage among its agent and task policies; the
+read projection avoids loading the full state graph/history. Runtime mutation and
+canonical export checks retain the existing agent/receipt transaction boundaries.
+
+See RUNBOOK.md for configuration, additive schema, operator recovery and pilot gates;
+CAPACITY.md defines the measurement criteria. `--study-capacity 1800 --study-wave 4` selects the
+owned-DB sustained workload and a restart of the configuration-free production JAR
+with Hibernate schema validation. A shorter run is a diagnostic probe only.

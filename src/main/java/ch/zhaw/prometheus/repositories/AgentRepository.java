@@ -7,6 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import ch.zhaw.prometheus.model.Agent;
 
 public interface AgentRepository extends JpaRepository<Agent, UUID> {
+    /** Coordination definitions share this storage with every task policy; no graph/history hydration. */
+    @org.springframework.data.jpa.repository.Query("select a.storage from Agent a where a.id = :id")
+    java.util.Optional<ch.zhaw.prometheus.model.Storage> findStorageById(UUID id);
     boolean existsByIdAndExecutionEpoch(UUID id, UUID executionEpoch);
     @org.springframework.data.jpa.repository.Query("select a.eventHistory from Agent a where a.id = :id")
     java.util.Optional<ch.zhaw.prometheus.model.event.EventHistory> findHistoryById(UUID id);

@@ -20,7 +20,8 @@ claims. It includes a compact citation plan and distinguishes published work,
 preprints, owner-supplied manuscripts, and engineering sources. The supplied PDFs
 remain outside the repository; public links are provided where known.
 
-Implementation is under way on `experiment/hri-2027-coordination`.
+Software milestones OS-01 through OS-12 are complete on
+`experiment/hri-2027-coordination`; human-readiness gates remain pending.
 [RESULTS.md](RESULTS.md) records engineering evidence and remaining limitations.
 [IMPLEMENTATION.md](IMPLEMENTATION.md) describes the current API and persistence.
 [SCENARIOS.md](SCENARIOS.md) records executable scenario boundaries and coding notes.
@@ -38,7 +39,7 @@ Before project work, follow the repository bootstrap:
    unrelated work and verify the changes. The owner authorized committing/pushing
    each completed milestone and continuing, halting for unforeseen owner decisions.
 
-The immediate next work is the study-system implementation scoped in PLAN.md,
+The next work is the owner-led readiness and pilot process in RUNBOOK.md,
 alongside finalizing the protocol and annotated paper draft. Research procedures
 marked as proposals must not be described as completed methods or findings.
 
@@ -50,3 +51,7 @@ source/material manifest and configuration-free package workflow.
 
 [PROVIDER_MATRIX.md](PROVIDER_MATRIX.md) declares the finite A/B/C semantic trials
 and review criteria. A technical script pass does not replace the separate review.
+
+[CAPACITY.md](CAPACITY.md) predeclares workload and numeric thresholds.
+[RUNBOOK.md](RUNBOOK.md) covers deployment configuration, schema, operator recovery,
+exports and the still-pending institutional, deployment and human pilot gates.

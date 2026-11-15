@@ -2032,7 +2032,7 @@ prototype-oriented.
 
 ### Coordination Agent
 
-The online HRI study application is being implemented on
+The online HRI study application is implemented on
 `experiment/hri-2027-coordination`; see [.doc/papers/hri/PLAN.md](.doc/papers/hri/PLAN.md)
 and [verification evidence](.doc/papers/hri/RESULTS.md). Its `study.coordination`
 definition uses the shared Coordination graph with a neutral English text-only
@@ -2040,7 +2040,7 @@ profile. Existing saved agents retain their definitions; create a fresh instance
 to use this profile. `/hri-study/` provides the resumable text study interface;
 entry requires an operator-issued invitation. Its public landing remains closed.
 Versioned materials are in `src/main/resources/hri-study/materials-v2.json`;
-all scenarios remain unready. Pilot and main attempts are distinct persisted
+their human-collection readiness flags remain false. Pilot and main attempts are distinct persisted
 designations; neither is authorized for human collection by a material manifest.
 Preparation forms, conversation, saved-term review, recovery and finish/withdraw
 controls are implemented alongside the session API and research recorder; see the
@@ -2062,7 +2062,14 @@ privacy postponement, explicit resumption and departure ending. Scene changes
 fence pending old-scene responses. Negotiated sign answers add optional preparation
 demonstrations, question-bound simulated thumbs/open palm, wait/resume and renewed
 acceptance for mapping changes. Locked assessments, debrief, balanced allocation,
-operator workflows and analysis exports are implemented; capacity qualification follows.
+operator workflows and analysis exports are implemented. A sustained local test
+qualifies four concurrent text sessions at up to two such waves/hour on its bounded
+workload; the eight-session candidate exceeded the documented query allowance.
+Admission defaults to four with 120-second presence leases; new interaction is
+bounded to 50 receipts or 45 minutes, while finishing/assessments stay available.
+Read the [operator runbook](.doc/papers/hri/RUNBOOK.md) and
+[capacity evidence](.doc/papers/hri/RESULTS.md) before operation. Human collection,
+remote-hosting/provider checks and the actual pilot remain separate pending gates.
 
 Study-only checks use the existing disposable local MySQL runner:
 `python tests/gptlive/run_acceptance.py --study --browser`.

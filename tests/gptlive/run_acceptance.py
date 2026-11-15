@@ -38,6 +38,8 @@ def main():
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--study', action='store_true', help='Select online-study fixtures/specs; real inference uses --paid-core coordination-text')
+    parser.add_argument('--study-wave',type=int,default=8,help='Capacity candidate size, 3..8; initially eight, reduce only after measured failure')
+    parser.add_argument('--study-capacity',type=int,metavar='SECONDS',help='Dedicated eight-session offline workload; acceptance requires at least 1800 seconds')
     parser.add_argument('--study-acceptance', action='store_true', help='Complete offline study regression, analysis and configuration-free package smoke')
     parser.add_argument('--study-scenario', choices=['foundation','guess','context','signs'],default='foundation',help='Bounded real-provider study journey')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
@@ -49,6 +51,13 @@ def main():
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
+    if args.study_wave!=8 and args.study_capacity is None:
+        parser.error('--study-wave requires --study-capacity')
+    if args.study_capacity is not None:
+        if not 3<=args.study_wave<=8:parser.error('--study-wave must be 3..8')
+        if not 60<=args.study_capacity<=3600 or args.paid_core or args.browser or args.study_acceptance or args.java_tests!='LiveCockpitSmokeIntegrationTest':
+            parser.error('--study-capacity requires 60..3600 seconds and owns its offline selection')
+        args.study=True;args.java_tests='none'
     if args.study_acceptance:
         if args.paid_core or args.classroom_capacity or args.browser_grep or args.java_tests!='LiveCockpitSmokeIntegrationTest':
             parser.error('--study-acceptance owns its complete offline selection')
@@ -64,7 +73,7 @@ def main():
             parser.error('--study cannot select unrelated capacity/Live/Coordination scenarios')
         if args.java_tests == 'LiveCockpitSmokeIntegrationTest':
             args.java_tests = 'StudyMaterialsTest,StudyDefinitionIntegrationTest,StudySessionsIntegrationTest,StudyRestartIntegrationTest,StudyTurnsIntegrationTest,StudyRecorderIntegrationTest,StudyGuessingTest,StudyGuessingIntegrationTest,StudyContextTest,StudyContextIntegrationTest,StudySignsTest,StudySignsIntegrationTest,StudyAssessmentTest,StudyOperationsIntegrationTest'
-        if args.java_tests == 'none' and not (args.browser or args.paid_core):
+        if args.java_tests == 'none' and not (args.browser or args.paid_core or args.study_capacity):
             parser.error('--study requires a test, browser, or provider selection')
         if args.browser:
             args.browser_mode = 'disabled'
@@ -118,11 +127,11 @@ def main():
     artifacts.mkdir(parents=True)
     if args.study:
         sources=[p for directory in ('src/main','src/test','tests/hri','tests/playwright') for p in (root/directory).rglob('*')
-                 if p.is_file() and p.suffix in ('.java','.mjs','.json','.html','.css')]
+                 if p.is_file() and p.suffix in ('.java','.js','.mjs','.json','.html','.css')]
         sources += [root/'pom.xml',root/'tests/gptlive/run_acceptance.py',root/'playwright.config.mjs']
         manifest={'schema':'hri-acceptance-v1','sourceRevision':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
                   'dirty':bool(subprocess.check_output(['git','status','--porcelain'],text=True).strip()),
-                  'selection':{'java':args.java_tests,'browser':args.browser,'scenario':args.study_scenario,'paid':bool(args.paid_core),'integrated':args.study_acceptance},
+                  'selection':{'java':args.java_tests,'browser':args.browser,'scenario':args.study_scenario,'paid':bool(args.paid_core),'integrated':args.study_acceptance,'capacitySeconds':args.study_capacity,'capacityWave':args.study_wave if args.study_capacity else None},
                   'files':{str(p.relative_to(root)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
                   'limits':{'dbPool':10,'scheduledTicks':False,'providerCalls':20 if args.paid_core else 0,'providerTokens':80000 if args.paid_core else 0}}
         (artifacts/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
@@ -138,6 +147,8 @@ def main():
         SPRING_JPA_HIBERNATE_DDL_AUTO='update', OPENAI_KEY='offline-test', OPENAI_URL='http://127.0.0.1:9/no-provider',
         PROMETHEUS_SPEECH_URL='http://127.0.0.1:9/no-provider', PROMETHEUS_LIVE_SESSIONS_URL='http://127.0.0.1:9/no-provider',
         PROMETHEUS_RUNTIME_TICK_ENABLED='false', SERVER_SHUTDOWN='immediate', PROMETHEUS_ADMIN_TOKEN=secrets.token_hex(20),
+        PROMETHEUS_STUDY_MAX_ACTIVE=str(args.study_wave) if args.study_capacity else '4' if args.study and args.paid_core else '0',
+        PROMETHEUS_STUDY_WAVE=str(args.study_wave),
         SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE='10',
         PROMETHEUS_SKIP_WEBSERVER='true')
     env['PROMETHEUS_CLASSROOM_CAPACITY'] = 'true' if args.classroom_capacity else 'false'
@@ -157,7 +168,7 @@ def main():
             child = subprocess.Popen(command, env=env, stdout=log, stderr=subprocess.STDOUT,
                                      start_new_session=os.name != 'nt')
             try:
-                code = child.wait(timeout=420 if name == 'paid-journey' else 1800)
+                code = child.wait(timeout=420 if name == 'paid-journey' else (args.study_capacity+600 if name=='capacity' else 1800))
             except (subprocess.TimeoutExpired, KeyboardInterrupt):
                 # Stop the owned browser/JVM descendants as well as their launcher.
                 if os.name == 'nt':
@@ -283,7 +294,7 @@ def main():
                 run(['node', journey_path, '--allow-paid-provider', str(artifacts / 'journey.json'),
                     '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()
-        if args.browser:
+        if args.browser or args.study_capacity:
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
             # Isolate just the explicit fixtures; unrelated test controllers never enter component scanning.
@@ -293,7 +304,7 @@ def main():
                 shutil.copy2(source, fixtures / source.name)
             classpath = os.pathsep.join([str(build_dir / 'classes'), str(artifacts / 'fixture-classes'),
                 (artifacts / 'classpath.txt').read_text().strip()])
-            for enabled in (('true', 'false') if args.browser_mode == 'both' else ('true',) if args.browser_mode == 'enabled' else ('false',)):
+            for enabled in (('true', 'false') if args.browser_mode == 'both' and not args.study_capacity else ('true',) if args.browser_mode == 'enabled' else ('false',)):
                 with socket.socket() as port_socket:
                     port_socket.bind(('127.0.0.1', 0))
                     port = port_socket.getsockname()[1]
@@ -314,6 +325,35 @@ def main():
                             time.sleep(0.5)
                     else:
                         raise RuntimeError('Isolated app startup timed out.')
+                    if args.study_capacity:
+                        with database.cursor() as cursor:
+                            cursor.execute('SELECT max_questions,max_updates,max_connections,max_user_connections FROM mysql.user WHERE User=%s AND Host=%s',(username,'localhost'))
+                            account=cursor.fetchone()
+                            cursor.execute('SELECT @@max_connections,@@max_user_connections');server=cursor.fetchone()
+                        (artifacts/'local-quotas.json').write_text(json.dumps({'account':dict(zip(['queriesPerHour','updatesPerHour','connectionsPerHour','concurrentConnections'],account)),
+                            'server':dict(zip(['maxConnections','maxUserConnections'],server)), 'zeroMeansUnlimited':True,'referenceHostingQueriesPerHour':36000,'requiredHeadroom':.2}),encoding='utf-8')
+                        run(['node','tests/hri/capacity.mjs',str(artifacts),str(args.study_capacity)],'capacity')
+                        stop()
+                        release=artifacts/'release'
+                        run([*maven,'-Pstudy-release','-Dprometheus.build.directory='+str(release),'-DskipTests','package'],'capacity-package')
+                        jar=release/'prometheus-0.0.1-SNAPSHOT.jar'
+                        with zipfile.ZipFile(jar) as archive:
+                            names=archive.namelist()
+                            if any(n.startswith('BOOT-INF/classes/fixtures/') or re.fullmatch(r'BOOT-INF/classes/[^/]+\.properties',n) or re.fullmatch(r'BOOT-INF/classes/application[^/]*\.ya?ml',n) for n in names):
+                                raise RuntimeError('Capacity release contains local configuration or fixtures')
+                        (artifacts/'capacity-package.json').write_text(json.dumps({'sha256':hashlib.sha256(jar.read_bytes()).hexdigest(),'localConfigurationExcluded':True,'fixtureClassesExcluded':True}),encoding='utf-8')
+                        env['SPRING_JPA_HIBERNATE_DDL_AUTO']='validate'
+                        app=subprocess.Popen(['java','-jar',str(jar)],env=env,stdout=log,stderr=subprocess.STDOUT,
+                            creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+                        for attempt in range(180):
+                            if app.poll() is not None:raise RuntimeError('Capacity recovery app exited')
+                            try:
+                                with urlopen(env['PROMETHEUS_BASE_URL']+'/actuator/health',timeout=1) as response:
+                                    if json.load(response)['status']=='UP':break
+                            except Exception:time.sleep(.5)
+                        else:raise RuntimeError('Capacity recovery startup timeout')
+                        run(['node','tests/hri/capacity.mjs',str(artifacts),'--recover'],'capacity-recovery')
+                        stop();continue
                     specs = ['tests/playwright/valerian-gptlive-smoke.spec.mjs', 'tests/playwright/valerian-state-view.spec.mjs',
                         'tests/playwright/valerian-state-graph.spec.mjs']
                     if enabled == 'true':
@@ -346,7 +386,7 @@ def main():
                 if 'BOOT-INF/classes/public/hri-study/index.html' not in names:raise RuntimeError('Study release lacks participant UI')
             with socket.socket() as listener:
                 listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
-            env.update(SERVER_ADDRESS='127.0.0.1',SERVER_PORT=str(port),PROMETHEUS_LIVE_ENABLED='false')
+            env.update(SERVER_ADDRESS='127.0.0.1',SERVER_PORT=str(port),PROMETHEUS_LIVE_ENABLED='false',PROMETHEUS_STUDY_MAX_ACTIVE='4')
             with (artifacts/'app-package.log').open('w',encoding='utf-8') as log:
                 app=subprocess.Popen(['java','-jar',str(jar)],env=env,stdout=log,stderr=subprocess.STDOUT,
                     creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)

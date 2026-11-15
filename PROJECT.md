@@ -75,6 +75,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-12 (2026-11-15, **complete**, study application branch): bounded admission
+  and interaction, direct shared-storage reads, capacity runner and operator/schema/
+  pilot handoff. Eight sessions exceeded the query target; four passed a full
+  30-minute workload with 24,024 projected queries/hour (33.27% headroom), zero
+  errors and production-JAR restart/pending-question/export recovery. Final
+  1,082 Java, 224 JS/coding, 15 browser, analysis/package checks passed; final
+  live OpenAI guessing regression passed (8 calls, 31,817 tokens), alongside the
+  OS-11 A/B/C matrix. OS-01 through OS-12 software handoff is complete. Human
+  collection remains closed pending institutional/deployment/pilot/freeze gates.
+  Evidence and operation: `.doc/papers/hri/RESULTS.md`, `RUNBOOK.md`.
+
 - OS-11 (2026-11-15, **complete**, study application branch): predeclared live
   clarification/specification/revision/execution/assessment matrix passes all three
   scenarios under independent semantic review. Study replies now enforce text-only
