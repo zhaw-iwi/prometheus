@@ -18,6 +18,7 @@ public class StudyController {
     private final String adminToken;
     public record Invite(StudyAttempt.Mode mode, String scenario, UUID predecessor) {}
     public record Consent(String version) {}
+    public record Finish(String reason) {}
     public StudyController(StudySessions sessions, StudyTurns turns, StudyEvidence evidence, @Value("${prometheus.admin.token:}") String adminToken) {
         this.sessions=sessions; this.turns=turns; this.evidence=evidence; this.adminToken=adminToken;
     }
@@ -37,6 +38,14 @@ public class StudyController {
             @PathVariable UUID id) { admin(token); return evidence.export(id); }
     @GetMapping("/api/study/session")
     public StudySessions.View get(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return sessions.get(token); }
+    @GetMapping("/api/study/page")
+    public StudySessions.Page page(@RequestHeader(name=TOKEN_HEADER,required=false) String token) { return sessions.page(token); }
+    @GetMapping(path="/api/study/stream",produces=MediaType.TEXT_EVENT_STREAM_VALUE)
+    public org.springframework.web.servlet.mvc.method.annotation.SseEmitter stream(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
+            @RequestHeader(name="Last-Event-ID",required=false) String cursor) { return sessions.stream(token,cursor); }
+    @PostMapping("/api/study/finish")
+    public StudySessions.View finish(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
+            @RequestBody Finish request) { return sessions.finish(token,request.reason()); }
     @PostMapping("/api/study/consent")
     public StudySessions.View consent(@RequestHeader(name=TOKEN_HEADER,required=false) String token,
             @RequestBody Consent consent) { return sessions.consent(token,consent.version()); }

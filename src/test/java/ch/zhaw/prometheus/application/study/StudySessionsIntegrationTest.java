@@ -50,6 +50,7 @@ class StudySessionsIntegrationTest {
         var reloaded=attempts.findById(first.session().id()).orElseThrow();
         assertEquals(first.session().scenario(),reloaded.scenario);
         assertNotEquals(first.token(),reloaded.tokenHash);
+        assertFalse(first.toString().contains(first.token()));
         assertEquals(3,forms.findByAttemptIdOrderByCreatedAt(reloaded.id).size());
         assertTrue(forms.findByAttemptIdAndKind(reloaded.id,"private").orElseThrow().answers.contains("secret-umbrella"));
         var agent=agents.findById(reloaded.agentId).orElseThrow();
@@ -153,6 +154,20 @@ class StudySessionsIntegrationTest {
                 .andExpect(jsonPath("$.turns.length()").value(1));
         http.perform(get("/api/study/conversation").header(StudyController.TOKEN_HEADER,second.token()))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.turns.length()").value(0));
+        verifyNoInteractions(gateway);
+    }
+    @Test void stagedPageHidesPrivatePromptsAndFinishingDoesNotClaimTaskSuccess() throws Exception {
+        var invitation=invite();
+        assertNull(sessions.page(invitation.token()).task()); assertTrue(sessions.page(invitation.token()).fields().isEmpty());
+        prepare(invitation); assertEquals("private",sessions.page(invitation.token()).fields().getFirst().id());
+        sessions.form(invitation.token(),"private",Map.of("private","secret"));
+        http.perform(get("/api/study/page").header(StudyController.TOKEN_HEADER,invitation.token()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.rubric").doesNotExist()).andExpect(jsonPath("$.fields").isEmpty());
+        assertEquals(StudyAttempt.Stage.ASSESSMENT,sessions.finish(invitation.token(),"NO_AGREEMENT").stage());
+        assertEquals("NO_AGREEMENT",sessions.get(invitation.token()).finishReason());
+        http.perform(post("/api/study/turns").header(StudyController.TOKEN_HEADER,invitation.token()).contentType("application/json")
+                .content("{\"requestId\":\""+UUID.randomUUID()+"\",\"expectedTurn\":0,\"text\":\"Start now\"}"))
+                .andExpect(status().isConflict());
         verifyNoInteractions(gateway);
     }
 }

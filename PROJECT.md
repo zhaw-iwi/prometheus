@@ -75,6 +75,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-05 (2026-11-15, **complete**, study application branch): resumable text UI,
+  private preparation forms, deterministic saved-term review, native SSE recovery,
+  help/finish/withdraw and cancellation-before-receipt fencing. All 26 study DB
+  checks and eight real-app browser journeys passed; final focused shared/runtime
+  regression passed 43 Java checks plus the eight browser journeys. Desktop/mobile
+  screenshots inspected. Two live OpenAI smokes passed control/export checks;
+  first failed strict sentence fidelity, final passed that bounded criterion.
+  Human collection remains closed. OS-06 guessing execution is next. Evidence:
+  `.doc/papers/hri/RESULTS.md`.
+
 - OS-04 (2026-11-15, **complete**, study application branch): transactional research
   records, immutable accepted-agreement snapshots, scoped display/client evidence
   and operator-only JSON export with independent completeness flags. Verified all

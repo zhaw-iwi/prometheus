@@ -69,6 +69,7 @@ public class StudyTurns {
                 transaction.execute(tx -> {
                     var attempt=attempts.lockById(claim.attemptId()).orElseThrow();
                     var receipt=receipts.findByAttemptIdAndRequestId(attempt.id,request.requestId()).orElseThrow();
+                    interaction(attempt);
                     if (attempt.closed() || !request.requestId().equals(attempt.pendingRequest)
                             || receipt.status!=StudyTurn.Status.PENDING || !Instant.now().isBefore(receipt.deadline))
                         throw new IllegalStateException("Study turn authority expired");
@@ -83,7 +84,7 @@ public class StudyTurns {
                         receipt.responseEventId=canonical.getId(); receipt.responseType=canonical.getType();
                         receipt.responsePayload=canonical.getPayload();
                     }
-                    receipt.status=StudyTurn.Status.COMMITTED; receipt.finishedAt=Instant.now();
+                    receipt.status=StudyTurn.Status.COMMITTED; receipt.finishedAt=StudyTurn.now();
                     receipt.committedTurn=++attempt.turnVersion; attempt.pendingRequest=null; attempt.updatedAt=Instant.now();
                     recorder.turn(attempt,receipt,saved,position);
                     receipts.saveAndFlush(receipt); attempts.saveAndFlush(attempt);
@@ -100,7 +101,7 @@ public class StudyTurns {
                 if (receipt.status==StudyTurn.Status.PENDING) {
                     receipt.status=attempt.closed()?StudyTurn.Status.REJECTED:StudyTurn.Status.UNCERTAIN;
                     receipt.reason=attempt.closed()?"attempt_closed":"execution_interrupted";
-                    receipt.finishedAt=Instant.now(); receipts.saveAndFlush(receipt);
+                    receipt.finishedAt=StudyTurn.now(); receipts.saveAndFlush(receipt);
                 }
             });
         }
@@ -134,12 +135,22 @@ public class StudyTurns {
     public View cancel(String token,UUID requestId) {
         return transaction.execute(tx -> {
             var attempt=sessions.require(token,true); open(attempt);
-            var receipt=receipts.findByAttemptIdAndRequestId(attempt.id,requestId)
-                    .orElseThrow(() -> failure(HttpStatus.NOT_FOUND,"Unknown study request"));
+            var existing=receipts.findByAttemptIdAndRequestId(attempt.id,requestId);
+            if (existing.isEmpty()) {
+                interaction(attempt);
+                // A delayed original POST must not execute after the client discards
+                // a request whose receipt has not reached this server yet.
+                var cancelled=new StudyTurn(attempt,requestId,attempt.turnVersion,"",Instant.now());
+                cancelled.status=StudyTurn.Status.REJECTED; cancelled.reason="cancelled_before_receipt"; cancelled.finishedAt=StudyTurn.now();
+                receipts.saveAndFlush(cancelled);
+                if (attempt.pendingRequest==null) { attempt.turnVersion++; attempts.saveAndFlush(attempt); }
+                recorder.procedure(attempt,"cancel:"+requestId); return view(cancelled);
+            }
+            var receipt=existing.get();
             if (receipt.status==StudyTurn.Status.COMMITTED) return view(receipt);
             if (requestId.equals(attempt.pendingRequest)) {
                 receipt.status=StudyTurn.Status.REJECTED; receipt.reason="participant_cancelled";
-                receipt.finishedAt=Instant.now(); attempt.pendingRequest=null; attempt.turnVersion++;
+                receipt.finishedAt=StudyTurn.now(); attempt.pendingRequest=null; attempt.turnVersion++;
                 attempts.saveAndFlush(attempt); receipts.saveAndFlush(receipt);
                 recorder.procedure(attempt,"cancel:"+requestId);
             }
@@ -150,7 +161,7 @@ public class StudyTurns {
         if (receipt.status==StudyTurn.Status.PENDING && (attempt.closed() || !Instant.now().isBefore(receipt.deadline))) {
             receipt.status=attempt.closed()?StudyTurn.Status.REJECTED:StudyTurn.Status.UNCERTAIN;
             receipt.reason=attempt.closed()?"attempt_closed":"request_deadline_elapsed";
-            receipt.finishedAt=Instant.now(); receipts.saveAndFlush(receipt);
+            receipt.finishedAt=StudyTurn.now(); receipts.saveAndFlush(receipt);
         }
     }
     private static void interaction(StudyAttempt attempt) {

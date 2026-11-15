@@ -14,6 +14,7 @@ public final class CoordinationMemory {
             ACCEPTED_EVIDENCE = "coordination.acceptedEvidence", PREVIOUS_PHASE = "coordination.previousPhase",
             OUTCOME = "coordination.outcome", LOG = "coordination.log", REVIEW = "coordination.review", LAST_CUE = "coordination.lastCue",
             RUN = "coordination.run", OUTCOMES = "coordination.outcomes", LOG_DROPPED = "coordination.logDropped";
+    public static final String CONCISE_CONTROLS = "coordination.conciseControls";
     private CoordinationMemory() {}
     public static CoordinationAgreement agreement(Storage storage, String key) {
         return storage.containsKey(key) ? CoordinationAgreement.parse(storage.get(key)) : null;
@@ -95,6 +96,19 @@ public final class CoordinationMemory {
         entries.add(entry); while (entries.size() > 8) entries.remove(0); storage.put(OUTCOMES, entries);
     }
     public static String controls(Storage storage) {
+        if (storage.containsKey(CONCISE_CONTROLS) && storage.get(CONCISE_CONTROLS).getAsBoolean()) return switch(stage(storage)) {
+            case "CONVERSATION" -> "We have not agreed an activity yet. Describe what you would like to do.";
+            case "COORDINATION" -> "We are clarifying the activity. It has not started.";
+            case "PREPARATION" -> "We still need to check the agreed conditions. The activity has not started.";
+            case "READY" -> CoordinationSupport.blockedDraft(storage)
+                    ? "The proposal contains unsupported terms. We need to revise these before it can start."
+                    : "The proposal is ready for your review and acceptance. It has not started.";
+            case "EXECUTION" -> "The agreed activity is running. You can ask to pause, revise or stop it.";
+            case "PAUSED" -> "The activity is paused. Your agreed terms and progress are saved. You can resume, revise or stop it.";
+            case "FINISHING" -> "The activity is finishing. We are waiting for confirmation of its final response.";
+            case "UNCERTAIN" -> "The result is uncertain. We can review what happened; no action will be repeated automatically.";
+            default -> "The activity has ended. We can review what happened or agree a new activity.";
+        };
         return "Initial state: CONVERSATION. Current state: " + stage(storage) + ". " + switch (stage(storage)) {
             case "CONVERSATION" -> "Explore or propose a task.";
             case "COORDINATION" -> "Clarify missing terms; execution is unavailable.";

@@ -148,3 +148,54 @@ dirty-checkout flag. Research materials remain draft and collection closed.
 Participant UI, full instruments, task executors and operational qualification
 remain subsequent work.
 Final runner preflight: 13 passed. Node syntax and `git diff --check` passed.
+
+## OS-05 — Resumable text interface (15 November 2026)
+
+Added invitation entry, staged private forms, canonical conversation/term review,
+native SSE reconciliation, refresh-safe drafts/requests, help/finish/withdraw and
+mobile layouts. Finish durably enters assessment without asserting task success.
+Cancellation before request arrival now creates a persisted rejection tombstone.
+Receipt timestamps use database-compatible microsecond precision. Study control
+wording is concise while baseline controls and agreement authority are preserved.
+
+Actual verification (runner: `python tests/gptlive/run_acceptance.py`):
+
+| Run/artifact suffix | Result |
+| --- | --- |
+| `62f87bd03f`, targeted Java + initial browser | 18 Java and one initial browser check passed |
+| `5cfb24b6ab`, expanded browser | Seven passed, reconnect failed: current SSE cursor delayed response headers until heartbeat. Added immediate connection comment |
+| `325ba009be`, browser rerun | Seven passed, offline error text failed: raw fetch error overwrote the friendly message. Fixed shared error presentation |
+| `91938ac843`, browser | All eight passed; visual review prompted mobile collapsing panels and removal of transient smooth-scroll snapshots |
+| `1ed3160c81`, all study Java | 25 passed, one cancellation replay assertion failed on nanosecond/microsecond timestamp round-trip. Normalized receipt times |
+| `34ed98e80f`, `--study --browser` | **26 Java and eight browser checks passed**, zero failures/errors/skips/retries |
+| `e2ed7ad847`, session/turn/shared Coordination and revision Java + browser | **43 Java and eight browser checks passed**, including final participant Pause wording |
+| `8b234132c0`, paid text foundation | Three committed/replayed turns and export passed; two provider calls, 7,483 cumulative tokens |
+| `ee485f0a6f`, final material checks + paid text foundation | **Three Java checks passed**; three committed/replayed turns and export passed; two provider calls, 7,401 cumulative tokens |
+
+Artifacts are under ignored `target/gptlive-acceptance-<suffix>`. Disposable local
+MySQL schemas/accounts were cleaned up. An attempted combined browser/paid command
+was rejected at preflight before DB/API use, as intended; runs were separated.
+Runner preflight: **13 passed**. JavaScript syntax and `git diff --check` passed.
+
+Browser evidence covers preparation, acceptance, pause, refresh, lost HTTP reply,
+429/503/400 recovery, held inference/withdrawal fencing, offline reconnect and long
+untrusted text. It asserts no media/Speech/Live traffic, canonical single rendering,
+keyboard controls and preserved drafts. Screenshots inspected at 1440px and 390px:
+proposal, agreement, long-message, pending, error and terminal views. Final mobile
+agreement, error-429, pending desktop and finished mobile were inspected in
+`34ed98e80f`; the final run additionally asserts the concise pause text.
+
+Independent semantic review: `8b234132c0` passes proposal/acceptance/pause and
+recording criteria but **fails strict one-sentence fidelity** (“Welcome! We're glad
+you're here.”). Final `ee485f0a6f` **passes this bounded text smoke**, with “Welcome!”,
+unchanged roles/success/limit, one contribution and a truthful paused response.
+Both exports retain one exact agreement, three requests, four synthetic display
+reports and explicit incomplete procedure. Nonverbal hints can remain in canonical
+behavior plans but are not rendered or executed by this text interface. Display
+reports in paid trials are script-generated, unlike the separate browser checks.
+Raw semantic-review fields remain PENDING; this paragraph is the independent review.
+Retained failures preclude treating the passing trial as a reliability estimate.
+
+No human data collected. Assessment remains a procedural placeholder; all three
+task executors and later operational qualification remain pending. Human collection
+is disabled and scenarios remain unready.

@@ -26,6 +26,7 @@ public class StudyAttempt {
     @Column(unique=true) UUID agentId;
     long turnVersion;
     UUID pendingRequest;
+    @Column(length=24) String finishReason;
     protected StudyAttempt() {}
     StudyAttempt(String tokenHash, Mode mode, String scenario, String materialsVersion, UUID predecessorId) {
         this.tokenHash=tokenHash; this.mode=mode; this.scenario=scenario;

@@ -26,6 +26,7 @@ public class StudyTurn {
     protected StudyTurn() {}
     StudyTurn(StudyAttempt attempt, UUID request, long expected, String text, Instant now) {
         attemptId=attempt.id; requestId=request; expectedTurn=expected; input=text;
-        status=Status.PENDING; receivedAt=now; deadline=now.plusSeconds(120);
+        status=Status.PENDING; receivedAt=now.truncatedTo(java.time.temporal.ChronoUnit.MICROS); deadline=receivedAt.plusSeconds(120);
     }
+    static Instant now() { return Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS); }
 }

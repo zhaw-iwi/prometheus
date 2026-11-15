@@ -134,6 +134,36 @@ display reports establish neither reading nor comprehension. Exports contain no
 participant bearer credential or its hash. They do contain private research
 answers and must remain in authorized research storage, outside Git.
 
+## Participant interface and procedural finish
+
+`/hri-study/` accepts the invitation in a password field or a URL fragment
+`#token=...`, immediately removes the fragment from browser history, and keeps
+the credential in session storage. Unsent text, form drafts and pending request
+identity survive refresh in that tab. Operator credentials never enter this UI.
+`GET /api/study/page` exposes only the current stage's materials and fields;
+private prompts are not returned before their stage. All content renders as text.
+
+The conversation combines canonical HTTP results and a fetch-based SSE reader
+using the study credential header. `GET /api/study/stream` supports
+`Last-Event-ID`; an immediate comment flushes headers even with nothing to replay.
+Stream messages trigger canonical reconciliation, never speculative rendering.
+Display receipts follow rendering on a visible page. The interface requests no
+microphone/camera and has no Speech/Live client. Task and agreement panels collapse
+on mobile; Help, Finish and Withdraw remain reachable during pending inference.
+
+Unknown transport results retain the request ID for lookup or deliberate retry.
+Explicit cancellation before receipt creates a rejection tombstone, fencing a
+delayed POST with that ID. Receipt times use microsecond precision so first replies
+and database replays agree. No uncertain model request is retried automatically.
+
+`POST /api/study/finish` takes `{ "reason":"ACTIVITY_ENDED" }`; other reasons are
+`NO_AGREEMENT`, `TECHNICAL`, `TIMEOUT`. It durably enters ASSESSMENT, fences pending
+work and records the reason without claiming task success. The assessment screen
+is a placeholder until OS-09. Finish differs from an agreed task Stop; withdrawal
+closes the attempt. Human information and collection remain gated pending OS-09
+and the owner's study arrangements. Compact study status wording preserves the
+shared control rules, including unsupported proposals; baseline wording is unchanged.
+
 ## Verification commands
 
 `python tests/gptlive/run_acceptance.py --study` runs the study foundations against

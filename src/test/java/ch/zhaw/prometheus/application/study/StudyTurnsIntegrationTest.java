@@ -96,8 +96,8 @@ class StudyTurnsIntegrationTest {
         assertEquals(result,turns.lookup(invitation.token(),request.requestId()));
         assertEquals(result,turns.submit(invitation.token(),request)); verify(gateway,times(1)).infer(any());
     }
-    @Test void cancellationAndRevocationFenceLateInference() throws Exception {
-        for (boolean revoke:List.of(false,true)) {
+    @Test void cancellationRevocationAndFinishingFenceLateInference() throws Exception {
+        for (String action:List.of("cancel","revoke","finish")) {
             var invitation=ready(); var request=request(); int before=history(invitation);
             var entered=new CountDownLatch(1); var release=new CountDownLatch(1);
             when(gateway.infer(any())).thenAnswer(call -> { entered.countDown(); assertTrue(release.await(20,TimeUnit.SECONDS)); return ANSWER; });
@@ -105,7 +105,9 @@ class StudyTurnsIntegrationTest {
                 var running=pool.submit(() -> turns.submit(invitation.token(),request));
                 try {
                     assertTrue(entered.await(20,TimeUnit.SECONDS));
-                    if (revoke) sessions.revoke(invitation.session().id()); else turns.cancel(invitation.token(),request.requestId());
+                    if (action.equals("revoke")) sessions.revoke(invitation.session().id());
+                    else if (action.equals("finish")) sessions.finish(invitation.token(),"TECHNICAL");
+                    else turns.cancel(invitation.token(),request.requestId());
                 } finally { release.countDown(); }
                 assertEquals(StudyTurn.Status.REJECTED,running.get(20,TimeUnit.SECONDS).status());
             }
@@ -119,5 +121,13 @@ class StudyTurnsIntegrationTest {
         assertEquals(StudyTurn.Status.UNCERTAIN,turns.lookup(invitation.token(),request.requestId()).status());
         assertEquals(StudyTurn.Status.UNCERTAIN,turns.submit(invitation.token(),request).status());
         verifyNoInteractions(gateway);
+    }
+    @Test void cancellingBeforeReceiptFencesADelayedOriginalSubmission() {
+        var invitation=ready();var request=request();int before=history(invitation);
+        var cancelled=turns.cancel(invitation.token(),request.requestId());
+        assertEquals(StudyTurn.Status.REJECTED,cancelled.status());assertEquals("cancelled_before_receipt",cancelled.reason());
+        assertEquals(cancelled,turns.cancel(invitation.token(),request.requestId()));
+        assertThrows(ResponseStatusException.class,()->turns.submit(invitation.token(),request));
+        assertEquals(before,history(invitation));verifyNoInteractions(gateway);
     }
 }

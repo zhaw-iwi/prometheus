@@ -2037,11 +2037,13 @@ The online HRI study application is being implemented on
 and [verification evidence](.doc/papers/hri/RESULTS.md). Its `study.coordination`
 definition uses the shared Coordination graph with a neutral English text-only
 profile. Existing saved agents retain their definitions; create a fresh instance
-to use this profile. `/hri-study/` currently shows a closed preparation page.
+to use this profile. `/hri-study/` provides the resumable text study interface;
+entry requires an operator-issued invitation. Its public landing remains closed.
 Versioned materials are in `src/main/resources/hri-study/materials-v1.json`;
 all scenarios remain unready. Pilot and main attempts are distinct persisted
 designations; neither is authorized for human collection by a material manifest.
-The session/private-form foundation, recoverable text API and research recorder are implemented; see the
+Preparation forms, conversation, saved-term review, recovery and finish/withdraw
+controls are implemented alongside the session API and research recorder; see the
 [study API contract](.doc/papers/hri/IMPLEMENTATION.md). Synthetic attempts are
 operator-created fixtures. Human collection defaults to disabled. Study-owned
 agents are excluded from generic workbench lists and inaccessible through its

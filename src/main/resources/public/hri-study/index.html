@@ -1,18 +1,73 @@
 <!doctype html>
 <html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Coordination study</title>
-<style>
-  body { margin: 0; background: #f5f7fa; color: #172a3a; font: 18px/1.6 system-ui, sans-serif; }
-  main { max-width: 46rem; margin: 8vh auto; padding: 2rem; }
-  h1 { line-height: 1.2; }
-  .status { display: inline-block; padding: .25rem .7rem; background: #e0e8f2; border-radius: .4rem; font-size: .9rem; }
-</style>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Coordination study</title>
+  <link rel="stylesheet" href="study.css">
+  <script type="module" src="study.js"></script>
+</head>
+<body>
+<header class="topbar"><a href="index.html" class="brand">Coordination study</a><span>Text conversation · English</span></header>
 <main>
-  <span class="status">Preparation in progress</span>
-  <h1>Coordinating an activity together</h1>
-  <p>This study uses text conversation to explore how people specify and revise shared activities.</p>
-  <p>Participant sessions are not open yet. No microphone or camera is required.</p>
+  <div id="notice" class="notice" role="alert" hidden></div>
+  <section id="entry" class="welcome card">
+    <span class="badge">Preparation in progress</span>
+    <h1>Coordinating an activity together</h1>
+    <p>Explore how people specify, review and revise a shared activity with an assistant.</p>
+    <p>Participant sessions are not open yet. No microphone or camera is required.</p>
+    <form id="entry-form"><label for="credential">Session invitation</label>
+      <input id="credential" type="password" autocomplete="off" required maxlength="43" aria-describedby="invitation-hint">
+      <p id="invitation-hint" class="hint">If you have a synthetic test invitation, paste it here to resume that session.</p>
+      <button type="submit">Open session</button>
+    </form>
+  </section>
+  <section id="workspace" hidden>
+    <div class="session-heading"><div><span id="mode" class="badge"></span><h1 id="heading">Your activity</h1></div>
+      <div class="tools"><button id="help" class="secondary">Help</button><button id="withdraw" class="quiet">Withdraw</button></div>
+    </div>
+    <p id="progress" class="progress" role="status"></p>
+    <section id="preparation" class="card preparation" hidden>
+      <h2 id="step-heading"></h2><p id="information"></p><p id="preparation-task" class="task-text"></p>
+      <form id="step-form"><div id="fields"></div><button id="continue" type="submit">Continue</button></form>
+    </section>
+    <div id="interaction" class="layout" hidden>
+      <aside>
+        <section class="card"><details id="task-details" open><summary>Task instructions</summary><h2 id="task-title"></h2><p id="task-card"></p></details></section>
+        <section class="card agreement"><h2>Agreed activity</h2><p id="activity-status" class="status"></p>
+          <details id="agreement-details" open><summary>Review saved terms</summary><p class="hint">A proposal becomes active when you accept it in the conversation.</p>
+          <div id="agreement"></div></details>
+        </section>
+        <button id="finish" class="secondary wide">Finish interaction</button>
+      </aside>
+      <section class="card conversation" aria-label="Conversation">
+        <div class="conversation-heading"><h2>Conversation</h2><span id="connection" class="hint">Connecting…</span></div>
+        <div id="messages" role="log" aria-live="polite" aria-label="Conversation messages"></div>
+        <div id="pending-panel" class="pending" hidden><p id="pending-status" role="status"></p><p id="pending-text"></p>
+          <div class="tools"><button id="check" class="secondary">Check status</button><button id="retry" class="secondary" hidden>Send saved message</button>
+            <button id="cancel" class="quiet">Discard pending submission</button></div>
+        </div>
+        <form id="composer"><label for="message">Your message</label><textarea id="message" rows="3" maxlength="2000" required aria-describedby="composer-hint"></textarea>
+          <div class="composer-actions"><span id="composer-hint" class="hint">Enter to send · Shift + Enter for a new line</span><button id="send" type="submit">Send message</button></div>
+        </form>
+      </section>
+    </div>
+    <section id="terminal" class="card preparation" hidden><h2 id="terminal-title"></h2><p id="terminal-copy"></p><p id="receipt" class="hint"></p></section>
+  </section>
 </main>
+<dialog id="help-dialog"><h2>Help with this interaction</h2><p>Describe the activity in your own words. You can ask the assistant to clarify, change, pause or stop it. Review the saved proposal before accepting.</p>
+  <p>A pending message has not yet produced a confirmed result. Check its status before sending it again. Discarding a pending submission keeps the last saved conversation; it does not ask the assistant to pause an activity.</p>
+  <p>You may finish the interaction or withdraw at any point. No microphone or camera is used.</p><form method="dialog"><button>Back to session</button></form>
+</dialog>
+<dialog id="finish-dialog"><h2>Finish the interaction</h2><p>This saves how the interaction ended. It does not mark the agreed task successful.</p>
+  <form id="finish-form"><label for="finish-reason">What best describes the ending?</label><select id="finish-reason" required>
+    <option value="ACTIVITY_ENDED">The activity has ended</option><option value="NO_AGREEMENT">We could not agree an activity</option>
+    <option value="TECHNICAL">A technical problem prevented progress</option><option value="TIMEOUT">I ran out of time</option>
+  </select><div class="tools"><button type="submit">Save and finish</button><button type="button" id="keep-working" class="secondary">Keep working</button></div></form>
+</dialog>
+<dialog id="withdraw-dialog"><h2>Withdraw from this session?</h2><p>Further interaction will stop. The session will be recorded as withdrawn.</p>
+  <div class="tools"><button id="confirm-withdraw">Withdraw from session</button><button id="stay" class="secondary">Stay in session</button></div>
+</dialog>
+</body>
 </html>
