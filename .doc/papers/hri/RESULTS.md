@@ -395,3 +395,49 @@ answers are open-reference, not unaided recall. Browser fixtures supply syntheti
 answers, not evidence of human comprehension. Allocation is procedural random
 assignment, not randomized treatment. Human collection, deployment, retention
 approval and pilot remain external pending gates. OS-10 integrated acceptance next.
+
+## OS-10 - integrated acceptance and analysis (2026-11-15)
+
+Base `385ce4a3`; complete entry point `python tests/gptlive/run_acceptance.py
+--study-acceptance`. It selects all ordinary Java classes, all JS/client and coding
+checks, all study browser journeys, dataset rehearsal and configuration-free
+production packaging. The separately invoked classroom capacity class is explicitly
+excluded (not reported as a skipped study test). Source/material hashes and actual
+selection are retained in manifest.json; no source changed during the final run.
+
+Retained iterations under `target/gptlive-acceptance-<suffix>/`:
+- `1ba54a3fa6`: 1,073 Java, two failures. Study isolation added a query to ordinary
+  HTTP paths (unchanged poll: two instead of one; mixed minute: 2,019 above 2,010).
+  Replaced per-request ownership lookup with startup/provisioning ownership index.
+- `52d31cb60f`: 18 focused query-volume/isolation/restart checks passed, including
+  rollback cleanup of provisional ownership. Existing numeric ceilings unchanged.
+- `3895a1b4e8`: 1,074 Java, 54 errors across eight MVC slice fixtures whose mocked
+  dependency still named the old repository. Updated those mocks to the registry.
+- `5372fac475`: all 1,074 Java and 224 JS/coding passed; 13/14 browser passed.
+  Dataset export encountered an agent removed by baseline fixture cleanup and
+  returned 500. Export now preserves saved evidence and reports canonical_agent_missing;
+  a new DB regression covers this recovery path. This was not a longer-timeout fix.
+- **`9aa87dd66e`: final complete command PASS: 1,075 Java across 193 classes,
+  224 JS/coding, 14 browser, analysis and package/DB health smoke; zero skips,
+  retries or failures.** Runner preflight separately passed all 15 checks.
+  `git diff --check` passed.
+
+The final analysis retains 68 synthetic attempts / 66 participant identities,
+including two replacements, six COMPLETE statuses, three withdrawals and three
+revocations. All five full browser procedures (A/B/C, no agreement and technical
+failure) have the expected forms and complete recording; the three activity
+journeys each have two accepted snapshots. The aggregate fixture dataset contains
+36 incomplete recordings from deliberate record/agent loss and baseline cleanup,
+and 65 missing UMUX scores from unfinished/skipped fixture forms. These are retained
+and flagged, not participant results or an estimated failure rate. Analysis verifies
+counts, replacement identity/task preservation, versions, snapshots and missingness.
+
+Desktop/mobile preparation, information/consent, private choice, prediction,
+agreement, pause/revision, failure, understanding, questionnaire, debrief and operator
+screenshots were inspected across OS-05 through this run; added all preparation
+stage captures here. Local package boot uses the same disposable DB and reports
+health UP. The JAR contains participant assets, excludes local application/OpenAI
+configuration and test fixtures, and has SHA-256
+`5cbd0af90aa11a7dabc5ec523395430ad723e546b7d477bb057c90d4f3aad569`.
+No deployment occurred. Single-process operation remains required; human collection
+stays closed. See ACCEPTANCE.md for reproduction; OS-11 semantic matrix is next.

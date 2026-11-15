@@ -2061,7 +2061,8 @@ uses negotiated question/response wording and disclosed scene simulation, with
 privacy postponement, explicit resumption and departure ending. Scene changes
 fence pending old-scene responses. Negotiated sign answers add optional preparation
 demonstrations, question-bound simulated thumbs/open palm, wait/resume and renewed
-acceptance for mapping changes. Full assessments and operational qualification follow.
+acceptance for mapping changes. Locked assessments, debrief, balanced allocation,
+operator workflows and analysis exports are implemented; capacity qualification follows.
 
 Study-only checks use the existing disposable local MySQL runner:
 `python tests/gptlive/run_acceptance.py --study --browser`.
@@ -2942,3 +2943,9 @@ locked understanding/post forms, debrief and JSON/CSV exports are described in t
 [study implementation](.doc/papers/hri/IMPLEMENTATION.md) and
 [instrument/coding protocol](.doc/papers/hri/INSTRUMENTS.md). Human collection stays
 closed; use synthetic invitations for software validation.
+
+Run the complete offline study acceptance with
+`python tests/gptlive/run_acceptance.py --study-acceptance`.
+It includes all ordinary Java/JS regressions, full study browser journeys, dataset
+rehearsal and a configuration-free production JAR smoke. See the
+[reproduction guide](.doc/papers/hri/ACCEPTANCE.md).

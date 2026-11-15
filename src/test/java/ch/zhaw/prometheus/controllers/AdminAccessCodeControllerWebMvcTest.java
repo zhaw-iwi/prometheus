@@ -30,7 +30,7 @@ import ch.zhaw.prometheus.controllers.views.AccessCodePresetView;
 import ch.zhaw.prometheus.controllers.views.AccessCodeView;
 import ch.zhaw.prometheus.controllers.views.AdminAgentTypeView;
 
-@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAttemptRepository.class)
+@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAgentRegistry.class)
 @WebMvcTest(controllers = AdminAccessCodeController.class)
 @TestPropertySource(properties = "prometheus.admin.token=root-token")
 class AdminAccessCodeControllerWebMvcTest {

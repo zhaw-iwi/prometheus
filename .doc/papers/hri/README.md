@@ -44,3 +44,6 @@ marked as proposals must not be described as completed methods or findings.
 
 Implementation instrument and coding freeze: [INSTRUMENTS.md](INSTRUMENTS.md).
 Operator/API details: [IMPLEMENTATION.md](IMPLEMENTATION.md).
+
+[ACCEPTANCE.md](ACCEPTANCE.md) provides the complete offline acceptance command,
+source/material manifest and configuration-free package workflow.

@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.web.servlet.MockMvc;
 
-@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAttemptRepository.class)
+@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAgentRegistry.class)
 @WebMvcTest(controllers = StaticRedirectController.class, properties = "spring.web.resources.add-mappings=false")
 class StaticRedirectControllerWebMvcTest {
 

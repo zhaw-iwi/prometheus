@@ -41,7 +41,7 @@ import ch.zhaw.prometheus.model.policy.PromptPolicy;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 
 @SuppressWarnings("null")
-@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAttemptRepository.class)
+@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAgentRegistry.class)
 @WebMvcTest(controllers = { AgentController.class, AgentInteractionController.class, AgentMonitorController.class,
         AgentBehaviourController.class })
 class AgentClientCompatibilityWebMvcTest {

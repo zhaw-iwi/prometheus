@@ -19,7 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import ch.zhaw.prometheus.application.ScopedDemoService;
 import ch.zhaw.prometheus.controllers.ScopedDemoController;
 
-@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAttemptRepository.class)
+@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAgentRegistry.class)
 @WebMvcTest(controllers = ScopedDemoController.class)
 @Import(PrometheusCorsConfiguration.class)
 @TestPropertySource(properties = {

@@ -46,6 +46,7 @@ async function assessment(page,request,invitation,info,missing=false) {
   const data=await exported(request,invitation);expect(data.manifest.procedureComplete).toBe(true);expect(data.manifest.recordingComplete).toBe(true);
   expect(data.assessment.umuxLite.raw0to100).toBe(missing?null:50);
   expect(data.records.filter(r=>r.kind==='ASSESSMENT_REFERENCE')).toHaveLength(1);
+  await fs.writeFile(info.outputPath('completed-export.json'),JSON.stringify(data,null,2));
   expect((await request.post('/api/study/forms/understanding',{headers:{'X-Prometheus-Study-Token':invitation.token},data:{changed:'after feedback'}})).ok()).toBe(false);
 }
 
@@ -160,14 +161,18 @@ test('study preparation is clearly closed and text only', async ({page}, info) =
 test('preparation, agreement, native SSE, refresh and finish use one persisted attempt',async({page,request},info)=>{
   const media=await noMedia(page);let streams=0;page.on('response',r=>{if(r.url().endsWith('/api/study/stream')&&r.status()===200)streams++;});
   const invitation=await invite(request);await open(page,invitation);
+  await screenshot(page,info,'information-desktop');await screenshot(page,info,'information-mobile',390);
   await page.getByLabel('I understand that this is a synthetic test and will use invented information.').check();
   await page.getByRole('button',{name:'Continue with synthetic test'}).click();
   await expect(page.getByRole('heading',{name:'A little background'})).toBeVisible();
+  await screenshot(page,info,'background-mobile',390);await screenshot(page,info,'background-desktop');
   for(const field of await page.locator('#fields textarea').all())await field.fill('None');
   await page.locator('#fields select').selectOption('4');await page.getByRole('button',{name:'Save and continue'}).click();
   await expect(page.getByRole('heading',{name:'Your initial intention'})).toBeVisible();
+  await screenshot(page,info,'intention-desktop');await screenshot(page,info,'intention-mobile',390);
   await page.locator('#fields textarea').fill('A short friendly greeting');await page.getByRole('button',{name:'Save and continue'}).click();
   await expect(page.getByRole('heading',{name:'Your private choices'})).toBeVisible();
+  await screenshot(page,info,'private-mobile',390);await screenshot(page,info,'private-desktop');
   await page.locator('#fields textarea').fill('private-umbrella');await page.getByRole('button',{name:'Begin conversation'}).click();
   await expect(page.locator('#connection')).toHaveText('Connected');
   await model(request,'PROPOSE');await page.getByLabel('Your message',{exact:true}).fill('Propose a greeting, but do not start.');
@@ -275,6 +280,7 @@ test('operator provisions balanced invitations, records help and exports retaine
   await page.locator('#assistance-note').fill('Explained the invitation and refresh procedure.');await page.getByRole('button',{name:'Save assistance record'}).click();await expect(page.locator('#operator-notice')).toContainText('Assistance recorded');
   await row.getByRole('button',{name:'Revoke',exact:true}).click();await expect(row).toContainText('REVOKED');
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export assessment CSV'}).click();expect((await download).suggestedFilename()).toBe('study-synthetic.csv');
+  const dataset=await request.get('/admin/study/export?mode=SYNTHETIC',{headers:admin});expect(dataset.ok()).toBe(true);await fs.writeFile(info.outputPath('dataset.json'),JSON.stringify(await dataset.json(),null,2));
   expect(await page.evaluate(()=>JSON.stringify([localStorage,sessionStorage]))).not.toContain(process.env.PROMETHEUS_ADMIN_TOKEN);
   await screenshot(page,info,'operator-desktop');await screenshot(page,info,'operator-mobile',390);
 });

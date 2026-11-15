@@ -29,7 +29,7 @@ import ch.zhaw.prometheus.application.SpeechSynthesisSettings;
 import ch.zhaw.prometheus.controllers.views.EventRequest;
 import ch.zhaw.prometheus.spi.SpeechAudio;
 
-@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAttemptRepository.class)
+@org.springframework.test.context.bean.override.mockito.MockitoBean(types=ch.zhaw.prometheus.application.study.StudyAgentRegistry.class)
 @WebMvcTest(controllers = TalkToMeSpeechController.class)
 class TalkToMeSpeechControllerWebMvcTest {
     @Autowired

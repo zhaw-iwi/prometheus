@@ -54,10 +54,10 @@ Modes are `SYNTHETIC`, `PILOT` and `MAIN`. Synthetic is explicitly for operator-
 software fixtures and permits testing the procedure before scenario execution is
 ready. It must not be used for recruitment. Human modes require a ready scenario,
 `prometheus.study.collection-enabled=true` and a nonblank reviewed
-`prometheus.study.information-version`; defaults keep collection closed. Ethics,
+`prometheus.study.information-version` and reviewed information text; defaults keep collection closed. Ethics,
 information text, retention and withdrawal policy remain owner prerequisites.
-Allocation is currently operator-selected and stable; balanced random allocation
-and the complete operator workflow belong to OS-09.
+Allocation uses persisted balanced random blocks through the operator batch flow.
+Only synthetic fixtures may select a task manually; replacements preserve the task.
 
 ## Durable text submission
 
@@ -159,10 +159,10 @@ and database replays agree. No uncertain model request is retried automatically.
 
 `POST /api/study/finish` takes `{ "reason":"ACTIVITY_ENDED" }`; other reasons are
 `NO_AGREEMENT`, `TECHNICAL`, `TIMEOUT`. It durably enters ASSESSMENT, fences pending
-work and records the reason without claiming task success. The assessment screen
-is a placeholder until OS-09. Finish differs from an agreed task Stop; withdrawal
-closes the attempt. Human information and collection remain gated pending OS-09
-and the owner's study arrangements. Compact study status wording preserves the
+work and records the reason without claiming task success. Assessment, questionnaire
+and debrief follow. Finish differs from an agreed task Stop; withdrawal
+closes the attempt. Human information and collection remain gated pending reviewed
+materials and the owner's study arrangements. Compact study status wording preserves the
 shared control rules, including unsupported proposals; baseline wording is unchanged.
 
 ## Guessing-game execution
@@ -221,7 +221,7 @@ uncertain receipt requiring cancellation/reconciliation; no game output commits.
 The initial and revised prediction are exported separately.
 
 The UI adds prediction, question progress and revision/probe cards, with mobile
-collapsing panels. Assessment instruments remain OS-09. Scenario readiness flags
+collapsing panels. Assessment instruments are specified in INSTRUMENTS.md. Scenario readiness flags
 remain false until the complete study procedure is qualified; implementation of
 the guessing executor alone does not authorize human collection.
 
@@ -381,3 +381,23 @@ forms supply no task parameters; the assigned executor kind is a capability limi
 Human provisioning additionally requires reviewed `prometheus.study.information-text`
 and `information-version`, collection enablement and qualified materials. All remain
 closed by default. No clinical/physical execution or human readiness is inferred.
+
+## Integrated acceptance and ordinary-route cost
+
+Run `python tests/gptlive/run_acceptance.py --study-acceptance`; see
+[ACCEPTANCE.md](ACCEPTANCE.md) for selection, artifacts and package reproduction.
+The study-release Maven profile excludes local application/OpenAI configuration.
+The browser dataset rehearsal includes every failed/replacement attempt and the
+intentional recorder-corruption fixture, reported explicitly as incomplete.
+
+`StudyAgentRegistry` indexes owned agent UUIDs at application startup and registers
+new study IDs before provisioning commits. Rollback removes a provisional ID.
+Ordinary HTTP guards and list filtering use this positive ownership index without
+an additional database query per request. This relies on the documented one-process
+study deployment and provisioning through StudySessions; a second writer or direct
+DB ownership edits are unsupported. Restart reloads ownership from persisted rows.
+
+Export remains available if a canonical runtime agent has been lost: immutable
+records/forms/snapshots are retained and `canonical_agent_missing` makes recording
+completeness false. This is an audit/recovery path, not permission to resume that
+attempt or silently recreate the agent.

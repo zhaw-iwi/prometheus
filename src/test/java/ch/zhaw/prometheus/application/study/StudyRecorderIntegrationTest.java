@@ -122,4 +122,11 @@ class StudyRecorderIntegrationTest {
         assertFalse(exported.path("manifest").path("recordingComplete").asBoolean());
         assertTrue(exported.path("manifest").path("issues").toString().contains("turn_record_mismatch"));
     }
+    @Test void missingCanonicalAgentStillExportsDurableEvidenceAsIncomplete(){
+        var invitation=ready();accept(invitation,"Greeting");var attempt=attempts.findById(invitation.session().id()).orElseThrow();
+        agents.deleteById(attempt.agentId);agents.flush();var exported=evidence.export(attempt.id);
+        assertFalse(exported.path("manifest").path("recordingComplete").asBoolean());
+        assertTrue(exported.path("manifest").path("issues").toString().contains("canonical_agent_missing"));
+        assertEquals(1,exported.path("agreements").size());assertEquals(2,exported.path("requests").size());
+    }
 }

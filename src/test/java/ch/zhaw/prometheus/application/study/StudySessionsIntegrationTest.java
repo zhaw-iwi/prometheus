@@ -28,6 +28,8 @@ class StudySessionsIntegrationTest {
     @Autowired StudyMaterials materials;
     @Autowired AgentRepository agents;
     @Autowired MockMvc http;
+    @Autowired StudyAgentRegistry ownership;
+    @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
     @Autowired ch.zhaw.prometheus.controllers.AgentMetaController legacy;
     @MockitoBean LanguageModelGateway gateway;
     @MockitoSpyBean AgentApplicationService agentService;
@@ -43,6 +45,12 @@ class StudySessionsIntegrationTest {
         sessions.form(invite.token(),"intention",Map.of("intention","I want a short game"));
     }
     UUID agentId(StudySessions.Invitation invite) { return attempts.findById(invite.session().id()).orElseThrow().agentId; }
+    @Test void ownershipFencesBeforeCommitAndRemovesRolledBackProvisioning(){
+        UUID id=UUID.randomUUID();assertThrows(IllegalStateException.class,()->ownership.provision(id));
+        new org.springframework.transaction.support.TransactionTemplate(transactions).executeWithoutResult(status->{
+            ownership.provision(id);assertTrue(ownership.contains(id));status.setRollbackOnly();
+        });assertFalse(ownership.contains(id));
+    }
     @Test void consentAndFormsAreDurableAndPrivate() {
         var first=invite(); var second=invite(); prepare(first);
         assertEquals(Stage.COORDINATION,sessions.form(first.token(),"private",Map.of("private","secret-umbrella")).stage());

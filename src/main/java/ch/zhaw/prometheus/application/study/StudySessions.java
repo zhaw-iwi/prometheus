@@ -43,11 +43,12 @@ public class StudySessions {
     private final Gson json = new Gson();
     private final StudyRecorder recorder;
     private final StudyTurnRepository receipts;
+    private final StudyAgentRegistry ownership;
     public StudySessions(StudyAttemptRepository attempts, StudyFormRepository forms, StudyMaterials materials,
             StudyCoordinationAgent definition, AgentApplicationService agents, PromptMessageAssembler prompts,
             LanguageModelGateway gateway, @Value("${prometheus.study.collection-enabled:false}") boolean enabled,
             @Value("${prometheus.study.information-version:}") String informationVersion,
-            @Value("${prometheus.study.information-text:}") String informationText,StudyProtocol protocol,StudyAllocator allocator,StudyRecorder recorder,StudyTurnRepository receipts) {
+            @Value("${prometheus.study.information-text:}") String informationText,StudyProtocol protocol,StudyAllocator allocator,StudyRecorder recorder,StudyTurnRepository receipts,StudyAgentRegistry ownership) {
         this.attempts=attempts; this.forms=forms; this.materials=materials; this.definition=definition;
         this.agents=agents; creation=new AgentCreationContext(prompts,gateway);
         collectionEnabled=enabled; this.informationVersion=informationVersion;
@@ -55,6 +56,7 @@ public class StudySessions {
         this.allocator=allocator;
         this.recorder=recorder;
         this.receipts=receipts;
+        this.ownership=ownership;
     }
     @Transactional
     public Invitation invite(Mode mode, String scenario, UUID predecessor) {
@@ -181,6 +183,7 @@ public class StudySessions {
                     ch.zhaw.prometheus.agentdefs.study.StudyCoordinationUpdateAction.REQUIRED_ACTIVITY,new com.google.gson.JsonPrimitive(
                             switch(attempt.scenario){case "guess"->"GUESSING";case "context"->"CONTEXT_CHECKIN";case "signs"->"SIGN_ANSWERS";default->throw new IllegalStateException();}));
             attempt.agentId=agent.getId();
+            ownership.provision(agent.getId());
             attempt.advance(Stage.COORDINATION);
             attempts.saveAndFlush(attempt); recorder.provisioned(attempt,agent);
         } else attempt.advance(switch(expected){case PRE->Stage.INTENTION;case INTENTION->Stage.PRIVATE;case ASSESSMENT->Stage.POST;case POST->Stage.DEBRIEF;default->throw new IllegalStateException();});

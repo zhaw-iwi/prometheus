@@ -13,7 +13,6 @@ public interface StudyAttemptRepository extends JpaRepository<StudyAttempt, UUID
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from StudyAttempt a where a.id = :id")
     Optional<StudyAttempt> lockById(@Param("id") UUID id);
-    boolean existsByAgentId(UUID id);
     org.springframework.data.domain.Page<StudyAttempt> findByModeOrderByCreatedAtDesc(StudyAttempt.Mode mode,org.springframework.data.domain.Pageable page);
     List<StudyAttempt> findByModeOrderByCreatedAt(StudyAttempt.Mode mode);
     @Query("select a.agentId from StudyAttempt a where a.agentId is not null")

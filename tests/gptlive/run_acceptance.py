@@ -16,6 +16,8 @@ import socket
 import subprocess
 import time
 import uuid
+import hashlib
+import zipfile
 import xml.etree.ElementTree as ET
 import pymysql
 
@@ -36,6 +38,7 @@ def main():
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--study', action='store_true', help='Select online-study fixtures/specs; real inference uses --paid-core coordination-text')
+    parser.add_argument('--study-acceptance', action='store_true', help='Complete offline study regression, analysis and configuration-free package smoke')
     parser.add_argument('--study-scenario', choices=['foundation','guess','context','signs'],default='foundation',help='Bounded real-provider study journey')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--browser-mode', choices=['both', 'enabled', 'disabled'], default='both', help='Select fixture modes for focused browser checks')
@@ -46,6 +49,12 @@ def main():
     parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
+    if args.study_acceptance:
+        if args.paid_core or args.classroom_capacity or args.browser_grep or args.java_tests!='LiveCockpitSmokeIntegrationTest':
+            parser.error('--study-acceptance owns its complete offline selection')
+        args.study=True;args.browser=True
+        # Dedicated classroom capacity is a separately invoked measurement, not a skipped acceptance case.
+        args.java_tests='*,!ClassroomCapacityIntegrationTest'
     if args.study_scenario!='foundation' and not (args.study and args.paid_core):
         parser.error('--study-scenario requires --study and --paid-core')
     if args.study:
@@ -107,6 +116,16 @@ def main():
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)
     artifacts.mkdir(parents=True)
+    if args.study:
+        sources=[p for directory in ('src/main','src/test','tests/hri','tests/playwright') for p in (root/directory).rglob('*')
+                 if p.is_file() and p.suffix in ('.java','.mjs','.json','.html','.css')]
+        sources += [root/'pom.xml',root/'tests/gptlive/run_acceptance.py',root/'playwright.config.mjs']
+        manifest={'schema':'hri-acceptance-v1','sourceRevision':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+                  'dirty':bool(subprocess.check_output(['git','status','--porcelain'],text=True).strip()),
+                  'selection':{'java':args.java_tests,'browser':args.browser,'scenario':args.study_scenario,'paid':bool(args.paid_core),'integrated':args.study_acceptance},
+                  'files':{str(p.relative_to(root)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
+                  'limits':{'dbPool':10,'scheduledTicks':False,'providerCalls':20 if args.paid_core else 0,'providerTokens':80000 if args.paid_core else 0}}
+        (artifacts/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
     (artifacts / 'escalation-cases.json').write_text(json.dumps(recovery_fixture, indent=2), encoding='utf-8')
     database = pymysql.connect(host=url.hostname, port=url.port or 3306,
         user=os.environ.get('GPTLIVE_MYSQL_ADMIN_USER', props.get('spring.datasource.username')),
@@ -179,6 +198,8 @@ def main():
             created_user = True
             cursor.execute('GRANT ALL PRIVILEGES ON `' + schema + '`.* TO %s@%s', (username, 'localhost'))
         print('Disposable schema: ' + schema + '; artifacts: ' + str(artifacts), flush=True)
+        if args.study_acceptance:
+            run(['node','--test',*[str(p) for p in sorted((root/'tests/js').rglob('*.test.mjs'))],str(root/'tests/hri/coding.test.mjs')],'javascript')
         if args.java_tests != 'none':
             selection = [] if args.java_tests == 'all' else ['-Dtest=' + args.java_tests]
             test_started = time.time()
@@ -193,6 +214,10 @@ def main():
                     for key in totals:
                         totals[key] += int(suite.attrib.get(key, 0))
                     shutil.copy2(report, artifacts / report.name)
+                if args.study_acceptance:
+                    expected={p.stem for p in (root/'src/test/java').rglob('*Test.java')} - {'ClassroomCapacityIntegrationTest'}
+                    actual={ET.parse(p).getroot().attrib['name'].split('.')[-1] for p in reports}
+                    if actual!=expected:raise SystemExit('Integrated Java selection mismatch: '+str(expected ^ actual))
                 (artifacts / 'study-tests.json').write_text(json.dumps(totals, indent=2), encoding='utf-8')
                 if not totals['tests'] or any(totals[k] for k in ('failures', 'errors', 'skipped')):
                     raise SystemExit('Study acceptance requires nonempty passing tests without skipped cases')
@@ -308,8 +333,42 @@ def main():
                         if not stats['expected'] or stats['unexpected'] or stats['skipped'] or stats['flaky']:
                             raise SystemExit('Study browser acceptance requires passing selected cases without skips or retries')
                     stop()
+        if args.study_acceptance:
+            run(['node','tests/hri/analyze.mjs',str(artifacts/'browser-false')],'analysis')
+            release=artifacts/'release'
+            run([*maven,'-Pstudy-release','-Dprometheus.build.directory='+str(release),'-DskipTests','package'],'package')
+            jar=release/'prometheus-0.0.1-SNAPSHOT.jar'
+            with zipfile.ZipFile(jar) as archive:
+                names=archive.namelist()
+                forbidden=[n for n in names if n.startswith('BOOT-INF/classes/') and
+                    (re.fullmatch(r'BOOT-INF/classes/(application[^/]*\.(properties|ya?ml)|openai[^/]*\.properties)',n) or '/fixtures/' in n)]
+                if forbidden:raise RuntimeError('Study release contains local configuration or test fixtures')
+                if 'BOOT-INF/classes/public/hri-study/index.html' not in names:raise RuntimeError('Study release lacks participant UI')
+            with socket.socket() as listener:
+                listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
+            env.update(SERVER_ADDRESS='127.0.0.1',SERVER_PORT=str(port),PROMETHEUS_LIVE_ENABLED='false')
+            with (artifacts/'app-package.log').open('w',encoding='utf-8') as log:
+                app=subprocess.Popen(['java','-jar',str(jar)],env=env,stdout=log,stderr=subprocess.STDOUT,
+                    creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+                for attempt in range(180):
+                    if app.poll() is not None:raise RuntimeError('Study package exited; inspect app-package.log')
+                    try:
+                        with urlopen(f'http://127.0.0.1:{port}/actuator/health',timeout=1) as response:
+                            if json.load(response)['status']=='UP':break
+                    except Exception:time.sleep(.5)
+                else:raise RuntimeError('Study package health timeout')
+                with urlopen(f'http://127.0.0.1:{port}/hri-study/',timeout=5) as response:
+                    if b'Coordinating an activity together' not in response.read():raise RuntimeError('Study package UI missing')
+                stop()
+            (artifacts/'package.json').write_text(json.dumps({'passed':True,'sha256':hashlib.sha256(jar.read_bytes()).hexdigest(),
+                'localConfigurationExcluded':True,'fixtureClassesExcluded':True,'databaseHealth':'UP'}),encoding='utf-8')
     finally:
         stop()
+        if args.study:
+            final_hashes={str(p.relative_to(root)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for p in sources if p.exists()}
+            manifest['filesAtEnd']=final_hashes
+            manifest['sourceChangedDuringRun']=[name for name,value in manifest['files'].items() if final_hashes.get(name)!=value]
+            (artifacts/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
         capacity_report = root / 'target/classroom-capacity-report.json'
         if args.classroom_capacity and capacity_report.exists():
             try:

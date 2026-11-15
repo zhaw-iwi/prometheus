@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-10 (2026-11-15, **complete**, study application branch): one integrated
+  acceptance command, dataset rehearsal, source/material hashes and configuration-free
+  production JAR. Ordinary-route query regression corrected with startup/provisioning
+  study ownership indexing; export retains evidence after canonical agent loss.
+  Final 1,075 Java, 224 JS/coding, 14 browser and analysis/package DB health checks
+  passed, with zero skips/retries. Human collection remains closed; OS-11 bounded
+  provider matrix next. Evidence: `.doc/papers/hri/RESULTS.md`.
+
 - OS-09 (2026-11-15, **complete**, study application branch): full locked
   assessment/debrief/receipt, v2 frozen materials, balanced allocation/replacements,
   operator assistance/progress/JSON/CSV, assigned executors and coding protocol.

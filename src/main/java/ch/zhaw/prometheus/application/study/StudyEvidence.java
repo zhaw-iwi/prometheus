@@ -126,15 +126,17 @@ public class StudyEvidence {
             if (Set.of(StudyTurn.Status.PENDING,StudyTurn.Status.UNCERTAIN).contains(receipt.status)) unresolved++;
         }
         var recordedEvents=events(evidence); var actualEvents=new HashSet<String>();
-        if (attempt.agentId!=null) agents.findById(attempt.agentId).orElseThrow().getEventHistory().toList()
-                .forEach(e -> actualEvents.add(e.getId().toString()));
+        var canonicalAgent=attempt.agentId==null?Optional.<ch.zhaw.prometheus.model.Agent>empty():agents.findById(attempt.agentId);
+        boolean agentMissing=attempt.agentId!=null && canonicalAgent.isEmpty();
+        canonicalAgent.ifPresent(agent->agent.getEventHistory().toList().forEach(e->actualEvents.add(e.getId().toString())));
         var formKinds=new HashSet<>(privateForms.stream().map(f -> f.kind).toList());
         boolean formsComplete=recordedForms.equals(formKinds) && (attempt.agentId==null || formKinds.containsAll(Set.of("pre","intention","private")))
                 && (attempt.stage!=StudyAttempt.Stage.COMPLETE || formKinds.containsAll(Set.of("understanding","post")));
         boolean assessmentReference=attempt.finishReason==null || evidence.stream().anyMatch(r->r.kind.equals("ASSESSMENT_REFERENCE"));
-        boolean complete=metadata && assessmentReference && committed.equals(recordedRequests) && expectedAcceptances.equals(acceptedRequests)
+        boolean complete=metadata && !agentMissing && assessmentReference && committed.equals(recordedRequests) && expectedAcceptances.equals(acceptedRequests)
                 && actualEvents.equals(recordedEvents.keySet()) && formsComplete;
         if (!metadata) issues.add("metadata_missing");
+        if (agentMissing) issues.add("canonical_agent_missing");
         if (!assessmentReference) issues.add("assessment_reference_missing");
         if (!committed.equals(recordedRequests)) issues.add("turn_record_mismatch");
         if (!expectedAcceptances.equals(acceptedRequests)) issues.add("acceptance_snapshot_mismatch");

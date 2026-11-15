@@ -35,6 +35,7 @@ class StudyRestartIntegrationTest {
             assertEquals(id,session.id()); assertEquals("signs",session.scenario());
             assertEquals(StudyAttempt.Stage.COORDINATION,session.stage());
             assertEquals(agent,restarted.getBean(StudyAttemptRepository.class).findById(id).orElseThrow().agentId);
+            assertTrue(restarted.getBean(StudyAgentRegistry.class).contains(agent));
             assertEquals(3,restarted.getBean(StudyFormRepository.class).findByAttemptIdOrderByCreatedAt(id).size());
             var repeated=restarted.getBean(StudyTurns.class).submit(token,request);
             assertEquals(StudyTurn.Status.COMMITTED,repeated.status()); assertEquals(responseId,repeated.responseEventId());

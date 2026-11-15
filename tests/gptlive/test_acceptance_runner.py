@@ -10,6 +10,9 @@ RUNNER = Path(__file__).with_name('run_acceptance.py')
 
 
 class AcceptanceRunnerTest(unittest.TestCase):
+    def test_integrated_study_selection_cannot_hide_cases_or_bill(self):
+        for extra in (['--browser-grep','guess'],['--paid-core','coordination-text'],['--java-tests','none']):
+            self.run_rejected(['--study-acceptance',*extra],{},'owns its complete offline selection')
     def test_study_rejects_empty_and_unrelated_paid_selections(self):
         self.run_rejected(['--study', '--java-tests', 'none'], {}, 'requires a test, browser, or provider selection')
         self.run_rejected(['--study', '--paid-core', 'live'], {}, 'requires --paid-core coordination-text')
