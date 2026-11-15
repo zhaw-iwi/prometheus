@@ -1,3 +1,4 @@
+import {clarify} from './clarify.mjs';
 import {completeAssessment} from './complete.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -23,6 +24,7 @@ try{
   const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v2.json','utf8'));await api('/api/study/consent',{version:'synthetic-test-v1'});
   await api('/api/study/forms/pre',Object.fromEntries(materials.pre.map(i=>[i.id,i.kind==='rating7'?'4':'Synthetic fixture'])));
   await api('/api/study/forms/intention',{intention:'PRIVATE_SIGN_INTENTION: fictional preferences'});await api('/api/study/forms/private',{private:'PRIVATE_SIGN_PREFERENCE: prefer explicit waiting.'});
+  await clarify(say,'signs');
   let state=await say('Propose, but do not start, a fictional preference check-in. You ask exactly these questions in order: "Would you like a short activity?", "Would you prefer a quiet activity?", "Would you like a break afterwards?" I answer using simulated buttons: thumbs up means yes, thumbs down means no, open palm means wait without answering. Only my explicit text Resume continues the same pending question. I want to demonstrate all three signs before acceptance. One fresh sign answers only its current pending question and must not carry over. End after recording all agreed answers; Stop ends earlier. Success means recording the answers, not any health outcome. No camera.');
   assert.equal(state.phase,'PREPARATION');assert.equal(state.draft.activity.kind,'SIGN_ANSWERS');const initial=state.draft;
   await demonstrate();await predict();state=await say('Those conditions sound right. Let us start.');assert.equal(state.phase,'EXECUTION');assert.equal(state.actions,1);

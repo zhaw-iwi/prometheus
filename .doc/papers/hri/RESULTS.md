@@ -441,3 +441,69 @@ configuration and test fixtures, and has SHA-256
 `5cbd0af90aa11a7dabc5ec523395430ad723e546b7d477bb057c90d4f3aad569`.
 No deployment occurred. Single-process operation remains required; human collection
 stays closed. See ACCEPTANCE.md for reproduction; OS-11 semantic matrix is next.
+
+## OS-11 - bounded real-provider semantic matrix (2026-11-15)
+
+Base `330d1e8f`; predeclared matrix/caps in PROVIDER_MATRIX.md. Each scenario now
+begins with missing requirements and meaningful clarification, then specification,
+paraphrased acceptance, one revision, execution probe, private assessments and receipt.
+All runs use fresh agents/disposable MySQL, `hri-text-v2-draft`, actual OpenAI model
+`gpt-5.6-luna`, effort `none`, 30s timeout and 2,048 completion tokens. No audio/Live.
+
+Retained trials (`target/gptlive-acceptance-<suffix>/`):
+
+| Iteration/task | Artifact | Calls / tokens | Review |
+| --- | --- | --- | --- |
+| Initial A | f536b8d995 | 8 / 31,372 | Technical pass; text-output contract failed: unrendered nonverbal metadata |
+| Initial B | b4afed876c | 5 / 29,026 | Same metadata issue; accepted/executed terms faithful |
+| Initial C | 3f7b8fee13 | 5 / 30,176 | Same metadata issue; accepted/executed terms faithful |
+| Speech projection A | a165655ac4 | 8 / 31,792 | Bounded semantic pass |
+| Speech projection B | 4ad396c6bc | 5 / 28,857 | Technical pass; clarification offered an unsupported alternative count threshold |
+| Speech projection C | b65959223f | 5 / 30,275 | Bounded semantic pass |
+| **Final A** | **346266d8dc** | **8 / 31,921** | **Technical + independent bounded semantic PASS** |
+| **Final B** | **0c1e27d734** | **5 / 29,553** | **Technical + independent bounded semantic PASS** |
+| **Final C** | **eff21edc1c** | **5 / 30,610** | **Technical + independent bounded semantic PASS** |
+
+Corrections were identified before declaring/running the next bounded matrix.
+Study interpretation now validates then projects generated replies to speech only;
+blank text fails closed. Context guidance distinguishes negotiable example wording
+from fixed scene/departure/resumption capabilities. It must explain those limits,
+not invite an unsupported threshold. Baseline multimodal Coordination is unchanged.
+Offline verification: `2df307acba` passed 36 typed study/definition/shared Coordination
+checks after speech projection; `83087a9fff` passed 26 context/shared/executor checks
+after the guidance correction. Script syntax and `git diff --check` passed.
+
+Independent final review (separate from raw `semanticReview:PENDING` reports):
+- A clarified the budget/answer set without starting, then preserved roles, success,
+  answer types and pending question through pause/resume and the 5-to-3 total-limit
+  revision. Only the limit and derived dialogue bound changed. Three No answers
+  ended with budget exhaustion, not false success. The deliberately negative script
+  does not establish guessing quality or consistency with the private secret.
+- B asked for exact question wording and explicit agreement to the supported fixed
+  policy. The versioned one-two-one probe postponed without repeating private text;
+  return/revised acceptance stayed paused until fresh one-person evidence and Resume.
+  Only noReply changed, and No delivered exactly that revised response. Departure
+  and return after completion produced no restarted question. No identity/privacy
+  guarantee, adherence verification or clinical success claim appeared.
+- C clarified exact questions, retained all three and every unaffected field across
+  the mapping swap, required fresh demonstrations and private predictions before
+  acceptance, preserved the second pending question, and consumed fresh revised
+  signs once. Final answers remained YES/YES/NO; success required all three answers.
+
+Final exports respectively contain 10/13/16 requests, 37/47/49 records, two accepted
+snapshots and 21 answer rows each, with all recording/procedure/configuration/display
+checks complete and zero unresolved requests. Display reports are synthetic script
+reports, not browser evidence. Provider requests contain none of the private secret,
+preference, prediction or assessment markers. Source hashes did not change during
+any final run. Some clarification replies bundle related questions and wording has
+minor punctuation/grammar issues; human usability remains for the pilot.
+
+Final matrix usage: **18 calls / 92,084 tokens**. All nine retained trials together:
+**54 calls / 273,582 tokens**. Across the final 18 inference spans, median provider
+latency was **1.795s**, nearest-rank p95/max **3.736s**. Scenarios ran in separate
+owned processes with overlapping trials; these are descriptive provider observations,
+not an eight-session production capacity test. Aggregate local summary:
+`target/hri-provider-matrix-os11.json`. General model reliability and human task
+performance are unproven. Create fresh invitations after prompt changes because
+agent instructions persist. OS-12 sustained capacity/package/pilot handoff is next;
+human collection remains closed.

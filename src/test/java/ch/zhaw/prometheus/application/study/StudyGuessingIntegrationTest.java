@@ -50,6 +50,12 @@ class StudyGuessingIntegrationTest {
         operation=update("REPLACE",contract(5));say(token,"Change the limit to five in total.");assertTrue(procedure.view(token).revisionInstruction().contains("five"));
         predict(token);operation=update("START",null);say(token,"Start now");assertNull(procedure.view(token).revisionInstruction());
     }
+    @Test void clarificationRecordsOnlyTextEvenWhenModelAddsDecorativeModalities(){
+        var invite=ready();operation="{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{\"speech\":\"Which answers should we allow?\",\"nonVerbal\":{\"gesture\":\"OPEN_QUESTION\"},\"display\":{\"text\":\"Clarify\"}}}";
+        var result=say(invite.token(),"Please clarify the missing rules.");
+        var payload=com.google.gson.JsonParser.parseString(result.responsePayload()).getAsJsonObject();assertEquals(Set.of("speech"),payload.keySet());
+        assertNull(turns.conversation(invite.token()).agreement());
+    }
     @Test void persistedGameRevisionAndPrivatePredictionsSurviveReloadAndExport() {
         var invite=ready();String token=invite.token();operation=update("PROPOSE",contract(5));say(token,"Propose my game, do not start.");
         assertTrue(procedure.view(token).predictionRequired());

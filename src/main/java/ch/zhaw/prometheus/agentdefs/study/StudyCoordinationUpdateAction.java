@@ -37,7 +37,9 @@ public class StudyCoordinationUpdateAction extends CoordinationUpdateAction {
             // optional modalities may bypass the typed executor's first move.
             return BehaviourPlan.speechOnly("Preparing the agreed game question.");
         }
-        return super.interpretationReply(operation,raw);
+        var reply=super.interpretationReply(operation,raw);
+        if(reply.getSpeech()==null || reply.getSpeech().isBlank())throw new IllegalArgumentException("Study replies require text");
+        return BehaviourPlan.speechOnly(reply.getSpeech());
     }
     @Override public void execute(EventHistory events,PolicyRuntime runtime) {
         preparedGame=null; currentEvents=events; contextPrior=null;

@@ -18,7 +18,10 @@ public final class StudyContext {
         {"kind":"CONTEXT_CHECKIN","question":"In this fictional scenario, has the medication routine been completed?",
         "yesReply":"Thank you for letting me know.","noReply":"You can consider the reminder in the fictional care plan.",
         "startCount":1,"postponeAt":2,"departure":"END","resume":"EXPLICIT_WHEN_ONE"}.
-        These are examples, not imposed preferences. Clarify unspecified material wording/conditions with the human.
+        Only question, yesReply and noReply are example wording, not imposed preferences; clarify these with the human.
+        The numeric scene thresholds, departure and resumption rules are FIXED capabilities of this executor, not negotiable examples.
+        Do not offer a different visible-person threshold or automatic resumption. Explain the supported policy and ask whether it is acceptable;
+        if it is not, keep negotiating without starting or let the participant end the interaction. Do not promise unsupported alternatives.
         Supported rules: after acceptance, a FRESH simulated one-person scene starts one yes/no question;
         two or more visible people postpone immediately; explicit Resume with a current one-person scene continues;
         departure ends an already begun encounter. Return alone never restarts it. Unknown evidence pauses, not absence.

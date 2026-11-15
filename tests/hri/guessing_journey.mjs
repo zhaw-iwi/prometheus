@@ -1,3 +1,4 @@
+import {clarify} from './clarify.mjs';
 import {completeAssessment} from './complete.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -16,6 +17,7 @@ try{
   await api('/api/study/consent',{version:'synthetic-test-v1'});
   await api('/api/study/forms/pre',Object.fromEntries(materials.pre.map(i=>[i.id,i.kind==='rating7'?'4':'Synthetic fixture'])));
   await api('/api/study/forms/intention',{intention:'A short guessing game'});await api('/api/study/forms/private',{private:'Hidden object: umbrella. I prefer short questions.'});
+  await clarify(say,'guess');
   let state=await say('Please propose, but do not start, a Twenty Questions-style game. I keep an everyday object secret and answer yes, no or unknown. You ask questions and make guesses. Use five questions total, with every guess counting as a question. A guess succeeds only when I confirm it. Pause preserves progress; stop ends the game. No sensors.');
   assert.equal(state.phase,'READY');assert.equal(state.draft.activity.kind,'GUESSING');assert.equal(state.draft.activity.questionLimit,5);assert.equal(state.agreement,null);
   await predict();state=await say('Those terms work for me. Let us begin.');assert.equal(state.phase,'EXECUTION');assert.equal(state.actions,1);

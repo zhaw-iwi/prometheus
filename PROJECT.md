@@ -75,6 +75,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- OS-11 (2026-11-15, **complete**, study application branch): predeclared live
+  clarification/specification/revision/execution/assessment matrix passes all three
+  scenarios under independent semantic review. Study replies now enforce text-only
+  output; contextual guidance distinguishes fixed capabilities from example wording.
+  Corrections passed 36 then 26 focused checks. Final matrix: 18 OpenAI calls,
+  92,084 tokens; all earlier trials/issues retained. OS-12 sustained capacity and
+  pilot handoff next; human collection stays closed. `.doc/papers/hri/RESULTS.md`.
+
 - OS-10 (2026-11-15, **complete**, study application branch): one integrated
   acceptance command, dataset rehearsal, source/material hashes and configuration-free
   production JAR. Ordinary-route query regression corrected with startup/provisioning

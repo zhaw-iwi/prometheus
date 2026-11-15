@@ -47,3 +47,6 @@ Operator/API details: [IMPLEMENTATION.md](IMPLEMENTATION.md).
 
 [ACCEPTANCE.md](ACCEPTANCE.md) provides the complete offline acceptance command,
 source/material manifest and configuration-free package workflow.
+
+[PROVIDER_MATRIX.md](PROVIDER_MATRIX.md) declares the finite A/B/C semantic trials
+and review criteria. A technical script pass does not replace the separate review.

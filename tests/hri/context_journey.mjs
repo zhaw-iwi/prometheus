@@ -1,3 +1,4 @@
+import {clarify} from './clarify.mjs';
 import {completeAssessment} from './complete.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -13,19 +14,20 @@ async function record(input,response){assert.equal(response.status,'COMMITTED');
   report.turns.push({input,response,state,activity});if(report.turns.length>20)throw Error('Study request cap');
   for(const event of await api('/api/study/events'))if(event.type==='resp.behaviour_plan'&&!displayed.has(event.id)){await api('/api/study/display',{eventId:event.id,clientTime:new Date().toISOString(),disposition:event.withheld?'WITHHELD':'DISPLAY'});displayed.add(event.id);}return state;}
 async function say(text){const request={requestId:randomUUID(),expectedTurn:cursor,text};const response=await api('/api/study/turns',request);assert.deepEqual(await api('/api/study/turns',request),response);return record(text,response);}
-async function scene(count){const activity=await api('/api/study/activity');const request={requestId:randomUUID(),expectedScene:activity.sceneVersion,humanCount:count,observedAt:new Date().toISOString()};const response=await api('/api/study/scene',request);assert.deepEqual(await api('/api/study/scene',request),response);return record({simulatedCount:count},response);}
+async function scene(count,planned=false){const activity=await api('/api/study/activity');const request={requestId:randomUUID(),expectedScene:activity.sceneVersion,humanCount:count,observedAt:new Date().toISOString(),...(planned?{probeStep:activity.sceneProbeStep}:{})};const response=await api('/api/study/scene',request);assert.deepEqual(await api('/api/study/scene',request),response);return record({simulatedCount:count},response);}
 async function predict(){const activity=await api('/api/study/activity');assert.equal(activity.predictionRequired,true);await api('/api/study/predictions',{revision:activity.revision,prediction:'PRIVATE_CONTEXT_PREDICTION: wait for a fresh one-person scene; explicit resumption for postponement.'});}
 try{
   const invitation=await api('/admin/study/attempts',{mode:'SYNTHETIC',scenario:'context'});headers={'X-Prometheus-Study-Token':invitation.token};
   const materials=JSON.parse(await fs.readFile('src/main/resources/hri-study/materials-v2.json','utf8'));await api('/api/study/consent',{version:'synthetic-test-v1'});
   await api('/api/study/forms/pre',Object.fromEntries(materials.pre.map(i=>[i.id,i.kind==='rating7'?'4':'Synthetic fixture'])));
   await api('/api/study/forms/intention',{intention:'A fictional routine check-in'});await api('/api/study/forms/private',{private:'PRIVATE_CONTEXT_PREFERENCE: prefer neutral wording.'});
+  await clarify(say,'context');
   let state=await say('Propose, but do not start, one fictional medication-routine check-in. After acceptance, wait for a fresh simulated scene with exactly one visible person, then ask "In this fictional scenario, was the medication routine completed?" I answer yes or no. For yes, say "Thank you for letting me know." For no, say "You can consider a reminder in this fictional scenario." Two or more visible people postpone the check-in without repeating its private question. Continue only after I explicitly resume with one person visible. Departure ends an ongoing encounter; return alone does not restart it. Unknown scene means wait. Success is delivering the agreed fictional response, not verifying medication use. No real camera or patient identification.');
   assert.equal(state.phase,'READY');assert.equal(state.draft.activity.kind,'CONTEXT_CHECKIN');const initial=state.draft;
   await predict();state=await say('Those conditions sound right. Let us start.');assert.equal(state.phase,'EXECUTION');assert.equal(state.actions,0);
-  state=await scene(1);assert.equal(state.actions,1);const pending=JSON.parse((await api('/api/study/activity')).context).pending;
-  state=await scene(2);assert.equal(state.phase,'PAUSED');assert.ok(!JSON.parse(report.turns.at(-1).response.responsePayload).speech.includes('medication'));
-  state=await scene(1);assert.equal(state.phase,'PAUSED');
+  state=await scene(1,true);assert.equal(state.actions,1);const pending=JSON.parse((await api('/api/study/activity')).context).pending;
+  state=await scene(2,true);assert.equal(state.phase,'PAUSED');assert.ok(!JSON.parse(report.turns.at(-1).response.responsePayload).speech.includes('medication'));
+  state=await scene(1,true);assert.equal(state.phase,'PAUSED');assert.equal((await api('/api/study/activity')).sceneProbeStep,3);
   state=await say('Make only the support for a no answer shorter and neutral: "A reminder may help." Keep the question, yes response, roles, success and all scene and stopping conditions unchanged.');
   assert.equal(state.phase,'READY');assert.equal(state.draft.activity.noReply,'A reminder may help.');
   for(const field of ['question','yesReply','startCount','postponeAt','departure','resume'])assert.deepEqual(state.draft.activity[field],initial.activity[field]);

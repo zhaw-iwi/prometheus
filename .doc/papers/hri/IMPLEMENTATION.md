@@ -401,3 +401,12 @@ Export remains available if a canonical runtime agent has been lost: immutable
 records/forms/snapshots are retained and `canonical_agent_missing` makes recording
 completeness false. This is an audit/recovery path, not permission to resume that
 attempt or silently recreate the agent.
+
+## Provider qualification boundary
+
+Study-generated interpretation replies are projected to speech only after ordinary
+validation; missing/blank text is rejected. The model can generate decorative
+modalities in its raw response, but they cannot enter the study's canonical output.
+Typed executors also emit text only. Baseline Coordination retains its multimodal
+behavior. The predeclared bounded matrix is in PROVIDER_MATRIX.md; independent
+semantic reviews and all attempts belong in RESULTS.md.
