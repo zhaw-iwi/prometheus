@@ -79,9 +79,17 @@ and regulation diagnostics remain future work.
   exactly `http://localhost:5173`, preserving both existing port-5010 origins.
   README distinguishes the Studio page origin from the backend URL and from a
   Raspberry Pi LAN address. All four `PrometheusCorsConfigurationWebMvcTest`
-  cases passed on main with an isolated build directory; `git diff --check`
-  passed. The owner authorized main publication and merge into agents to deploy;
-  production preflight verification follows that release.
+  cases passed on both main and merged agents using isolated build directories
+  (`target/cors-main-20261117` and `target/cors-agents-20261117`); whitespace checks
+  passed. Main commit `d504410` merged into agents as `5405a7c`. Authorized
+  [deployment run 44095371476](https://github.com/zhaw-iwi/prometheus/actions/runs/44095371476)
+  succeeded, releasing Heroku **valerian v168** at 14:50 CET. Eleven live checks
+  passed: health UP, ordinary/server requests, both previous origins, session and
+  SSE preflights, missing-access-code rejection and three unlisted-origin
+  rejections. Local evidence: `target/cors-heroku-verification-20261117.json`.
+  No production agent mutation or provider call was made. The colleague's full
+  Studio/agent journey remains unverified; Pi LAN URLs and `127.0.0.1:5173` are
+  separate origins and remain outside this exact-origin addition.
 
 - EV promotion (2026-11-17): selectively ported the three visualization commits
   to `main`, without the HRI study runtime. The generic acceptance runner now
