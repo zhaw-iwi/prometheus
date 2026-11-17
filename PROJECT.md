@@ -82,6 +82,14 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Embodiment Studio CORS (2026-11-17): the production allowlist now includes
+  exactly `http://localhost:5173`, preserving both existing port-5010 origins.
+  README distinguishes the Studio page origin from the backend URL and from a
+  Raspberry Pi LAN address. All four `PrometheusCorsConfigurationWebMvcTest`
+  cases passed on main with an isolated build directory; `git diff --check`
+  passed. The owner authorized main publication and merge into agents to deploy;
+  production preflight verification follows that release.
+
 - EV promotion (2026-11-17): selectively ported the three visualization commits
   to `main`, without the HRI study runtime. The generic acceptance runner now
   supports isolated embodiment builds independently of study code. Main port:

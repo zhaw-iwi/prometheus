@@ -2592,15 +2592,21 @@ them as case-sensitive.
 ## CORS
 
 Bundled clients are same-origin. External browser clients need an explicit
-allowlist:
+allowlist. The production profile permits these exact origins:
 
 ```properties
-prometheus.cors.allowed-origins=http://127.0.0.1:5010,http://localhost:5010
-prometheus.cors.allowed-origin-patterns=http://127.0.0.1:*,http://localhost:*
+prometheus.cors.allowed-origins=http://127.0.0.1:5010,http://localhost:5010,http://localhost:5173
+prometheus.cors.allowed-origin-patterns=
 ```
 
-Keep this narrow because the scoped access code acts as a bearer-style client
-credential.
+`http://localhost:5173` supports Embodiment Studio opened at that address.
+Opening Studio through a Raspberry Pi LAN address or hostname sends a different
+origin, which must be allowed separately. Match the browser page's scheme, host,
+and port, rather than the PROMETHEUS backend URL entered in the client.
+
+For local development, `prometheus.cors.allowed-origin-patterns` can explicitly
+allow patterns such as `http://127.0.0.1:*,http://localhost:*`. Keep the allowlist
+narrow because the scoped access code acts as a bearer-style client credential.
 
 ## Repository Structure
 
