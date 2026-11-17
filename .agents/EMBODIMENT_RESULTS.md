@@ -131,4 +131,62 @@ Baseline deployment before promotion: `agents` at `0760ea8c`, GitHub deployment
 run `43179868073`, Heroku `valerian` release **v166**, health UP; no Robot view.
 The `agents` push workflow owns deployment. Its catalog, creation-time
 embodiment/persona controls, Dockerfile and production configuration must survive
-the merge. Deployment and merged-branch verification are pending this record.
+the merge.
+
+### Merged agents acceptance and release
+
+Main promotion `2300d8a8` was pushed, then merged into agents as **`8baa1b70`**.
+The documentation conflict retained both branches' records. The render conflict
+keeps the existing stale-game-round rejection before either view receives a plan.
+The runner conflict retains Gala journeys and rejects combining them with the
+embodiment mode. No Java, production configuration, catalog or workflow changes
+were introduced relative to the previous agents release. Main's earlier poster
+documentation is also included by the normal merge.
+
+- **232 JS checks and 13 runner preflight checks passed** on the merged tree.
+  Log: `target/embodiment-agents-js-20261117.log`.
+- **30 Java/local-MySQL checks and 27 browser checks passed** in
+  `target/gptlive-acceptance-74813da151`. Java selection: the three main-port
+  suites above plus `AgentEmbodimentUnitTest,AgentDefinitionRegistryUnitTest`.
+  Browser selection: `--embodiment --browser --browser-mode disabled
+  --browser-grep 'embodiment|detached windows|wider live modal|lifecycle'`.
+  Includes all five Robot cases, lifecycle and column expansion coverage.
+  This run started before the merge commit; its file manifest identifies the
+  tested merged contents and reports no source changes during the run.
+- A fresh bounded real OpenAI baseline on `8baa1b70` passed, using **one request /
+  5,350 tokens**. The actual persisted reply rendered in Robot, preserved speech
+  and latest event, and did not animate history. No page errors; screenshot
+  inspected. Artifacts: `target/gptlive-acceptance-c3e9384aab`. This is baseline
+  provider/persistence/rendering evidence, not acceptance of the previously
+  rejected extended task proposal. Both runs removed owned apps/schemas/accounts.
+- Packaging passed using the isolated agents build directory, with all seven
+  required embodiment modules/styles/license entries present and no test fixture
+  classes or HRI study assets. Log: `target/embodiment-agents-package-20261117.log`.
+- Agents push deployed successfully via
+  [GitHub Actions run 44028623698](https://github.com/zhaw-iwi/prometheus/actions/runs/44028623698).
+  Heroku **valerian v167**, released **2026-11-17 06:06:32 UTC**, succeeded.
+  [Deployed cockpit](https://valerian-e613edef27a0.herokuapp.com/valerian/).
+- Deployed read-only verification passed: health **UP**, nine served asset hashes
+  match `8baa1b70`, real WebGL Robot/Details switching, preserved speech,
+  static replay and zero page errors or attempted writes. A synthetic client plan
+  exercised the renderer without production login, agent access or provider use.
+  Screenshot inspected. Artifacts: `target/embodiment-heroku-v167-verified`.
+  The first verifier attempt falsely reported a CSS mismatch because Fetch's
+  `text()` removed its UTF-8 BOM. Reading response bytes fixed the verifier;
+  the deployed CSS itself was already byte-correct. Initial failed evidence is
+  retained in `target/embodiment-heroku-v167`.
+
+The release audit and verifier correction are documentation/test-only follow-up
+changes, merged back from main with `[skip ci]`; deployed runtime remains v167.
+For future release checks, run `node tests/deployment/verify-embodiment.mjs
+https://valerian-e613edef27a0.herokuapp.com target/embodiment-release-check` from
+the agents checkout whose runtime files match the deployed release.
+
+To try it, connect an existing agent and select **Robot** above the Behaviour
+cards. This browser view choice is independent of the creation-time
+embodiment/persona selector. Speech remains above the robot and Latest Behaviour
+Event below it. No new agent or database migration is required.
+
+Remaining limits are unchanged: no physical robot, participant recognizability,
+or broad device/GPU validation; production was checked with synthetic local
+rendering, while live inference was checked on disposable local MySQL.

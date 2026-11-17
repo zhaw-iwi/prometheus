@@ -79,8 +79,12 @@ and regulation diagnostics remain future work.
   to `main`, without the HRI study runtime. The generic acceptance runner now
   supports isolated embodiment builds independently of study code. Main port:
   231 JS, 12 runner, 21 Java/local-MySQL and all 52 browser checks passed.
-  The authorized `agents` merge and Heroku release are tracked in
-  `.agents/EMBODIMENT_RESULTS.md`.
+  Merged into `agents` as `8baa1b70`, preserving catalog/persona and deployment
+  settings. Agents: 232 JS, 13 runner, 30 Java/local-MySQL and 27 browser checks
+  passed; live OpenAI baseline plus persisted-plan rendering passed (one request,
+  5,350 tokens). Heroku `valerian` **v167** is deployed; health, served asset
+  hashes and read-only browser rendering verified. Exact commands, release links,
+  limitations and retained failures: `.agents/EMBODIMENT_RESULTS.md`.
 
 - EV-01 through EV-03 (2026-11-15): alternative Valerian Details / Robot view on
   `feature/valerian-embodiment`. Speech and latest event remain; canonical plans
