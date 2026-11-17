@@ -20,7 +20,9 @@ try {
     const response=await fetch(new URL('/valerian/'+file,base),{signal:AbortSignal.timeout(30000)});
     expect(response.ok).toBe(true);
     const expected=execFileSync('git',['show',`HEAD:src/main/resources/public/valerian/${file}`],{encoding:'utf8',maxBuffer:4*1024*1024});
-    const actual=hash(await response.text());expect(actual).toBe(hash(expected));report.assets.push({file,sha256:actual});
+    // Response.text() strips a UTF-8 BOM; preserve bytes when comparing Git assets.
+    const actual=hash(Buffer.from(await response.arrayBuffer()).toString('utf8'));
+    expect(actual).toBe(hash(expected));report.assets.push({file,sha256:actual});
   }
   browser=await chromium.launch({headless:true});
   const context=await browser.newContext({viewport:{width:1440,height:1100},reducedMotion:'reduce'});
