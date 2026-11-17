@@ -2352,6 +2352,13 @@
                   </div>
                 </div>
 
+                <div class="embodiment-switch" role="group" aria-label="Behaviour view">
+                  <button id="behaviour_details_view" class="btn btn-outline-ink btn-sm" type="button"
+                    data-embodiment-mode="details" aria-pressed="true">Details</button>
+                  <button id="behaviour_robot_view" class="btn btn-outline-ink btn-sm" type="button"
+                    data-embodiment-mode="robot" aria-pressed="false">Robot</button>
+                </div>
+                <p id="embodiment_status" class="embodiment-status" role="status"></p>
                 <div class="behaviour-visual-grid" data-testid="behaviour-visual-grid">
                   <section class="behaviour-visual-card behaviour-card-wide" data-profile-behaviours="speech"
                     data-behaviour-tone="speech">
@@ -2364,7 +2371,17 @@
                     <div id="speech_preview" class="behaviour-speech-preview" data-testid="speech-preview">-</div>
                   </section>
 
-                  <section class="behaviour-visual-card" data-profile-behaviours="nonVerbal.gesture"
+                  <figure class="embodiment-panel mb-0" id="embodiment_panel" hidden>
+                    <div class="embodiment-stage" id="embodiment_stage" data-testid="embodiment-stage">
+                      <span class="embodiment-name" aria-hidden="true">VALERIAN</span>
+                      <canvas id="embodiment_canvas" role="img" aria-label="Robot enacting the current behaviour plan"
+                        aria-describedby="embodiment_summary"></canvas>
+                    </div>
+                    <figcaption id="embodiment_summary" class="embodiment-summary"></figcaption>
+                    <div id="embodiment_display" class="embodiment-display" hidden></div>
+                  </figure>
+
+                  <section class="behaviour-visual-card" data-behaviour-detail data-profile-behaviours="nonVerbal.gesture"
                     data-behaviour-tone="gesture">
                     <div class="behaviour-card-head">
                       <span class="behaviour-card-title">
@@ -2379,7 +2396,7 @@
                     <div id="gesture_hint" class="behaviour-card-subvalue" data-testid="gesture-hint">No gesture</div>
                   </section>
 
-                  <section class="behaviour-visual-card" data-profile-behaviours="nonVerbal.facialExpression"
+                  <section class="behaviour-visual-card" data-behaviour-detail data-profile-behaviours="nonVerbal.facialExpression"
                     data-behaviour-tone="face">
                     <div class="behaviour-card-head">
                       <span class="behaviour-card-title">
@@ -2397,7 +2414,7 @@
                     </div>
                   </section>
 
-                  <section class="behaviour-visual-card" data-profile-behaviours="nonVerbal.gaze"
+                  <section class="behaviour-visual-card" data-behaviour-detail data-profile-behaviours="nonVerbal.gaze"
                     data-behaviour-tone="gaze">
                     <div class="behaviour-card-head">
                       <span class="behaviour-card-title">
@@ -2409,7 +2426,7 @@
                     <div id="gaze_focus_value" class="behaviour-card-subvalue" data-testid="gaze-focus-value">Focus -</div>
                   </section>
 
-                  <section class="behaviour-visual-card" data-profile-behaviours="motion nonVerbal.motion"
+                  <section class="behaviour-visual-card" data-behaviour-detail data-profile-behaviours="motion nonVerbal.motion"
                     data-behaviour-tone="motion">
                     <div class="behaviour-card-head">
                       <span class="behaviour-card-title">
@@ -2436,7 +2453,7 @@
                     </div>
                   </section>
 
-                  <section class="behaviour-visual-card" data-profile-behaviours="display"
+                  <section class="behaviour-visual-card" data-behaviour-detail data-profile-behaviours="display"
                     data-behaviour-tone="display">
                     <div class="behaviour-card-head">
                       <span class="behaviour-card-title">
@@ -2720,6 +2737,8 @@
   <script src="/valerian/state-view.js"></script>
   <link rel="stylesheet" href="/valerian/state-graph.css">
   <script src="/valerian/state-graph.js"></script>
+  <link rel="stylesheet" href="/valerian/embodiment/view.css">
+  <script type="module" src="/valerian/embodiment/view.js"></script>
   <script src="script.js"></script>
   <script type="module" src="/valerian/service-recovery.js"></script>
 </body>

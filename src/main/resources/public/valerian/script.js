@@ -275,6 +275,7 @@ window.addEventListener("beforeunload", cleanupAll);
 window.addEventListener("pagehide", cleanupAll);
 
 async function init() {
+  globalThis.ValerianEmbodiment?.init();
   camera.video = document.getElementById("camera_video");
   camera.canvas = document.getElementById("overlay_canvas");
   camera.ctx = camera.canvas.getContext("2d");
@@ -2114,6 +2115,7 @@ async function sendTextInput() {
 }
 
 async function sendUserUtterance(text, options = {}) {
+  globalThis.ValerianEmbodiment?.settle();
   if (!state.agentId || !text || liveVoice.ui?.busy) {
     return false;
   }
@@ -2258,7 +2260,7 @@ function handleBehaviourEnvelope(event, options = {}) {
   if (!options.fromHistory) {
     rememberRecentBehaviourPayload(event.payload);
   }
-  renderBehaviourPlan(plan, { preserveNonSpeech: event.provenance?.origin === "NATIVE" });
+  renderBehaviourPlan(plan, { ...options, preserveNonSpeech: event.provenance?.origin === "NATIVE" });
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "rendered");
   renderLatestEvent(event);
   if (options.renderTranscript !== false && typeof plan.speech === "string" && plan.speech.trim()) {
@@ -2628,6 +2630,9 @@ function renderBehaviourPlan(plan, options = {}) {
   }
   if (plan.display?.mode === "game_result" && plan.display.roundId && camera.handRoundId
       && plan.display.roundId !== camera.handRoundId) return;
+  const capabilities = resolveInteractionCapabilities(state.agentInfo?.interactionProfile);
+  globalThis.ValerianEmbodiment?.receive(plan, { ...options,
+    modalities: capabilities.fallbackAll ? null : capabilities.supportedBehaviourModalities });
   if (!options.preserveNonSpeech) resetBehaviourPanels();
   if (typeof plan.speech === "string" && plan.speech.trim()) {
     setText("speech_preview", plan.speech.trim());
@@ -5844,6 +5849,7 @@ function resetCockpitColumns() {
   setSpeechPlaybackStatus("Playback Ready", "idle", false);
   resetSensingState();
   resetBehaviourPanels();
+  globalThis.ValerianEmbodiment?.clear();
   setBehaviourStatus("Behaviour Idle", "idle");
 }
 
@@ -5953,7 +5959,7 @@ function setControlsEnabled(enabled) {
     "gptlive_tab",
   ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
-    if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.hasAttribute("data-state-action") || el.classList.contains("btn-close") ||
+    if (alwaysEnabled.has(el.id) || el.hasAttribute("data-embodiment-mode") || el.hasAttribute("data-theme-toggle") || el.hasAttribute("data-state-action") || el.classList.contains("btn-close") ||
       el.hasAttribute("data-column-maximize") || el.dataset.bsDismiss === "offcanvas" ||
       el.dataset.bsToggle === "collapse") {
       return;
@@ -6062,6 +6068,7 @@ function setCameraStatus(text, mode) {
 }
 
 function cleanupAll() {
+  globalThis.ValerianEmbodiment?.dispose();
   globalThis.PrometheusObservationTiming?.stop();
   state.isPageUnloading = true;
   stateView.dock();

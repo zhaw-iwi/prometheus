@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="350" viewBox="0 0 2000 350">
+<style>@font-face{font-family:SG-Regular;src:url(fonts/SpaceGrotesk-Regular.ttf)}@font-face{font-family:SG-Bold;src:url(fonts/SpaceGrotesk-Bold.ttf)}</style>
+<title>A flexible workflow for human-robot coordination</title>
+<desc>Opening, Alignment, Planning, Execution and Reflection. Changed circumstances return to Alignment; reflection returns to Planning for a revised agreement.</desc>
+<path d="M1400 35V15H592V35" fill="none" stroke="#006e67" stroke-width="2.2"/>
+<path d="M587 29L592 37L597 29" fill="none" stroke="#006e67" stroke-width="2.2"/>
+<text x="996" y="10" font-family="SG-Bold" font-size="19" fill="#006e67" text-anchor="middle">Changed circumstances? Clarify and agree again.</text>
+<rect x="1" y="40" width="382" height="260" rx="10" fill="#ffffff" stroke="#d8dfdc"/>
+<rect x="16" y="57" width="35" height="35" rx="8" fill="#d9efeb"/>
+<text x="33.5" y="82" font-family="SG-Bold" font-size="25" fill="#0c1618" text-anchor="middle">1</text>
+<text x="63" y="83" font-family="SG-Bold" font-size="30" fill="#0c1618" text-anchor="start">Opening</text>
+<text x="17" y="112" font-family="SG-Regular" font-size="21" fill="#536365" text-anchor="start">Discover possibilities</text>
+<line x1="17" y1="125" x2="365" y2="125" stroke="#d8dfdc"/>
+<text x="18" y="147" font-family="SG-Bold" font-size="15" fill="#536365" text-anchor="start">HUMAN</text>
+<text x="18" y="173" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">What are you?</text>
+<text x="18" y="198" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">What can you do?</text>
+<text x="18" y="223" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">How can you make</text>
+<text x="18" y="248" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">yourself useful?</text>
+<text x="18" y="273" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">How about you do ...?</text>
+<path d="M387 88H400M395 83L400 88L395 93" fill="none" stroke="#006e67" stroke-width="2"/>
+<rect x="405" y="40" width="382" height="260" rx="10" fill="#ffffff" stroke="#d8dfdc"/>
+<rect x="420" y="57" width="35" height="35" rx="8" fill="#d9efeb"/>
+<text x="437.5" y="82" font-family="SG-Bold" font-size="25" fill="#0c1618" text-anchor="middle">2</text>
+<text x="467" y="83" font-family="SG-Bold" font-size="30" fill="#0c1618" text-anchor="start">Alignment</text>
+<text x="421" y="112" font-family="SG-Regular" font-size="21" fill="#536365" text-anchor="start">Clarify the task</text>
+<line x1="421" y1="125" x2="769" y2="125" stroke="#d8dfdc"/>
+<text x="422" y="147" font-family="SG-Bold" font-size="15" fill="#536365" text-anchor="start">HUMAN</text>
+<text x="422" y="173" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">Are there questions</text>
+<text x="422" y="198" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">left unanswered?</text>
+<text x="422" y="223" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">Are there decisions</text>
+<text x="422" y="248" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">I need to make?</text>
+<path d="M791 88H804M799 83L804 88L799 93" fill="none" stroke="#006e67" stroke-width="2"/>
+<rect x="809" y="40" width="382" height="260" rx="10" fill="#ffffff" stroke="#d8dfdc"/>
+<rect x="824" y="57" width="35" height="35" rx="8" fill="#ff7a00"/>
+<text x="841.5" y="82" font-family="SG-Bold" font-size="25" fill="#0c1618" text-anchor="middle">3</text>
+<text x="871" y="83" font-family="SG-Bold" font-size="30" fill="#0c1618" text-anchor="start">Planning</text>
+<text x="825" y="112" font-family="SG-Regular" font-size="21" fill="#536365" text-anchor="start">Agree a plan</text>
+<line x1="825" y1="125" x2="1173" y2="125" stroke="#d8dfdc"/>
+<text x="826" y="147" font-family="SG-Bold" font-size="15" fill="#006e67" text-anchor="start">ROBOT</text>
+<text x="826" y="173" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">Here is what I can do.</text>
+<text x="826" y="198" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">Is that what you want?</text>
+<text x="826" y="230" font-family="SG-Bold" font-size="15" fill="#536365" text-anchor="start">HUMAN</text>
+<text x="826" y="256" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">Yes, start now.</text>
+<path d="M1195 88H1208M1203 83L1208 88L1203 93" fill="none" stroke="#006e67" stroke-width="2"/>
+<rect x="1213" y="40" width="382" height="260" rx="10" fill="#ffffff" stroke="#d8dfdc"/>
+<rect x="1228" y="57" width="35" height="35" rx="8" fill="#d9efeb"/>
+<text x="1245.5" y="82" font-family="SG-Bold" font-size="25" fill="#0c1618" text-anchor="middle">4</text>
+<text x="1275" y="83" font-family="SG-Bold" font-size="30" fill="#0c1618" text-anchor="start">Execution</text>
+<text x="1229" y="112" font-family="SG-Regular" font-size="21" fill="#536365" text-anchor="start">Act and coordinate</text>
+<line x1="1229" y1="125" x2="1577" y2="125" stroke="#d8dfdc"/>
+<text x="1230" y="147" font-family="SG-Bold" font-size="15" fill="#536365" text-anchor="start">ACTION</text>
+<text x="1230" y="173" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">Carry out the agreed task.</text>
+<text x="1230" y="205" font-family="SG-Bold" font-size="15" fill="#536365" text-anchor="start">HUMAN</text>
+<text x="1230" y="231" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">Wait - something changed.</text>
+<text x="1230" y="263" font-family="SG-Bold" font-size="15" fill="#006e67" text-anchor="start">ROBOT</text>
+<text x="1230" y="289" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">I need your help.</text>
+<path d="M1599 88H1612M1607 83L1612 88L1607 93" fill="none" stroke="#006e67" stroke-width="2"/>
+<rect x="1617" y="40" width="382" height="260" rx="10" fill="#ffffff" stroke="#d8dfdc"/>
+<rect x="1632" y="57" width="35" height="35" rx="8" fill="#d9efeb"/>
+<text x="1649.5" y="82" font-family="SG-Bold" font-size="25" fill="#0c1618" text-anchor="middle">5</text>
+<text x="1679" y="83" font-family="SG-Bold" font-size="30" fill="#0c1618" text-anchor="start">Reflection</text>
+<text x="1633" y="112" font-family="SG-Regular" font-size="21" fill="#536365" text-anchor="start">Improve the next run</text>
+<line x1="1633" y1="125" x2="1981" y2="125" stroke="#d8dfdc"/>
+<text x="1634" y="147" font-family="SG-Bold" font-size="15" fill="#006e67" text-anchor="start">ROBOT</text>
+<text x="1634" y="173" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">Was that OK?</text>
+<text x="1634" y="198" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">What should change</text>
+<text x="1634" y="223" font-family="SG-Regular" font-size="23" fill="#0c1618" text-anchor="start">next time?</text>
+<path d="M1807 306V324H999V306" fill="none" stroke="#006e67" stroke-width="2.2"/>
+<path d="M994 312L999 304L1004 312" fill="none" stroke="#006e67" stroke-width="2.2"/>
+<text x="1403" y="348" font-family="SG-Bold" font-size="19" fill="#006e67" text-anchor="middle">Agree changes before the next run.</text>
+<text x="1" y="340" font-family="SG-Regular" font-size="20" fill="#536365" text-anchor="start">Speech and shared observations support every stage.</text>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1460" height="290" viewBox="0 0 1460 290" role="img" aria-labelledby="title desc">
+<title id="title">Coordination despite generative AI</title><desc id="desc">Supporting human-robot coordination based on generative AI. The words based on are crossed out and replaced with handwritten despite. Flexible dialogue; explicit agreements; controlled execution.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth"><path d="M0 0 L9 4.5 L0 9 Z" fill="#176F73"/></marker></defs>
+<rect width="1460" height="290" fill="#FFFFFF"/>
+<g font-family="Arial, Helvetica, sans-serif" fill="#183443">
+<text x="30" y="58" font-size="47" font-weight="700" fill="#183443" >Supporting human-robot coordination</text>
+<text x="41" y="123" font-size="48" font-weight="600" fill="#B95129" font-family="Segoe Print, Comic Sans MS, cursive" transform="rotate(-5 41 123)">despite</text>
+<text x="34" y="181" font-size="50" font-weight="400" fill="#526773" >based on</text>
+<text x="276" y="181" font-size="50" font-weight="700" fill="#183443" >generative AI</text>
+<path d="M28 162 Q145 180 249 157 M35 177 Q153 163 246 173" fill="none" stroke="#B95129" stroke-width="5" stroke-linecap="round"/>
+<text x="34" y="254" font-size="28" font-weight="400" fill="#526773" >Flexible dialogue. Explicit agreements. Controlled execution.</text>
+</g></svg>

@@ -104,6 +104,10 @@ try {
     assert.equal(replacement.memory['task.phase'], 'CONFIGURATION');
     assert.match(JSON.stringify(replacement.response), /replacement proposal/i);
   } else assert.equal(scenario, 'baseline', 'Scenario is not implemented yet');
+  if (process.env.PROMETHEUS_EMBODIMENT_SMOKE === 'true') {
+    const {inspectEmbodiment} = await import('./embodiment_browser_smoke.mjs');
+    report.embodiment = await inspectEmbodiment({base,agentId:agentPath.split('/').at(-1),code,output});
+  }
   report.passed = true;
 } catch (error) {report.error = error.message; process.exitCode = 1;}
 finally {

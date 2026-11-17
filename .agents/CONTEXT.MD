@@ -181,6 +181,12 @@ PROMETHEUS currently provides:
 - an explicit Valerian cockpit lifecycle in which operational columns stay
   empty until connection, hydrate only from the connected agent, and clear on
   switch, failed connection, disconnect, logout, or re-entry;
+- an alternative Valerian Details / Robot middle region between unchanged Speech
+  and Latest Behaviour Event. Locally authored 3D geometry consumes canonical
+  plans, with static history/replay, bounded fresh gestures, explicit sign
+  precedence, reduced motion and WebGL fallback. Display data stays inspectable;
+  no inference, sensing, audio or study-protocol changes. Scope/evidence:
+  `.agents/PLAN_EMBODIMENT.md` and `.agents/EMBODIMENT_RESULTS.md`;
 - a detachable Diagnostics state view: a movable/maximisable floating panel or
   cockpit-owned popup reuses the existing state rendering and monitor stream,
   follows connection changes and returns to Diagnostics when dismissed. Its
