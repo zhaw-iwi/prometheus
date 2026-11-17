@@ -27,4 +27,3 @@
 .column-expansion-body .embodiment-stage, [data-valerian-panel="behaviour"] .embodiment-stage { height:min(65vh,650px); }
 @media(max-width:600px) { .embodiment-stage { height:390px; } }
 @media(prefers-reduced-motion:reduce) { .embodiment-panel * { transition:none !important; } }
-

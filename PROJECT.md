@@ -75,6 +75,13 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- EV promotion (2026-11-17): selectively ported the three visualization commits
+  to `main`, without the HRI study runtime. The generic acceptance runner now
+  supports isolated embodiment builds independently of study code. Main port:
+  231 JS, 12 runner, 21 Java/local-MySQL and all 52 browser checks passed.
+  The authorized `agents` merge and Heroku release are tracked in
+  `.agents/EMBODIMENT_RESULTS.md`.
+
 - EV-01 through EV-03 (2026-11-15): alternative Valerian Details / Robot view on
   `feature/valerian-embodiment`. Speech and latest event remain; canonical plans
   drive locally authored 3D eyes/head/arms/fingers and an integrated display.

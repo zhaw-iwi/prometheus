@@ -102,3 +102,33 @@ clinical suitability, broad device/GPU performance and physical robot behaviour
 have not been evaluated. Arbitrary face/gaze/effector labels use the documented
 neutral fallback; no output hand-sign vocabulary or study protocol was extended.
 The richer coordination task proposal failure remains outside this view change.
+
+## Selective promotion — 2026-11-17
+
+The owner authorized `main` → `agents` → Heroku promotion of the visualization.
+The feature branch descends from the HRI study branch, so only `556fcd5b`,
+`29e3e388` and `1f68568b` were cherry-picked onto `main` (starting at `17244cb1`).
+No study runtime, agent definition, schema or production setting was imported.
+The acceptance runner was adapted to main without study options or fixtures;
+`prometheus.build.directory` provides isolated test builds and defaults to the
+existing `target` directory. The pinned upstream Three.js bytes are unchanged;
+its Git attribute permits the upstream space-before-tab indentation.
+
+Main integration verification:
+
+- All JavaScript tests: **231 passed**, `target/embodiment-main-js-20261117.log`.
+- Runner preflight: **12 passed**.
+- `python tests/gptlive/run_acceptance.py --embodiment --browser --browser-mode disabled --java-tests ValerianClientStaticResourceContractTest,SpeechArchitectureBrowserClientContractTest,LiveCockpitSmokeIntegrationTest`:
+  **21 Java checks and all 52 browser cases passed**. Disposable local MySQL;
+  no provider use. Artifacts: `target/gptlive-acceptance-c7e4139140`.
+  Source manifest unchanged during the run; owned app/schema/account removed.
+- Deployment verifier syntax and `git diff --check` passed. The verifier compares
+  served assets to the checked-out commit and exercises WebGL/view switching
+  with a synthetic local plan; it blocks all browser writes and does not access
+  production agent data or call a provider.
+
+Baseline deployment before promotion: `agents` at `0760ea8c`, GitHub deployment
+run `43179868073`, Heroku `valerian` release **v166**, health UP; no Robot view.
+The `agents` push workflow owns deployment. Its catalog, creation-time
+embodiment/persona controls, Dockerfile and production configuration must survive
+the merge. Deployment and merged-branch verification are pending this record.

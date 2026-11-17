@@ -8,6 +8,11 @@ branch. The owner requested implementation, a roadmap with testable milestones,
 and previously authorized milestone commits/pushes and local-DB/live-provider
 smokes. No deployment, study protocol change or participant recruitment.
 
+On 2026-11-17 the owner separately authorized promotion of the visualization
+through `main` into `agents` and deployment to Heroku. Only EV commits are ported;
+the HRI study runtime stays on its study branch. Promotion evidence is recorded
+in [EMBODIMENT_RESULTS.md](EMBODIMENT_RESULTS.md).
+
 ## Contract
 
 - Keep the channel strip, Speech at the top and Latest Behaviour Event at the
