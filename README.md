@@ -1266,6 +1266,14 @@ use `full_plan`; former speech/complement profiles are not supported.
 
 ## Transcription-First Speech
 
+Text and Continuous share backend-owned Coordination agreements, preparation,
+acceptance and finite action counts. Continuous supplies finalized transcription
+to the ordinary FULL_PLAN route and speaks exact persisted event text through
+the existing Speech queue. The real-app, disposable-MySQL parity journey and
+its synthetic-provider limits are documented in
+[GPT-Live repair results](.agents/GPTLIVEFIX_RESULTS.md) and
+[acceptance instructions](tests/gptlive/README.md#continuous-coordination-parity-glf-01).
+
 ### Scoped live transcription
 
 The transcription-first speech architecture uses an access-code-scoped,
@@ -1476,6 +1484,14 @@ voice/speed validation, and streamed HTTP audio mechanics with canonical
 behaviour speech.
 
 ## Experimental GPT-Live
+
+The November 18 repair roadmap establishes a different target for GPT-Live:
+immediate native conversational audio alongside asynchronous backend task work,
+with meaning-preserving paraphrases. GLF-01 protects Continuous parity; it does
+not switch the Live output route. Coordination still uses the committed-Speech
+implementation described below until GLF-02. Track implemented versus pending
+work in [the repair roadmap](.agents/PLAN_GPTLIVEFIX.md) and
+[results](.agents/GPTLIVEFIX_RESULTS.md).
 
 Application policies may override `ExternalVoicePolicy.livePendingGuidance()` to
 allow narrowly described waiting remarks. This is model guidance, not a timer or
@@ -2341,6 +2357,8 @@ These checks use the real agent and gateway in memory. They do not establish
 Realtime speech delivery, database capacity or physical classroom acceptance.
 Fresh Coordination Live sessions use the existing output-only Speech service for
 committed replies, following the owner's November 12 delivery-path decision.
+That decision is historical: the November 18 repair direction supersedes its
+target architecture, while GLF-01 leaves this runtime route in place for review.
 Live still captures user speech; backend state machines still own interpretation,
 agreements, preparation, contributions and outcomes. Other agents retain their
 existing voice paths. ES-08's agreed behavioural scope is complete, with three

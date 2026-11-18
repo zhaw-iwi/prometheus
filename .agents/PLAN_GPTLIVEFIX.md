@@ -1,8 +1,9 @@
 # Restore distinct Continuous and GPT-Live interaction contracts
 
-Prepared: 2026-11-18. Status: **planned; GLF-01 through GLF-05 not started**.
+Prepared: 2026-11-18. Status: **GLF-01 verified; stopped for review. GLF-02–05 open**.
 Development branch: `main` (planning baseline `cff6818`).
-This document is an implementation handoff, not evidence that the repair is done.
+GLF-01 implementation baseline: `e66aa3cd`; evidence and remaining limits are in
+`GPTLIVEFIX_RESULTS.md`. Native Live restoration is not yet implemented.
 
 ## Owner direction and working model
 
@@ -32,9 +33,10 @@ Their backend authority, scope, identity and duplicate-prevention protections
 remain relevant. Runtime documentation must continue to distinguish planned
 changes from implemented behaviour until each milestone is verified.
 
-The owner has requested this roadmap only. When later instructed to implement,
-follow that session's execution/publication authorization. Historical permissions
-inside older plans do not authorize new commits, deployments or paid trials.
+The owner subsequently requested implementation through the handoff. The current
+session completed GLF-01 under its one-milestone review boundary. Historical
+permissions inside older plans do not authorize new commits, deployments or paid
+trials.
 
 ## Bootstrap and evidence
 
@@ -356,7 +358,7 @@ paths, failures and unverified areas. Update this checklist and relevant README,
 `.agents/CONTEXT.MD` and `PROJECT.md` current-state descriptions as behaviour
 changes. Preserve earlier audit records and explain supersession with dated notes.
 
-- [ ] GLF-01: mode contracts and Continuous parity
+- [x] GLF-01: mode contracts and Continuous parity — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
 - [ ] GLF-02: native Live conversation
 - [ ] GLF-03: semantic Coordination Live happy path
 - [ ] GLF-04: recording and interruption
@@ -365,7 +367,7 @@ changes. Preserve earlier audit records and explain supersession with dated note
 Suggested instruction for a new session:
 
 > Follow the repository bootstrap, then read `.agents/PLAN_GPTLIVEFIX.md`.
-> Implement the next incomplete milestone, starting with GLF-01. Preserve Text
+> Implement the next incomplete milestone, currently GLF-02. Preserve Text
 > and Continuous guarantees while restoring native Live speed under the plan's
 > relaxed wording contract. Use the smallest meaningful test set, update the
 > results/current documentation, and report what passed and what remains

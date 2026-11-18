@@ -36,6 +36,7 @@ class CoordinationAgentIntegrationTest {
     @Autowired PlatformTransactionManager transactions;
     @Autowired LiveTranscriptIngressService ingress;
     @Autowired ExternalSpeechOwnership ownership;
+    @Autowired ScopedBehaviourSpeechService canonicalSpeech;
     @MockitoBean LanguageModelGateway gateway;
     @MockitoBean SpeechSynthesisGateway speech;
     static final String AGREEMENT = """
@@ -57,6 +58,41 @@ class CoordinationAgentIntegrationTest {
         var agent = agents.findById(scope.id()).orElseThrow();
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
+    }
+    @Test void savedLiveSpeechFlagsDoNotOwnCanonicalOutputAfterSessionRelease() {
+        var scope = create();
+        var owner = new TransactionTemplate(transactions).execute(status -> {
+            var agent = agents.findById(scope.id()).orElseThrow();
+            ((CoordinationPolicy) agent.getCurrentState().ownPolicy()).beginLiveConversation(agent.getEventHistory());
+            var external = new ch.zhaw.prometheus.model.policy.ExternalSpeech(UUID.randomUUID(), agent.executionEpoch());
+            agents.saveAndFlush(agent); return external;
+        });
+        ownership.acquire(scope.id(), owner);
+        ownership.release(scope.id(), owner.sessionId());
+        // Both November output-selection flags survive reload. Neither is a live ownership grant.
+        var saved = memory(scope);
+        assertTrue(saved.get(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED).getAsBoolean());
+        assertTrue(saved.get(ch.zhaw.prometheus.model.policy.LiveCommittedSpeech.ENABLED).getAsBoolean());
+        assertFalse(ownership.hasOwner(scope.id()));
+        clearInvocations(gateway);
+        turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation task");
+        turn(scope, "START", "null", "Start the saved proposal now");
+        var prompts = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+        verify(gateway, times(2)).infer(prompts.capture());
+        assertTrue(prompts.getAllValues().stream().flatMap(request -> request.messages().stream())
+                .noneMatch(message -> message.getContent().contains("Remain silent. Do not generate replies")),
+                "Live output muting must never instruct canonical backend generation to remain silent");
+        assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        var event = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast();
+        assertNull(event.speechProvenance());
+        String words = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()).getSpeech();
+        assertEquals("Shall we start now?", words);
+        when(speech.synthesize(words, "cedar", 1.2, ch.zhaw.prometheus.spi.SpeechAudioFormat.PCM))
+                .thenReturn(new ch.zhaw.prometheus.spi.SpeechAudio(new byte[] {0, 0}, "audio/pcm"));
+        assertTrue(canonicalSpeech.synthesize(scope.code(), scope.id(), event.getId(),
+                new SpeechSynthesisSettings("cedar", "1.2", "pcm")).isPresent());
+        verify(speech).synthesize(words, "cedar", 1.2, ch.zhaw.prometheus.spi.SpeechAudioFormat.PCM);
     }
     @Test void deniedCombinedStartRemainsUnacceptedAfterReload() {
         var scope = create();

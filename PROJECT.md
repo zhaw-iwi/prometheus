@@ -75,6 +75,18 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- GPT-Live repair GLF-01 (2026-11-18): mode-specific test contracts and a real-app
+  Text/Continuous Coordination parity journey now protect preparation, acceptance,
+  fresh cues, one contribution, canonical event Speech and microphone gating.
+  Saved Live flags after ownership release are checked on disposable MySQL.
+  Verification passed 64 Java, 50 Node, seven browser and 12 runner checks, plus
+  the final one-case saved-flag prompt probe. No Continuous runtime defect was
+  demonstrated; the acceptance runner now isolates all builds from IDE output.
+  The native-Live repair remains GLF-02–05; current committed-Speech routing is
+  unchanged. Verification, retained fixture failures and provider/physical limits
+  are recorded in `.agents/GPTLIVEFIX_RESULTS.md`; roadmap:
+  `.agents/PLAN_GPTLIVEFIX.md`. Working tree is for review, without publication.
+
 - Robot mouth calibration (2026-11-17; deployed 2026-11-18): a subtly upturned
   resting mouth replaces the straight line. All supported facial expressions blend their
   mouth shape from that baseline according to plan intensity, including surprise;

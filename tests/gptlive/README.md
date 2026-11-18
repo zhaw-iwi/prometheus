@@ -1,5 +1,46 @@
 # GPT-Live acceptance
 
+## Continuous Coordination parity (GLF-01)
+
+The [repair roadmap](../../.agents/PLAN_GPTLIVEFIX.md) separates strict
+Text/Continuous speech from native Live wording. The current Coordination Live
+route below is still the November committed-Speech implementation; its passing
+tests do not accept repaired native Live.
+
+Run the new parity journey and affected contracts with an ignored local MySQL
+administration file (the named application schema is never used):
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests ScopedBehaviourSpeechServiceUnitTest,BehaviourSpeechControllerWebMvcTest,SpeechArchitectureBrowserClientContractTest,CoordinationAcceptanceUnitTest,CoordinationTaskContractUnitTest,CoordinationAgentIntegrationTest,CoordinationDeliveryUnitTest,LiveSmokeConfigurationTest --browser --browser-mode both --browser-grep 'Coordination Text and Continuous|stopped resume lookup|mocked WebRTC emits partial|Stop and synthesis failure'
+npm.cmd run test:transcription:unit
+npm.cmd run test:speech:unit
+python -m unittest discover -s tests/gptlive -p test_acceptance_runner.py
+```
+
+`valerian-continuous-smoke.spec.mjs` drives both the Text UI and the production
+Continuous transcription adapter against real controllers, state machines,
+MySQL, SSE and canonical event-ID Speech. Scripted inference makes the proposed
+agreement identical. It checks preparation, early-start rejection, zero-action
+acceptance, one fresh-cue contribution, duplicate input/cue exclusion, exact
+canonical TTS input, real PCM rendering and microphone gating/reopening. It runs
+with the Live flag on and off. The neighbouring lifecycle cases use mocked HTTP
+and are reported separately. Saved Live flags after ownership release have a
+persisted Java regression.
+
+Only external providers, SDP/data-channel events and microphone capture are
+synthetic in the new real-app journey. The Speech provider returns a tone;
+neither it nor PCM renderer events demonstrate spoken quality or physical
+audibility. The runner isolates all Maven builds under each run's `build/`
+directory, then cleans up its application, random schema and restricted account.
+Run logs, JUnit XML and browser artifacts remain under
+`target/gptlive-acceptance-<id>/`.
+
+`gptlivefix-scenarios.json` supplies the sensor proposal and the meaning rubric
+for later native dialogue, revision and uncertainty journeys. Labelled meaning
+examples are review fixtures, not a semantic classifier. Actual verification,
+retained failures, test dispositions and saved-flag handling are in
+[GPTLIVEFIX_RESULTS.md](../../.agents/GPTLIVEFIX_RESULTS.md).
+
 ## Coordination committed Speech acceptance
 
 Fresh Coordination Live sessions select committed Speech output (Alloy at normal

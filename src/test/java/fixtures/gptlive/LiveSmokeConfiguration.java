@@ -17,6 +17,14 @@ import ch.zhaw.prometheus.spi.live.LiveSessionGateway;
 @TestConfiguration(proxyBeanMethods = false)
 public class LiveSmokeConfiguration {
     @Bean @Primary public Provider offlineLiveGateway() { return new Provider(); }
+    @Bean @Primary public LiveTranscriptionSessionClient offlineTranscriptionClient(
+            OpenAIProperties properties, LiveTranscriptionProviderPayloadBuilder builder) {
+        return new LiveTranscriptionSessionClient(properties, builder) {
+            @Override public LiveTranscriptionSessionInfo createSession(ch.zhaw.prometheus.application.LiveTranscriptionSettings settings) {
+                return new LiveTranscriptionSessionInfo("offline-transcription", MODEL, "https://transcription.invalid/offer");
+            }
+        };
+    }
     @Bean @Primary public LanguageModelGateway offlineLanguageGateway(Provider provider) {
         return new LanguageModelGateway() {
             public String infer(InferenceRequest request) {
@@ -46,6 +54,8 @@ public class LiveSmokeConfiguration {
                           "action":"Finish the agreed task","effect":"COMPLETE","minConfidence":0.6,"samples":1,"cooldownSeconds":3}]},
                          "reply":{"speech":"First fixture observation."}}
                         """;
+                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported sensor fields:")
+                        && provider.coordinationProposal != null) return provider.coordinationProposal;
                 if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported sensor fields:")) return """
                         {"operation":"PROPOSE_AND_START","agreement":{"goal":"Offer one fixture observation",
                          "humanRole":"Listen and judge usefulness","agentRole":"Offer one observation",
@@ -55,6 +65,9 @@ public class LiveSmokeConfiguration {
                 if (request.output() == InferenceRequest.Output.BOOLEAN)
                     return Boolean.toString(prompt.contains("Return true if the person is clearly ready to start a round"));
                 if (request.output() == InferenceRequest.Output.TEXT) return "Ready for the next interaction.";
+                if (provider.coordinationProposal != null && request.purpose() == InferencePurpose.BEHAVIOUR
+                        && prompt.contains("Accepted coordination roles and constraints") && prompt.contains("Offer one welcome"))
+                    return "{\"speech\":\"Welcome to the lab.\",\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}";
                 if (prompt.contains("Produce the current embodiment")) return """
                         {"nonVerbal":{"gesture":"ACKNOWLEDGE","facialExpression":{"type":"attentive","intensity":0.4},
                         "gaze":{"direction":"toward_user","focus":"person"},"motion":{"stillness":0.8,"energy":0.2}},
@@ -86,6 +99,7 @@ public class LiveSmokeConfiguration {
             public SpeechAudio synthesize(String text, String voice, double speed) { return synthesize(text, voice, speed, SpeechAudioFormat.MP3); }
             public SpeechAudio synthesize(String text, String voice, double speed, SpeechAudioFormat format) {
                 provider.tts.incrementAndGet();
+                provider.speech.add(new Synthesized(text, voice, speed, format.wireValue()));
                 int lead = text.equals("First fixture observation.") ? 18000 : 0; // 750ms: real TTS may begin with silence.
                 byte[] pcm = new byte[48000 + lead * 2]; // One second of observable tone, not proof of physical speakers.
                 for (int i = lead; i < pcm.length / 2; i++) {
@@ -96,8 +110,11 @@ public class LiveSmokeConfiguration {
             }
         };
     }
+    public record Synthesized(String text, String voice, double speed, String format) {}
     public static final class Provider implements LiveSessionGateway, AutoCloseable {
         public volatile CompletableFuture<Void> inferenceGate;
+        public volatile String coordinationProposal;
+        public final List<Synthesized> speech = new CopyOnWriteArrayList<>();
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
         public final AtomicInteger tts = new AtomicInteger();
         public final List<InferenceRequest> inferences = new CopyOnWriteArrayList<>();
@@ -197,6 +214,13 @@ public class LiveSmokeConfiguration {
         private final Provider provider;
         private final com.zaxxer.hikari.HikariDataSource pool;
         FixtureApi(Provider provider, com.zaxxer.hikari.HikariDataSource pool) { this.provider = provider; this.pool = pool; }
+        @PostMapping("/__live-fixture/coordination-proposal") public void coordinationProposal(@RequestBody String proposal) {
+            provider.coordinationProposal = proposal;
+        }
+        @DeleteMapping("/__live-fixture/coordination-proposal") public void clearCoordinationProposal() {
+            provider.coordinationProposal = null;
+        }
+        @GetMapping("/__live-fixture/speech") public List<Synthesized> speech() { return List.copyOf(provider.speech); }
         @PostMapping("/__live-fixture/inference/{action}") public Map<String, Boolean> inference(@PathVariable String action) {
             switch (action) {
                 case "hold" -> provider.inferenceGate = new CompletableFuture<>();

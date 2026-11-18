@@ -81,6 +81,20 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
+The 2026-11-18 GPT-Live repair has verified GLF-01's mode contract and executable
+Text/Continuous Coordination parity (64 Java, 50 Node, seven browser and 12 runner
+checks; final saved-flag prompt probe also passed). The real-app transcription/HTTP/MySQL/SSE/
+canonical Speech journey uses scripted providers and actual PCM rendering;
+physical audibility is not measured. Exact assertions, retained failures and
+saved speech-flag handling are in `.agents/GPTLIVEFIX_RESULTS.md`.
+The owner now wants native immediate Live speech with semantic wording tolerance,
+while backend task authority remains unchanged. This supersedes the desired
+November ES-08 output architecture, not its historical evidence. GLF-01 leaves
+the committed-Speech runtime below intact; GLF-02–05 remain open in
+`.agents/PLAN_GPTLIVEFIX.md`. Continue one milestone then stop for review unless
+the current session authorizes more; historical publication/trial permissions
+do not carry forward.
+
 PROMETHEUS currently provides:
 
 - a new Coordination Agent with persisted partial/accepted dialogue or sensor

@@ -126,9 +126,8 @@ def main():
     env['PROMETHEUS_CLASSROOM_CAPACITY'] = 'true' if args.classroom_capacity else 'false'
     maven = ['mvnw.cmd'] if os.name == 'nt' else ['bash', './mvnw']
     # Isolate acceptance from IDE compilation and classes left by another branch.
-    build_dir = artifacts/'build' if args.embodiment else root/'target'
-    if args.embodiment:
-        maven.append('-Dprometheus.build.directory=' + str(build_dir))
+    build_dir = artifacts/'build'
+    maven.append('-Dprometheus.build.directory=' + str(build_dir))
     npm = 'npx.cmd' if os.name == 'nt' else 'npx'
 
     def run(command, name):
@@ -273,7 +272,7 @@ def main():
                             time.sleep(0.5)
                     else:
                         raise RuntimeError('Isolated app startup timed out.')
-                    specs = ['tests/playwright/valerian-gptlive-smoke.spec.mjs', 'tests/playwright/valerian-state-view.spec.mjs',
+                    specs = ['tests/playwright/valerian-gptlive-smoke.spec.mjs', 'tests/playwright/valerian-continuous-smoke.spec.mjs', 'tests/playwright/valerian-state-view.spec.mjs',
                         'tests/playwright/valerian-state-graph.spec.mjs']
                     if enabled == 'true':
                         specs += ['tests/playwright/valerian-gptlive.spec.mjs']
