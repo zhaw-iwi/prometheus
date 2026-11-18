@@ -224,3 +224,29 @@ Human expression interpretation and broad GPU/device behavior remain unverified.
 The initial handoff was local on main without publication. On 2026-11-18 the
 owner authorized committing/pushing all reviewed changes and merging into agents
 to redeploy Heroku. Integration and release verification follow below.
+
+### Mouth calibration promotion — 2026-11-18
+
+Committed all six reviewed files on main as `45248f8`, then merged into agents
+as `aba0184`. The merge was clean and preserved the deployment catalog,
+configuration and workflow. Both branches were pushed under owner authorization.
+
+- Merged agents: `npm.cmd run test:embodiment:unit` passed all **15** cases.
+- `python tests/playwright/run_static.py tests/playwright/valerian-embodiment.spec.mjs --output=target/embodiment-mouth-release-20261118`
+  passed all **five** browser cases on the merged tree.
+- [GitHub deployment run 44318421178](https://github.com/zhaw-iwi/prometheus/actions/runs/44318421178)
+  succeeded. Heroku **valerian v169** was released on 2026-11-18 at 14:55 CET.
+- Read-only release verification passed against the actual deployment: health
+  **UP**, all nine cockpit/robot asset hashes match `aba0184`, real WebGL
+  rendering and Details switching, unchanged speech/latest event, static replay,
+  zero page errors and zero attempted writes. A temporary copy of
+  `tests/deployment/verify-embodiment.mjs` used a synthetic neutral expression at
+  zero intensity instead of its usual warm smile, specifically checking the new
+  baseline. Its screenshot was inspected. No production agent was accessed and
+  no provider call was made. Artifacts in the agents checkout:
+  `target/embodiment-mouth-heroku-v169/verification.json` and
+  `target/embodiment-mouth-heroku-v169/deployed-neutral-robot.png`.
+
+Release evidence is synchronized through a documentation-only `[skip ci]`
+follow-up; deployed runtime remains v169. The human-interpretation and broad
+GPU/device limits above remain unchanged.
