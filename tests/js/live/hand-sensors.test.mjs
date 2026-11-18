@@ -49,7 +49,7 @@ function fixture() {
   for (const name of ["captureObservationTime", "usableObservationTime", "detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
     "submitHandSign", "acknowledgeEvent", "timedScopedFetch", "scopedFetch", "captureConnection", "currentConnection", "demoAgentPath", "sensorBackendResult",
     "setHandSignStatus", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate",
-    "renderBehaviourPlan", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState", "renderHandConfidencePolicy"]) {
+    "renderBehaviourPlan", "resolveInteractionCapabilities", "normalizeProfileList", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState", "renderHandConfidencePolicy"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
     assert.ok(match, name);
     const rest = source.slice(match.index), end = /^}/m.exec(rest);

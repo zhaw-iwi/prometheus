@@ -83,6 +83,17 @@ class AcceptanceRunnerTest(unittest.TestCase):
     def test_browser_mode_cannot_be_ignored(self):
         self.run_rejected(['--browser-mode', 'enabled'], {}, 'requires --browser')
 
+    def test_embodiment_cannot_silently_select_an_unrelated_journey(self):
+        for args in (['--embodiment'], ['--embodiment','--classroom-capacity','--browser'], ['--embodiment','--paid-core','live']):
+            with self.subTest(args=args):
+                self.run_rejected(args, {}, '--embodiment requires')
+
+    def test_embodiment_cannot_override_explicit_or_implicit_study_selection(self):
+        for selection in (['--study'], ['--study-acceptance'], ['--study-capacity','60'],
+                          ['--study-camera'], ['--study-models']):
+            with self.subTest(selection=selection):
+                self.run_rejected(['--embodiment','--browser',*selection], {}, '--embodiment requires')
+
     def test_interaction_cannot_silently_run_as_text(self):
         self.run_rejected(['--paid-core', 'coordination-text', '--coordination-scenario', 'interaction'], {},
                           'requires the Live Coordination journey')

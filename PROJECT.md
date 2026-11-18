@@ -75,6 +75,64 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- HRI branch integration (2026-11-18): merged main through `cff6818` into
+  `experiment/hri-2027-coordination`, including the Robot view, friendly mouth
+  calibration and exact localhost CORS origin. Study runtime/UI/protocol remain
+  unchanged. Both acceptance modes retain their own selections and evidence;
+  combining them is rejected. Verification passed: 30 focused JS, 19 runner,
+  27 Java, 15 study browser and five Robot browser checks (also five static
+  WebGL checks). This is focused merge evidence, not renewed full study/camera/
+  capacity qualification. Details: `.agents/EMBODIMENT_RESULTS.md`.
+
+- Robot mouth calibration (2026-11-17; deployed 2026-11-18): a subtly upturned
+  resting mouth replaces the straight line. All supported facial expressions blend their
+  mouth shape from that baseline according to plan intensity, including surprise;
+  neutral/fallback/reset agree. Fifteen embodiment unit checks and all five
+  existing WebGL browser checks passed. Before/after expressions and light/dark/
+  narrow cockpit screenshots were reviewed. Main `45248f8` merged into agents as
+  `aba0184`; all 15 unit and five browser checks also passed on the merged tree.
+  Heroku **valerian v169** is deployed: health UP, all nine served asset hashes
+  match, and the neutral mouth rendered correctly in a read-only WebGL check.
+  No backend/provider changes; release evidence and preview are recorded in
+  `.agents/EMBODIMENT_RESULTS.md`.
+
+- Embodiment Studio CORS (2026-11-17): the production allowlist now includes
+  exactly `http://localhost:5173`, preserving both existing port-5010 origins.
+  README distinguishes the Studio page origin from the backend URL and from a
+  Raspberry Pi LAN address. All four `PrometheusCorsConfigurationWebMvcTest`
+  cases passed on both main and merged agents using isolated build directories
+  (`target/cors-main-20261117` and `target/cors-agents-20261117`); whitespace checks
+  passed. Main commit `d504410` merged into agents as `5405a7c`. Authorized
+  [deployment run 44095371476](https://github.com/zhaw-iwi/prometheus/actions/runs/44095371476)
+  succeeded, releasing Heroku **valerian v168** at 14:50 CET. Eleven live checks
+  passed: health UP, ordinary/server requests, both previous origins, session and
+  SSE preflights, missing-access-code rejection and three unlisted-origin
+  rejections. Local evidence: `target/cors-heroku-verification-20261117.json`.
+  No production agent mutation or provider call was made. The colleague's full
+  Studio/agent journey remains unverified; Pi LAN URLs and `127.0.0.1:5173` are
+  separate origins and remain outside this exact-origin addition.
+
+- EV promotion (2026-11-17): selectively ported the three visualization commits
+  to `main`, without the HRI study runtime. The generic acceptance runner now
+  supports isolated embodiment builds independently of study code. Main port:
+  231 JS, 12 runner, 21 Java/local-MySQL and all 52 browser checks passed.
+  Merged into `agents` as `8baa1b70`, preserving catalog/persona and deployment
+  settings. Agents: 232 JS, 13 runner, 30 Java/local-MySQL and 27 browser checks
+  passed; live OpenAI baseline plus persisted-plan rendering passed (one request,
+  5,350 tokens). Heroku `valerian` **v167** is deployed; health, served asset
+  hashes and read-only browser rendering verified. Exact commands, release links,
+  limitations and retained failures: `.agents/EMBODIMENT_RESULTS.md`.
+
+- EV-01 through EV-03 (2026-11-15): alternative Valerian Details / Robot view on
+  `feature/valerian-embodiment`. Speech and latest event remain; canonical plans
+  drive locally authored 3D eyes/head/arms/fingers and an integrated display.
+  Verification: 237 JS, 18 runner and 21 Java/local-MySQL checks; 52 browser cases
+  have passing evidence across the broad run and focused fixture correction.
+  Final five Robot cases and real OpenAI persisted-plan/browser smoke pass;
+  screenshots reviewed. An extended provider task proposal was rejected before
+  rendering; that failed trial is retained. No study protocol or backend changes.
+  Scope, exact checks and device/human limits: `.agents/EMBODIMENT_RESULTS.md`.
+
 - OS-13 (2026-11-15, **software complete**, study application branch): typed
   dialogue now includes real browser camera perception. V3 materials, local
   face/person/hand detectors, permission/lifecycle handling, scoped sign edges,
