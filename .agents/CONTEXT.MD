@@ -81,13 +81,16 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
-The 2026-11-18 GPT-Live repair committed GLF-01 as `f7c1033c` on main.
-GLF-02 selects native audible Coordination speech independently of backend latency,
-clears legacy output flags on session claim, and keeps ordinary backend output
-nonverbal. Text/Continuous retain canonical event Speech. Deterministic acceptance
-and its limits are recorded in `.agents/GPTLIVEFIX_RESULTS.md`; GLF-03 adds native task meaning/authority coverage and separates help from
-proposal consent. GLF-04 verifies interrupted recordings and removes browser player coupling.
-GLF-05 covers integrated acceptance.
+The 2026-11-18 GPT-Live repair committed GLF-01 (`f7c1033c`), GLF-02
+(`807f60cb`), GLF-03 (`973629b5`) and GLF-04 (`3de61cec`) on main.
+Native Coordination audio is independent of backend inference/capture, while
+Text/Continuous retain canonical event Speech. Semantic task association and
+scoped playback evidence preserve backend authority; help is separate from
+proposal consent, and incomplete captures cannot authorize completion or replay.
+GLF-05 removes the retired approval/synthesis route and supplies integrated
+regressions, passing bounded real-provider happy paths, retained failure/latency
+evidence and an operator checklist. Provider and physical status are separate in the per-mode
+matrix in `.agents/GPTLIVEFIX_RESULTS.md`; physical checks remain NOT RUN.
 The current owner instruction authorizes sequential milestones with a commit/push
 after each, plus bounded OpenAI happy-path smoke tests costing less than $50 total.
 Pause for an unforeseen owner decision. Physical acceptance is not established by
@@ -115,9 +118,10 @@ PROMETHEUS currently provides:
   browser no longer selects approval or committed-Speech players, and does not
   interrupt output from a local microphone RMS threshold. The provider owns
   native barge-in; browser input boundaries fence playback evidence.
-  The former approval/synthesis implementation and its paid harness are historical;
-  remaining legacy API/harness cleanup belongs to GLF-05. Current verification
-  and limitations are in `.agents/GPTLIVEFIX_RESULTS.md`.
+  The former approval/synthesis implementation, endpoints and paid harness are
+  retired. Legacy session output flags remain always false on the wire and are
+  cleared from saved policy selection on a fresh claim. No graph/history migration.
+  Current verification and limits are in `.agents/GPTLIVEFIX_RESULTS.md`.
   Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
   admission and task controls. Cross-phase support uses the shared user action,

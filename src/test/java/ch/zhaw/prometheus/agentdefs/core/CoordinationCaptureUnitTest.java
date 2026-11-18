@@ -25,7 +25,7 @@ class CoordinationCaptureUnitTest {
     }
     @Test void completeButUnfinishedAnswerGetsALiveSupportOccasionWithoutSpending() {
         var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(false), f.text); f.start(f.text);
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
+        f.storage().put("live.speechApproval", new com.google.gson.JsonPrimitive(true));
         var revision = f.storage().get(TaskMemory.REVISION).deepCopy();
         var agreement = f.storage().get(CoordinationMemory.AGREEMENT).deepCopy();
         var phase = TaskMemory.phase(f.storage());
@@ -43,7 +43,6 @@ class CoordinationCaptureUnitTest {
         assertEquals("Convey these confirmed facts once, preserving their meaning: \"Please finish that request.\"", context.continuation().facts());
         assertEquals(response.get("id").getAsString(), context.continuation().id().toString());
         assertEquals(response.get("expires").getAsString(), context.continuation().expiresAt().toString());
-        assertTrue(f.policy().liveSpeechRequest(f.owner).postCommitOnly(), "An early acknowledgement cannot consume the committed clarification");
         verifyNoInteractions(f.gateway);
     }
     @ParameterizedTest @ValueSource(strings = {"PENDING", "REJECTED"})

@@ -1528,14 +1528,11 @@ the tab is enabled, its model and allowed voices; it never grants eligibility.
 | Method and path below `/demo/agents/{agentId}/live` | Contract |
 | --- | --- |
 | `GET /capabilities` | Enabled flag, pilot eligibility, model, allowed voices, diagnostic-only marker. |
-| `POST /sessions` | `{ "sdp": "v=0…", "voice": "marin", "speechApproval": true }`; returns 201 with an opaque local handle and SDP answer after sideband attachment, plus `speechApprovalRequired` and `committedSpeechOutput`. Fresh delivery-aware Coordination sessions select committed Speech and require the current client. Unknown fields are rejected. |
+| `POST /sessions` | `{ "sdp": "v=0?", "voice": "marin" }`; returns 201 with an opaque local handle and SDP answer after sideband attachment. Native remote audio is played directly. Legacy `speechApprovalRequired` and `committedSpeechOutput` response fields are always false; the optional old request flag is ignored. Unknown fields are rejected. |
 | `GET /sessions/{handle}` | Bounded, content-free activity counters and event types. |
 | `POST /sessions/{handle}/input?muted=true` | Waits for the corresponding provider mute/unmute acknowledgement. |
 | `DELETE /sessions/{handle}` | Closes the session and reports whether finalization was confirmed. |
-| `POST /sessions/{handle}/speech-synthesis/{responseId}` | Synthesizes the current committed reply once; no text body. Returns approval identity, exact words, explicit synthesis receipt and bounded base64 24-kHz PCM. Repeated/obsolete claims are discarded. |
-| `POST /sessions/{handle}/speech-approvals` | `{ "segmentId": "UUID" }`; For native-approval sessions, verifies one current complete speech candidate. Returns a bounded status, approval identity, exact receipts/text and expiry when approved. |
-| `POST /sessions/{handle}/speech-approvals/{id}/release` | Same segment body; rechecks authority immediately before buffered playback. One successful release only. |
-| `POST /sessions/{handle}/speech-approvals/{id}/played` | Same segment body; records observed playback separately from approval. Does not replace the final task playback cue. |
+| `POST /sessions/{handle}/playback-cues/{id}` | `{ "segmentId": "UUID" }`; confirms scoped browser-observed native playback for the current task contribution. Capture alone does not establish delivery; this is not physical audibility. |
 
 Agent and session scope mismatches return 404; invalid access codes return 401;
 invalid settings return 400; disabled sessions return 503; an occupied agent or
@@ -2375,10 +2372,13 @@ semantic judgements, persisted journeys and observed playback. Interrupted
 captures are marked in both conversation displays, survive reload, and cannot
 be used as complete prompt evidence. Recorded Live speech is never replayed
 through canonical TTS on a mode switch; Text/Continuous keep their canonical
-latest-assistant resume. The Live browser has no
-approval player or local RMS interruption switch. Provider validation remains
-GLF-05. This intermediate change is not release
-acceptance. The November approval/synthesis evidence remains historical in
+latest-assistant resume. The retired approval/synthesis services, endpoints and
+browser players have been removed. Legacy session output flags remain always
+false for wire compatibility. GLF-05 records shared regressions, bounded real
+provider journeys, native latency and retained failures. Physical microphone/
+speaker acceptance remains **NOT RUN**; use the
+[operator checklist](.agents/GPTLIVEFIX_OPERATOR_CHECKLIST.md) on the target setup.
+The November approval/synthesis evidence remains historical in
 [the escalation results](.agents/ESCALATION_RESULTS.md); current repair evidence
 and exact test scope are in [GPTLIVEFIX_RESULTS](.agents/GPTLIVEFIX_RESULTS.md).
 

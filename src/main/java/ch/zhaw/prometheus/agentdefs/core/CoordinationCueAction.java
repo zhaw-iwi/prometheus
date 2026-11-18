@@ -48,7 +48,6 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
                 var response = getStorage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
                 response.addProperty("facts", facts); response.addProperty("contributionOnly", true); getStorage().put(CoreTaskVoice.RESPONSE, response);
                 TaskResponse.contribution(getStorage(), facts, literalSpeech(rule, spoken));
-                CoordinationSpeechApproval.words(getStorage(), spoken);
             }
         }
         CoordinationDelivery.attach(getStorage());

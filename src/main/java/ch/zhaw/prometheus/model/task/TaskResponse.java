@@ -13,7 +13,6 @@ import ch.zhaw.prometheus.spi.*;
 public final class TaskResponse {
     public static final String KEY = "task.response";
     public static final long DEADLINE_SECONDS = 45;
-    public static final long MIN_CORRECTION_SECONDS = 10;
     public enum Verdict { MATCH, UNRELATED, AMBIGUOUS }
     public enum Purpose { UNSPECIFIED, ARMING, CONTRIBUTION }
     public record Candidate(String segment, Instant started, int speechOffset) {}
@@ -137,44 +136,7 @@ public final class TaskResponse {
     }
     public static boolean expired(Storage storage, Instant now) {
         Instant end = deadline(storage);
-        if (playbackPending(storage) && "CAPTURED".equals(status(storage))) end = Instant.parse(value(storage).get("created").getAsString()).plusSeconds(60);
         return end != null && !now.isBefore(end);
-    }
-    public static boolean playbackPending(Storage storage) {
-        return storage.containsKey(LiveSpeechRequest.ENABLED) && storage.get(LiveSpeechRequest.ENABLED).getAsBoolean()
-                && storage.containsKey(KEY) && !value(storage).has("played");
-    }
-    public static void played(Storage storage, UUID id, Instant now) {
-        if (!storage.containsKey(KEY) || !value(storage).get("id").getAsString().equals(id.toString())) return;
-        var v = value(storage); v.addProperty("played", true); storage.put(KEY, v);
-        TaskMemory.put(storage, TaskMemory.AFTER, now.toString());
-    }
-    /** Persist before granting release. A lost acknowledgement or new approval window cannot replay it. */
-    public static boolean release(Storage storage, ExternalSpeech owner, UUID id, String segment) {
-        if (!captured(storage, owner) || released(storage)) return false;
-        var v = value(storage);
-        if (!id.toString().equals(v.get("id").getAsString()) || !segment.equals(v.get("segment").getAsString())) return false;
-        v.addProperty("released", true); storage.put(KEY, v); return true;
-    }
-    public static boolean released(Storage storage) { return storage.containsKey(KEY) && value(storage).has("released"); }
-    public static UUID correctionId(Storage storage) {
-        return storage.containsKey(KEY) && value(storage).has("correctionId")
-                ? UUID.fromString(value(storage).get("correctionId").getAsString()) : null;
-    }
-    /** Called only after the scoped player has matched the rejected whole clip and rechecked interruption. */
-    public static boolean correct(Storage storage, ExternalSpeech owner, String segment, Instant now) {
-        if (!current(storage, owner) || !accepting(storage) || !"REJECTED".equals(status(storage))) return false;
-        var v = value(storage);
-        if (!segment.equals(v.get("segment").getAsString()) || !correctionEligible(storage, now)) return false;
-        v.addProperty("correctionId", UUID.randomUUID().toString()); v.addProperty("correctionAt", now.toString());
-        v.addProperty("rejectedSegment", segment); v.addProperty("status", "PENDING");
-        v.addProperty("unrelatedRemaining", 0); v.remove("segment"); v.remove("speechOffset"); v.remove("candidate");
-        storage.put(KEY, v); return true;
-    }
-    private static boolean correctionEligible(Storage storage, Instant now) {
-        var v = value(storage);
-        return playbackPending(storage) && !released(storage) && !v.has("correctionId")
-                && !now.isAfter(Instant.parse(v.get("deadline").getAsString()).minusSeconds(MIN_CORRECTION_SECONDS));
     }
     public static String status(Storage storage) { return storage.containsKey(KEY) ? value(storage).get("status").getAsString() : "NONE"; }
     public static void uncertain(Storage storage) {
@@ -277,9 +239,6 @@ public final class TaskResponse {
         return finish(storage, owner, check, match ? Verdict.MATCH : Verdict.AMBIGUOUS, now);
     }
     public static boolean finish(Storage storage, ExternalSpeech owner, Check check, Verdict verdict, Instant now) {
-        return finish(storage, owner, check, verdict, now, false);
-    }
-    public static boolean finish(Storage storage, ExternalSpeech owner, Check check, Verdict verdict, Instant now, boolean allowCorrection) {
         if (!current(storage, owner) || !"CHECKING".equals(status(storage))) return false;
         var v = value(storage);
         if (!check.id().toString().equals(v.get("id").getAsString()) || !check.segment().equals(v.get("segment").getAsString())
@@ -291,8 +250,7 @@ public final class TaskResponse {
         }
         boolean accepted = verdict == Verdict.MATCH && now.isBefore(check.deadline());
         v.remove("candidate");
-        boolean rejected = allowCorrection && verdict == Verdict.AMBIGUOUS && accepting(storage) && correctionEligible(storage, now);
-        v.addProperty("status", accepted ? "CAPTURED" : rejected ? "REJECTED" : "UNCERTAIN"); storage.put(KEY, v);
+        v.addProperty("status", accepted ? "CAPTURED" : "UNCERTAIN"); storage.put(KEY, v);
         if (accepted) {
             Instant after = Instant.parse(TaskMemory.text(storage, TaskMemory.AFTER, Instant.EPOCH.toString()));
             TaskMemory.put(storage, TaskMemory.AFTER, (now.isAfter(after) ? now : after).toString());
@@ -309,14 +267,6 @@ public final class TaskResponse {
                 queued.has("speechOffset") ? queued.get("speechOffset").getAsInt() : 0));
     }
     public static boolean captured(Storage storage, ExternalSpeech owner) { return current(storage, owner) && "CAPTURED".equals(status(storage)); }
-    /** Exact committed words were synthesized; association is established, playback is still pending. */
-    public static boolean synthesized(Storage storage, ExternalSpeech owner, UUID id, String synthesis, Instant now) {
-        if (!current(storage, owner) || !"PENDING".equals(status(storage)) || expired(storage, now)) return false;
-        var v = value(storage);
-        if (!id.toString().equals(v.get("id").getAsString())) return false;
-        v.addProperty("status", "CAPTURED"); v.addProperty("segment", synthesis);
-        v.addProperty("origin", "SYNTHESIZED"); v.addProperty("speechOffset", 0); storage.put(KEY, v); return true;
-    }
     public static boolean accepting(Storage storage) { return TaskMemory.active(storage) || "FINISHING".equals(TaskMemory.phase(storage)); }
     public static boolean incomplete(Storage storage, ExternalSpeech owner, Event event, Instant started, Instant now) {
         if (!current(storage, owner) || !accepting(storage) || !"PENDING".equals(status(storage)) || expired(storage, now)) return false;
@@ -332,11 +282,11 @@ public final class TaskResponse {
         var v = value(storage); return new ExternalSpeech(UUID.fromString(v.get("session").getAsString()), UUID.fromString(v.get("epoch").getAsString()));
     }
     public static int firstSample(Storage storage, List<Event> events, ExternalSpeech owner) {
-        if (!captured(storage, owner) || playbackPending(storage)) return -1;
+        if (!captured(storage, owner)) return -1;
         String segment = value(storage).get("segment").getAsString();
         for (int i = events.size() - 1; i >= 0; i--) {
             var p = events.get(i).speechProvenance();
-            if (p != null && p.realized() && p.complete() && segment.equals(p.segmentId())
+            if (p != null && p.realized() && p.complete() && !Boolean.FALSE.equals(p.playbackConfirmed()) && segment.equals(p.segmentId())
                     && owner.sessionId().equals(p.sessionId()) && owner.epoch().equals(p.epoch())) return i + 1;
         }
         return -1;

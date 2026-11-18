@@ -4,24 +4,18 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
-import {escalationClips, runEscalation, acceptanceInvitation as acceptanceQuestion} from './escalation_journeys.mjs';
 const [permission, output] = process.argv.slice(2);
 const selection = process.argv.find(v => v.startsWith('--agent='))?.split('=')[1];
-const definitions = {coordination: 'core.coordination', live: 'core.live_multimodal', face: 'core.facial_expression_sensitivity',
+const definitions = {live: 'core.live_multimodal', face: 'core.facial_expression_sensitivity',
   social: 'core.social_context_sensitivity', space: 'core.generic_multimodal_behaviour_at_social_space',
   task: 'core.generic_multimodal_behaviour', 'space-task': 'core.generic_multimodal_behaviour_at_social_space', rps: 'core.rock_scissor_paper',
   'user-guess': 'core.role_clarification_guessing_game', 'agent-guess': 'core.role_clarification_guessing_game', 'care-guess': 'usecases.healthcare.guessing_game_user_guess'};
 const taskJourney = selection === 'task' || selection === 'space-task';
-const coordinationJourney = selection === 'coordination';
-const coordinationScenario = process.argv.find(v => v.startsWith('--scenario='))?.split('=')[1] || 'baseline';
-const escalation = coordinationJourney && !!escalationClips[coordinationScenario];
-const journeyStarted = Date.now();
-let visitorTurns = 0, finishing = false;
 const rpsJourney = selection === 'rps';
 const guessingJourney = selection?.endsWith('-guess');
 const gameJourney = rpsJourney || guessingJourney;
-const ambientSensing = !gameJourney && !(coordinationJourney && coordinationScenario !== 'baseline');
-const connectionOnly = !rpsJourney && !coordinationJourney;
+const ambientSensing = !gameJourney;
+const connectionOnly = !rpsJourney;
 const base = process.env.PROMETHEUS_BASE_URL;
 if (permission !== '--allow-paid-provider' || !output || !definitions[selection] || !base
     || !['localhost', '127.0.0.1', '[::1]'].includes(new URL(base).hostname))
@@ -30,10 +24,6 @@ const key = process.env.OPENAI_API_KEY, token = process.env.PROMETHEUS_ADMIN_TOK
 if (!key || !token) throw Error('Missing provider/admin environment credentials');
 const report = {startedAt: new Date().toISOString(), selection, passed: false, turns: [],
   limitations: 'Synthetic audio/sensors; captions and received media do not prove physical audibility or movement.'};
-if (escalation) report.limits = {visitorTurns: 12, inferenceRequests: 24, completionTokensPerRequest: 2048,
-  inputBytesPerInference: 80000, reportedInferenceTokenCeiling: 200000, liveSessions: 1, liveSeconds: 360,
-  synthesizedClips: 12, synthesisCharacters: 6000, committedOutputClips: 12, committedOutputCharacters: 6000, childWallSeconds: 420};
-report.scenario = coordinationScenario;
 const clips = {info: 'Hello Valerian. What is the SIRA Lab?',
   sense: selection === 'face' ? 'How does my facial expression look?' : 'How many people can you currently see?',
   ...(selection === 'live' ? {gesture: 'Please show me the paper hand sign.'} : {}),
@@ -42,33 +32,6 @@ if (taskJourney) Object.assign(clips, {
   proposal: "Please propose, but don't start, a task that waits for one rock hand sign, then shows paper silently once and finishes.",
   accept: 'Yes, please.', acknowledge: 'Okay.'
 });
-if (coordinationJourney && coordinationScenario !== 'baseline') {
-  for (const name of Object.keys(clips)) delete clips[name];
-  Object.assign(clips, {
-  proposal: "Propose one dry joke on a fresh rock after acceptance, first checking rock recognition; I show signs and judge whether I like your joke, with one action only in this session using default settings.",
-  accept: 'Start the saved proposal now.',
-  acknowledge: 'Okay.'
-  });
-  if (['revision', 'recognition'].includes(coordinationScenario)) clips.revision = 'Make only the response a dry one-liner, keeping every other term unchanged.';
-  if (coordinationScenario === 'capture') Object.assign(clips, {fragment: 'A dry', ending: 'one-liner, keeping every other term unchanged.'});
-  if (coordinationScenario === 'delivery') Object.assign(clips, {back: 'Return to the initial conversation state.', status: 'Which state are we in?'});
-  if (coordinationScenario === 'recognition') {
-    clips.proposal = "Propose, don't start: after acceptance, on a fresh rock say exactly: I told my computer I needed a break, and it froze. First check rock recognition. I show signs and judge the joke; success is my acceptance. One action this session, default settings.";
-    delete clips.revision;
-    clips.revisionLead = 'Change only the response to a different dry one-liner, using exactly the following words.';
-    clips.revisionLine = 'My calendar is full of empty promises.';
-    clips.revisionTail = 'Keep every other term unchanged.';
-  }
-  if (['multimodal', 'dialogue'].includes(coordinationScenario)) Object.assign(clips, {
-    back: 'Return to the initial conversation state.', status: 'Which state are we in?',
-    another: 'Propose a different dialogue task: give one welcome sentence for lab visitors, I judge whether it suits them. Success is my acceptance. Limit one contribution. No sensors or preparation checks. Do not start yet.',
-    ambiguous: 'Start all over again.', restart: 'Explicitly restart the same agreed task with a fresh contribution.'
-  });
-  if (coordinationScenario === 'interaction') {
-    for (const name of Object.keys(clips)) delete clips[name];
-    Object.assign(clips, JSON.parse(fs.readFileSync('src/test/resources/coordination/scissors-interaction.json', 'utf8')).turns);
-  }
-}
 const audio = {};
 if (rpsJourney) {
   for (const key of Object.keys(clips)) delete clips[key];
@@ -86,16 +49,11 @@ if (guessingJourney) {
     replay: 'Let us play another round with the same roles.', solved: 'Is it a dog?'
   });
 }
-if (escalation) {
-  for (const name of Object.keys(clips)) delete clips[name];
-  Object.assign(clips, escalationClips[coordinationScenario]);
-  assert.ok(Object.keys(clips).length <= 12 && Object.values(clips).join('').length <= 6000, 'Synthetic input budget exceeded');
-}
 const cache = 'target/core-provider-audio'; fs.mkdirSync(cache, {recursive: true});
 report.synthesisRequests = 0;
 // Keep the synthetic visitor acoustically distinct from the Live Willow voice.
 // Preserve the words and require a real USER transcript; output echoes never count.
-report.stimulus = {model: 'gpt-4o-mini-tts', voice: escalation ? 'onyx' : 'alloy'};
+report.stimulus = {model: 'gpt-4o-mini-tts', voice: 'alloy'};
 try {
 for (const [name, input] of Object.entries(clips)) {
   const body = JSON.stringify({...report.stimulus, input, response_format: 'pcm'});
@@ -113,13 +71,6 @@ for (const [name, input] of Object.entries(clips)) {
   report.error = 'Synthetic input preparation: ' + error.message;
   fs.mkdirSync(path.dirname(output), {recursive: true}); fs.writeFileSync(output, JSON.stringify(report, null, 2)); throw error;
 }
-if (coordinationScenario === 'capture') audio.revision = [...audio.fragment, ...new Uint8Array(24000 * 2 * 1.2), ...audio.ending];
-if (coordinationScenario === 'recognition') {
-  // Synthesis can follow an embedded "say exactly" instruction instead of reading the whole request.
-  audio.revision = [...audio.revisionLead, ...audio.revisionLine, ...audio.revisionTail];
-  report.revisionInputSeconds = audio.revision.length / 48000;
-  assert.ok(report.revisionInputSeconds >= 6, 'Synthetic revision omitted part of the requested input');
-}
 const browser = await chromium.launch({headless: true, args: ['--autoplay-policy=no-user-gesture-required']});
 let page, agentPath, handle, heartbeat, scoped;
 let sensing = selection === 'face' ? {type: 'obs.emotion.face', data: {emotion: 'neutral', confidence: .95, facePresent: true}}
@@ -127,7 +78,6 @@ let sensing = selection === 'face' ? {type: 'obs.emotion.face', data: {emotion: 
 async function freshSense() { return observe(sensing.type, {...sensing.data, ts: new Date().toISOString()}); }
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 async function api(route, method = 'GET', body, headers = scoped) {
-  if (escalation && !finishing && Date.now() - journeyStarted > 390000) throw Error('ES-08 journey time budget exhausted');
   const response = await fetch(base + route, {method, headers: {...headers, 'Content-Type': 'application/json'},
     body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(45000)});
   if (!response.ok) throw Error(`${method} ${route}: HTTP ${response.status}`);
@@ -139,26 +89,12 @@ async function observe(type, payload) {
 async function storage() {
   return Object.fromEntries((await api(agentPath + '/storage')).map(entry => [entry.key, JSON.parse(entry.value)]));
 }
-async function synthesizedSpeech() {
-  return (await api(agentPath + '/live/history')).filter(event => event.provenance?.origin === 'SYNTHESIZED')
-    .map(event => ({segmentId: event.provenance.segmentId, origin: 'SYNTHESIZED',
-      played: event.provenance.playbackConfirmed === true, text: JSON.parse(event.payload).speech || null}));
-}
 async function until(label, action, timeout = 40000) {
   const start = Date.now();
   while (Date.now() - start < timeout) { const result = await action(); if (result) return result; await wait(500); }
   throw Error(`Timed out: ${label}`);
 }
-async function capturedResponse(label) {
-  // Allow the production 45-second capture deadline plus ingress/refresh time; fail promptly on uncertainty.
-  return until(label, async () => {
-    const response = (await storage())['task.response'];
-    if (response?.status === 'UNCERTAIN') throw Error(`${label}: response association became uncertain`);
-    return response?.status === 'CAPTURED';
-  }, 55000);
-}
 async function say(name) {
-  if (escalation && ++visitorTurns > 12) throw Error('ES-08 visitor turn budget exhausted');
   console.log(`Visitor: ${name}`);
   await page.evaluate(async ({bytes, name}) => {
     const view = new DataView(Uint8Array.from(bytes).buffer), samples = new Float32Array(bytes.length / 2);
@@ -172,7 +108,7 @@ async function say(name) {
 async function captionsFrom(index) {
   return page.evaluate(index => {
     let text = '', previous;
-    for (const event of logs.slice(index).filter(e => e.type === (window.approval ? 'trial.speech_played' : 'session.output_transcript.delta'))) {
+    for (const event of logs.slice(index).filter(e => e.type === 'session.output_transcript.delta')) {
       // A display-only separator avoids joining separate utterances into e.g. "PersonNein".
       // Raw events remain intact; this is not a production turn/playback boundary.
       if (previous && Number.isFinite(event.start_ms) && Number.isFinite(previous.end_ms)
@@ -187,229 +123,13 @@ async function settled(index, expected) {
     const status = await api(`${agentPath}/live/sessions/${handle}`);
     assert.equal(status.state, 'attached', 'Live closed: ' + status.reason);
     const text = (await captionsFrom(index)).trim(); return text && (!expected || expected.test(text));
-  }, escalation ? 65000 : 40000); // Covers the original verification/playback deadlines and observation overhead.
+  }, 40000); // Covers the original verification/playback deadlines and observation overhead.
   // This is a test pacing heuristic, not a production audio-completion contract.
-  await page.waitForFunction(() => window.approval ? !window.approval.current : performance.now() - logs.findLast(e => e.type === 'session.output_transcript.delta').at > 3500,
+  await page.waitForFunction(() => performance.now() - logs.findLast(e => e.type === 'session.output_transcript.delta').at > 3500,
     {}, {timeout: 30000});
   const status = await api(`${agentPath}/live/sessions/${handle}`);
   assert.equal(status.state, 'attached', 'Live closed: ' + status.reason);
   return captionsFrom(index);
-}
-async function coordinationRevision() {
-  let index;
-  await until('first task completed', async () => (await storage())['task.phase'] === 'COMPLETED');
-  const original = (await storage())['coordination.agreement'];
-  index = await page.evaluate(() => logs.length); await say('revision');
-  const revisionStart = index;
-  if (coordinationScenario === 'recognition') {
-    const input = await until('complete revision input', async () => (await api(agentPath + '/live/history'))
-      .filter(e => e.type === 'obs.user_utterance' && /calendar/i.test(e.payload)).at(-1));
-    assert.match(input.payload, /change.*response|the response to a different/i, 'Synthetic input must include the revision request');
-    assert.match(input.payload, /every other term unchanged/i, 'Synthetic input must include its preservation constraint');
-    report.revisionInput = input.payload;
-  }
-  const revised = await until('revised draft', async () => {
-    const memory = await storage();
-    const reply = memory['core.task.response']?.facts || '';
-    if (/couldn't apply that update|edit also changes agreed/i.test(reply)) throw Error('Revision rejected without replacing the agreement: ' + reply);
-    return memory['coordination.draft'];
-  });
-  const protectedTerms = agreement => {
-    const copy = structuredClone(agreement); delete copy.goal; delete copy.agentRole; delete copy.questions;
-    delete copy.reactions.goal; copy.reactions.rules.forEach(rule => delete rule.action); return copy;
-  };
-  assert.ok(revised.reactions); assert.deepEqual(protectedTerms(revised), protectedTerms(original));
-  report.revision = await settled(index, /one.liner|dry|rock|check|proposal.{0,50}(same|chang|active)/i);
-  if (coordinationScenario === 'recognition') {
-    assert.match(revised.reactions.rules[0].action, /My calendar is full of empty promises/i);
-    assert.notEqual(revised.reactions.rules[0].action, original.reactions.rules[0].action);
-  }
-  if (coordinationScenario === 'capture') {
-    const history = await api(agentPath + '/live/history');
-    report.captureHistory = history;
-    const inputs = history.filter(e => e.type === 'obs.user_utterance' && /dry|liner/i.test(e.payload));
-    assert.equal(inputs.length, 1, 'Paused request must be admitted once');
-    assert.match(inputs[0].payload, /dry.*one.liner/i);
-  }
-  assert.equal(Object.keys((await storage())['coordination.evidence']).length, 0);
-  index = await page.evaluate(() => logs.length);
-  await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
-  report.reprepared = await settled(index, acceptanceQuestion);
-  await until('new acceptance question captured', async () => (await storage())['core.task.spokenPrompt']);
-  index = await page.evaluate(() => logs.length); await say('accept');
-  await capturedResponse('revised activation captured');
-  report.reactivation = await settled(index, /wait|rock|active|armed/i);
-  assert.equal((await storage())['task.actions'], 0);
-  if (coordinationScenario === 'recognition') assert.doesNotMatch(await captionsFrom(revisionStart), /empty promises|computer.*froze/i,
-    'The revised contribution must not be spoken before renewed acceptance and a fresh cue');
-  await wait(3500); index = await page.evaluate(() => logs.length);
-  await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
-  await until('revised response authorized', async () => (await storage())['task.actions'] === 1);
-  report.revisedContribution = await settled(index);
-  await completedDelivery('revised task');
-  if (coordinationScenario === 'recognition') {
-    assert.match(report.revisedContribution, /My calendar is full of empty promises/i);
-    assert.equal(report.revisedContribution.toLowerCase().split('empty promises').length - 1, 1);
-    assert.doesNotMatch(report.revisedContribution, /computer.*froze/i);
-  }
-  assert.equal((await storage())['task.actions'], 1);
-  index = await page.evaluate(() => logs.length); await say('acknowledge');
-  await wait(5000);
-  const after = await captionsFrom(index);
-  assert.ok(!after.includes(report.revisedContribution.trim()), 'A harmless acknowledgement must not repeat the revised contribution');
-  if (coordinationScenario === 'recognition') assert.doesNotMatch(after, /empty promises|computer.*froze/i,
-    'An acknowledgement must not repeat either run\'s contribution');
-  report.afterRevisedAcknowledgement = after;
-  report.revisedAgreement = (await storage())['coordination.agreement'];
-}
-async function completedDelivery(label) {
-  await until(label + ' playback confirmation', async () => {
-    const memory = await storage();
-    assert.notEqual(memory['task.phase'], 'UNCERTAIN', label + ' delivery became uncertain');
-    return memory['task.phase'] === 'COMPLETED';
-  }, 70000);
-  const delivery = (await storage())['coordination.delivery'];
-  assert.equal(delivery?.status, 'PLAYBACK_CONFIRMED');
-  (report.deliveries ??= []).push({label, ...delivery});
-}
-async function returnAndQuery() {
-  let index = await page.evaluate(() => logs.length); await say('back');
-  await until('return to Conversation', async () => (await storage())['task.phase'] === 'CONFIGURATION' && !(await storage())['coordination.draft']);
-  report.returned = await settled(index, /conversation/i);
-  index = await page.evaluate(() => logs.length); await say('status');
-  report.stateAnswer = await settled(index, /conversation/i);
-  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
-}
-async function coordinationMultimodal() {
-  let index = await page.evaluate(() => logs.length); await say('accept');
-  await capturedResponse('multimodal armed');
-  report.activation = await settled(index, /wait|armed|active|scissor/i);
-  assert.equal((await storage())['task.actions'], 0);
-  await noTaskSpeech(index, 'multimodal before cue');
-  const face = () => observe('obs.emotion.face', {emotion:'happy', valence:.8, confidence:.95, facePresent:true, ts:new Date().toISOString()});
-  await face();
-  let sampling = true, sampleError;
-  const samples = (async () => { while (sampling) { await face(); await wait(1000); } })()
-    .catch(error => {sampleError = error; sampling = false;});
-  try {
-    index = await page.evaluate(() => logs.length);
-    await observe('obs.hand.sign', {sign:'scissor', confidence:1, ts:new Date().toISOString()});
-    report.contribution = await settled(index, deliveredJoke);
-    assert.match(report.contribution, /look|seem|appear|estimate|suggest|might/i);
-    assert.match(report.contribution, /happy|smil|cheer|positive|amused/i);
-    assert.match(report.contribution, /maybe|might|seems?|appears?|not.{0,15}sure|uncertain/i);
-    await completedDelivery('scissor and facial expression');
-  } finally { sampling = false; await samples; if (sampleError) throw sampleError; }
-  assert.equal((await storage())['task.actions'], 1);
-  await returnAndQuery();
-  index = await page.evaluate(() => logs.length); await say('another');
-  await until('another draft', async () => (await storage())['coordination.draft']);
-  report.another = await settled(index, /welcome|visitor|proposal|accept/i);
-  const draft = (await storage())['coordination.draft']; assert.equal(draft.reactions, null); assert.equal(draft.dialogueLimit, 1);
-  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
-}
-async function coordinationDialogue() {
-  let index = await page.evaluate(() => logs.length); await say('accept');
-  await until('dialogue finishing', async () => (await storage())['task.phase'] === 'FINISHING');
-  report.contribution = await settled(index, /welcome.*lab/is); await completedDelivery('first dialogue');
-  const first = await storage(), run = first['coordination.run'];
-  assert.equal(first['task.actions'], 1);
-  index = await page.evaluate(() => logs.length); await say('ambiguous');
-  report.clarification = await settled(index, /restart|same task|conversation/i);
-  assert.equal((await storage())['coordination.run'], run); assert.equal((await storage())['task.phase'], 'COMPLETED');
-  index = await page.evaluate(() => logs.length); await say('restart');
-  await until('new run', async () => (await storage())['coordination.run'] !== run);
-  report.restarted = await settled(index, /welcome.*lab/is); await completedDelivery('restarted dialogue');
-  assert.equal((await storage())['task.actions'], 1);
-  assert.ok((await storage())['coordination.outcomes'].some(o => o.run === run && o.outcome === 'LIMIT_REACHED'));
-  await returnAndQuery();
-  const history = await api(agentPath + '/live/history');
-  assert.ok(history.filter(e => e.type === 'resp.behaviour_plan' && /welcome.*lab/is.test(e.payload)).length >= 2);
-  assert.ok((await storage())['coordination.outcomes'].length >= 2);
-}
-const joke = 'I told my computer I needed a break, and it froze.';
-const deliveredJoke = /computer.*(?:break|brake).*froze/is;
-async function noTaskSpeech(index, label, duration = 5000) {
-  await wait(duration);
-  const words = await captionsFrom(index);
-  assert.ok(!deliveredJoke.test(words), label + ': premature or duplicate joke: ' + words);
-  (report.negativeWindows ??= []).push({label, duration, captions: words});
-}
-async function coordinationDelivery() {
-  let index = await page.evaluate(() => logs.length);
-  await noTaskSpeech(index, 'before acceptance');
-  index = await page.evaluate(() => logs.length); await say('accept');
-  await capturedResponse('armed response captured');
-  report.activation = await settled(index, /wait|armed|active/i);
-  assert.equal((await storage())['task.actions'], 0);
-  await noTaskSpeech(index, 'armed before fresh cue');
-  index = await page.evaluate(() => logs.length);
-  await observe('obs.hand.sign', {sign:'rock', confidence:1, ts:new Date().toISOString()});
-  report.deliveryPending = await storage();
-  assert.equal(report.deliveryPending['task.phase'], 'FINISHING');
-  assert.equal(report.deliveryPending['task.response']?.status, 'PENDING');
-  report.contribution = await settled(index, deliveredJoke);
-  await until('associated final playback confirmed', async () => (await storage())['task.phase'] === 'COMPLETED');
-  report.deliveryCompleted = (await storage())['coordination.delivery'];
-  assert.equal(report.deliveryCompleted.status, 'PLAYBACK_CONFIRMED');
-  assert.ok(await page.evaluate(() => logs.some(e => e.type === 'trial.playback_ack' && e.accepted === true)));
-  assert.equal((await storage())['task.actions'], 1);
-  const normalized = report.contribution.toLowerCase();
-  assert.equal(normalized.split('froze').length - 1, 1, 'Deliver the agreed joke once');
-  index = await page.evaluate(() => logs.length); await say('acknowledge');
-  await noTaskSpeech(index, 'after acknowledgement and context refresh', 8000);
-  index = await page.evaluate(() => logs.length); await say('back');
-  await until('return committed', async () => !(await storage())['task.spec']);
-  report.returned = await settled(index, /conversation|beginning|initial/i);
-  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
-  index = await page.evaluate(() => logs.length); await say('status');
-  report.stateAnswer = await settled(index, /conversation/i);
-  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
-}
-async function coordinationInteraction() {
-  async function turn(name, expected) {
-    const index = await page.evaluate(() => logs.length); await say(name);
-    const answer = await settled(index, expected); report.turns.push({name, answer}); return answer;
-  }
-  await turn('persona', /Valerian/i);
-  await turn('capabilities', /hand|sign|sensor|gesture|task|cue/i);
-  let sensingBusy = false;
-  const freshSign = async () => {
-    if (sensingBusy) return; sensingBusy = true;
-    try { await observe('obs.hand.sign', {sign:'scissor', confidence:.93, source:'valerian.hand.camera', ts:new Date().toISOString()}); }
-    finally { sensingBusy = false; }
-  };
-  await freshSign();
-  const signTimer = setInterval(() => void freshSign().catch(error => {report.sensorError = error.message;}), 3000);
-  try {
-    const answer = await turn('sense', /scissor/i);
-    assert.doesNotMatch(answer, /(?:can.?t|cannot|not).{0,18}(?:see|sense|recognis|recogniz)|don.?t have eyes/i,
-      'Fresh recognised signs must not be denied on the basis of being a digital agent');
-  } finally { clearInterval(signTimer); }
-  const proposal = await turn('proposal', acceptanceQuestion);
-  assert.doesNotMatch(proposal, /wrong buttons|cut through the small talk|why (?:did|do|does|don.t) (?:the |a )?robot/i, 'Do not reproduce the trial preview failure');
-  const draft = (await storage())['coordination.draft']; assert.ok(draft, 'Task proposal was not persisted');
-  assert.equal(draft.reactions.firstAction, 'ON_CUE'); assert.equal(draft.reactions.maxActions, 1);
-  assert.ok(draft.reactions.rules.some(rule => rule.value === 'scissor' && rule.effect === 'ACT'));
-  assert.equal((await storage())['coordination.agreement'], undefined);
-  await turn('accept', /wait|armed|active|scissor/i); await capturedResponse('interaction arming');
-  assert.deepEqual((await storage())['coordination.agreement'], draft, 'Acceptance must preserve the proposal');
-  assert.equal((await storage())['task.actions'], 0);
-  const index = await page.evaluate(() => logs.length);
-  await wait(3200); await freshSign();
-  await completedDelivery('interaction joke');
-  report.contribution = await captionsFrom(index);
-  assert.ok(report.contribution.trim(), 'Expected the single authorized joke');
-  assert.equal((await storage())['task.actions'], 1);
-  assert.match(JSON.stringify(await api(agentPath + '/state')), /Coordination reflection/i);
-  await turn('acknowledge', /good|glad|work|okay|ok|thank|great/i);
-  assert.match((await storage())['coordination.review']?.userReport || '', /worked|okay|ok/i);
-  assert.equal((await storage())['task.phase'], 'COMPLETED');
-  await freshSign(); assert.equal((await storage())['task.actions'], 1);
-  await turn('back', /conversation/i);
-  assert.equal((await storage())['task.phase'], 'CONFIGURATION');
-  assert.equal((await storage())['coordination.outcomes'].at(-1).delivery.status, 'PLAYBACK_CONFIRMED');
-  report.manualReview = 'Review persona/capability accuracy, joke quality and all setup captions for previews; lexical checks are not a complete semantic judge. Physical audio/camera remain separate.';
 }
 try {
   const admin = {'X-Prometheus-Admin-Token': token};
@@ -419,36 +139,6 @@ try {
   scoped = {'X-Prometheus-Access-Code': code};
   const agent = await api('/demo/agents', 'POST', {agentDefinitionKey: definitions[selection]});
   agentPath = '/demo/agents/' + agent.id; report.agentId = agent.id;
-  if (coordinationJourney && coordinationScenario === 'delivery') {
-    await api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation',
-      payload:`Propose but do not start: after acceptance, wait for a fresh rock then tell exactly this one-line joke once: ${joke} I show the sign and judge the joke; success means I accept it. One action in this session, standard recognition settings. No preparation checks.`});
-    assert.deepEqual((await storage())['coordination.draft'].questions, [], 'Complete supplied terms need no additional preference question');
-    assert.equal((await storage())['coordination.draft'].checks.length, 0);
-  }
-  if (coordinationJourney && ['multimodal', 'dialogue'].includes(coordinationScenario)) {
-    const payload = coordinationScenario === 'multimodal'
-      ? `Propose but do not start: after acceptance, on a fresh scissor sign say the joke: ${joke} Then briefly estimate my current visible facial expression, clearly uncertain. I show the sign and judge the response; success is my acceptance. One action this session, standard settings, no preparation checks.`
-      : 'Propose but do not start a dialogue task: say exactly Welcome to the lab. I judge the welcome; success is my acceptance. One contribution, no sensors or preparation checks.';
-    await api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation', payload});
-    const draft = (await storage())['coordination.draft']; assert.ok(draft, 'Proposal must pass bounded agreement validation');
-    assert.deepEqual(draft.questions, []); assert.equal(draft.checks.length, 0);
-    if (coordinationScenario === 'multimodal') assert.equal(draft.reactions.rules[0].value, 'scissor');
-    else { assert.equal(draft.reactions, null); assert.equal(draft.dialogueLimit, 1); }
-  }
-  if (coordinationJourney && ['revision', 'capture'].includes(coordinationScenario)) {
-    const text = input => api(agentPath + '/acknowledge', 'POST', {type:'obs.user_utterance', actor:'user', kind:'observation', payload:input});
-    await text('Propose one short joke on rock after acceptance, first verifying rock recognition. I show the sign and judge the joke. One action in this session, standard settings. Do not start yet.');
-    let memory = await storage();
-    assert.equal(memory['coordination.draft'].checks.length, 1);
-    assert.deepEqual(memory['coordination.draft'].questions, []);
-    await observe('obs.hand.sign', {sign:'rock', confidence:1, ts:new Date().toISOString()});
-    await text('Start the saved proposal now.');
-    await wait(3500);
-    await observe('obs.hand.sign', {sign:'rock', confidence:1, ts:new Date().toISOString()});
-    memory = await storage(); assert.equal(memory['task.phase'], 'COMPLETED');
-    assert.equal(memory['task.actions'], 1);
-    report.textSetup = {agreement:memory['coordination.agreement'], outcome:memory['coordination.outcome']};
-  }
   if (ambientSensing) await freshSense();
   let heartbeatBusy = false;
   heartbeat = setInterval(async () => {
@@ -461,20 +151,7 @@ try {
     finally { heartbeatBusy = false; }
   }, 5000);
   page = await browser.newPage(); await page.goto(base + '/valerian/');
-  report.synthesizedAudio = [];
-  await page.exposeFunction('retainSynthesis', reply => {
-    assert.match(reply.segmentId, /^[a-f0-9-]{36}$/); assert.equal(reply.sampleRate, 24000);
-    const audio = Buffer.from(reply.pcm, 'base64');
-    assert.ok(audio.length > 0 && audio.length <= 2160000 && audio.length % 2 === 0);
-    assert.ok(report.synthesizedAudio.length < 12);
-    assert.ok(report.synthesizedAudio.reduce((n, item) => n + item.text.length, 0) + reply.text.length <= 6000);
-    const directory = path.join(path.dirname(output), 'synthesized-speech'); fs.mkdirSync(directory, {recursive: true});
-    const file = `${reply.segmentId}.pcm`; fs.writeFileSync(path.join(directory, file), audio);
-    const evidence = {file: `synthesized-speech/${file}`, segmentId: reply.segmentId, text: reply.text,
-      seconds: audio.length / 48000, sha256: createHash('sha256').update(audio).digest('hex'), origin: 'SYNTHESIZED'};
-    report.synthesizedAudio.push(evidence); return evidence;
-  });
-  const offer = await page.evaluate(async ({agentPath, code, connectionOnly, coordinationJourney}) => {
+  const offer = await page.evaluate(async ({agentPath, code, connectionOnly}) => {
     window.logs = []; window.mark = (type, fields = {}) => logs.push({type, ...fields, at: performance.now()});
     window.ac = new AudioContext({sampleRate: 24000}); await ac.resume();
     window.destination = ac.createMediaStreamDestination();
@@ -492,26 +169,6 @@ try {
       });
       mark('trial.playback_ack', {ok: response.ok, accepted: response.ok && await response.json(), cueId: cue.id, segmentId: cue.segmentId});
     }, value => mark('trial.playback_diagnostic', value));
-    if (coordinationJourney) {
-      const {CommittedSpeechPlayer} = await import('/live/committed-speech.js');
-      playback?.close();
-      window.approval = new CommittedSpeechPlayer({audio: player,
-        api: async (path, options) => {
-          const response = await fetch(`${agentPath}/live/sessions/${window.liveHandle}/${path}`, {
-            ...options, headers: {'Content-Type': 'application/json', 'X-Prometheus-Access-Code': code}});
-          if (!response.ok) throw Error(`Approval endpoint ${response.status}`);
-          const result = await response.json();
-            if (path.startsWith('speech-synthesis/') && result.status === 'APPROVED')
-              mark('trial.synthesis_received', await window.retainSynthesis(result));
-          if (path.startsWith('playback-cues/')) mark('trial.playback_ack', {
-            ok: true, accepted: result === true, cueId: path.slice('playback-cues/'.length), segmentId: JSON.parse(options.body).segmentId});
-          return result;
-        }, diagnostic: value => mark('trial.approval_diagnostic', value),
-        withheld: message => mark('trial.speech_withheld', {message}),
-        played: value => mark('trial.speech_played', {text: value.text, segmentId: value.segmentId, requestId: value.id, origin: 'SYNTHESIZED'})});
-      await approval.prepare(destination.stream);
-      window.playback = approval.observer;
-    }
     window.playbackSamples = [];
     if (playback) {
       const sample = playback.gate.sample.bind(playback.gate);
@@ -532,19 +189,18 @@ try {
           const response = await fetch(`${agentPath}/live/sessions/${handle}/updates`, {headers: {'X-Prometheus-Access-Code': code}});
           if (response.ok) {
             const update = await response.json();
-            if (window.approval) approval.update(update.transcripts, update.playbackCue, update.speechRequestId);
-            else playback?.update(update.playbackCue, update.transcripts);
+            playback?.update(update.playbackCue, update.transcripts);
             captions.reconcile(update.transcripts);
           }
         } finally {busy = false;}
       }, 1000);
     };
-    pc.ontrack = event => {if (window.approval) {approval.stream(event.streams[0]); return;} player.srcObject = event.streams[0]; playback?.stream(player.srcObject); player.play().catch(() => {});};
+    pc.ontrack = event => {player.srcObject = event.streams[0]; playback?.stream(player.srcObject); player.play().catch(() => {});};
     window.dc = pc.createDataChannel('oai-events'); dc.onmessage = event => {
       const message = JSON.parse(event.data);
       if (captions.receive(message)) {
-        if (message.type === 'session.input_transcript.delta') {if (window.approval) approval.inputTranscript(message); else playback?.interrupt();}
-        if (message.type === 'session.output_transcript.delta') {if (window.approval) approval.receipt(message); else playback?.caption(message.event_id);}
+        if (message.type === 'session.input_transcript.delta') {playback?.interrupt();}
+        if (message.type === 'session.output_transcript.delta') {playback?.caption(message.event_id);}
       }
       if (!message.type.includes('audio.')) mark(message.type, message.type === 'session.started' ? {} : message);
     };
@@ -554,25 +210,15 @@ try {
       else {pc.onicegatheringstatechange = () => {if (pc.iceGatheringState === 'complete') resolve();}; setTimeout(resolve, 2000);}
     });
     return pc.localDescription.sdp;
-  }, {agentPath, code, connectionOnly, coordinationJourney});
-  const session = await api(agentPath + '/live/sessions', 'POST', {sdp: offer, voice: 'willow', speechApproval: true}); handle = session.handle;
-    if (coordinationJourney) { assert.equal(session.committedSpeechOutput, true); report.output = {origin: 'SYNTHESIZED', voice: 'alloy'}; }
+  }, {agentPath, code, connectionOnly});
+  const session = await api(agentPath + '/live/sessions', 'POST', {sdp: offer, voice: 'willow'}); handle = session.handle;
   await page.evaluate(({sdp, handle}) => {window.liveHandle = handle; return pc.setRemoteDescription({type: 'answer', sdp});}, session);
-  await page.waitForFunction(coordination => coordination
-    ? pc.connectionState === 'connected' && dc.readyState === 'open'
-    : logs.some(e => e.type === 'session.started'), coordinationJourney, {timeout: 20000});
-  if (coordinationJourney) await until('provider session started', async () =>
-    (await api(`${agentPath}/live/sessions/${handle}`)).recent?.some(e => e.type === 'session.started'));
+  await page.waitForFunction(() => logs.some(e => e.type === 'session.started'), null, {timeout: 20000});
   await api(`${agentPath}/live/sessions/${handle}/input?muted=false`, 'POST');
   await page.evaluate(handle => startPlaybackPoll(handle), handle);
-  if (coordinationJourney) {
-    await until('input unmuted', async () => (await api(`${agentPath}/live/sessions/${handle}`)).recent?.some(e => e.type === 'session.input_audio.unmuted'));
-    await until('initial context delivered', async () => (await api(`${agentPath}/live/sessions/${handle}`)).context?.state === 'ready');
-    await wait(1000); // Test startup pacing; not a production capture/delivery signal.
-  }
   // LiveMultimodal intentionally has no unsolicited opening. Start with a user turn.
   const initial = await api(agentPath + '/state');
-  for (const [name, expected] of (gameJourney || coordinationJourney && coordinationScenario !== 'baseline' ? [] : [['info', /SIRA|social|responsib|research|agent/i], ['sense', selection === 'face' ? /neutral|calm|relax/i : /one|1|single/i]])) {
+  for (const [name, expected] of (gameJourney ? [] : [['info', /SIRA|social|responsib|research|agent/i], ['sense', selection === 'face' ? /neutral|calm|relax/i : /one|1|single/i]])) {
     const index = await page.evaluate(() => logs.length);
     await say(name);
     const text = await settled(index, expected);
@@ -682,60 +328,6 @@ try {
     await say('acknowledge'); await wait(4000);
     assert.equal((await storage())['task.phase'], 'COMPLETED'); assert.equal((await storage())['task.actions'], 1);
     report.finalState = await api(agentPath + '/state');
-  } else if (coordinationJourney) {
-    if (escalation) {
-      await runEscalation(coordinationScenario, {page, say, settled, captionsFrom, acceptanceQuestion, storage, observe, until, capturedResponse, synthesizedSpeech, api, agentPath, handle, report, wait});
-    } else if (coordinationScenario === 'interaction') {
-      await coordinationInteraction();
-    } else if (coordinationScenario === 'delivery') {
-      await coordinationDelivery();
-    } else if (coordinationScenario === 'multimodal') {
-      await coordinationMultimodal();
-    } else if (coordinationScenario === 'dialogue') {
-      await coordinationDialogue();
-    } else if (['revision', 'capture'].includes(coordinationScenario)) {
-      await coordinationRevision();
-    } else if (coordinationScenario === 'recognition') {
-      let index = await page.evaluate(() => logs.length); await say('proposal');
-      await until('preparation draft', async () => (await storage())['coordination.draft']?.checks?.length === 1);
-      report.proposal = await settled(index, /rock|recogn|check|prepar/i);
-      let memory = await storage();
-      assert.deepEqual(memory['coordination.draft'].questions, [], 'The self-contained request should not need technical tuning questions');
-      assert.equal(memory['coordination.draft'].reactions.firstAction, 'ON_CUE');
-      assert.equal(memory['coordination.draft'].reactions.maxActions, 1);
-      assert.equal(memory['coordination.agreement'], undefined);
-      index = await page.evaluate(() => logs.length);
-      await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
-      report.prepared = await settled(index, acceptanceQuestion);
-      await until('completed acceptance question', async () => (await storage())['core.task.spokenPrompt']);
-      assert.match(report.proposal + '\n' + report.prepared, /new|fresh|after.{0,20}(accept|start)/i,
-        'The current proposal/preparation dialogue must explain that a fresh cue follows acceptance');
-      assert.equal((await storage())['coordination.agreement'], undefined);
-      await noTaskSpeech(0, 'recognition before acceptance');
-      // Repeated demonstration is still not consent.
-      await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
-      await wait(2000); assert.equal((await storage())['coordination.agreement'], undefined);
-      index = await page.evaluate(() => logs.length); await say('accept');
-      await capturedResponse('captured activation');
-      report.activation = await settled(index, /wait|armed|active|fresh/i);
-      assert.doesNotMatch(report.activation, /shall.{0,20}start|want.{0,20}start|not (yet )?active/i);
-      memory = await storage(); assert.equal(memory['task.phase'], 'RUNNING'); assert.equal(memory['task.actions'], 0);
-      report.beforeCue = await captionsFrom(0);
-      await noTaskSpeech(0, 'recognition before fresh cue');
-      await wait(3500); index = await page.evaluate(() => logs.length);
-      await observe('obs.hand.sign', {sign: 'rock', confidence: 1, ts: new Date().toISOString()});
-      await until('one authorized contribution', async () => (await storage())['task.actions'] === 1);
-      report.contribution = await settled(index, deliveredJoke);
-      assert.equal((await storage())['task.actions'], 1);
-      await completedDelivery('first rock task');
-      assert.equal(report.contribution.toLowerCase().split('froze').length - 1, 1);
-      await coordinationRevision();
-    } else {
-      assert.equal(coordinationScenario, 'baseline', 'Scenario is not implemented yet; do not report partial acceptance');
-      assert.equal((await storage())['coordination.agreement'], undefined);
-    }
-    report.finalState = await api(agentPath + '/state');
-    report.history = await api(agentPath + '/eventhistory');
   } else if (selection === 'live') {
     // Gesture-only requests intentionally require no spoken acknowledgement.
     await say('gesture');
@@ -757,7 +349,7 @@ try {
       assert.equal((await storage())['sensing.remarks.pending'], undefined, 'Correction must cancel old comment');
     }
   }
-  if (!taskJourney && !gameJourney && !(coordinationJourney && coordinationScenario !== 'baseline')) assert.deepEqual(await api(agentPath + '/state'), initial);
+  if (!taskJourney && !gameJourney) assert.deepEqual(await api(agentPath + '/state'), initial);
   report.status = await api(`${agentPath}/live/sessions/${handle}`);
   assert.equal(report.status.state, 'attached');
   report.passed = true;
@@ -766,7 +358,6 @@ try {
   if (report.rubric) report.rubric.automatedAuthorityAndDeliveryChecks = 'FAIL';
 }
 finally {
-  finishing = true;
   clearInterval(heartbeat);
   if (agentPath) report.finalStorage = await storage().catch(error => ({error: error.message}));
   if (page) report.finalPlayback = await page.evaluate(() => {
@@ -777,8 +368,7 @@ finally {
       context: p?.context?.state, hidden: document.hidden};
   }).catch(() => null);
   if (page) report.playbackSamples = await page.evaluate(() => window.playbackSamples).catch(() => []);
-  if (page) report.speechBuffer = await page.evaluate(() => window.approval?.buffer.diagnostic()).catch(() => null);
-  if (page) await page.evaluate(() => {clearInterval(window.playbackTimer); if (window.approval) approval.close(); else window.playback?.close();}).catch(() => {});
+  if (page) await page.evaluate(() => {clearInterval(window.playbackTimer); window.playback?.close();}).catch(() => {});
   if (handle) {
     report.finalStatus = await api(`${agentPath}/live/sessions/${handle}`).catch(error => ({error: error.message}));
     report.ledger = await api(`${agentPath}/live/transcripts?sessionId=${handle}`).catch(error => ({error: error.message}));

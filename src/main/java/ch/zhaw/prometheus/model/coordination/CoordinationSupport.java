@@ -45,8 +45,8 @@ public final class CoordinationSupport {
                         ? "We need the goal, roles and success criterion before starting." : draft.questions().getFirst());
             }
             case "PREPARATION" -> {
-                yield "Before starting, demonstrate " + remainingPreparation(storage)
-                        + " for recognition, then accept the ready proposal.";
+                yield "Before starting, you need to demonstrate " + remainingPreparation(storage)
+                        + " for recognition; you can then accept the ready proposal.";
             }
             case "READY" -> "The proposal and preparation are ready; no further demonstration is needed. Say Start to accept the saved proposal."
                     + (CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT).reactions() != null

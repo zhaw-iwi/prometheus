@@ -102,7 +102,7 @@ class CoordinationSupportUnitTest {
         String expected = switch (phase) {
             case "CONVERSATION" -> "No task is active";
             case "COORDINATION" -> "unresolved terms";
-            case "PREPARATION" -> "Before starting, demonstrate";
+            case "PREPARATION" -> "Before starting, you need to demonstrate";
             case "READY" -> "no further demonstration is needed";
             case "EXECUTION" -> "The task is active";
             case "PAUSED" -> "progress is preserved";

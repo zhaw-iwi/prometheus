@@ -65,18 +65,17 @@ class CoordinationAgentIntegrationTest {
         new TransactionTemplate(transactions).executeWithoutResult(status -> {
             var agent = agents.findById(scope.id()).orElseThrow();
             var storage = ((CoordinationPolicy) agent.getCurrentState().ownPolicy()).storage();
-            storage.put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new JsonPrimitive(true));
-            storage.put(ch.zhaw.prometheus.model.policy.LiveCommittedSpeech.ENABLED, new JsonPrimitive(true));
+            storage.put("live.speechApproval", new JsonPrimitive(true));
+            storage.put("live.committedSpeech", new JsonPrimitive(true));
             agents.saveAndFlush(agent);
         });
         var session = UUID.randomUUID();
         try {
             var context = liveContexts.claim(scope.code(), scope.id(), session).orElseThrow();
-            assertFalse(context.speechApprovalRequired()); assertFalse(context.committedSpeechOutput());
             assertFalse(context.instructions().contains("Remain silent. Do not generate replies"));
             var saved = memory(scope);
-            assertFalse(saved.containsKey(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED));
-            assertFalse(saved.containsKey(ch.zhaw.prometheus.model.policy.LiveCommittedSpeech.ENABLED));
+            assertFalse(saved.containsKey("live.speechApproval"));
+            assertFalse(saved.containsKey("live.committedSpeech"));
             turn(scope, "KEEP", "null", "What can you do?");
             assertFalse(memory(scope).containsKey("core.task.response"), "An ordinary reply cannot create a competing narration");
             var events = agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
@@ -90,8 +89,8 @@ class CoordinationAgentIntegrationTest {
             var agent = agents.findById(scope.id()).orElseThrow();
             // Reproduce an agent saved by the November committed-output implementation.
             var storage = ((CoordinationPolicy) agent.getCurrentState().ownPolicy()).storage();
-            storage.put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new JsonPrimitive(true));
-            storage.put(ch.zhaw.prometheus.model.policy.LiveCommittedSpeech.ENABLED, new JsonPrimitive(true));
+            storage.put("live.speechApproval", new JsonPrimitive(true));
+            storage.put("live.committedSpeech", new JsonPrimitive(true));
             var external = new ch.zhaw.prometheus.model.policy.ExternalSpeech(UUID.randomUUID(), agent.executionEpoch());
             agents.saveAndFlush(agent); return external;
         });
@@ -99,8 +98,8 @@ class CoordinationAgentIntegrationTest {
         ownership.release(scope.id(), owner.sessionId());
         // Both November output-selection flags survive reload. Neither is a live ownership grant.
         var saved = memory(scope);
-        assertTrue(saved.get(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED).getAsBoolean());
-        assertTrue(saved.get(ch.zhaw.prometheus.model.policy.LiveCommittedSpeech.ENABLED).getAsBoolean());
+        assertTrue(saved.get("live.speechApproval").getAsBoolean());
+        assertTrue(saved.get("live.committedSpeech").getAsBoolean());
         assertFalse(ownership.hasOwner(scope.id()));
         clearInvocations(gateway);
         turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation task");

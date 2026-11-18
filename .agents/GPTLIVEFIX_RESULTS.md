@@ -1,5 +1,263 @@
 # GPT-Live repair evidence
 
+## GLF-05 - Integrated acceptance and cleanup (2026-11-18/19)
+
+Status: **software checks and bounded provider happy paths PASS; physical
+acceptance NOT RUN**. This is a main-branch engineering handoff, not a deployment
+or a claim of production reliability.
+
+Baseline: `3de61cec` (GLF-04), already pushed to main. The current owner authorized
+sequential milestones and commits/pushes, plus cumulative paid smoke tests below
+$50. No deployment or branch promotion is part of this run.
+
+Production cleanup removes the unused approval/committed-Speech services, policy
+hooks, release/synthesis endpoints, browser players, buffering worklet and unheard
+correction/replay path. Dedicated tests for those deleted implementations were
+retired. Shared Coordination authority, native semantic association, delivery,
+revision/help, capture/provenance and Continuous tests remain and were adapted to
+the native route. Historical unplayed provenance is still rejected. The session
+response keeps its two legacy output flags as always-false wire fields, while new
+claims still clear old saved selection flags. No saved graph/history migration.
+
+The obsolete paid Coordination branches were removed from the other-core-agent
+harness. Its selection now rejects before provisioning/billing and directs callers
+to the real-cockpit repair harness. Other agent journeys remain. ES-08 labelled
+review helpers remain; its obsolete execution code and instructions were retired.
+
+Final offline verification:
+
+- Final source `target/gptlive-acceptance-ecd1a6a2ae`: **484 Java cases and seven browser cases
+  passed, zero skips**, including canonical Text/Continuous, the native backend
+  barrier, Stop/mode changes, semantic delivery, lost playback acknowledgement,
+  incomplete capture/reconnect/reload and the shared scoped Live cockpit.
+- **160 JS cases passed**: 110 Live, 29 transcription, 21 Speech. The reduction
+  from GLF-04 removes dedicated tests of the retired player/buffer only.
+- **16 Python runner/budget checks passed**, including retained failed-attempt
+  reservations, exclusive ledger updates, unpriced-model rejection and rejection
+  of the obsolete paid Coordination selection.
+- Previous `07b94a9f93` passed 481 Java and seven browser cases; `53bd7f4cd4`
+  passed 484 and seven. New coverage includes capture boundaries, a shared
+  transcription/Live session budget and prohibition of competing native Speech.
+- Earlier cleanup run `8ef4c12f1f`: 464 Java and six browser cases passed. The
+  focused unit run `target/glf05-unit` passed 249 cases; these overlap the final
+  Java selection and are not added to its count.
+- Final dead-code cleanup removed one remaining unused capture-rejection overload
+  and its dedicated test, plus an unused bridge variable. All 44 focused capture,
+  context-delivery and provider-budget cases passed in `target/glf05-cleanup-final`.
+  The later six-case budget run in `bec498e450` adds a pre-provider prohibition on
+  competing synthesis for native/Text. The final applicable Java set still totals
+  484 unique cases; all ran together on the final source in `ecd1a6a2ae`.
+- An unused-field cleanup initially left one assignment: `a1d07b7c03` failed
+  compilation before reservation/provider access. Removed the dangling assignment;
+  subsequent final compilation and tests passed. Owned apps, random schemas and
+  restricted database accounts were cleaned after each run.
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests 'Coordination*Test,Task*UnitTest,Live*Test,ExternalSpeech*Test,ScopedLive*Test,ScopedBehaviourSpeechServiceUnitTest,CoreRps*Test,ProviderCaptureBudgetTest,SpeechArchitectureBrowserClientContractTest,BehaviourSpeechControllerWebMvcTest' --browser --browser-mode enabled --browser-grep 'native Coordination|Coordination Text and Continuous|real scoped cockpit'
+npm.cmd run test:live:unit
+npm.cmd run test:transcription:unit
+npm.cmd run test:speech:unit
+python -m unittest discover -s tests/gptlive -p 'test_*.py'
+```
+
+Paid evidence uses `tests/gptlive/gptlivefix-paid-plan.json`, recorded before any
+provider call: eight attempts maximum, $5 reserved per attempt, $40 cumulative.
+Every failure keeps its full reserve in `target/gptlivefix-paid-budget.json`.
+Backend requests/input bytes/completion tokens/reported tokens, shared Live or
+transcription session count, duration and input/output Speech are bounded. There
+are no automatic provider retries. This is a conservative spending envelope,
+not an invoice or a claim that every reserved dollar was billed.
+
+The predeclared latency sample is three ordinary turns on the native baseline and
+three on native Coordination: median at most baseline +1000 ms, maximum at most
+baseline +2000 ms. No p95. Browser `performance.now` measures the synthetic input's
+last voiced PCM sample to actual HTML-audio RMS onset; server times are separate.
+The first streaming input caption can arrive before speech ends, so its negative
+relative time is not a final-transcription latency. The deterministic GLF-02
+backend barrier remains the causal proof of native independence.
+
+Observed native ordinary-reply latency (three turns per row, milliseconds):
+
+| Artifact | Per-turn onset | Median | Range | Declared target |
+| --- | --- | --- | --- | --- |
+| `cf083e2a3c` baseline | 1337, 1637, 1394 | 1394 | 1337-1637 | Reference |
+| `34f4b5f506` | 1498, 1371, 1364 | 1371 | 1364-1498 | PASS; later lifecycle failure retained |
+| `f386428d0c` | 1327, 1404, 1480 | 1404 | 1327-1480 | PASS; later transport failure retained |
+| `e48c073b3f` | 1256, 1160, 1329 | 1256 | 1160-1329 | PASS; role error still a semantic FAIL |
+| `27dbf34399` final | 1540, 1564, 1589 | 1564 | 1540-1589 | PASS; full journey and meaning review pass |
+
+Retained paid attempts:
+
+| Artifact suffix | Mode | Outcome |
+| --- | --- | --- |
+| `6a61511e75` | Baseline | Setup failed: collapsed voice selector; three stimulus TTS calls, no Live session/backend call. |
+| `916208ecd1` | Baseline | Setup failed: nested summary selector matched twice; cached stimulus, no Live session/backend call. |
+| `fd3dcb4266` | Baseline | Real Live session opened; harness compared CSS-uppercase innerText with mixed case. No user/backend turn. |
+| `cf083e2a3c` | Baseline | PASS: three native turns, complete recorded conversation; six backend requests, 4,423 reported tokens. |
+| `34f4b5f506` | Live | FAIL after one delivered contribution: feedback misclassified, revision changed protected success; ordinary capture boundary defects also found and fixed. |
+| `a8e3679104` | Continuous | FAIL at reflection audio: HTTP 200 but no observed voice; user report persisted. |
+| `7820190c4e` | Text | FAIL: harness sent fresh cue before saved canonical arming deadline. |
+| `f386428d0c` | Live | FAIL: WebRTC transport lost during help; ordinary complete capture passed, client stopped safely. |
+| `5171a7d795` | Continuous | PASS: full journey including microphone gating, one contribution, persisted reflection and unaccepted revision. |
+| `bec498e450` | Text | PASS after waiting for the persisted cue deadline; full journey and renewed preparation/consent requirements. |
+| `e48c073b3f` | Live | Automated journey PASS; independent semantic review FAIL: early-start refusal assigned human preparation/consent to the agent. |
+| `27dbf34399` | Live | PASS: automated full journey and manual meaning review after role-guidance fix; nine backend calls, 42,771 reported tokens. |
+
+
+The baseline replies identified Valerian/SIRA, offered small conversational
+activities and explained planning help. They matched the inputs without task
+activation. Actual onset samples were 1337, 1637 and 1394 ms; median 1394 ms,
+range 1337-1637 ms. Physical sound was not measured.
+
+The first Coordination native attempt, `34f4b5f506`, reached one contribution,
+PLAYBACK_CONFIRMED delivery and Reflection. Its ordinary onset samples were
+1498, 1371 and 1364 ms (median 1371, range 1364-1498); the declared latency target
+passed. However, the model selected COMPLETE for feedback on an already completed
+task, then changed the protected success field in a response-only revision. The
+backend correctly rejected both mutations. The current-turn prompt now states the
+actual phase and supplies the exact protected revision data; guards are unchanged.
+The retest additionally requires the reflection report to be persisted. The
+harness now checks retained prior agreement plus an unaccepted revision draft,
+consistent with the existing resume/renewed-consent contract.
+
+That trace also exposed a real capture defect: a delayed tail of the same input
+turn could split native output; the next adjacent output receipt was classified
+late because its start equalled the frozen end. The segmenter now distinguishes
+continuing input from a fresh turn (including a provider-time silence gap), and
+permits non-overlapping adjacent receipts. Available words stay once, while new
+voiced input/overlapping turns still yield incomplete evidence. The initial focused
+run caught a missing fresh-turn-gap distinction and a test expectation that trimmed
+preserved whitespace; both were corrected. All 205 focused cases and the final
+484-case shared suite passed. The native retest requires complete, word-preserving
+capture for each of the three ordinary turns.
+
+Continuous `a8e3679104` reached the contribution and persisted REFLECT correctly,
+but its final MP3 reply yielded no observed browser voice despite HTTP 200. It is
+retained as FAIL, not inferred audible from the HTTP result. The next diagnostic
+trial attempts to retain MP3 responses and exports production timings to distinguish
+provider output from browser playback. Text `7820190c4e` sent its fresh cue before
+`task.after` (the existing three-second canonical arming window); its zero-action
+rejection was correct. The harness now waits for that persisted deadline before
+creating a fresh cue. Preparation/contribution pacing also waits for actual output
+onset before quiet and the next spoken input.
+
+Before the remaining follow-ups, the plan was amended to ten attempts and $46
+maximum cumulative reservations: the original $5 reservations remain untouched;
+one extra instrumented Continuous attempt reserves $5, and the additional Text-only
+retest reserves $1. The latter has no audio calls and a worst-case request/token
+bound below $0.81 at the recorded rates, including input cache-write premium.
+No unchanged run is repeatedly rerolled; these follow-ups address named failures
+with corrected pacing or additional diagnostic evidence. The user ceiling remains
+strictly below $50. The dated plan and per-attempt copies preserve both budgets.
+
+The eleventh attempt adds peer connection-state evidence and requires cached
+visitor PCM, with provider synthesis blocked. Its worst-case backend/Live envelope
+is below $1.11 at the declared rates; its $2 reserve brought that plan version to
+$48 across eleven attempts. The original reservations remain intact.
+
+Continuous `5171a7d795` passed the complete scripted journey: canonical backend
+speech, observed HTML-audio output, microphone pause/reopen, preparation, blocked
+early start, help, accepted zero-action waiting, old-cue rejection, one fresh-cue
+welcome, duplicate-cue rejection, persisted user reflection and a revised draft
+requiring fresh preparation/consent. The revision changed response content while
+retaining all protected agreement fields and the prior accepted agreement. It did
+not execute a second contribution. The provider input transcripts and resulting
+canonical speech were reviewed for these meanings. This does not certify TTS
+phonemes or physical sound word for word. The earlier no-voice reply was not
+reproduced; its root cause remains unestablished.
+
+The diagnostic follow-up retained production timing exports for all nine user
+turns. The reflection transferred 117,888 MP3 bytes and played for about 7.4 seconds;
+revision transferred 319,488 bytes and played for about 20 seconds. Those later
+responses had observed voice. Chrome rejected all attempts to retrieve consumed
+streamed response bodies through CDP, so no raw MP3 artifact was retained; these
+errors are explicit in `evidenceErrors`. The truncated server timing journal has
+its own dropped-event count (it does not mean dropped audio bytes).
+
+Text `bec498e450` passed the same authority path with real backend inference and
+no audio/session calls.
+
+Native `e48c073b3f` passed all automated lifecycle/capture/delivery assertions,
+with nine backend calls and 42,563 reported tokens. Its three ordinary native
+replies had median onset 1256 ms, range 1160-1329 ms, meeting the declared target.
+However, manual review found a material role reversal in the early-start refusal:
+"Not yet—I need to show the scissors sign and accept the proposal first."
+Those are the human's duties. The backend correctly kept the task unstarted, and
+the later ready review assigned the roles correctly, but neither fact makes this
+spoken error acceptable. The run remains a semantic FAIL.
+
+The support explanation now explicitly says "you need to demonstrate" and "you
+can then accept". Native guidance distinguishes the human's duties/consent from
+the agent's duties when paraphrasing. No authority guard or meaning rubric changed.
+The first offline check of that addition (`d69d7668a5`) ran 484 cases and found
+23 failures/errors, all due to the existing 16,000-byte instruction budget.
+Redundant guidance was shortened without changing authority or increasing the
+limit. The final shared run `ecd1a6a2ae` passed all 484 Java and seven browser
+cases with zero skips before the last paid call.
+A dated fourth plan version reserves $1.50 for one final validation of this fix,
+with cached stimuli and zero provider synthesis. The unchanged worst-case bounded
+backend/Live cost is below $1.11. All prior reserves are retained, for at most
+12 attempts and $49.50 cumulative; no further paid trial follows.
+
+Final native `27dbf34399` passed the automated journey and a separate review of
+all spoken output and persisted terms. The early refusal now says the visitor
+must show the sign first. Its collective "we can accept" is prospective; the ready
+review and help explicitly require the visitor's acceptance. The ready review
+preserved the fresh scissor cue, human demonstration/judgement, agent welcome,
+one-action limit and acceptance question. Help did not start the task. Acceptance
+left zero actions; an old cue was rejected, a fresh cue produced one welcome,
+scoped playback was confirmed, and a duplicate cue did not add an action. The
+user's positive reflection was stored separately from the finite-action outcome
+`LIMIT_REACHED`; it is not a measured success claim.
+
+The final revision is an **unaccepted draft**, requiring new preparation and
+consent. The protected human-role/success strings still refer to the original
+welcome, as required by this response-only revision contract. This trial does not
+qualify a second revised execution or a change to those protected terms; changing
+them requires explicit replacement agreement. The prior accepted terms and one
+spent action remain preserved.
+
+Every native output word in the final browser caption stream is retained once in
+history (1,115 non-whitespace characters match in order). All three ordinary turns
+are complete. "Everything's ready," overlaps the new spoken help input and is
+correctly retained as an incomplete prefix, followed by the captured continuation;
+it is not complete consent or task-delivery evidence. This is distinct from the
+fixed same-turn delayed-caption defect. The peer reached connected with no later
+transport failure. All eight visitor clips were cached; no provider Speech call
+was allowed. Final source hashes match the production sources used by this run.
+
+The final reservations total **$49.50 across 12 attempts**, retaining every earlier
+failed reserve. No further paid run was launched. Actual invoiced usage has not
+been reconciled; this is the declared conservative envelope.
+
+| Mode | Final software checks | Real-provider happy path | Physical audio |
+| --- | --- | --- | --- |
+| Text | PASS: canonical authority and persisted journey | PASS `bec498e450` | Not applicable |
+| Continuous | PASS: canonical queue, scope, microphone gating and parity | PASS `5171a7d795`; earlier no-voice failure remains unexplained | NOT RUN |
+| Native Live | PASS: independent audio, task meaning, delivery, capture and lifecycle | PASS `27dbf34399`; prior transport/semantic failures retained | NOT RUN |
+
+Text/Continuous paid runs precede the final explicit-human-subject wording change;
+the final 484-case/seven-browser regression run covers those modes on the final
+source. The native paid run uses that final source. Small synthetic trials do not
+establish failure rates, room acoustics, Bluetooth behavior or physical audibility.
+
+The final native command was:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests none --paid-core repair-live
+```
+
+Paid runs snapshot `source.json` hashes and their pre-call `paid-plan.json`.
+Available provider usage, browser diagnostics, transcript/state history and journey
+outcomes are retained, including failures; setup failures have no completed
+conversation evidence. The cumulative ledger preserves failed reservations. No
+production configuration or credentials are included in these committed notes.
+
+Physical checks are **NOT RUN**;
+the executable device/room/settings checklist is
+[GPTLIVEFIX_OPERATOR_CHECKLIST.md](GPTLIVEFIX_OPERATOR_CHECKLIST.md).
+
+
 ## GLF-04 - Recording and native interruption (2026-11-18)
 
 Baseline: `973629b5`, GLF-03 committed and pushed to main.

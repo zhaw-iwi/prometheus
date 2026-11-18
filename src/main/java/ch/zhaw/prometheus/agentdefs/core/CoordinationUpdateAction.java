@@ -221,7 +221,7 @@ public class CoordinationUpdateAction extends Action {
                     throw new PendingResponse();
                 if (!TaskMemory.active(storage) || accepted == null || accepted.reactions() != null || storage.containsKey(CoordinationMemory.DRAFT))
                     throw new IllegalArgumentException("No active dialogue task");
-                if (storage.containsKey(TaskResponse.KEY) && (!"CAPTURED".equals(TaskResponse.status(storage)) || TaskResponse.playbackPending(storage)))
+                if (storage.containsKey(TaskResponse.KEY) && (!"CAPTURED".equals(TaskResponse.status(storage))))
                     throw new PendingResponse();
             }
             case "COMPLETE" -> { if (!TaskMemory.active(storage)) throw new IllegalArgumentException(); }
@@ -380,25 +380,12 @@ public class CoordinationUpdateAction extends Action {
         if (!(operation.equals("START") && !action)) associationFacts +=
                 "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage);
         CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime, associationFacts);
-        if (live) {
-            String words = switch (operation) {
-                case "PROPOSE", "REPLACE" -> preparationRequest ? facts : CoordinationMemory.ready(storage)
-                        && !CoordinationSupport.blockedDraft(storage)
-                        ? (operation.equals("REPLACE") ? "This replaces the earlier task. " : "")
-                            + CoordinationTaskContract.spokenProposalReview(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))
-                        : CoordinationMemory.proposalPrompt(storage);
-                case "START" -> action ? speech : "The task is accepted and armed. I am waiting for a fresh matching cue.";
-                case "STEP" -> speech;
-                default -> facts;
-            };
-            CoordinationSpeechApproval.words(storage, words);
-        }
         if (live && Set.of("PROPOSE", "REPLACE").contains(operation)) {
             var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
             response.addProperty(preparationRequest ? "supportOnly" : "proposalReview", true); storage.put(CoreTaskVoice.RESPONSE, response);
         }
         if (live && operation.equals("RETURN_TO_CONVERSATION")) {
-            // A leftover Reflection draft cannot spend the new transition's approval attempt.
+            // A support acknowledgement cannot become a proposal invitation.
             var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
             response.addProperty("supportOnly", true); storage.put(CoreTaskVoice.RESPONSE, response);
         }
@@ -440,7 +427,6 @@ public class CoordinationUpdateAction extends Action {
         getStorage().put(TaskMemory.REPLY, runtime.externalSpeech() == null ? BehaviourPlan.speechOnly(text).toJsonObject() : new JsonObject());
         if (runtime.externalSpeech() != null) {
             CoreTaskVoice.response(getStorage(), text, false, false, runtime, CoordinationMemory.facts(getStorage()));
-            CoordinationSpeechApproval.words(getStorage(), text);
         }
     }
     private void answerSupport(String text, PolicyRuntime runtime) {

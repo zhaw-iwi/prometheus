@@ -65,49 +65,49 @@ examples are review fixtures, not a semantic classifier. Actual verification,
 retained failures, test dispositions and saved-flag handling are in
 [GPTLIVEFIX_RESULTS.md](../../.agents/GPTLIVEFIX_RESULTS.md).
 
-## Coordination committed Speech acceptance
+## Paid repair acceptance (GLF-05)
 
-Fresh Coordination Live sessions select committed Speech output (Alloy at normal
-speed, using the configured Speech model) and retain real Live user input. The
-three ES-08 scenarios run through the production `CommittedSpeechPlayer`, scoped
-synthesis/release/played endpoints, real state machine and disposable MySQL.
-Native output/captions remain diagnostic only. The earlier native correction
-fixtures remain historical evidence, not the current Coordination playback route.
+`gptlivefix_journey.mjs` uses the actual Valerian cockpit, direct native audio,
+real OpenAI providers and disposable MySQL. Only the visitor microphone/sensor
+stimuli are synthetic. `repair-baseline` measures three ordinary turns on
+LiveMultimodal; `repair-live`, `repair-continuous` and `repair-text` exercise the
+same Coordination proposal, preparation, early acceptance rejection, help,
+acceptance, fresh/duplicate cue, one contribution, reflection and revision.
 
-Run `--paid-core coordination --coordination-scenario escalation-recovery`,
-`escalation-dialogue` and `escalation-social` separately with the existing runner.
-Existing per-run input/backend/session caps remain unchanged. Committed output has
-an additional explicit ceiling of 12 Speech calls and 6,000 input characters;
-`ProviderCaptureBudgetTest` checks enforcement. `speech-provider.jsonl` records
-counts/characters/voice. Every returned PCM clip is retained under
-`synthesized-speech/` with SHA-256, committed text and duration in `journey.json`.
-These are distinct from native receipts and from `trial.speech_played` callbacks.
-Do not mutate the raw journey rubric from PENDING to a semantic verdict.
+The committed-Speech and native-approval players, endpoints and dedicated tests
+were retired in GLF-05. `--paid-core coordination` rejects before provisioning or
+billing. Existing evidence remains in `.agents/ESCALATION_RESULTS.md` and Git
+history; it is not evidence for the current native route. Other core agents keep
+their independent native harness. The old escalation helper is a historical
+fixture, not a selectable paid journey.
 
-Optional independent audio-text evidence can be produced locally:
-
-```powershell
-# In a separate local environment, outside application dependencies:
-python -m pip install faster-whisper==1.2.1 av==16.1.0
-python tests/gptlive/review_synthesized_audio.py target/gptlive-acceptance-<id>
-```
-
-This downloads `small.en` once and uses CPU int8, beam 5 and no text prompt.
-`audio-review.json` retains hashes, expected wording and ASR text, always marked
-PENDING_SEMANTIC_REVIEW. Review meaning separately, accounting for ASR errors;
-neither local ASR nor a playback callback establishes physical speaker audibility.
-The tool's primary documentation is [faster-whisper](https://github.com/SYSTRAN/faster-whisper).
-
-Focused offline checks:
+The predeclared plan is `gptlivefix-paid-plan.json`: initially eight attempts and
+$40 cumulative reservations. Dated amendments permit twelve attempts and at most
+$49.50 while retaining every earlier reservation. The Text-only retest reserved
+$1 and permits neither sessions nor Speech; the transport follow-up reserved $2.
+The final native role-guidance validation reserves $1.50, requires cached visitor
+audio and disallows competing Speech before provider access. No further paid
+trial is allowed under this plan.
+Other audio attempts reserve $5. These are conservative envelopes, not invoices.
+The ledger is `target/gptlivefix-paid-budget.json`; never reset it to reroll. The
+plan bounds requests, tokens, session duration and input/output Speech. A different
+backend model is rejected until its price and limits have been reviewed. Retained
+failures, amendments and exact outcomes are in `.agents/GPTLIVEFIX_RESULTS.md`.
 
 ```powershell
-python tests/gptlive/run_acceptance.py --java-tests LiveCommittedSpeechServiceUnitTest,CommittedSpeechIntegrationTest,ProviderCaptureBudgetTest --browser --live-only --browser-grep 'approval player captures real WebRTC|Coordination (reaches|preserves)|real scoped cockpit'
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests none --paid-core repair-baseline
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests none --paid-core repair-live
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests none --paid-core repair-continuous
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests none --paid-core repair-text
 ```
 
-The browser uses real Web Audio/output observation with a one-second PCM tone
-after 750ms of leading silence, and covers normal Reflection plus lost playback acknowledgement without
-replay. MySQL checks retain synthesis/release after reload, exclude native drafts,
-and establish proposal consent only after observed synthesized playback.
+Run only with current paid authorization. Inspect every failure before another
+attempt. The latency target is native Coordination median within 1 second of
+baseline, maximum within 2 seconds, three ordinary turns per mode. No p95 is
+claimed. Browser speech-end, input-caption and actual audio-onset observations
+stay separate from server clocks. The deterministic backend barrier establishes
+independence; paid timings are observational. See `.agents/GPTLIVEFIX_RESULTS.md`
+for outcomes and `.agents/GPTLIVEFIX_OPERATOR_CHECKLIST.md` for physical checks.
 
 ## Playback cue receipt selection
 
@@ -128,60 +128,6 @@ For durable-ingress coverage, run `LiveTranscriptIngressIntegrationTest` through
 `run_acceptance.py` with an ignored local `--database-properties` configuration.
 The runner provisions only a disposable loopback schema/account. These synthetic
 checks do not establish physical audibility. Reload the cockpit after updating.
-
-## Retained native approval coverage
-
-The earlier Coordination route used `ApprovedSpeechPlayer` and the session
-handshake `speechApproval: true`. Its native capture/approval regressions remain
-covered; current Coordination journeys use `CommittedSpeechPlayer` as described
-above. For native-output evidence,
-`session.output_transcript.delta` remains raw generated evidence, while
-`trial.speech_played` alone supplies assertions about delivered speech. Reports
-retain buffer timing/RMS/count diagnostics without recording audio. Task semantic
-association, release, observed playback and final task completion stay separate.
-
-The browser smoke holds real updates for eleven seconds after synthetic capture.
-No speech may appear in conversation until approval and observed playback; only
-then may the persisted task reach Reflection. HTTP, transcript capture, semantic
-association, database and SSE are real. A separate local WebRTC peer-pair test
-checks remote PCM capture, zero audible output on rejection, and one approved
-playback. It catches Chromium's remote-stream consumption issue that a synthetic
-MediaStream alone cannot expose. The private remote sink is muted and zero-volume;
-the original stream is never used as audible output.
-
-```powershell
-node --test tests/js/live/approved-speech.test.mjs tests/js/live/speech-buffer.test.mjs tests/js/live/playback-cue.test.mjs tests/js/live/client.test.mjs
-python tests/gptlive/run_acceptance.py --java-tests LiveSpeechApprovalServiceUnitTest,CoordinationDeliveryIntegrationTest --browser --browser-mode enabled --live-only --browser-grep 'approval player captures real WebRTC|Coordination reaches Reflection'
-```
-
-Supply `--database-properties` with an ignored loopback MySQL administrative
-configuration if needed. Interruption, duplicate input, stale requests, muted/
-hidden/stalled output, mismatched receipts, missing audio and size/deadline limits
-fail conservatively. No uncertain output is automatically replayed. Physical
-audibility and real caption/audio skew remain separate acceptance questions;
-see `.reng/HUMAN_TEST.md` and the latest escalation results.
-
-The bounded correction regression uses a valid semantic rejection of the first
-unheard Coordination task draft, followed by one checked replacement. It asserts
-unchanged response identity/deadline and one contribution, no release of the
-rejected draft, and Reflection only after observed replacement playback. The
-synthetic sideband supplies PCM lead-in, voiced coverage of the transcript's media interval and complete quiet coverage for each
-utterance, matching the production capture requirement. A separate real local WebRTC test still
-checks the remote capture/audio path.
-
-```powershell
-python tests/gptlive/run_acceptance.py --java-tests TaskResponseCorrectionUnitTest,LiveSpeechApprovalServiceUnitTest,CoordinationDeliveryIntegrationTest --browser --browser-mode enabled --live-only --browser-grep 'approval player captures real WebRTC|Coordination (reaches|corrects)'
-```
-
-Provider errors, malformed checks, release uncertainty and a second rejection
-remain terminal for automatic correction. Unit tests also exercise concurrent
-requests, interruptions, late candidates, owner/revision changes and lost approval
-windows after persisted release. These offline checks do not complete ES-08;
-the capped dialogue, recovery and social journeys still need semantic review.
-Proposal reviews and confirmed support require post-commit native generation:
-an early acknowledgement must not spend their check/correction. The latest native-output failures
-and the deferred alternative are documented in the escalation results and
-[speech-delivery decision note](../../.agents/ES08_SPEECH_DELIVERY_DECISION.md).
 
 ## Observation timing
 
@@ -260,19 +206,9 @@ Its regression ceiling is not a production capacity guarantee. The synthetic
 minute excludes real provider/capture workers, SSE reconnections and scheduled
 ticks; measure those before making a production capacity decision.
 
-For an explicitly paid real-provider trial, the existing isolated runner now
-supports this full journey with synthetic visitor audio and sensor inputs:
-
-```powershell
-python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordination --coordination-scenario interaction
-```
-
-It checks persisted terms, zero actions on acceptance, one action on the fresh
-cue, matching captured speech plus real browser playback settling, Reflection and
-the archived delivery on return. It never acknowledges playback from captions
-alone. Inspect its retained captions for accurate persona/capabilities and absence
-of premature task content; lexical assertions are not a complete semantic judge.
-The real-provider scenario is prepared but has not been run for this follow-up.
+The former `--paid-core coordination --coordination-scenario interaction`
+runner was retired with the committed player. Use the GLF-05 repair journey above
+for current native provider acceptance; the persisted shared fixture remains.
 
 For physical acceptance, use the Heroku-served Cockpit after an authorized deploy,
 create a fresh Coordination instance, start Live and enable hand observations.
@@ -335,75 +271,14 @@ trials as passing.
 
 ## Core task journeys with canonical and compact responses
 
-### Integrated Coordination escalation (ES-08)
+### Historical Coordination escalation (ES-08)
 
-These three scenarios use the existing real local application, disposable MySQL,
-real OpenAI Live transport and the production browser playback observer. Visitor
-audio is synthesized and sensor inputs are synthetic. They extend the existing
-journey; `coordination-text` cannot satisfy these checks.
-
-After configuring local MySQL administration and provider credentials as described
-above, select one explicitly paid scenario:
-
-```powershell
-python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordination --coordination-scenario escalation-recovery
-python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordination --coordination-scenario escalation-dialogue
-python tests/gptlive/run_acceptance.py --java-tests none --paid-core coordination --coordination-scenario escalation-social
-```
-
-Recovery covers recognition, difficulty before/after preparation, fresh perception,
-natural acceptance, one cue and confirmed final delivery, then return. Dialogue
-covers a riddle question/answer/feedback, help and ordinary questions, followed by
-an unfinished-answer completion request, explicit replacement and renewed acceptance.
-The final-feedback rubric requires factual review of the actual heard question,
-answer and feedback together. It permits correct positive or negative evaluation;
-positive words alone do not establish correctness. It reads the associated transcript segment and recorded
-suffix offset, keeping any later Reflection turn separate; all native captions
-remain available for semantic review. Social covers a reviewed count
-alternative, matching/nonmatching cues and explicit restart/pause/resume/stop.
-Each journey fails on an unmet check and retains native transcripts, task state,
-provider evidence and playback diagnostics under its ignored artifact directory.
-Capture diagnostics include timed/untimed output-chunk counts. Reflected sideband
-media ranges, when supplied, establish coverage across a transcript independently
-of arrival jitter; real range gaps remain incomplete. Untimed compatibility/input
-uses received-sample coverage. Neither path proves browser or physical playback.
-Visitor-turn assertions wait for durable transcript processing, not just quiet
-captions. Final completion still requires real browser playback observation and
-the actual final HTTP acknowledgement for the current delivery ID and segment.
-Both the direct and approval player adapters record that acknowledgement. The
-escalation fixtures use Onyx for the synthetic visitor and Willow for Live;
-`journey.json` records the synthesis model/voice. Assistant transcripts never
-substitute for missing visitor transcripts or establish consent.
-The ES-08 heard-response wait allows 65 seconds to observe the existing
-45-second verification and 60-second playback limits. It does not extend either
-production deadline or the session/child caps below.
-
-Per invocation: at most 12 scripted visitor turns, 24 backend inference requests,
-2,048 completion tokens per request, 80,000 UTF-8 input bytes per inference, one
-Live session with a 360-second lifetime, and a 420-second child-process deadline.
-Further inference stops once reported cumulative usage reaches 200,000 tokens;
-the last request can cross that threshold, so it is not a hard monetary cap.
-Synthetic speech is limited to 12 clips/6,000 characters and cached between runs.
-The test-only provider recorder enforces request/input/session limits without
-altering production transport. Provider usage may be unavailable after failures;
-Live seconds, backend tokens and synthesis calls are separate measures.
-
-Review actual wording against the rubric in `journey.json`: truthful state and
-perception, visible supported terms, finite budgets, no premature/duplicate
-contribution or answer leak. An automated pass does not complete semantic review.
-Review preliminary native drafts as well as heard replies. With approval enabled,
-retain rejected drafts as audit evidence and verify they never played; an allowed
-task or ordinary correction must preserve identity, budget and deadlines and play at most once.
-Heard proposals must not promise detection of someone joining, or a new allowance
-for each person/cue, when the executable alternative is a visible-count threshold
-with a total limit. A rejected draft is not evidence of a heard promise or delivery.
-Never automatically rerun until success: retain every attempt and state the
-specific correction that justifies another run. Integrated evidence and unresolved
-checks are in [ESCALATION_RESULTS.md](../../.agents/ESCALATION_RESULTS.md); physical
-operator trials are in [CORE_AGENTS.md](CORE_AGENTS.md) and the
-[escalation operator checklist](../../.agents/ESCALATION_OPERATOR.md). Physical audibility,
-camera accuracy and robot movement remain separate gates. Database capacity is
-deferred for the current behavioural milestone by the owner's 2026-11-11 scope update.
+The retired approval/committed-Speech journeys are preserved in Git history and
+[ESCALATION_RESULTS.md](../../.agents/ESCALATION_RESULTS.md). They cannot be run
+through the current paid runner and do not qualify the repaired native route.
+The labelled semantic fixtures and offline authority checks remain useful;
+`escalation_journeys.mjs` now contains only their review helpers. Current provider
+and physical acceptance use the GLF-05 entries above.
 
 Core improvements are tracked in
 [PLAN_COREAGENTIMPROVEMENT.md](../../.agents/PLAN_COREAGENTIMPROVEMENT.md).

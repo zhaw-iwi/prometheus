@@ -1,7 +1,8 @@
 # Restore distinct Continuous and GPT-Live interaction contracts
 
-Prepared: 2026-11-18. Status: **GLF-01-03 committed; GLF-04 verified;
-GLF-05 open**. Development branch: `main`.
+Prepared: 2026-11-18. Updated: 2026-11-19. Status: **GLF-01-05 software
+complete; bounded provider happy paths PASS; physical acceptance NOT RUN**.
+Development branch: `main`. Results and retained failures: `GPTLIVEFIX_RESULTS.md`.
 GLF-01 commit: `f7c1033c`; evidence is in `GPTLIVEFIX_RESULTS.md`.
 The owner now authorizes sequential milestones, committing and pushing each,
 and bounded real OpenAI happy-path tests costing less than $50 total. Halt for
@@ -186,7 +187,8 @@ Minimum verification:
   Continuous -> Live -> Continuous switch on the same saved agent.
 
 **Exit:** these checks pass together with affected Continuous regressions. Real
-provider response speed is still unverified until GLF-05.
+provider response timing is measured in the GLF-05 results; physical audibility
+remains unverified.
 
 ### GLF-03 — Make Coordination Live acceptance semantic
 
@@ -310,16 +312,14 @@ a mandate to preserve obsolete implementation structure.
   Tests: `tests/js/transcription/`, `tests/js/speech/`,
   `tests/playwright/valerian-transcription.spec.mjs`,
   `ScopedBehaviourSpeechServiceUnitTest`, `SpeechArchitectureBrowserClientContractTest`.
-- **Live session/ownership:** `public/live/client.js`, `approved-speech.js`,
-  `committed-speech.js`, `speech-capture-worklet.js`, `playback-cue.js`;
+- **Live session/ownership:** `public/live/client.js`, `playback-cue.js`;
   `application/ScopedLiveSessionService.java`, `ExternalSpeechOwnership.java`,
-  `LiveContextBridgeService.java`, `LiveCommittedSpeechService.java`,
-  `LiveSpeechApprovalService.java`, and `application/live/`.
+  `LiveContextBridgeService.java`, and `application/live/`.
   Tests: `tests/js/live/`, `ScopedLiveSessionServiceUnitTest`,
   `ExternalSpeechOwnershipUnitTest`, `LiveContextDeliveryUnitTest`,
   `tests/playwright/valerian-gptlive-smoke.spec.mjs`.
 - **Coordination:** `agentdefs/core/CoordinationPolicy.java`,
-  `CoordinationUpdateAction.java`, `CoordinationSpeechApproval.java`,
+  `CoordinationUpdateAction.java`,
   `CoordinationDeliveryAction.java`, `CoreTaskVoice.java`, `model/task/TaskResponse.java`.
   Tests: `CoordinationVoiceUnitTest`, `CoordinationAcceptanceUnitTest`,
   `CoordinationTaskContractUnitTest`, `CoordinationDeliveryUnitTest`,
@@ -332,7 +332,7 @@ a mandate to preserve obsolete implementation structure.
   `LiveTranscriptSegmenterUnitTest`, `LiveTranscriptIngressIntegrationTest`,
   `LiveTranscriptClaimIntegrationTest`, and neighboring client/caption tests.
 - **Acceptance:** `tests/gptlive/run_acceptance.py`,
-  `tests/gptlive/coordination_text_journey.mjs`, `escalation_journeys.mjs`,
+  `tests/gptlive/gptlivefix_journey.mjs`, `gptlivefix-paid-plan.json`,
   `core_backend_journey.mjs`, `tests/gptlive/README.md`.
   Java paths above are relative to `src/main/java/ch/zhaw/prometheus/`;
   `public/` paths are relative to `src/main/resources/`.
@@ -365,15 +365,14 @@ changes. Preserve earlier audit records and explain supersession with dated note
 - [x] GLF-02: native Live conversation — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
 - [x] GLF-03: semantic Coordination Live happy path — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
 - [x] GLF-04: recording and interruption - verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
-- [ ] GLF-05: integrated provider/physical acceptance and release handoff
+- [x] GLF-05: integrated software/provider acceptance and engineering handoff - verified 2026-11-19; physical checks **NOT RUN**, no deployment
 
 Suggested instruction for a new session:
 
 > Follow the repository bootstrap, then read `.agents/PLAN_GPTLIVEFIX.md`.
-> Implement the next incomplete milestone, currently GLF-05. Preserve Text
-> and Continuous guarantees while restoring native Live speed under the plan's
-> relaxed wording contract. Use the smallest meaningful test set, update the
-> results/current documentation, and report what passed and what remains
-> unverified. Stop for review after the milestone unless I explicitly authorize
-> continuing through more milestones. Commit, push, paid trials and deployment
-> follow my current session instructions; do not inherit them from older plans.
+> The five software milestones and bounded provider happy paths are complete.
+> Read `GPTLIVEFIX_RESULTS.md`, including retained failures and the $49.50
+> exhausted test envelope. Complete/review `GPTLIVEFIX_OPERATOR_CHECKLIST.md`
+> on the intended physical setup before claiming release acceptance. Keep its
+> unperformed rows NOT RUN. Any further paid trials or branch promotion/deployment
+> require current owner direction; do not inherit older deployment permissions.

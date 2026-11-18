@@ -23,19 +23,33 @@ public final class ProviderCaptureApplication {
             int maxRequests = Integer.parseInt(System.getenv().getOrDefault("PROMETHEUS_PROVIDER_MAX_REQUESTS", "60"));
             long maxTokens = Long.parseLong(System.getenv().getOrDefault("PROMETHEUS_PROVIDER_MAX_TOKENS", "1000000"));
             int maxSessions = Integer.parseInt(System.getenv().getOrDefault("PROMETHEUS_PROVIDER_MAX_SESSIONS", "1"));
-            return recorder(Path.of(System.getenv("PROMETHEUS_PROVIDER_ARTIFACT")), maxRequests, maxTokens, maxSessions);
+            return recorder(Path.of(System.getenv("PROMETHEUS_PROVIDER_ARTIFACT")), maxRequests, maxTokens, maxSessions,
+                    Integer.parseInt(System.getenv().getOrDefault("PROMETHEUS_PROVIDER_MAX_SPEECH_CALLS", "12")));
         }
         static BeanPostProcessor recorder(Path output, int maxRequests, long maxTokens, int maxSessions) {
+            return recorder(output, maxRequests, maxTokens, maxSessions, 12);
+        }
+        static BeanPostProcessor recorder(Path output, int maxRequests, long maxTokens, int maxSessions, int maxSpeechCalls) {
             var count = new AtomicInteger();
             var sessions = new AtomicInteger(); var tokens = new AtomicLong();
             var speechCalls = new AtomicInteger(); var speechCharacters = new AtomicInteger();
             return new BeanPostProcessor() {
                 @Override public Object postProcessAfterInitialization(Object bean, String name) {
+                    if (bean instanceof ch.zhaw.prometheus.spi.LiveTranscriptionSessionClient) {
+                        var proxy = new org.springframework.aop.framework.ProxyFactory(bean);
+                        proxy.setProxyTargetClass(true);
+                        proxy.addAdvice((org.aopalliance.intercept.MethodInterceptor) invocation -> {
+                            if (invocation.getMethod().getName().equals("createSession") && sessions.incrementAndGet() > maxSessions)
+                                throw new IllegalStateException("Provider session budget exhausted");
+                            return invocation.proceed();
+                        });
+                        return proxy.getProxy();
+                    }
                     if (bean instanceof SpeechSynthesisGateway) return Proxy.newProxyInstance(bean.getClass().getClassLoader(),
                             new Class<?>[]{SpeechSynthesisGateway.class}, (proxy, method, args) -> {
                                 if (!method.getName().equals("synthesize")) return method.invoke(bean, args);
                                 int call = speechCalls.incrementAndGet(), characters = speechCharacters.addAndGet(((String) args[0]).length());
-                                if (call > 12 || characters > 6000) throw new IllegalStateException("Committed Speech journey budget exhausted");
+                                if (call > maxSpeechCalls || characters > 6000) throw new IllegalStateException("Output Speech journey budget exhausted");
                                 var record = new JsonObject(); record.addProperty("call", call); record.addProperty("characters", ((String) args[0]).length());
                                 record.addProperty("cumulativeCharacters", characters); record.addProperty("voice", (String) args[1]);
                                 try { return method.invoke(bean, args); }

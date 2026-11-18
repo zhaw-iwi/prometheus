@@ -57,7 +57,7 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
     public boolean sameTerms(CoordinationAgreement other) {
         return protectedTerms().equals(other.protectedTerms());
     }
-    private JsonObject protectedTerms() {
+    public JsonObject protectedTerms() {
         var value = json();
         for (String key : List.of("goal", "agentRole", "questions")) value.remove(key);
         if (!value.get("reactions").isJsonNull()) {

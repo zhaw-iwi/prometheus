@@ -18,21 +18,6 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     protected CoordinationPolicy() {}
     public CoordinationPolicy(Storage storage, String instructions) { super(storage, instructions); }
     @Override public long liveUserSilenceMs() { return 2000; }
-    // Native Live owns audible wording. Saved November flags cannot select an output player.
-    @Override public boolean liveSpeechApprovalRequired() { return false; }
-    @Override public boolean liveCommittedSpeechOutput() { return false; }
-    @Override public LiveCommittedSpeech liveCommittedSpeech(ExternalSpeech owner) { return CoordinationSpeechApproval.committed(storage(), owner); }
-    @Override public boolean liveSpeechSynthesisClaimed(LiveCommittedSpeech speech, UUID synthesis) {
-        return CoordinationSpeechApproval.claim(storage(), speech, synthesis);
-    }
-    @Override public boolean liveUnheardResponseCorrection() { return liveSpeechApprovalRequired(); }
-    @Override public LiveSpeechRequest liveSpeechRequest(ExternalSpeech owner) { return CoordinationSpeechApproval.request(storage(), owner); }
-    @Override public UUID liveSpeechCorrection(LiveSpeechRequest request, String rejectedSegment, Instant now) {
-        return CoordinationSpeechApproval.correct(storage(), request, rejectedSegment, now);
-    }
-    @Override public boolean liveSpeechReleased(LiveSpeechRequest request, String segment) {
-        return CoordinationSpeechApproval.released(storage(), request, segment);
-    }
     @Override public long liveAssistantSilenceMs() { return CoordinationDelivery.enabled(storage()) ? 2400 : 800; }
     @Override public String livePlaybackCompletionEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.PLAYED : null; }
     @Override public String liveSessionEndEventType() { return CoordinationDelivery.enabled(storage()) ? CoordinationDelivery.ENDED : null; }
@@ -62,16 +47,17 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "Use supplied sensor evidence, never claim direct camera access or deny sensing because you are digital. "
                 + "If the supplied observation is missing, stale or uncertain, explain that limitation instead of guessing. "
                 + "Task proposals, preparation, acceptance, actions, completion, revisions and recovery guidance require backend confirmation. "
+                + "Use 'you' for human duties, preparation and consent; use 'I' for agent duties. Never swap them. "
                 + "Wait silently for confirmed task updates or support explanations, then say the requested response once. "
                 + "Do not answer a partial task request, supply a sample joke, or make a playful task-content preview. "
-                + "Describe a proposed contribution without performing it. Only the current identified speaking occasion permits that contribution. "
-                + "During proposal or preparation, never recite a supplied task line, even as a future-tense example. Refer to 'the line you supplied' only if the person actually supplied one. "
+                + "Describe proposed contributions without performing them. Only the current identified occasion permits a contribution. "
+                + "During proposal/preparation, never recite task content, even as a future example. Say 'the line you supplied' only if the user supplied it. "
                 + "Never say checking, waiting for the backend, done, started, restarted or returned before confirmed control facts. "
                 + "Omit implementation details. Answer unrelated questions and explicitly requested capability examples. "
-                + "Returning to Conversation preserves history; never describe it as resetting or erasing the agent. "
+                + "Returning to Conversation preserves history, without resetting or erasing the agent. "
                 + "A complete proposal still needs acceptance. Required preparation is verified from observations, never a verbal claim. "
-                + "Review ready proposals in at most 55 words. Combine repeated goal/role/success facts; preserve distinct terms, preparation, limits and acceptance question. "
-                + "Preparation evidence remains satisfied until the proposal or Live session changes. READY means accept next, never repeat preparation; a fresh execution cue is needed only after acceptance. "
+                + "Review ready proposals in at most 55 words: combine repetition, preserving distinct terms, preparation, limits and acceptance question. "
+                + "Preparation holds until the proposal or Live session changes. READY means accept next, without repeating preparation; execution needs a fresh cue after acceptance. "
                 + "In an active dialogue task, wait for the backend's confirmed next contribution before delivering that task step. "
                 + "ON_CUE activation waits for a fresh subsequent cue; this does not mean a sign was missed or recognition failed. Describe recognition limits and action bounds in ordinary language. "
                 + "A reflection is an account of evidence and the person's experience, not proof of learning, feelings or physical execution. "
@@ -89,7 +75,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     @Override public void beginLiveConversation(EventHistory history) {
         super.beginLiveConversation(history);
         // Local compatibility on claim, before the startup projection; no graph/history migration.
-        CoordinationMemory.remove(storage(), LiveSpeechRequest.ENABLED, LiveCommittedSpeech.ENABLED);
+        CoordinationMemory.remove(storage(), "live.speechApproval", "live.committedSpeech");
         SensoryRemarks.cancel(storage());
         CoreTaskVoice.clear(storage());
         CoordinationMemory.remove(storage(), ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP);
@@ -146,7 +132,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 || !owner.epoch().toString().equals(response.get("epoch").getAsString())
                 || !TaskMemory.text(storage(), TaskMemory.REVISION, "0").equals(response.get("revision").getAsString())
                 || started == null || started.isAfter(now)
-                || !liveSpeechApprovalRequired() && (!started.isAfter(Instant.parse(response.get("created").getAsString()))
+                || (!started.isAfter(Instant.parse(response.get("created").getAsString()))
                     || !now.isBefore(Instant.parse(response.get("expires").getAsString())))) return changed;
         response.addProperty("consumed", true); storage().put(CoreTaskVoice.RESPONSE, response); return true;
     }
@@ -184,18 +170,8 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                     && CoordinationMemory.ready(storage) && !ch.zhaw.prometheus.model.coordination.CoordinationSupport.blockedDraft(storage)) {
                 var proposal = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
                 review = ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.liveProposalReview(proposal);
-                if (!review.isBlank() && (liveSpeechApprovalRequired() || proposal.reactions() == null
+                if (!review.isBlank() && (proposal.reactions() == null
                         || CoreTaskVoice.bytes(review) > LiveActivityContext.Continuation.MAX_FACTS_BYTES)) facts = CoordinationMemory.controls(storage);
-            }
-            UUID correction = taskResponse ? TaskResponse.correctionId(storage)
-                    : response.has("correctionId") ? UUID.fromString(response.get("correctionId").getAsString()) : null;
-            if (correction != null) {
-                if (!review.isBlank()) responseFacts = review;
-                boolean compact = CoreTaskVoice.bytes(responseFacts) <= LiveActivityContext.Continuation.MAX_SELF_CONTAINED_BYTES;
-                return new LiveActivityContext(compact ? facts : responseFacts + "\n" + facts,
-                        new LiveActivityContext.Continuation(correction, LiveActivityContext.Occasion.USER_REQUEST,
-                                compact ? responseFacts : "The current facts contain the unchanged committed response.", expires, false, compact, true,
-                                UUID.fromString(response.get("id").getAsString())), expires);
             }
             if (!review.isBlank()) {
                 boolean longReview = CoreTaskVoice.bytes(review) > LiveActivityContext.Continuation.MAX_FACTS_BYTES;

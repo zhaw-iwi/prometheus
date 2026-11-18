@@ -35,7 +35,26 @@ class ProviderCaptureBudgetTest {
         gateway.create(null); assertThrows(IllegalStateException.class, () -> gateway.create(null));
         verify(real, times(1)).create(null);
     }
-    @Test void committedOutputHasItsOwnFiniteCallAndCharacterBudget() {
+    @Test void transcriptionAndLiveShareOneSessionBudget() {
+        var recorder = ProviderCaptureApplication.Capture.recorder(directory.resolve("shared.jsonl"), 4, 100, 1);
+        var real = mock(LiveTranscriptionSessionClient.class);
+        var transcription = (LiveTranscriptionSessionClient) recorder.postProcessAfterInitialization(real, "transcription");
+        transcription.createSession(null);
+        assertThrows(IllegalStateException.class, () -> transcription.createSession(null));
+        verify(real, times(1)).createSession(null);
+        var live = mock(LiveSessionGateway.class);
+        var gateway = (LiveSessionGateway) recorder.postProcessAfterInitialization(live, "live");
+        assertThrows(IllegalStateException.class, () -> gateway.create(null));
+        verifyNoInteractions(live);
+    }
+    @Test void nativeAndTextPlansCannotBillCompetingSpeech() {
+        var recorder = ProviderCaptureApplication.Capture.recorder(directory.resolve("no-speech.jsonl"), 4, 100, 0, 0);
+        var real = mock(SpeechSynthesisGateway.class);
+        var gateway = (SpeechSynthesisGateway) recorder.postProcessAfterInitialization(real, "speech");
+        assertThrows(IllegalStateException.class, () -> gateway.synthesize("Hello", "alloy", 1, SpeechAudioFormat.MP3));
+        verifyNoInteractions(real);
+    }
+    @Test void canonicalOutputHasItsOwnFiniteCallAndCharacterBudget() {
         var recorder = ProviderCaptureApplication.Capture.recorder(directory.resolve("speech.jsonl"), 4, 100, 1);
         var real = mock(SpeechSynthesisGateway.class);
         var gateway = (SpeechSynthesisGateway) recorder.postProcessAfterInitialization(real, "speech");

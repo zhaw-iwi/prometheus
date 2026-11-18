@@ -50,7 +50,6 @@ class CoordinationDeliveryIntegrationTest {
         admin.replaceAllowedAgentTypes(access.getId(), List.of(CoordinationAgent.KEY));
         UUID id = demo.createAgent(code, CoordinationAgent.KEY).getID(), session = UUID.randomUUID();
         var context = contexts.claim(code, id, session).orElseThrow();
-        assertFalse(context.speechApprovalRequired()); assertFalse(context.committedSpeechOutput());
         return new Scope(code, id, new ExternalSpeech(session, context.epoch()));
     }
     static JsonObject scenarios() throws Exception {

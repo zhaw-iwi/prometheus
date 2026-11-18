@@ -18,6 +18,7 @@ import subprocess
 import time
 import uuid
 import pymysql
+from paid_budget import reserve
 
 
 def escalation_cases(root):
@@ -42,9 +43,10 @@ def main():
     parser.add_argument('--classroom-capacity', action='store_true', help='Dedicated offline six-client minute with MySQL Questions measurement')
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
-    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
+    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text', 'repair-baseline', 'repair-live', 'repair-continuous', 'repair-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     args = parser.parse_args()
+    repair = bool(args.paid_core and args.paid_core.startswith('repair-'))
     if args.embodiment and (args.classroom_capacity or not (args.browser or args.paid_core == 'coordination-text')):
         parser.error('--embodiment requires --browser or --paid-core coordination-text, without capacity mode')
     if args.classroom_capacity and (args.paid_core or args.browser):
@@ -79,6 +81,10 @@ def main():
         model = os.environ.get('OPENAI_MODEL') or provider_props.get('openai.model', '')
         if not key or key.startswith('${') or not re.fullmatch(r'[a-zA-Z0-9._:-]{1,128}', model):
             raise SystemExit('Paid core acceptance requires an API key and configured openai.model (or OPENAI_MODEL).')
+        if repair and model != 'gpt-5.6-luna':
+            raise SystemExit('Paid repair plan only prices gpt-5.6-luna; revise the budget before billing another model.')
+    if args.paid_core == 'coordination':
+        raise SystemExit('The committed-Speech Coordination harness is retired; use --paid-core repair-live.')
     props = {}
     local = root / args.database_properties
     if local.exists():
@@ -109,6 +115,15 @@ def main():
                     'limits': {'dbPool': 10, 'scheduledTicks': False,
                                'providerCalls': 24 if args.paid_core else 0, 'providerTokens': 200000 if args.paid_core else 0}}
         (artifacts/'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
+    if repair:
+        sources = [p for directory in ('src/main/java', 'src/main/resources/public', 'src/test/java', 'tests/gptlive')
+                   for p in (root/directory).rglob('*')
+                   if p.is_file() and p.suffix in ('.java', '.js', '.mjs', '.json', '.html', '.css', '.py')]
+        manifest = {'schema': 'gptlivefix-source-v1',
+                    'sourceRevision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                    'mode': args.paid_core,
+                    'files': {str(p.relative_to(root)).replace('\\', '/'): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}}
+        (artifacts/'source.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     (artifacts / 'escalation-cases.json').write_text(json.dumps(recovery_fixture, indent=2), encoding='utf-8')
     database = pymysql.connect(host=url.hostname, port=url.port or 3306,
         user=os.environ.get('GPTLIVE_MYSQL_ADMIN_USER', props.get('spring.datasource.username')),
@@ -208,6 +223,19 @@ def main():
                     OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000')
                 for purpose in ('BEHAVIOUR', 'NONVERBAL', 'DECISION', 'EXTRACTION', 'SUMMARY'):
                     env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
+            if repair:
+                plan = json.loads((root/'tests/gptlive/gptlivefix-paid-plan.json').read_text(encoding='utf-8'))
+                env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='36', PROMETHEUS_PROVIDER_MAX_TOKENS='250000',
+                    PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
+                    OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000',
+                    PROMETHEUS_SPEECH_MODEL='gpt-4o-mini-tts', PROMETHEUS_LIVE_MODEL='gpt-live-1')
+                env['PROMETHEUS_PROVIDER_MAX_SPEECH_CALLS'] = '12' if args.paid_core == 'repair-continuous' else '0'
+                if args.paid_core == 'repair-text':
+                    env['PROMETHEUS_PROVIDER_MAX_SESSIONS'] = '0'
+                for purpose in ('BEHAVIOUR', 'NONVERBAL', 'DECISION', 'EXTRACTION', 'SUMMARY'):
+                    env['OPENAI_ROUTES_' + purpose + '_MODEL'] = model
+                    env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
+                    env['OPENAI_ROUTES_' + purpose + '_TIMEOUT_MS'] = '30000'
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
             fixture_root = artifacts / 'provider-classes'
@@ -217,6 +245,12 @@ def main():
                 shutil.copy2(source, fixtures / source.name)
             classpath = os.pathsep.join([str(build_dir / 'classes'), str(fixture_root), (artifacts / 'classpath.txt').read_text().strip()])
             env['PROMETHEUS_PROVIDER_ARTIFACT'] = str(artifacts / 'provider.jsonl')
+            if repair:
+                ledger = root/'target/gptlivefix-paid-budget.json'
+                reservation = reserve(ledger, plan, args.paid_core, artifacts)
+                (artifacts/'paid-plan.json').write_text(json.dumps(plan, indent=2), encoding='utf-8')
+                env['PROMETHEUS_REPAIR_BUDGET_LEDGER'] = str(ledger)
+                print('Paid repair cumulative reserved ceiling: $' + str(reservation['reservedUsd']), flush=True)
             with socket.socket() as port_socket:
                 port_socket.bind(('127.0.0.1', 0))
                 port = port_socket.getsockname()[1]
@@ -236,6 +270,8 @@ def main():
                 else:
                     raise RuntimeError('Isolated real-provider app startup timed out.')
                 journey = 'coordination_text_journey.mjs' if args.paid_core == 'coordination-text' else 'core_backend_journey.mjs'
+                if repair:
+                    journey = 'gptlivefix_journey.mjs'
                 if args.embodiment:
                     env['PROMETHEUS_EMBODIMENT_SMOKE'] = 'true'
                 run(['node', 'tests/gptlive/' + journey, '--allow-paid-provider', str(artifacts / 'journey.json'),
