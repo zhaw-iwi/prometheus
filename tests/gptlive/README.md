@@ -1,11 +1,22 @@
 # GPT-Live acceptance
 
+## Native conversation independence (GLF-02)
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests CoordinationAgentIntegrationTest,CoordinationAcceptanceUnitTest,CoordinationTaskContractUnitTest --browser --browser-mode enabled --browser-grep 'native Coordination audio|Coordination Text and Continuous'
+```
+
+The native fixture holds backend inference while measuring PCM from the actual
+HTML audio element, then verifies nonverbal SSE rendering, exactly-once transcript
+ingress and no competing synthesis/release request. It checks Stop while inference
+is pending and Continuous -> Live -> Continuous on the same persisted agent. This
+is synthetic transport/browser-route evidence, not provider speed or room audio.
+
 ## Continuous Coordination parity (GLF-01)
 
 The [repair roadmap](../../.agents/PLAN_GPTLIVEFIX.md) separates strict
-Text/Continuous speech from native Live wording. The current Coordination Live
-route below is still the November committed-Speech implementation; its passing
-tests do not accept repaired native Live.
+Text/Continuous speech from native Live wording. GLF-02 restores native Coordination playback; older approval/synthesis
+journeys below are historical and must not be used as native acceptance.
 
 Run the new parity journey and affected contracts with an ignored local MySQL
 administration file (the named application schema is never used):

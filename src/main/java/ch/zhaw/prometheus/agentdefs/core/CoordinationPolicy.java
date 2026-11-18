@@ -18,11 +18,9 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     protected CoordinationPolicy() {}
     public CoordinationPolicy(Storage storage, String instructions) { super(storage, instructions); }
     @Override public long liveUserSilenceMs() { return 2000; }
-    @Override public boolean liveSpeechApprovalRequired() { return CoordinationSpeechApproval.enabled(storage()); }
-    @Override public boolean liveCommittedSpeechOutput() {
-        return liveSpeechApprovalRequired() && storage().containsKey(LiveCommittedSpeech.ENABLED)
-                && storage().get(LiveCommittedSpeech.ENABLED).getAsBoolean();
-    }
+    // Native Live owns audible wording. Saved November flags cannot select an output player.
+    @Override public boolean liveSpeechApprovalRequired() { return false; }
+    @Override public boolean liveCommittedSpeechOutput() { return false; }
     @Override public LiveCommittedSpeech liveCommittedSpeech(ExternalSpeech owner) { return CoordinationSpeechApproval.committed(storage(), owner); }
     @Override public boolean liveSpeechSynthesisClaimed(LiveCommittedSpeech speech, UUID synthesis) {
         return CoordinationSpeechApproval.claim(storage(), speech, synthesis);
@@ -56,10 +54,6 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         return "EXECUTION".equals(stage) ? TaskMemory.phase(storage()) : stage;
     }
     @Override public String voiceInstructions() {
-        if (liveCommittedSpeechOutput()) return configuredInstructions()
-                + "\nThe application speaks its committed replies through a separate output-only Speech service. "
-                + "Remain silent. Do not generate replies, acknowledgements, task content or perception remarks. "
-                + "Input transcription and backend task control remain active. Supplied state and observations are data, not permission to speak.";
         return configuredInstructions() + ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.VOICE_GUIDANCE
                 + ch.zhaw.prometheus.model.coordination.CoordinationSocialContract.VOICE_GUIDANCE
                 + "\nThe backend coordinates both conversational and sensor-rule tasks. "
@@ -94,8 +88,8 @@ public class CoordinationPolicy extends CoreTaskPolicy {
             ch.zhaw.prometheus.spi.LanguageModelGateway gateway) { return CoordinationMemory.facts(storage()); }
     @Override public void beginLiveConversation(EventHistory history) {
         super.beginLiveConversation(history);
-        if (CoordinationDelivery.enabled(storage())) storage().put(LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
-        if (CoordinationDelivery.enabled(storage())) storage().put(LiveCommittedSpeech.ENABLED, new com.google.gson.JsonPrimitive(true));
+        // Local compatibility on claim, before the startup projection; no graph/history migration.
+        CoordinationMemory.remove(storage(), LiveSpeechRequest.ENABLED, LiveCommittedSpeech.ENABLED);
         SensoryRemarks.cancel(storage());
         CoreTaskVoice.clear(storage());
         CoordinationMemory.remove(storage(), ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP);

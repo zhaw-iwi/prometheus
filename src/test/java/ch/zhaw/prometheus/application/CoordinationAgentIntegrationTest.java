@@ -36,6 +36,7 @@ class CoordinationAgentIntegrationTest {
     @Autowired PlatformTransactionManager transactions;
     @Autowired LiveTranscriptIngressService ingress;
     @Autowired ExternalSpeechOwnership ownership;
+    @Autowired LiveAgentContextService liveContexts;
     @Autowired ScopedBehaviourSpeechService canonicalSpeech;
     @MockitoBean LanguageModelGateway gateway;
     @MockitoBean SpeechSynthesisGateway speech;
@@ -59,11 +60,38 @@ class CoordinationAgentIntegrationTest {
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
     }
+    @Test void freshLiveClaimClearsSavedOutputFlagsBeforeProjectingNativeInstructions() {
+        var scope = create();
+        new TransactionTemplate(transactions).executeWithoutResult(status -> {
+            var agent = agents.findById(scope.id()).orElseThrow();
+            var storage = ((CoordinationPolicy) agent.getCurrentState().ownPolicy()).storage();
+            storage.put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new JsonPrimitive(true));
+            storage.put(ch.zhaw.prometheus.model.policy.LiveCommittedSpeech.ENABLED, new JsonPrimitive(true));
+            agents.saveAndFlush(agent);
+        });
+        var session = UUID.randomUUID();
+        try {
+            var context = liveContexts.claim(scope.code(), scope.id(), session).orElseThrow();
+            assertFalse(context.speechApprovalRequired()); assertFalse(context.committedSpeechOutput());
+            assertFalse(context.instructions().contains("Remain silent. Do not generate replies"));
+            var saved = memory(scope);
+            assertFalse(saved.containsKey(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED));
+            assertFalse(saved.containsKey(ch.zhaw.prometheus.model.policy.LiveCommittedSpeech.ENABLED));
+            turn(scope, "KEEP", "null", "What can you do?");
+            assertFalse(memory(scope).containsKey("core.task.response"), "An ordinary reply cannot create a competing narration");
+            var events = agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
+            assertTrue(events.stream().filter(e -> e.speechProvenance() != null).allMatch(e ->
+                    ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(e.getPayload()).getSpeech() == null));
+        } finally { ownership.release(scope.id(), session); }
+    }
     @Test void savedLiveSpeechFlagsDoNotOwnCanonicalOutputAfterSessionRelease() {
         var scope = create();
         var owner = new TransactionTemplate(transactions).execute(status -> {
             var agent = agents.findById(scope.id()).orElseThrow();
-            ((CoordinationPolicy) agent.getCurrentState().ownPolicy()).beginLiveConversation(agent.getEventHistory());
+            // Reproduce an agent saved by the November committed-output implementation.
+            var storage = ((CoordinationPolicy) agent.getCurrentState().ownPolicy()).storage();
+            storage.put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new JsonPrimitive(true));
+            storage.put(ch.zhaw.prometheus.model.policy.LiveCommittedSpeech.ENABLED, new JsonPrimitive(true));
             var external = new ch.zhaw.prometheus.model.policy.ExternalSpeech(UUID.randomUUID(), agent.executionEpoch());
             agents.saveAndFlush(agent); return external;
         });

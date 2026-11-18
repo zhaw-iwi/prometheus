@@ -1,9 +1,11 @@
 # Restore distinct Continuous and GPT-Live interaction contracts
 
-Prepared: 2026-11-18. Status: **GLF-01 verified; stopped for review. GLF-02–05 open**.
-Development branch: `main` (planning baseline `cff6818`).
-GLF-01 implementation baseline: `e66aa3cd`; evidence and remaining limits are in
-`GPTLIVEFIX_RESULTS.md`. Native Live restoration is not yet implemented.
+Prepared: 2026-11-18. Status: **GLF-01 committed; GLF-02 verified;
+GLF-03-05 open**. Development branch: `main`.
+GLF-01 commit: `f7c1033c`; evidence is in `GPTLIVEFIX_RESULTS.md`.
+The owner now authorizes sequential milestones, committing and pushing each,
+and bounded real OpenAI happy-path tests costing less than $50 total. Halt for
+an unforeseen owner decision. No deployment has been performed.
 
 ## Owner direction and working model
 
@@ -33,10 +35,11 @@ Their backend authority, scope, identity and duplicate-prevention protections
 remain relevant. Runtime documentation must continue to distinguish planned
 changes from implemented behaviour until each milestone is verified.
 
-The owner subsequently requested implementation through the handoff. The current
-session completed GLF-01 under its one-milestone review boundary. Historical
-permissions inside older plans do not authorize new commits, deployments or paid
-trials.
+The owner subsequently authorized implementation through all remaining milestones,
+with a commit and push after each. This overrides the handoff's original
+one-milestone stop. Paid smoke tests must stay below $50 cumulatively, with finite
+request, token, synthesis and session caps declared before billing. Historical
+permissions do not independently authorize deployment or unbounded trials.
 
 ## Bootstrap and evidence
 
@@ -359,7 +362,7 @@ paths, failures and unverified areas. Update this checklist and relevant README,
 changes. Preserve earlier audit records and explain supersession with dated notes.
 
 - [x] GLF-01: mode contracts and Continuous parity — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
-- [ ] GLF-02: native Live conversation
+- [x] GLF-02: native Live conversation — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
 - [ ] GLF-03: semantic Coordination Live happy path
 - [ ] GLF-04: recording and interruption
 - [ ] GLF-05: integrated provider/physical acceptance and release handoff
@@ -367,7 +370,7 @@ changes. Preserve earlier audit records and explain supersession with dated note
 Suggested instruction for a new session:
 
 > Follow the repository bootstrap, then read `.agents/PLAN_GPTLIVEFIX.md`.
-> Implement the next incomplete milestone, currently GLF-02. Preserve Text
+> Implement the next incomplete milestone, currently GLF-03. Preserve Text
 > and Continuous guarantees while restoring native Live speed under the plan's
 > relaxed wording contract. Use the smallest meaningful test set, update the
 > results/current documentation, and report what passed and what remains

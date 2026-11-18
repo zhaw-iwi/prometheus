@@ -185,7 +185,7 @@ public class LiveSmokeConfiguration {
             }
             // Supply measured quiet for the longest supported assistant assembly window.
             // Stopping synthetic PCM at one second would test a coverage gap, not completion.
-            for (int i = 1; i <= (prefix.equals("output") ? 30 : 10); i++) {
+            for (int i = 1; i <= 30; i++) {
                 int chunk = i;
                 audio.schedule(() -> {
                     if (call.closed) return;
@@ -221,6 +221,9 @@ public class LiveSmokeConfiguration {
             provider.coordinationProposal = null;
         }
         @GetMapping("/__live-fixture/speech") public List<Synthesized> speech() { return List.copyOf(provider.speech); }
+        @GetMapping("/__live-fixture/inference") public Map<String, Object> inference() {
+            return Map.of("count", provider.inferences.size(), "held", provider.inferenceGate != null && !provider.inferenceGate.isDone());
+        }
         @PostMapping("/__live-fixture/inference/{action}") public Map<String, Boolean> inference(@PathVariable String action) {
             switch (action) {
                 case "hold" -> provider.inferenceGate = new CompletableFuture<>();

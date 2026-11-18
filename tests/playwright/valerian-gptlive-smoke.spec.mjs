@@ -54,78 +54,6 @@ test("approval player captures real WebRTC while withholding unapproved audio", 
   expect(result.peak).toBeGreaterThan(.02); expect(result.heard).toBe(1); expect(result.approvalCalls).toBe(4);
 });
 
-for (const lostCompletion of [false, true]) {
-test(lostCompletion ? "Coordination preserves uncertain delivery after a lost synthesized playback acknowledgement"
-  : "Coordination reaches Reflection after committed Speech and observed playback", async ({ page, context, request }, info) => {
-  test.skip(!enabled || !process.env.PROMETHEUS_ADMIN_TOKEN, "Use the enabled isolated acceptance runner.");
-  const headers = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
-  const code = Math.random().toString(36).slice(2, 7).toUpperCase();
-  const access = await (await request.post('/admin/access-codes', {headers, data:{code, enabled:true}})).json();
-  await request.put(`/admin/access-codes/${access.id}/agent-types`, {headers, data:{agentTypeKeys:['core.coordination']}});
-  const scoped = {'X-Prometheus-Access-Code':code};
-  await hardware(context, true); await page.goto('/valerian/');
-  await page.getByTestId('access-code-input').fill(code); await page.getByTestId('submit-access-code').click();
-  await page.locator('#open_diagnostics').click(); await page.getByTestId('agent-type-select').selectOption('core.coordination');
-  const creation = page.waitForResponse(r => r.url().endsWith('/demo/agents') && r.request().method() === 'POST');
-  await page.getByTestId('create-agent-instance').click(); const agent = await (await creation).json();
-  const path = `/demo/agents/${agent.id}`;
-  try {
-    await page.getByTestId('connect-agent').click(); await expect(page.locator('#behaviour_status')).toHaveText('Behaviour Live');
-    await page.keyboard.press('Escape'); await page.getByTestId('gptlive-tab').click();
-    const opening = page.waitForResponse(r => r.url().endsWith('/live/sessions') && r.status() === 201);
-    await page.getByTestId('gptlive-start').click(); const session = await (await opening).json();
-    expect(session.committedSpeechOutput).toBe(true);
-    await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
-    await page.waitForFunction(() => window.__smokeUpdateHeld);
-    const releases = [];
-    page.on('request', r => {if (r.method() === 'POST' && /\/speech-approvals\/[^/]+\/release$/.test(r.url())) releases.push(r.url());});
-    const memory = async () => Object.fromEntries((await (await request.get(path + '/storage', {headers:scoped})).json())
-      .map(entry => [entry.key, JSON.parse(entry.value)]));
-    if (lostCompletion) await page.route('**/speech-approvals/*/played', route => route.abort());
-    expect((await request.post(path + '/acknowledge', {headers:scoped, data:{type:'obs.user_utterance', actor:'user', kind:'observation',
-      payload:'Start one fixture observation contribution now'}})).ok()).toBe(true);
-    await expect.poll(async () => (await memory())['task.response']?.status).toBe('PENDING');
-    const original = (await memory())['task.response'];
-    await expect(page.getByTestId('activity-label')).toHaveText('Finishing the response');
-    // The native remote stream is audible only in the synthetic provider. It must
-    // never reach conversation or consume this response while synthesis is held.
-    await page.evaluate(() => {window.__smokeGain.gain.value = .15;});
-    await page.waitForTimeout(600); await page.evaluate(() => {window.__smokeGain.gain.value = 0;});
-    await expect(page.getByTestId('gptlive-history')).not.toContainText('First fixture observation.');
-    await page.waitForTimeout(3000);
-    expect((await memory())['task.actions']).toBe(1);
-    const finished = page.waitForRequest(r => r.url().endsWith(`/speech-approvals/${original.id}/played`), {timeout:25000});
-    const released = page.waitForResponse(r => r.url().endsWith(`/speech-approvals/${original.id}/release`));
-    await page.evaluate(() => window.__smokeReleaseUpdates()); await released;
-    // A delayed/provider-only caption is not new microphone activity. The real
-    // input worklet still owns immediate barge-in; server admission is checked separately.
-    await page.evaluate(() => window.__smokeReceive({type:'session.input_transcript.delta', event_id:'silent_fragment',
-      start_ms:126600, end_ms:126800, delta:'t: {"'}));
-    await finished;
-    if (lostCompletion) {
-      await expect(page.getByTestId('gptlive-detail')).toContainText('completion could not be confirmed');
-      await page.waitForTimeout(2000);
-      expect((await memory())['coordination.delivery'].status).toBe('PENDING');
-      await expect(page.getByTestId('gptlive-history')).not.toContainText('First fixture observation.');
-    } else {
-      await expect(page.getByTestId('activity-label')).toHaveText('Reflecting on the task');
-      await expect(page.getByTestId('gptlive-history')).toContainText('First fixture observation.');
-      expect((await memory())['coordination.delivery'].status).toBe('PLAYBACK_CONFIRMED');
-      const history = await (await request.get(path + '/live/history', {headers:scoped})).json();
-      expect(history.filter(e => e.provenance?.origin === 'SYNTHESIZED' && e.provenance.playbackConfirmed)).toHaveLength(1);
-      await page.getByTestId('gptlive-panel').screenshot({path: info.outputPath('committed-coordination-playback.png')});
-    }
-    expect(releases).toHaveLength(1); expect((await memory())['task.actions']).toBe(1);
-    const timeline = await page.evaluate(() => window.PrometheusActivity.snapshot());
-    expect(timeline.coverage.physicalAudibility).toBe('not_measured');
-    await page.getByTestId('gptlive-stop').click();
-  } finally {
-    await info.attach('speech-diagnostics', {contentType: 'application/json', body: Buffer.from(JSON.stringify(
-      await page.evaluate(async () => (await import('/live/diagnostics.js')).liveDiagnostics.snapshot()).catch(() => ({}))))});
-    await request.delete(path, {headers:scoped});
-  }
-});
-}
 test("real scoped cockpit, durable Live conversation and legacy feature-off speech", async ({ page, context, request }, info) => {
   test.skip(!process.env.PROMETHEUS_ADMIN_TOKEN || !process.env.PROMETHEUS_LIVE_EXPECT_ENABLED, "Use the isolated acceptance runner.");
   const headers = { "X-Prometheus-Admin-Token": process.env.PROMETHEUS_ADMIN_TOKEN };
@@ -157,9 +85,10 @@ test("real scoped cockpit, durable Live conversation and legacy feature-off spee
     const history = await (await request.get(path + "/eventhistory", { headers: scoped })).json();
     expect(history.some(event => event.type === "resp.behaviour_plan" && JSON.parse(event.payload).speech)).toBe(true);
     const speech = await (await request.get(path + "/behaviours/latest/speech", { headers: scoped })).json();
+    const callsBefore = (await (await request.get("/__live-fixture/latest")).json()).ttsCalls;
     const audio = await request.post(`${path}/behaviours/${speech.eventId}/speech?format=pcm`, { headers: scoped });
     expect(audio.ok()).toBe(true); expect((await audio.body()).length).toBe(48000);
-    expect((await (await request.get("/__live-fixture/latest")).json()).ttsCalls).toBe(1);
+    expect((await (await request.get("/__live-fixture/latest")).json()).ttsCalls - callsBefore).toBe(1);
     await page.locator('[data-column-panel="interaction"]').screenshot({ path: info.outputPath("feature-off-text.png") });
   } else {
     await expect(page.getByTestId("gptlive-start")).toBeEnabled(); await page.getByTestId("gptlive-tab").click();
@@ -417,45 +346,25 @@ test("Social Space opt-in reception uses real scopes and fresh encounters", asyn
   } finally { await request.delete(path, { headers: scoped }); }
 });
 
-async function hardware(context, playback = false) {
-  await context.addInitScript(playback => {
+async function hardware(context) {
+  await context.addInitScript(() => {
     window.__smokeCaptures = 0;
-    if (!playback) {
     Object.defineProperty(HTMLMediaElement.prototype, "srcObject", { configurable: true, get() { return this.__stream || null; }, set(value) { this.__stream = value; } });
     HTMLMediaElement.prototype.play = async function () {}; HTMLMediaElement.prototype.pause = function () {};
     HTMLMediaElement.prototype.setSinkId = async function () {};
-    }
     class Track extends EventTarget { constructor() { super(); this.kind = "audio"; this.enabled = true; this.readyState = 'live'; this.muted = false; } stop() {} getSettings() { return { echoCancellation: true }; } }
-    if (playback) {
-      const fetch = window.fetch.bind(window); let release;
-      const held = new Promise(resolve => {release = resolve;});
-      window.__smokeReleaseUpdates = () => {window.__smokeHoldUpdates = false; release();};
-      window.__smokeHoldUpdates = true;
-      window.fetch = async (...args) => {
-        const response = await fetch(...args);
-        if (String(args[0]).includes('/updates?') && window.__smokeHoldUpdates) {window.__smokeUpdateHeld = true; await held;}
-        return response;
-      };
-      window.__smokeContext = new AudioContext();
-      const oscillator = __smokeContext.createOscillator();
-      window.__smokeGain = __smokeContext.createGain(); __smokeGain.gain.value = 0;
-      window.__smokeRemote = __smokeContext.createMediaStreamDestination();
-      oscillator.connect(__smokeGain).connect(__smokeRemote); oscillator.start();
-      window.__smokeInput = __smokeContext.createMediaStreamDestination();
-
-    }
     Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: {
-      async getUserMedia() { window.__smokeCaptures++; if (playback) {await __smokeContext.resume(); return __smokeInput.stream;} const track = new Track(); return { getAudioTracks: () => [track], getTracks: () => [track] }; },
+      async getUserMedia() { window.__smokeCaptures++; const track = new Track(); return { getAudioTracks: () => [track], getTracks: () => [track] }; },
       async enumerateDevices() { return []; }, addEventListener() {}, removeEventListener() {}, getSupportedConstraints() { return {}; },
     } });
     window.RTCPeerConnection = class {
       constructor() { this.iceGatheringState = "complete"; }
       createDataChannel() { this.channel = { close() {} }; window.__smokeReceive = event => this.channel.onmessage?.({data: JSON.stringify(event)}); return this.channel; } addTrack() {} getSenders() { return []; }
       async createOffer() { return { type: "offer", sdp: "v=0 synthetic-offer" }; } async setLocalDescription(value) { this.localDescription = value; }
-      async setRemoteDescription() { const track = playback ? __smokeRemote.stream.getAudioTracks()[0] : new Track(); this.channel.onmessage?.({ data: '{"type":"session.started"}' }); this.ontrack?.({ streams: [playback ? __smokeRemote.stream : {getAudioTracks: () => [track]}], track }); }
+      async setRemoteDescription() { const track = new Track(); this.channel.onmessage?.({ data: '{"type":"session.started"}' }); this.ontrack?.({ streams: [{getAudioTracks: () => [track]}], track }); }
       async getStats() { return new Map([["private-device", { type: "inbound-rtp", kind: "audio", timestamp: performance.now(),
         packetsLost: 2, concealedSamples: 960, jitter: .01, trackIdentifier: "private-device" }]]); }
       close() {}
     };
-  }, playback);
+  });
 }

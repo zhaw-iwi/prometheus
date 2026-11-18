@@ -94,10 +94,7 @@ public class CoordinationUpdateAction extends Action {
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
                         + "\nLatest user reflection (their report, not a measured outcome): " + (storage.containsKey(CoordinationMemory.REVIEW) ? storage.get(CoordinationMemory.REVIEW) : "none")
                         + "\nSupported sensor fields: " + TaskSpec.FIELDS
-                        + (runtime.externalSpeech() == null ? "" : storage.containsKey(LiveCommittedSpeech.ENABLED)
-                                && storage.get(LiveCommittedSpeech.ENABLED).getAsBoolean()
-                            ? "\nThe application synthesizes reply.speech verbatim. Supply complete actual words to speak, at most 350 characters, never directions or a description of a future utterance. Use supported nonverbal/motion normally."
-                            : "\nLive owns spoken wording. In reply.speech describe the required contribution in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
+                        + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. For ordinary KEEP or REFLECT replies, omit reply.speech and supply only supported nonverbal behaviour. For a confirmed task contribution, describe the required contribution in reply.speech in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
                         + (assent ? "\nInterpret this short reply ONLY against the completed utterance: " + new JsonPrimitive(invitation)
                                 + ". It is not automatically consent. Only KEEP or START of the unchanged saved proposal is permitted. A question about future activation or changing a proposal does not authorize starting now." : "")
                         + DecorativeGestures.guidance(storage, now)
@@ -352,10 +349,6 @@ public class CoordinationUpdateAction extends Action {
         if (action || DecorativeGestures.requested(singleEvent(event))) storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
         if (operation.equals("KEEP") || operation.equals("REFLECT")) {
             CoreTaskVoice.clearAnswered(storage);
-            if (live && CoordinationSpeechApproval.enabled(storage) && speech != null && !speech.isBlank()) {
-                CoreTaskVoice.response(storage, "Answer the current user turn: " + speech + " No task change or contribution is authorized.", false, false, runtime);
-                CoordinationSpeechApproval.words(storage, speech);
-            }
             return;
         }
         String facts = switch (operation) {

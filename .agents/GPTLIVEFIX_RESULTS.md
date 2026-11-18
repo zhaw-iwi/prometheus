@@ -1,5 +1,77 @@
 # GPT-Live repair evidence
 
+## GLF-02 — Native conversation independence (2026-11-18)
+
+Implementation baseline: `f7c1033c` (GLF-01 committed and pushed to `origin/main`
+on the owner's explicit instruction). The owner now authorizes sequential
+milestones and per-milestone commits/pushes, plus paid OpenAI happy-path smoke
+tests below $50 cumulatively. No paid calls or deployment occurred in GLF-02.
+
+Coordination now selects the existing native audio route. Its session claim
+clears both legacy persisted output flags before projecting startup context;
+there is no saved-graph/history migration. Ordinary KEEP/REFLECT turns request
+nonverbal backend output and create no competing speech occasion, even if a
+provider supplies draft speech. Deliberate task/support context remains on the
+existing asynchronous bridge. Text/Continuous keep canonical event Speech.
+
+`valerian-gptlive-native.spec.mjs` runs the actual cockpit, HTTP/SSE and disposable
+MySQL with a controlled provider transport. A server inference barrier stays
+closed while a real PCM tone passes through the native HTML audio element
+(captured output amplitude > .02, playing and unmuted). After release it verifies
+nonverbal rendering, exactly one admitted user event despite repeated receipts,
+and no synthesis/approval/release requests. Separate cases cover immediate local
+Stop with pending backend work and Continuous -> Live -> Continuous on one agent,
+including a new finalized transcript and canonical Speech after returning.
+This establishes browser routing, not provider latency or physical audibility.
+
+The old two committed-Coordination browser scenarios were removed: requiring
+native muting and synthesized playback is now the wrong contract. Their shared
+task-budget/uncertainty obligations remain in Java coverage and are the native
+persisted journey work of GLF-03. Approval/synthesis service and player contracts
+are still consumed by the legacy provider harness/tests; they are not selected
+by repaired Coordination. Migrate those consumers and retire their obsolete
+branches during semantic/integrated acceptance, without treating them as native
+acceptance or claiming a green full suite at this intermediate milestone.
+
+Verification:
+
+- `977631d05e`: 30 Java tests passed; existing Continuous browser parity passed.
+  The new native mode-switch fixture dispatched before the replacement
+  transcription channel was ready; Stop/native audio passed.
+- `49f8ca7c3c`: 16 persisted Coordination tests passed, including fresh claim of
+  old flags; the native Stop case passed. The fixture still waited only for the
+  UI's early Listening label. It now waits for transport Connected and a live
+  microphone track before sending committed/final events.
+- `1a68b68596`: both native browser cases passed after that fixture correction.
+- `npm.cmd run test:live:unit`: 131 passed. `test:transcription:unit`: 29 passed.
+  Acceptance-runner unit checks: 12 passed. Final combined run recorded below.
+- `8e229be573`: all 34 Java and ten enabled-browser cases passed. Disabled
+  Continuous parity passed; the old feature-off test counted all earlier fixture
+  Speech calls rather than its own request. Corrected that test to assert its
+  call-count delta. Three Live-only cases were intentionally skipped when disabled.
+- `a322b8ba1b`: both affected disabled-browser cases passed together, proving the
+  count no longer depends on test order. `fe0a269ad9`: both existing native RPS
+  and Multimodal cases passed after removing their unused buffered-audio helper.
+
+Final selected coverage: **34 Java, 160 Node, 12 browser mode/cases and 12 runner
+checks passed**. This is focused milestone coverage, not the full legacy suite.
+`git diff --check` and browser-spec syntax validation passed. No implementation
+change was needed for the retained fixture-order/readiness failures.
+
+Combined verification command:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests CoordinationAgentIntegrationTest,CoordinationAcceptanceUnitTest,CoordinationTaskContractUnitTest,LiveSmokeConfigurationTest --browser --browser-mode both --browser-grep 'native Coordination audio|Coordination Text and Continuous|real scoped cockpit|Live Multimodal|stopped resume lookup|mocked WebRTC emits partial|Stop and synthesis failure'
+```
+
+Final reruns used `--java-tests none --browser --browser-mode disabled
+--browser-grep 'Coordination Text and Continuous|real scoped cockpit'`, and
+`--browser-mode enabled --browser-grep 'real scoped cockpit|Live Multimodal'`.
+GLF-02's exit is verified; proceed to GLF-03 under the current authorization.
+
+Artifacts are under `target/gptlive-acceptance-<id>/`; each owned app, schema and
+account was cleaned. Shared local MySQL services were left running.
+
 ## GLF-01 — Mode contracts and Continuous parity (2026-11-18)
 
 Status: **verified; stopped for review**. GLF-02–05 remain open. This milestone does not

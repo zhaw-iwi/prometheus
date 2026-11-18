@@ -81,19 +81,17 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
-The 2026-11-18 GPT-Live repair has verified GLF-01's mode contract and executable
-Text/Continuous Coordination parity (64 Java, 50 Node, seven browser and 12 runner
-checks; final saved-flag prompt probe also passed). The real-app transcription/HTTP/MySQL/SSE/
-canonical Speech journey uses scripted providers and actual PCM rendering;
-physical audibility is not measured. Exact assertions, retained failures and
-saved speech-flag handling are in `.agents/GPTLIVEFIX_RESULTS.md`.
-The owner now wants native immediate Live speech with semantic wording tolerance,
-while backend task authority remains unchanged. This supersedes the desired
-November ES-08 output architecture, not its historical evidence. GLF-01 leaves
-the committed-Speech runtime below intact; GLF-02–05 remain open in
-`.agents/PLAN_GPTLIVEFIX.md`. Continue one milestone then stop for review unless
-the current session authorizes more; historical publication/trial permissions
-do not carry forward.
+The 2026-11-18 GPT-Live repair committed GLF-01 as `f7c1033c` on main.
+GLF-02 selects native audible Coordination speech independently of backend latency,
+clears legacy output flags on session claim, and keeps ordinary backend output
+nonverbal. Text/Continuous retain canonical event Speech. Deterministic acceptance
+and its limits are recorded in `.agents/GPTLIVEFIX_RESULTS.md`; GLF-03-05 still
+cover semantic task delivery, interrupted recordings and integrated acceptance.
+The current owner instruction authorizes sequential milestones with a commit/push
+after each, plus bounded OpenAI happy-path smoke tests costing less than $50 total.
+Pause for an unforeseen owner decision. Physical acceptance is not established by
+synthetic/browser observations. Historical deployment permissions do not carry
+forward; follow `.agents/PLAN_GPTLIVEFIX.md` and current session instructions.
 
 PROMETHEUS currently provides:
 
