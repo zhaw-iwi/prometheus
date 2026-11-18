@@ -82,14 +82,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
-- Robot mouth calibration (2026-11-17; promotion authorized 2026-11-18): a subtly upturned resting
-  mouth replaces the straight line. All supported facial expressions blend their
+- Robot mouth calibration (2026-11-17; deployed 2026-11-18): a subtly upturned
+  resting mouth replaces the straight line. All supported facial expressions blend their
   mouth shape from that baseline according to plan intensity, including surprise;
   neutral/fallback/reset agree. Fifteen embodiment unit checks and all five
   existing WebGL browser checks passed. Before/after expressions and light/dark/
-  narrow cockpit screenshots were reviewed. The owner authorized publication
-  through main and agents to Heroku; release verification follows. No backend
-  or provider changes; evidence and preview are in `.agents/EMBODIMENT_RESULTS.md`.
+  narrow cockpit screenshots were reviewed. Main `45248f8` merged into agents as
+  `aba0184`; all 15 unit and five browser checks also passed on the merged tree.
+  Heroku **valerian v169** is deployed: health UP, all nine served asset hashes
+  match, and the neutral mouth rendered correctly in a read-only WebGL check.
+  No backend/provider changes; release evidence and preview are recorded in
+  `.agents/EMBODIMENT_RESULTS.md`.
 
 - Embodiment Studio CORS (2026-11-17): the production allowlist now includes
   exactly `http://localhost:5173`, preserving both existing port-5010 origins.
