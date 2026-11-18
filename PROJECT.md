@@ -82,6 +82,15 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Robot mouth calibration (2026-11-17; promotion authorized 2026-11-18): a subtly upturned resting
+  mouth replaces the straight line. All supported facial expressions blend their
+  mouth shape from that baseline according to plan intensity, including surprise;
+  neutral/fallback/reset agree. Fifteen embodiment unit checks and all five
+  existing WebGL browser checks passed. Before/after expressions and light/dark/
+  narrow cockpit screenshots were reviewed. The owner authorized publication
+  through main and agents to Heroku; release verification follows. No backend
+  or provider changes; evidence and preview are in `.agents/EMBODIMENT_RESULTS.md`.
+
 - Embodiment Studio CORS (2026-11-17): the production allowlist now includes
   exactly `http://localhost:5173`, preserving both existing port-5010 origins.
   README distinguishes the Studio page origin from the backend URL and from a

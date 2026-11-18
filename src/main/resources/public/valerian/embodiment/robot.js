@@ -1,5 +1,19 @@
 import * as T from './vendor/three.module.js';
 
+// Width, opening and corner lift share a gently friendly resting shape.
+// Expression intensity interpolates from this baseline, including surprise.
+const neutralMouth={width:0.1,opening:0.012,curve:0.02};
+const expressionMouth={
+  happy:{width:0.12,opening:0.013,curve:0.06},
+  curious:{width:0.105,opening:0.012,curve:0.04},
+  sad:{width:0.1,opening:0.012,curve:-0.06},
+  concerned:{width:0.1,opening:0.012,curve:-0.04},
+  attentive:{width:0.09,opening:0.012,curve:0},
+  uncertain:{width:0.09,opening:0.012,curve:0},
+  angry:{width:0.09,opening:0.012,curve:0},
+  surprised:{width:0.07,opening:0.09,curve:0},
+};
+
 // Original character geometry and articulated rig. No remote textures or assets.
 export function createRobot() {
   const root = new T.Group();
@@ -58,9 +72,25 @@ export function createRobot() {
     brow.position.set(side*0.27,0.357,0.457);brows.push(brow);
   }
   const mouth=new T.Group();mouth.position.set(0,-0.25,0.467);head.add(mouth);
-  const smile=stroke(mouth,[[-0.12,0.025,0],[0,-0.018,0],[0.12,0.025,0]],0.013,ink);
-  const flat=stroke(mouth,[[-0.09,0,0],[0,0,0],[0.09,0,0]],0.012,ink);
-  const open=sphere(mouth,ink,[0,0,0],[0.07,0.09,0.012]);
+  const lip=sphere(mouth,ink,[0,0,0],[1,1,1]);lip.name='mouth';
+  const mouthPosition=lip.geometry.attributes.position, mouthRest=mouthPosition.array.slice();
+  let previousFace,previousIntensity;
+  function applyMouth(face,intensity) {
+    if(face===previousFace&&intensity===previousIntensity)return;
+    previousFace=face;previousIntensity=intensity;
+    const target=Object.hasOwn(expressionMouth,face)?expressionMouth[face]:neutralMouth;
+    const width=neutralMouth.width+(target.width-neutralMouth.width)*intensity;
+    const opening=neutralMouth.opening+(target.opening-neutralMouth.opening)*intensity;
+    const curve=neutralMouth.curve+(target.curve-neutralMouth.curve)*intensity;
+    // Bend a rounded lip without scaling its thickness through zero or swapping
+    // meshes. Reuse its vertices; ordinary animation frames allocate no geometry.
+    for(let i=0;i<mouthPosition.count;i++) {
+      const x=mouthRest[i*3],y=mouthRest[i*3+1],z=mouthRest[i*3+2];
+      mouthPosition.setXYZ(i,x*width,y*opening+curve*(x*x-0.5),z*0.012);
+    }
+    mouthPosition.needsUpdate=true;lip.geometry.computeVertexNormals();
+    lip.geometry.computeBoundingSphere();
+  }
 
   function arm(side) {
     const name=side===-1?'right':'left';
@@ -115,9 +145,7 @@ export function createRobot() {
       b.rotation.z=(i===0?1:-1)*(['sad','concerned','uncertain'].includes(face)?0.3*intensity:face==='angry'?-0.4*intensity:0);
       b.position.y=0.357+(face==='surprised'?0.05*intensity:0);
     });
-    smile.visible=['happy','curious','sad','concerned'].includes(face);
-    smile.rotation.z=['sad','concerned'].includes(face)?Math.PI:0;
-    smile.scale.y=0.4+intensity;open.visible=face==='surprised';flat.visible=!smile.visible&&!open.visible;
+    applyMouth(face,intensity);
     for(const a of arms) {
       a.shoulder.rotation.set(-0.08,0,a.side*0.12);a.elbow.rotation.set(-0.18,0,0);a.wrist.rotation.set(0,0,0);
       const sign=p?.sign && (p.hand==='both_hands'||p.hand===(a.side===-1?'right_hand':'left_hand'))?p.sign:'';

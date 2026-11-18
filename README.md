@@ -227,6 +227,12 @@ user signs stay display information. Unmapped labels are reported with neutral
 poses. This is a visual embodiment, not a physical robotics simulator or gaze
 tracker. Speech still uses the existing card and player, without new lip-sync.
 
+The resting mouth has a subtle upward curve. Facial-expression intensity blends
+from that same baseline: zero intensity is neutral, positive expressions deepen
+the smile, sad/concerned expressions turn downward, and surprise opens the mouth.
+Attentive, uncertain and angry expressions gradually flatten it. Missing or
+unmapped expressions and reset return to the friendly baseline.
+
 Fresh visible acknowledged/live plans animate once. History/reconnect and view
 switches show static representative poses; native speech-only updates preserve
 nonverbal state. New plans replace old motion; disconnect/reset clears the view.

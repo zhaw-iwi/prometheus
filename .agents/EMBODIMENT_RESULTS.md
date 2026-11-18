@@ -190,3 +190,37 @@ Event below it. No new agent or database migration is required.
 Remaining limits are unchanged: no physical robot, participant recognizability,
 or broad device/GPU validation; production was checked with synthetic local
 rendering, while live inference was checked on disposable local MySQL.
+
+## Friendly neutral mouth — 2026-11-17, local review
+
+The owner requested a slightly friendlier resting mouth and expression changes
+recalibrated relative to it. `robot.js` now uses one rounded, deformable mouth
+with a small upward corner lift. Each supported expression interpolates width,
+opening and curvature from the same neutral shape at zero intensity. Happy and
+curious deepen the curve; sad and concerned cross into downward curves; attentive,
+uncertain and angry flatten it; surprise gradually opens it. Neutral aliases,
+unsupported expressions, missing facial output and reset use the same baseline.
+Existing eye/brow/gaze, hand, replay and animation-admission behavior is retained.
+The mesh reuses its vertices and only updates when expression/intensity changes.
+
+Verification:
+
+- `npm.cmd run test:embodiment:unit`: **15 passed**, including two new rig checks
+  for the shared zero-intensity/fallback/reset shape, intermediate intensity and
+  expression direction/opening. The first attempt used PowerShell's blocked
+  `npm.ps1`; using `npm.cmd` ran successfully without changing execution policy.
+- `node --check src/main/resources/public/valerian/embodiment/robot.js`: passed.
+- `python tests/playwright/run_static.py tests/playwright/valerian-embodiment.spec.mjs --output=target/embodiment-mouth-browser`:
+  **all five passed**, using real WebGL and controlled API events against local
+  static assets. Covers lifecycle/replay/native preservation, signs, reduced
+  motion, narrow/maximized/detached views and WebGL fallback.
+- Reviewed light/dark and narrow cockpit renders, plus a twelve-panel comparison
+  using the same camera/lighting and the previous renderer from `39635a3`.
+  [Before/after and expression preview](../.doc/figures/Valerian/valerian-mouth-expressions.png).
+- `git diff --check`: passed.
+
+No Java/database/provider check was run for this renderer-only adjustment.
+Human expression interpretation and broad GPU/device behavior remain unverified.
+The initial handoff was local on main without publication. On 2026-11-18 the
+owner authorized committing/pushing all reviewed changes and merging into agents
+to redeploy Heroku. Integration and release verification follow below.
