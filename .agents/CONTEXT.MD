@@ -85,8 +85,8 @@ The 2026-11-18 GPT-Live repair committed GLF-01 as `f7c1033c` on main.
 GLF-02 selects native audible Coordination speech independently of backend latency,
 clears legacy output flags on session claim, and keeps ordinary backend output
 nonverbal. Text/Continuous retain canonical event Speech. Deterministic acceptance
-and its limits are recorded in `.agents/GPTLIVEFIX_RESULTS.md`; GLF-03-05 still
-cover semantic task delivery, interrupted recordings and integrated acceptance.
+and its limits are recorded in `.agents/GPTLIVEFIX_RESULTS.md`; GLF-03 adds native task meaning/authority coverage and separates help from
+proposal consent. GLF-04-05 cover interrupted recordings and integrated acceptance.
 The current owner instruction authorizes sequential milestones with a commit/push
 after each, plus bounded OpenAI happy-path smoke tests costing less than $50 total.
 Pause for an unforeseen owner decision. Physical acceptance is not established by

@@ -2371,9 +2371,9 @@ before waiting for backend cleanup; a new session requires explicit Start.
 
 Backend agreements, preparation, acceptance, action limits and outcomes remain
 authoritative. Captured native wording and observed browser playback remain
-separate evidence; neither demonstrates physical speaker audibility. Native task
-semantic acceptance, interrupted-recording coverage and paid provider validation
-are the subsequent GLF-03-05 milestones. This intermediate change is not release
+separate evidence; neither demonstrates physical speaker audibility. GLF-03 verifies native task meaning and authority with scripted
+semantic judgements, persisted journeys and observed playback. Interrupted
+recording and paid provider validation remain GLF-04-05. This intermediate change is not release
 acceptance. The November approval/synthesis evidence remains historical in
 [the escalation results](.agents/ESCALATION_RESULTS.md); current repair evidence
 and exact test scope are in [GPTLIVEFIX_RESULTS](.agents/GPTLIVEFIX_RESULTS.md).

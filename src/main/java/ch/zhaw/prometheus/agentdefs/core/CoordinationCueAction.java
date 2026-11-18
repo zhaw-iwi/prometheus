@@ -19,7 +19,7 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
     @Override protected String liveSpeechGuidance() {
         return "\nFor an agreed spoken task action, speech contains the complete words the audience should hear, not a description or instruction to Live. "
                 + "Perform the communicative act: welcome the audience, tell the joke or provide the requested observation. "
-                + "Live realizes these committed words; the backend retains task authority. Preserve appropriate nonverbal/motion channels. "
+                + "Live may paraphrase these words while preserving their meaning; the backend retains task authority. Preserve appropriate nonverbal/motion channels. "
                 + "For an output-only silent action, omit speech.";
     }
     @Override protected String inferenceGuidance(PolicyRuntime runtime) {
@@ -44,7 +44,7 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
                     && getStorage().containsKey(CoreTaskVoice.RESPONSE) && getStorage().containsKey(TaskResponse.KEY)) {
                 String intent = spoken.substring(0, Math.min(350, spoken.length()));
                 String facts = "A fresh cue authorized this current contribution. Required spoken content: " + intent
-                        + " Use this committed result, not an example from the agreement. Say it once; do not add a reflection or aside.";
+                        + " Convey this committed result with equivalent meaning, not an example from the agreement. Say it once; do not add a reflection or aside.";
                 var response = getStorage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
                 response.addProperty("facts", facts); response.addProperty("contributionOnly", true); getStorage().put(CoreTaskVoice.RESPONSE, response);
                 TaskResponse.contribution(getStorage(), facts, literalSpeech(rule, spoken));

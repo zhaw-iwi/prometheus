@@ -1,5 +1,71 @@
 # GPT-Live repair evidence
 
+## GLF-03 — Native Coordination meaning and authority (2026-11-18)
+
+Baseline: `807f60cb`, GLF-02 committed/pushed to main. Native task speech is
+associated asynchronously after capture. Ordinary speech is recorded without a
+classifier or a new task-speaking occasion. The verifier and cue guidance now
+explicitly permit equivalent wording while preserving signs, roles, counts,
+conditions, negation, defining clues and outcomes. An explicitly requested literal
+still has its narrow exact-content contract. No approval-before-audio was added.
+
+Native help needed a real repair: complete help speech could become the saved
+proposal's consent context when the old approval guard was bypassed. Help now
+has a separate bounded occasion, preserves the pending task identity/deadline,
+and cannot set proposal-consent evidence. A duplicate help capture cannot later
+become that invitation. Support-only responses also cannot establish consent.
+Ambient capture consumes only its own current occasion; it cannot establish a
+task response or consent. Captures remain distinct from playback confirmation.
+Support guidance preserves meaning rather than demanding verbatim delivery.
+
+Reworked `CoordinationDeliveryIntegrationTest` to exercise native capture directly
+instead of calling approval/release APIs. It covers ordinary exploration,
+proposal, observed preparation, premature acceptance rejection, acceptance with
+zero actions, arming, stale/fresh/duplicate cues, one contribution, separate
+scoped playback, reflection, help and revision requiring preparation/consent
+again. Persisted tests retain wrong-session/segment rejection, no transaction or
+agent lock during semantic inference, one queued unrelated candidate, incomplete
+capture uncertainty, explicit-literal handling and no replay after owner loss.
+The nine predeclared meaning examples exercise MATCH versus AMBIGUOUS outcomes
+and authority. Their verifier replies are scripted: they are not evidence of real
+model judgement, which remains GLF-05 work.
+
+Two native browser cases now replace the retired synthesized final-delivery
+cases. They observe the actual native audio element, match captured receipt
+identity and send exactly one scoped playback cue. Capture alone stays Finishing;
+observed playback reaches Reflection. A lost acknowledgement is not retried and
+Stop preserves UNCERTAIN delivery with one contribution spent. Neither case makes
+a synthesis/approval/release request or records a SYNTHESIZED event.
+
+Retained runs and fixes:
+
+- `b3662c79be`: focused native persisted/authority tests passed.
+- `9f4cf7c6a3`: broader suites exposed the native help/ambient issue and old
+  committed-speech assertions; no browser run followed the Java failure.
+- `2b7bfb288a`: one old test expected help to reuse the task-speaking identity.
+  It now checks a distinct help occasion while keeping task authority/deadline
+  byte-for-byte unchanged.
+- `c22c4049cd`: 235 Java cases, three failures: an obsolete verbatim-support
+  assertion and two new fixture issues (unconfigured free-form help inference,
+  equal clock ticks at an ambient boundary). The fixtures now use the supported
+  deterministic help request and explicit post-occasion capture times.
+- `target/gptlivefix-glf03-unit`: the 56 affected unit cases passed after those
+  fixes. `27aff4504c`: both native delivery browser cases passed.
+
+Final source verification: `4a28aadbcd` passed **235 Java tests and five browser
+cases**, with no failures/skips. This includes Continuous parity, both native
+backend-barrier/Stop/mode-switch cases and both native final-delivery cases.
+`git diff --check` passed. Owned applications, schemas and accounts were cleaned.
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests 'Coordination*Test,TaskResponse*Test,Sensory*Test' --browser --browser-mode enabled --browser-grep 'native Coordination|Coordination Text and Continuous'
+```
+
+GLF-03's software exit is verified. Legacy approval/synthesis harness and API
+cleanup remains with the recording/player and integrated-harness work; those
+paths are not native acceptance. Paid-provider and physical checks remain unrun;
+cost in this repair session remains $0. Proceed to GLF-04.
+
 ## GLF-02 — Native conversation independence (2026-11-18)
 
 Implementation baseline: `f7c1033c` (GLF-01 committed and pushed to `origin/main`

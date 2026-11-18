@@ -12,6 +12,15 @@ import ch.zhaw.prometheus.model.coordination.*;
 import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationSupportUnitTest {
+    @Test void nativeHelpQuestionCannotBecomeAcceptanceOfAReadyProposal() {
+        var f = new CoordinationAgentUnitTest(); f.propose(f.dialogue(), f.live);
+        f.say("Please help.", f.live);
+        f.hear("The proposal is saved. Would you like more help?", true, Instant.now());
+        assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
+        assertFalse(f.policy().liveResolvedControlReply("yes", f.agent.getEventHistory(), f.owner));
+        assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
+        assertFalse(f.storage().containsKey(TaskMemory.ACTIONS));
+    }
     @ParameterizedTest
     @ValueSource(strings={"I understand. Do I need to demonstrate again", "Do I have to repeat the check again?"})
     void preparationQuestionUsesSavedReadinessWithoutInventingAnotherDemonstration(String words) {
@@ -24,7 +33,7 @@ class CoordinationSupportUnitTest {
         var draft = f.storage().get(CoordinationMemory.DRAFT).deepCopy();
         clearInvocations(f.gateway);
         f.say(words, f.live);
-        String spoken = f.policy().liveCommittedSpeech(f.owner).text();
+        String spoken = f.policy().liveActivityContext().continuation().facts();
         assertTrue(spoken.contains("no further demonstration is needed"));
         assertTrue(spoken.contains("After acceptance, show a fresh matching cue"));
         assertEquals(evidence, f.storage().get(CoordinationMemory.EVIDENCE));
@@ -38,7 +47,7 @@ class CoordinationSupportUnitTest {
         var f = new CoordinationAgentUnitTest();
         f.sign("scissor", .87, Instant.now(), f.text); clearInvocations(f.gateway);
         f.policy().beginLiveConversation(f.agent.getEventHistory()); f.say("hand sign do you see now", f.live);
-        String spoken = f.policy().liveCommittedSpeech(f.owner).text();
+        String spoken = f.policy().liveActivityContext().continuation().facts();
         assertTrue(spoken.contains("supplied hand observation reported scissors"));
         assertTrue(spoken.contains("not direct access to camera images"));
         verifyNoInteractions(f.gateway);
@@ -125,7 +134,9 @@ class CoordinationSupportUnitTest {
         assertEquals(expected, f.storage().get(TaskResponse.KEY));
         assertEquals(permission, f.storage().get(CoreTaskVoice.RESPONSE));
         var helped = f.policy().liveActivityContext();
-        assertEquals(context.continuation(), helped.continuation());
+        assertNotEquals(context.continuation().id(), helped.continuation().id());
+        assertEquals(f.storage().get(CoordinationSupport.LIVE_HELP).getAsJsonObject().get("id").getAsString(), helped.continuation().id().toString());
+        assertTrue(helped.continuation().facts().contains("Do not perform or repeat the task contribution"));
         assertTrue(helped.facts().contains("user requested help"));
         assertEquals("EXECUTION", CoordinationMemory.stage(f.storage())); verifyNoInteractions(f.gateway);
         assertEquals(context.facts(), CoordinationSupport.withHelp(f.storage(), context, Instant.now().plusSeconds(31)).facts());
@@ -144,7 +155,7 @@ class CoordinationSupportUnitTest {
         assertFalse(f.storage().containsKey(TaskResponse.KEY));
         assertNotNull(f.policy().liveActivityContext().continuation());
         assertTrue(f.policy().liveActivityContext().continuation().selfContained());
-        assertTrue(f.policy().liveActivityContext().continuation().facts().contains("Speak these words verbatim:"));
+        assertTrue(f.policy().liveActivityContext().continuation().facts().contains("Convey these confirmed facts once, preserving their meaning:"));
         assertTrue(f.policy().liveActivityContext().continuation().facts().contains(words));
         assertEquals("PREPARATION", CoordinationMemory.stage(f.storage()));
     }

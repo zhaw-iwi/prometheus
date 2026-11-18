@@ -18,7 +18,7 @@ class CoordinationSpeechCorrectionUnitTest {
         var request = f.policy().liveSpeechRequest(f.owner);
         var original = f.policy().liveActivityContext().continuation();
         assertTrue(original.selfContained());
-        assertTrue(original.facts().startsWith("Speak these words verbatim:"));
+        assertTrue(original.facts().startsWith("Convey these confirmed facts once, preserving their meaning:"));
         assertTrue(original.facts().contains(request.facts()));
         var draft = f.storage().get(CoordinationMemory.DRAFT).deepCopy();
         UUID correction = f.policy().liveSpeechCorrection(request, "incomplete-help", Instant.now());

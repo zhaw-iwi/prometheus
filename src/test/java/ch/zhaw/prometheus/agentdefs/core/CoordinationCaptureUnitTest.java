@@ -40,7 +40,7 @@ class CoordinationCaptureUnitTest {
         var context = f.policy().liveActivityContext();
         assertFalse(context.facts().contains("finish that request"));
         assertTrue(context.continuation().selfContained());
-        assertEquals("Speak these words verbatim: \"Please finish that request.\"", context.continuation().facts());
+        assertEquals("Convey these confirmed facts once, preserving their meaning: \"Please finish that request.\"", context.continuation().facts());
         assertEquals(response.get("id").getAsString(), context.continuation().id().toString());
         assertEquals(response.get("expires").getAsString(), context.continuation().expiresAt().toString());
         assertTrue(f.policy().liveSpeechRequest(f.owner).postCommitOnly(), "An early acknowledgement cannot consume the committed clarification");

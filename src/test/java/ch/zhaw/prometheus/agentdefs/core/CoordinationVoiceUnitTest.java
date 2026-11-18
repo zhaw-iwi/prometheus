@@ -30,7 +30,7 @@ class CoordinationVoiceUnitTest {
         assertEquals(request.created().plusSeconds(45), request.expiresAt());
         assertEquals(request.created().plusSeconds(60), request.releaseBy());
         var continuation = f.policy().liveActivityContext().continuation();
-        assertTrue(continuation.facts().startsWith("Speak these words verbatim:"));
+        assertTrue(continuation.facts().startsWith("Convey these confirmed facts once, preserving their meaning:"));
         assertTrue(continuation.facts().contains("Previous history and recorded outcomes are preserved"));
         assertFalse(f.storage().containsKey(TaskResponse.KEY));
     }
@@ -42,7 +42,7 @@ class CoordinationVoiceUnitTest {
             history.appendEvent(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor", "{\"humanCount\":2,\"ts\":\"" + at + "\"}"));
         new SensoryReactionAction(f.storage(), "Brief respectful comment", 2000, 4000, 15000).execute(history, f.live);
     }
-    @Test void ambientRemarksRetainTheirScopedShortLivedPermissionAndConsumeOnlyAfterPlayback() {
+    @Test void nativeAmbientRemarksConsumeTheirOwnOccasionWithoutCreatingTaskOrConsentEvidence() {
         ambientOccasion();
         var request = f.policy().liveSpeechRequest(f.owner);
         assertNotNull(request);
@@ -54,11 +54,11 @@ class CoordinationVoiceUnitTest {
         assertNotNull(committed); assertTrue(committed.text().contains("2 people visible"));
         assertTrue(committed.text().contains("does not establish who arrived"));
         assertNull(f.policy().liveSpeechRequest(new ExternalSpeech(UUID.randomUUID(), f.owner.epoch())));
-        var event = f.hear("I can see two people.", true, Instant.now());
-        assertNotNull(f.policy().liveSpeechRequest(f.owner), "An unheard draft cannot consume the occasion");
-        event.speechProvenance(event.speechProvenance().playback(true));
-        assertTrue(f.policy().liveSpeechCaptured(event, f.owner, Instant.now(), Instant.now(), List.of()));
+        var event = f.agent.recordExternalSpeech("I can see two people.", new SpeechProvenance(SpeechProvenance.Origin.NATIVE,
+                f.owner.sessionId(), f.owner.epoch(), "ambient", SpeechProvenance.Association.NONE, List.of(), true));
+        assertTrue(f.policy().liveSpeechCaptured(event, f.owner, request.created().plusMillis(1), request.created().plusMillis(2), List.of()));
         assertNull(f.policy().liveSpeechRequest(f.owner));
+        assertNull(event.speechProvenance().playbackConfirmed(), "Native capture does not manufacture playback proof");
         assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
         assertFalse(f.storage().containsKey(TaskResponse.KEY));
     }
@@ -76,19 +76,17 @@ class CoordinationVoiceUnitTest {
         ch.zhaw.prometheus.model.behaviour.SensoryRemarks.userTurn(f.storage(), history);
         assertNotEquals(ambient.id(), f.policy().liveSpeechRequest(f.owner).id());
     }
-    @Test void approvedHelpCannotCreateAcceptanceOrConsumeTheSavedProposalResponse() {
+    @Test void nativeHelpCannotCreateAcceptanceOrConsumeTheSavedProposalResponse() {
         f.propose(f.dialogue(), f.live);
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
-        String facts = f.policy().liveSpeechRequest(f.owner).facts();
+        String facts = f.policy().liveActivityContext().continuation().facts();
         for (String field : List.of("goal", "humanRole", "agentRole", "success"))
-            assertTrue(facts.contains(f.dialogue().get(field).getAsString()), "Approval must check the actual proposed " + field);
+            assertTrue(facts.contains(f.dialogue().get(field).getAsString()), "Native context must preserve the actual proposed " + field);
         var saved = f.storage().get(CoreTaskVoice.RESPONSE).deepCopy();
         var at = Instant.now().minusMillis(1);
         ch.zhaw.prometheus.model.coordination.CoordinationSupport.pending(f.storage(), f.owner, at, "The proposal is saved. Ask for its terms before accepting.");
         var event = f.hear("The proposal is saved. Do you need more help?", true, Instant.now());
         assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
-        event.speechProvenance(event.speechProvenance().playback(true));
-        assertTrue(f.policy().liveSpeechCaptured(event, f.owner, Instant.now(), Instant.now(), List.of()));
+        assertFalse(f.policy().liveSpeechCaptured(event, f.owner, Instant.now(), Instant.now(), List.of()), "Duplicate capture cannot become proposal consent");
         assertEquals(saved, f.storage().get(CoreTaskVoice.RESPONSE));
         assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
         assertFalse(f.policy().liveResolvedControlReply("yes", f.agent.getEventHistory(), f.owner));
@@ -238,7 +236,7 @@ class CoordinationVoiceUnitTest {
         var context = f.policy().liveActivityContext();
         var facts = context.facts() + context.continuation().facts();
         assertTrue(context.continuation().selfContained());
-        assertTrue(context.continuation().facts().startsWith("Speak these words verbatim:"));
+        assertTrue(context.continuation().facts().startsWith("Convey these confirmed facts once, preserving their meaning:"));
         assertTrue(facts.contains("Please demonstrate rock, paper for recognition; we will review the terms before acceptance"));
         assertTrue(facts.contains("The proposal is saved and not active"));
         assertFalse(facts.contains("Shall we start?"));

@@ -107,27 +107,37 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         return CoordinationAcceptance.assent(text) && CoordinationAcceptance.invitation(storage(), history, owner, Instant.now()) != null;
     }
     @Override public boolean liveSpeechCaptured(Event event, ExternalSpeech owner, Instant started, Instant now, List<LiveSpeechPart> parts) {
-        if (liveSpeechApprovalRequired() && (event.speechProvenance() == null || !Boolean.TRUE.equals(event.speechProvenance().playbackConfirmed()))) return false;
-        if (liveSpeechApprovalRequired() && storage().containsKey(SensoryRemarks.PENDING)) {
-            var request = liveSpeechRequest(owner);
-            if (request != null && request.id().toString().equals(storage().get(SensoryRemarks.PENDING).getAsJsonObject().get("id").getAsString())) {
+        var source = event.speechProvenance();
+        if (source == null || source.segmentId() == null || !source.complete() || !source.realized() || Boolean.FALSE.equals(source.playbackConfirmed())
+                || owner == null || !owner.sessionId().equals(source.sessionId()) || !owner.epoch().equals(source.epoch())
+                || started == null || started.isAfter(now)) return false;
+        var occasion = liveActivityContext().continuation();
+        if (storage().containsKey(SensoryRemarks.PENDING)) {
+            var pending = storage().get(SensoryRemarks.PENDING).getAsJsonObject();
+            if (occasion != null && occasion.id().toString().equals(pending.get("id").getAsString())
+                    && pending.has("created") && started.isAfter(Instant.parse(pending.get("created").getAsString()))) {
                 SensoryRemarks.cancel(storage());
                 return true; // Ambient speech cannot consume a task response or establish proposal consent.
             }
         }
-        if (liveSpeechApprovalRequired() && storage().containsKey(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP)) {
+        if (storage().containsKey(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP)) {
             var help = storage().get(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP).getAsJsonObject().deepCopy();
-            var request = liveSpeechRequest(owner);
-            if (!help.has("consumed") && request != null && request.id().toString().equals(help.get("id").getAsString())
-                    && started != null && !started.isAfter(now)) {
-                help.addProperty("consumed", true); storage().put(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP, help);
+            if (help.has("segment") && source.segmentId().equals(help.get("segment").getAsString())) return false;
+            if (!help.has("consumed") && occasion != null && occasion.id().toString().equals(help.get("id").getAsString())
+                    && owner.sessionId().toString().equals(help.get("session").getAsString())
+                    && owner.epoch().toString().equals(help.get("epoch").getAsString())
+                    && started.isAfter(Instant.parse(help.get("at").getAsString()))) {
+                help.addProperty("consumed", true); help.addProperty("segment", source.segmentId());
+                storage().put(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP, help);
                 return true; // Help cannot consume a task response or create proposal-consent evidence.
             }
         }
-        boolean changed = CoreTaskVoice.capturedPrompt(storage(), event, owner, started, parts, CoordinationMemory.DRAFT);
+        boolean supportOnly = storage().containsKey(CoreTaskVoice.RESPONSE)
+                && storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().has("supportOnly")
+                && storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().get("supportOnly").getAsBoolean();
+        boolean changed = !supportOnly && CoreTaskVoice.capturedPrompt(storage(), event, owner, started, parts, CoordinationMemory.DRAFT);
         if (!storage().containsKey(CoreTaskVoice.RESPONSE)) return changed;
         var response = storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
-        var source = event.speechProvenance();
         // Task content has a separate semantic association. An unrelated complete segment cannot consume it.
         if (storage().containsKey(TaskResponse.KEY) && response.get("id").equals(storage().get(TaskResponse.KEY).getAsJsonObject().get("id"))) return changed;
         if (source == null || !source.complete() || !source.realized() || owner == null
@@ -167,8 +177,8 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         if (current) {
             Instant expires = Instant.parse(response.get("expires").getAsString());
             String responseFacts = response.get("facts").getAsString();
-            // Deterministic support is already a complete, speakable answer. Keep its control clauses intact.
-            if (supportOnly) responseFacts = "Speak these words verbatim: " + new com.google.gson.JsonPrimitive(responseFacts);
+            // Support may be paraphrased, but its control facts must remain intact.
+            if (supportOnly) responseFacts = "Convey these confirmed facts once, preserving their meaning: " + new com.google.gson.JsonPrimitive(responseFacts);
             String review = "";
             if (response.has("proposalReview") && response.get("proposalReview").getAsBoolean()
                     && CoordinationMemory.ready(storage) && !ch.zhaw.prometheus.model.coordination.CoordinationSupport.blockedDraft(storage)) {

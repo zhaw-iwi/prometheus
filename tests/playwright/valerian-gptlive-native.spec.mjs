@@ -97,6 +97,60 @@ for (const stopPending of [false, true]) test(`native Coordination audio precede
   }
 });
 
+for (const lostAck of [false, true]) test(`native Coordination final contribution ${lostAck ? 'keeps uncertainty after lost playback acknowledgement' : 'reaches Reflection only after observed playback'}`, async ({page, context, request}, info) => {
+  test.skip(process.env.PROMETHEUS_LIVE_EXPECT_ENABLED !== 'true' || !process.env.PROMETHEUS_ADMIN_TOKEN,
+    'Use the enabled disposable MySQL acceptance runner.');
+  const admin = {'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
+  const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const access = await (await request.post('/admin/access-codes', {headers:admin, data:{code, enabled:true}})).json();
+  await request.put(`/admin/access-codes/${access.id}/agent-types`, {headers:admin, data:{agentTypeKeys:['core.coordination']}});
+  const headers = {'X-Prometheus-Access-Code':code};
+  const agent = await (await request.post('/demo/agents', {headers, data:{agentDefinitionKey:'core.coordination'}})).json();
+  const path = `/demo/agents/${agent.id}`;
+  const memory = async () => Object.fromEntries((await (await request.get(path + '/storage', {headers})).json()).map(e => [e.key, JSON.parse(e.value)]));
+  const playback = [], synthesis = [];
+  page.on('request', r => {
+    if (r.method() === 'POST' && r.url().includes('/playback-cues/')) playback.push(r.url());
+    if (r.method() === 'POST' && /\/(speech-synthesis|speech-approvals|behaviours\/[^/]+\/speech)/.test(r.url())) synthesis.push(r.url());
+  });
+  await hardware(context);
+  try {
+    if (lostAck) await page.route('**/playback-cues/*', route => route.abort());
+    await page.goto(`/valerian/?agentId=${agent.id}`);
+    await page.getByTestId('access-code-input').fill(code); await page.getByTestId('submit-access-code').click();
+    await expect(page.locator('#behaviour_status')).toHaveText('Behaviour Live');
+    await page.getByTestId('gptlive-tab').click(); await page.getByTestId('gptlive-start').click();
+    await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
+    expect((await request.post(path + '/acknowledge', {headers, data:{type:'obs.user_utterance', actor:'user', kind:'observation',
+      payload:'Start one fixture observation contribution now'}})).ok()).toBe(true);
+    await expect.poll(async () => (await memory())['task.response']?.status).toBe('CAPTURED');
+    expect((await memory())['task.actions']).toBe(1);
+    await expect(page.getByTestId('activity-label')).toHaveText('Finishing the response');
+    expect(playback).toHaveLength(0);
+    const provider = await (await request.get('/__live-fixture/latest')).json();
+    const caption = provider.captions.map(JSON.parse).find(e => e.type === 'session.output_transcript.delta' && e.delta === 'First fixture observation.');
+    expect(caption).toBeTruthy();
+    await page.evaluate(caption => {window.__nativeReceive(caption); __nativeGain.gain.value = .15;}, caption);
+    await page.waitForTimeout(700); await page.evaluate(() => {__nativeGain.gain.value = 0;});
+    await expect.poll(() => playback.length).toBe(1);
+    if (lostAck) {
+      await page.waitForTimeout(1500);
+      expect((await memory())['coordination.delivery'].status).toBe('PENDING');
+      await page.getByTestId('gptlive-stop').click(); await expect(page.getByTestId('gptlive-status')).toHaveText('Idle');
+      expect((await memory())['coordination.delivery'].status).toBe('UNCERTAIN');
+    } else {
+      await expect(page.getByTestId('activity-label')).toHaveText('Reflecting on the task');
+      expect((await memory())['coordination.delivery'].status).toBe('PLAYBACK_CONFIRMED');
+      await page.getByTestId('gptlive-stop').click();
+    }
+    expect(playback).toHaveLength(1); expect(synthesis).toHaveLength(0); expect((await memory())['task.actions']).toBe(1);
+    const history = await (await request.get(path + '/live/history', {headers})).json();
+    expect(history.filter(e => e.provenance?.origin === 'NATIVE' && e.payload.includes('First fixture observation.'))).toHaveLength(1);
+    expect(history.filter(e => e.provenance?.origin === 'SYNTHESIZED')).toHaveLength(0);
+    await info.attach('native-delivery-evidence', {contentType:'application/json', body:Buffer.from(JSON.stringify({lostAck, playback, synthesis, memory:await memory()}))});
+  } finally {await request.delete(path, {headers});}
+});
+
 async function hardware(context) {
   await context.route('https://transcription.invalid/offer', r => r.fulfill({contentType:'application/sdp', body:'synthetic-answer'}));
   await context.addInitScript(() => {
@@ -112,7 +166,7 @@ async function hardware(context) {
     window.RTCPeerConnection = class extends EventTarget {
       constructor() {super(); this.iceGatheringState = 'complete'; this.connectionState = 'new'; this.senders = [];}
       createDataChannel() {const channel = new EventTarget(); channel.readyState = 'connecting'; channel.send = () => {}; channel.close = () => {};
-        window.__nativeChannel = this.channel = channel; return channel;}
+        window.__nativeChannel = this.channel = channel; window.__nativeReceive = event => channel.onmessage?.({data:JSON.stringify(event)}); return channel;}
       addTrack(track) {this.senders.push({track});} getSenders() {return this.senders;}
       async createOffer() {return {type:'offer', sdp:'v=0 synthetic-offer'};} async setLocalDescription(value) {this.localDescription = value;}
       async setRemoteDescription(value) {

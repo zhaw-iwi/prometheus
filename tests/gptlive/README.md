@@ -12,6 +12,19 @@ ingress and no competing synthesis/release request. It checks Stop while inferen
 is pending and Continuous -> Live -> Continuous on the same persisted agent. This
 is synthetic transport/browser-route evidence, not provider speed or room audio.
 
+## Native Coordination meaning and delivery (GLF-03)
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests 'Coordination*Test,TaskResponse*Test,Sensory*Test' --browser --browser-mode enabled --browser-grep 'native Coordination|Coordination Text and Continuous'
+```
+
+The persisted native journey checks preparation, acceptance, fresh/duplicate cues,
+one contribution, scoped observed playback, reflection, help and revision. The
+predeclared meaning fixtures use scripted verdicts to verify state/identity
+handling; they do not measure model judgement. Native browser cases require
+capture plus observed playback for Reflection and retain uncertainty after a
+lost callback. Real provider meaning/speed and physical trials remain separate.
+
 ## Continuous Coordination parity (GLF-01)
 
 The [repair roadmap](../../.agents/PLAN_GPTLIVEFIX.md) separates strict
