@@ -81,7 +81,8 @@ and regulation diagnostics remain future work.
   new Live claims clear old output flags without migrating saved graphs/history.
   The deterministic barrier/mode-switch checks and their retained failures are in
   `.agents/GPTLIVEFIX_RESULTS.md`. GLF-03 verifies native task meaning/authority and separates help from consent.
-  Recording/interruption and provider/physical acceptance remain GLF-04-05. The owner authorized sequential
+  GLF-04 preserves interrupted captures, prevents external-speech TTS replay and
+  removes browser approval-player coupling. Provider/physical acceptance remains GLF-05. The owner authorized sequential
   milestone commits/pushes and bounded paid smoke tests under $50 total.
 
 - Robot mouth calibration (2026-11-17; deployed 2026-11-18): a subtly upturned

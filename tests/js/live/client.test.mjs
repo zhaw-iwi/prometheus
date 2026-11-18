@@ -88,9 +88,10 @@ test("one heartbeat request skips unchanged transcripts and resumes after a revi
   } : null });
   await f.start(); f.requests.length = 0;
   await f.client.poll(); await f.client.poll();
-  assert.equal(f.requests.length, 2);
-  assert.ok(f.requests.every(value => value.url.includes("/updates?")));
-  assert.ok(f.requests[0].url.endsWith("=-1")); assert.ok(f.requests[1].url.endsWith("=0"));
+  assert.equal(f.requests.length, 3); // One history refresh also recovers a previous session's final capture.
+  const updates = f.requests.filter(value => value.url.includes("/updates?"));
+  assert.equal(updates.length, 2);
+  assert.ok(updates[0].url.endsWith("=-1")); assert.ok(updates[1].url.endsWith("=0"));
   revision = 1; await f.client.poll(); await f.client.poll();
   assert.ok(f.requests.at(-1).url.endsWith("=1"));
   await f.client.stop();
@@ -252,4 +253,27 @@ test("shared microphone and per-agent speaker leases exclude another mode and re
     first.acquire(); assert.throws(() => live.acquire(), /Another PROMETHEUS/); assert.equal(speaker1.acquire(), true); assert.equal(speaker2.acquire(), false);
     now = 30000; live.acquire(); assert.equal(speaker2.acquire(), true);
   } finally { first.release(); live.release(); speaker1.release(); speaker2.release(); }
+});
+
+
+test("ledger-before-caption and Stop reconcile partial speech without reviving previews", async () => {
+  const f = fixture(); await f.start();
+  const receipts = []; f.client.current.playback.caption = id => receipts.push(id);
+  let interruptions = 0; f.client.current.playback.interrupt = () => interruptions++;
+  f.state.ledger = [{segmentId: 'partial', status: 'INCOMPLETE', eventId: 'p1', receiptIds: ['late-output']},
+    {segmentId:'old-user', status:'COMPLETE', eventId:'u1', receiptIds:['late-input']}];
+  f.state.history = [{id:'p1', provenance:{complete:false}}];
+  await f.client.poll();
+  f.emit({type:'session.output_transcript.delta', event_id:'late-output', delta:'A partial prefix'});
+  assert.equal(f.captions.at(-1).ASSISTANT, '');
+  assert.deepEqual(receipts, ['late-output'], 'A first browser receipt still supplies playback correlation');
+  f.emit({type:'session.input_transcript.delta', event_id:'late-input', delta:'Earlier input'});
+  assert.equal(interruptions, 0, 'Already committed input cannot interrupt a later response');
+  assert.deepEqual(f.histories.at(-1), f.state.history);
+  f.emit({type:'session.output_transcript.delta', event_id:'stop-output', delta:'Next prefix'});
+  f.state.ledger.push({segmentId:'stop-partial', status:'INCOMPLETE', eventId:'p2', receiptIds:['stop-output']});
+  await f.client.stop(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.captions.at(-1).ASSISTANT, '');
+  const creation = JSON.parse(f.requests.find(r => r.url.endsWith('/sessions')).request.body);
+  assert.equal(creation.speechApproval, undefined);
 });

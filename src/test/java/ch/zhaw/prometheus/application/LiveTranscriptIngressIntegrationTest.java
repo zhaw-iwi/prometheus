@@ -67,6 +67,11 @@ class LiveTranscriptIngressIntegrationTest {
         ingress.receipt(agentId, owner, nativeSpeech);
         var nativeResult = ingress.commit(agentId, owner, segment(nativeSpeech, Closure.COMPLETE), List.of("game")).orElseThrow();
         assertNotNull(nativeResult.eventId()); assertEquals(1, rounds());
+        Fragment prefix = fragment("interrupted-native", Speaker.ASSISTANT, 1100, "You can begin after");
+        assertTrue(ingress.receipt(agentId, owner, prefix));
+        var partial = ingress.commit(agentId, owner, segment(prefix, Closure.INCOMPLETE), List.of("game")).orElseThrow();
+        assertEquals("INCOMPLETE", partial.status()); assertNotNull(partial.eventId());
+        assertEquals(partial.eventId(), ingress.commit(agentId, owner, segment(prefix, Closure.INCOMPLETE), List.of("game")).orElseThrow().eventId());
         Fragment shortReply = fragment("short", Speaker.USER, 1200, "yes"); ingress.receipt(agentId, owner, shortReply);
         assertEquals("CLARIFICATION", ingress.commit(agentId, owner, segment(shortReply, Closure.COMPLETE), List.of("game")).orElseThrow().status());
         Fragment unfinished = fragment("unfinished", Speaker.USER, 1800, "Another round please"); ingress.receipt(agentId, owner, unfinished);
@@ -79,6 +84,11 @@ class LiveTranscriptIngressIntegrationTest {
     @Test @Order(2) void applicationContextRestartCannotReplayReceiptOrTaskButNewIdentityCanRepeatWords() {
         assertNotSame(oldIngress, ingress); // @DirtiesContext rebuilt application services and ownership.
         Agent agent = agents.findById(agentId).orElseThrow(); assertNull(ownership.current(agent));
+        var prefixes = agent.getEventHistory().toList().stream()
+                .filter(ch.zhaw.prometheus.model.event.ConversationProjection::isIncomplete).toList();
+        assertEquals(1, prefixes.size());
+        assertTrue(ch.zhaw.prometheus.model.event.ConversationProjection.view(prefixes.getFirst()).payload().contains("You can begin after"));
+        assertNull(ch.zhaw.prometheus.model.event.ConversationProjection.speech(prefixes.getFirst()));
         // A trusted adapter retry is simulated deliberately; production reconnect creates a fresh session.
         ownership.acquire(agentId, owner);
         assertFalse(ingress.receipt(agentId, owner, accepted.fragments().getFirst()));

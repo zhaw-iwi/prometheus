@@ -1,5 +1,67 @@
 # GPT-Live repair evidence
 
+## GLF-04 - Recording and native interruption (2026-11-18)
+
+Baseline: `973629b5`, GLF-03 committed and pushed to main.
+
+Interrupted native prefixes were already persisted. Their projected payloads now
+remain visible with an **Incomplete capture** label in both conversation views,
+while ordinary/condensed prompt history and canonical Speech exclude them. All recorded external speech also blocks canonical TTS replay and fallback to
+an older utterance: a complete capture can still have uncertain task delivery. Complete
+canonical Text/Continuous speech and deliberate latest-speech resume are unchanged.
+
+Caption reconciliation now distinguishes a durable settled receipt from its first
+browser receipt: a ledger arriving first suppresses a late preview without losing
+playback correlation. Duplicate browser receipts remain inert. Stop reconciles its
+final ledger; the next session refreshes history even with an empty current ledger.
+The current Live client no longer imports or selects the approval/committed player,
+requests approval capability, filters out native assistant history, or invokes its
+microphone RMS interrupt logic. A stale server requiring that player fails before
+input opens. Legacy paid harness/API retirement remains GLF-05 work.
+
+The browser records a bounded content-free `input_boundary` diagnostic when a new
+user caption resets playback evidence. Existing receipt/segment/cue correlation,
+clock-domain labels and dropped counts remain distinct; no waveform, speech content
+or word-level audibility is inferred. Native barge-in belongs to the provider.
+
+Verification and retained failures:
+
+- `0b0af40bd1`: 88 Java cases, one failure from the former expectation that an
+  incomplete capture was an ordinary prompt message. Updated that assertion to
+  require preserved projected text and exclusion from complete prompt history.
+- `32c262ee7f`: all 88 Java cases passed. Three browser cases passed; two final
+  playback cases exposed the first reconciliation fix discarding a late receipt
+  needed by playback. A third failure was the new reload fixture resubmitting an
+  already-restored access code. Both causes were fixed explicitly.
+- `7fa702a113`: all six browser cases passed after those fixes.
+- `ed01129c9c`: eight canonical Speech cases and all six browser cases passed
+  with the external-recording replay guard. The last JS-only late-input fence
+  then passed all 132 Live cases: ledger-settled old input cannot interrupt a
+  newer response. Across the affected Java selections there are **89 cases**.
+- All 12 acceptance-runner checks and `git diff --check` passed. Owned apps,
+  disposable schemas and accounts were cleaned.
+- All **182 JavaScript cases** passed: 132 Live, 29 transcription, 21 Speech.
+  Includes ledger-before-caption, duplicate receipts, Stop and scope fencing.
+
+The Java selection covers complete/incomplete/late/overlapping capture, durable
+claim/restart duplicate prevention, native projection, canonical Speech rejection
+and Coordination delivery uncertainty. The browser selection covers native output
+before backend work, mode switches, final playback and lost acknowledgements,
+interrupted-prefix persistence across Stop/reconnect/reload and Continuous gating.
+The new browser case injects loud synthetic input separately from an intentional
+user-caption interruption. It proves that input amplitude alone does not trigger
+the removed local player; it does not classify real room noise or provider echo.
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests 'LiveTranscript*Test,LiveSpeechExecutionUnitTest,LiveSpeechPersistenceIntegrationTest,ScopedBehaviourSpeechServiceUnitTest,CoordinationDeliveryIntegrationTest' --browser --browser-mode enabled --browser-grep 'native Coordination|Coordination Text and Continuous'
+npm.cmd run test:live:unit
+npm.cmd run test:transcription:unit
+npm.cmd run test:speech:unit
+```
+
+GLF-04 software exit is verified. No paid calls or deployment in GLF-04. Physical acceptance remains NOT RUN.
+
+
 ## GLF-03 — Native Coordination meaning and authority (2026-11-18)
 
 Baseline: `807f60cb`, GLF-02 committed/pushed to main. Native task speech is

@@ -1,7 +1,7 @@
 # Restore distinct Continuous and GPT-Live interaction contracts
 
-Prepared: 2026-11-18. Status: **GLF-01-02 committed; GLF-03 verified;
-GLF-04-05 open**. Development branch: `main`.
+Prepared: 2026-11-18. Status: **GLF-01-03 committed; GLF-04 verified;
+GLF-05 open**. Development branch: `main`.
 GLF-01 commit: `f7c1033c`; evidence is in `GPTLIVEFIX_RESULTS.md`.
 The owner now authorizes sequential milestones, committing and pushing each,
 and bounded real OpenAI happy-path tests costing less than $50 total. Halt for
@@ -364,13 +364,13 @@ changes. Preserve earlier audit records and explain supersession with dated note
 - [x] GLF-01: mode contracts and Continuous parity — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
 - [x] GLF-02: native Live conversation — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
 - [x] GLF-03: semantic Coordination Live happy path — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
-- [ ] GLF-04: recording and interruption
+- [x] GLF-04: recording and interruption - verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
 - [ ] GLF-05: integrated provider/physical acceptance and release handoff
 
 Suggested instruction for a new session:
 
 > Follow the repository bootstrap, then read `.agents/PLAN_GPTLIVEFIX.md`.
-> Implement the next incomplete milestone, currently GLF-04. Preserve Text
+> Implement the next incomplete milestone, currently GLF-05. Preserve Text
 > and Continuous guarantees while restoring native Live speed under the plan's
 > relaxed wording contract. Use the smallest meaningful test set, update the
 > results/current documentation, and report what passed and what remains

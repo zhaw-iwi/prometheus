@@ -246,6 +246,9 @@ public class LiveSmokeConfiguration {
                     "maximum", pool.getMaximumPoolSize());
         }
         public record Speech(String speaker, String text, String receipt) {}
+        @PostMapping("/__live-fixture/event/{id}") public void event(@PathVariable String id, @RequestBody String event) {
+            provider.calls.get(id).receive.accept(com.google.gson.JsonParser.parseString(event).getAsJsonObject());
+        }
         @PostMapping("/__live-fixture/reject-first/{id}") public Map<String, Boolean> rejectFirst(@PathVariable String id) {
             provider.calls.get(id).rejectFirst.set(true); return Map.of("accepted", true);
         }

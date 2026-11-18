@@ -86,7 +86,8 @@ GLF-02 selects native audible Coordination speech independently of backend laten
 clears legacy output flags on session claim, and keeps ordinary backend output
 nonverbal. Text/Continuous retain canonical event Speech. Deterministic acceptance
 and its limits are recorded in `.agents/GPTLIVEFIX_RESULTS.md`; GLF-03 adds native task meaning/authority coverage and separates help from
-proposal consent. GLF-04-05 cover interrupted recordings and integrated acceptance.
+proposal consent. GLF-04 verifies interrupted recordings and removes browser player coupling.
+GLF-05 covers integrated acceptance.
 The current owner instruction authorizes sequential milestones with a commit/push
 after each, plus bounded OpenAI happy-path smoke tests costing less than $50 total.
 Pause for an unforeseen owner decision. Physical acceptance is not established by
@@ -106,37 +107,17 @@ PROMETHEUS currently provides:
   append acknowledgements. Retained native capture supports bounded assistant
   sentence assembly; user interruption, original capture/response deadlines and
   separate playback evidence remain authoritative.
-  Following owner approval, fresh Coordination Live sessions use the existing
-  output-only Speech gateway for committed replies while retaining Live input.
-  Exact words are stored separately from narration instructions. Proposal reviews
-  preserve saved roles, success, preparation and total limits; support and task
-  contributions keep their own response identity and authority. Native output
-  stays inaudible and cannot claim a synthesized task response. Other agents keep
-  their current voice paths; the earlier native approval/correction path remains
-  independently tested.
-  One durable synthesis claim and one durable release prevent automatic retries
-  or replay after uncertainty. Provider work runs outside transactions/agent locks,
-  with bounded concurrency and PCM size, and rechecks owner/epoch/revision,
-  interruption, supersession and the original 45/60-second response/playback bounds.
-  Transient sensory remarks retain their shorter admission deadline. The player
-  requires actual source end plus observed output before acknowledging playback;
-  final contributions still require the separate scoped cue before Reflection.
-  Synthesized behaviour events carry explicit SYNTHESIZED provenance and enter
-  conversation, prompts and proposal-consent evidence only after playback.
-  The canonical behaviour Speech endpoint still rejects unheard speech/intents.
-  Task prompts exclude unheard drafts before their size bound; feedback receives
-  the actual prior delivered question and must evaluate all defining clues.
-  Native capture still validates reflected media ranges, distinguishes arrival
-  jitter from missing PCM and retains its existing 30-second capture limit.
-  Committed playback takes immediate interruption from the microphone monitor,
-  not delayed native captions. Tiny structural input fragments over five seconds
-  of continuously measured silence remain incomplete audit evidence; ordinary
-  words, recent voice and missing/gapped audio retain normal admission. This is
-  a narrow noise guard, not a general transcription-error detector.
-  Sideband writes remain serialized within the existing timeout. Synthesis changes
-  delivery fidelity, not the factual validity of backend content. Current real-
-  provider acceptance and retained failures are in `.agents/ESCALATION_RESULTS.md`;
-  physical audibility remains unverified.
+  Native Live audio plays independently of backend inference and transcript
+  assembly. Task meaning is associated after capture, while final delivery still
+  needs a separate scoped browser playback cue. Partial captures remain visible
+  with an incomplete label and are excluded from complete prompt/consent and
+  canonical Speech replay. Help cannot become proposal consent. The current
+  browser no longer selects approval or committed-Speech players, and does not
+  interrupt output from a local microphone RMS threshold. The provider owns
+  native barge-in; browser input boundaries fence playback evidence.
+  The former approval/synthesis implementation and its paid harness are historical;
+  remaining legacy API/harness cleanup belongs to GLF-05. Current verification
+  and limitations are in `.agents/GPTLIVEFIX_RESULTS.md`.
   Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
   admission and task controls. Cross-phase support uses the shared user action,

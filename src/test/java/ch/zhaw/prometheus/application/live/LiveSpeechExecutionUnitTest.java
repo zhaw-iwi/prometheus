@@ -84,4 +84,16 @@ class LiveSpeechExecutionUnitTest {
         var speculation = mock(BehaviourSpeculation.class);
         assertNull(live().withBehaviourSpeculation(speculation).behaviourSpeculation());
     }
+    @Test void interruptedPrefixIsInspectableButExcludedFromCompleteConversationEvidence() {
+        Agent agent = new Agent("partial", "", new State("talk", policy(false), List.of()));
+        var provenance = new SpeechProvenance(SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
+                "partial-1", SpeechProvenance.Association.NONE, List.of(), false);
+        var recorded = agent.recordExternalSpeech("You can start after", provenance);
+        assertNull(ConversationProjection.speech(recorded));
+        assertTrue(ConversationProjection.view(recorded).payload().contains("You can start after"));
+        assertFalse(ConversationProjection.view(recorded).provenance().complete());
+        assertEquals(1, assembler.compose(agent.getEventHistory(), "context").size());
+        assertFalse(agent.getEventHistory().toString().contains("You can start after"));
+        verifyNoInteractions(gateway);
+    }
 }

@@ -151,6 +151,74 @@ for (const lostAck of [false, true]) test(`native Coordination final contributio
   } finally {await request.delete(path, {headers});}
 });
 
+test('native Coordination interruption preserves prefixes through Stop reconnect and reload', async ({page, context, request}, info) => {
+  test.skip(process.env.PROMETHEUS_LIVE_EXPECT_ENABLED !== 'true' || !process.env.PROMETHEUS_ADMIN_TOKEN,
+    'Use the enabled disposable MySQL acceptance runner.');
+  const admin = {'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
+  const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const access = await (await request.post('/admin/access-codes', {headers:admin, data:{code, enabled:true}})).json();
+  await request.put(`/admin/access-codes/${access.id}/agent-types`, {headers:admin, data:{agentTypeKeys:['core.coordination']}});
+  const headers = {'X-Prometheus-Access-Code':code};
+  const agent = await (await request.post('/demo/agents', {headers, data:{agentDefinitionKey:'core.coordination'}})).json();
+  const path = `/demo/agents/${agent.id}`;
+  await hardware(context);
+  const playback = [];
+  page.on('request', r => {if (r.method() === 'POST' && /playback-cues|speech-synthesis|speech-approvals/.test(r.url())) playback.push(r.url());});
+  const prefix = 'You can begin only after';
+  let firstConnection = true;
+  const connect = async () => {
+    await page.goto(`/valerian/?agentId=${agent.id}`);
+    if (firstConnection) {
+      await page.getByTestId('access-code-input').fill(code); await page.getByTestId('submit-access-code').click();
+      firstConnection = false;
+    }
+    await expect(page.locator('#behaviour_status')).toHaveText('Behaviour Live');
+    await page.getByTestId('gptlive-tab').click();
+  };
+  const checkPrefix = async () => {
+    await expect(page.getByTestId('gptlive-history').locator('.demo-bubble').filter({hasText:prefix})).toHaveCount(1);
+    await expect(page.getByTestId('gptlive-history').locator('.demo-bubble').filter({hasText:prefix})).toContainText('Incomplete capture');
+    await expect(page.locator('#messages .demo-bubble').filter({hasText:prefix})).toHaveCount(1);
+    await expect(page.locator('#messages .demo-bubble').filter({hasText:prefix})).toContainText('Incomplete capture');
+  };
+  try {
+    await connect(); await page.getByTestId('gptlive-start').click();
+    await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
+    const provider = await (await request.get('/__live-fixture/latest')).json();
+    const send = event => request.post(`/__live-fixture/event/${provider.providerId}`, {data:event});
+    // Plausible loud non-speech/echo-like input alone cannot trigger a local RMS interruption.
+    await page.evaluate(() => {__nativeGain.gain.value = .15; __nativeInputGain.gain.value = .25;});
+    await page.waitForTimeout(400);
+    expect(await page.evaluate(() => ({paused:document.getElementById('gptlive_audio').paused,
+      muted:document.getElementById('gptlive_audio').muted, input:__nativeMic.enabled}))).toEqual({paused:false, muted:false, input:true});
+    const before = await page.evaluate(async () => (await import('/live/diagnostics.js')).liveDiagnostics.snapshot());
+    expect(before.sessions.at(-1).browser.some(e => e.phase === 'input_boundary' || e.phase === 'output_end')).toBe(false);
+    await page.evaluate(() => {__nativeInputGain.gain.value = 0;});
+    const output = {type:'session.output_transcript.delta', event_id:'interrupted-prefix', delta:prefix, start_ms:1000, end_ms:1800};
+    await send(output); await page.evaluate(e => __nativeReceive(e), output);
+    // A deliberate user speech boundary interrupts the open assistant capture.
+    const input = {type:'session.input_transcript.delta', event_id:'intentional-interruption', delta:'Wait, please.', start_ms:1500, end_ms:1900};
+    await send(input); await page.evaluate(e => {__nativeReceive(e); __nativeGain.gain.value = 0;}, input);
+    await checkPrefix();
+    // A replayed caption cannot create another bubble or reset newer playback evidence.
+    await page.evaluate(e => __nativeReceive(e), output);
+    await page.getByTestId('gptlive-stop').click(); await expect(page.getByTestId('gptlive-status')).toHaveText('Idle');
+    await checkPrefix();
+    const evidence = await page.evaluate(async () => (await import('/live/diagnostics.js')).liveDiagnostics.snapshot());
+    expect(evidence.sessions.at(-1).browser.filter(e => e.phase === 'input_boundary')).toHaveLength(1);
+    expect(evidence.sessions.at(-1).coverage.physicalAudibility).toBe('not_measured');
+    await page.getByTestId('gptlive-start').click(); await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
+    await checkPrefix();
+    expect(await page.evaluate(() => document.getElementById('gptlive_audio').muted)).toBe(false);
+    await page.getByTestId('gptlive-stop').click(); await expect(page.getByTestId('gptlive-status')).toHaveText('Idle');
+    await connect(); await checkPrefix();
+    expect(playback).toHaveLength(0);
+    const history = await (await request.get(path + '/live/history', {headers})).json();
+    expect(history.filter(e => e.provenance?.segmentId && e.payload.includes(prefix))).toHaveLength(1);
+    await info.attach('native-interruption-evidence', {contentType:'application/json', body:Buffer.from(JSON.stringify(evidence))});
+  } finally {await request.delete(path, {headers});}
+});
+
 async function hardware(context) {
   await context.route('https://transcription.invalid/offer', r => r.fulfill({contentType:'application/sdp', body:'synthetic-answer'}));
   await context.addInitScript(() => {
@@ -160,7 +228,10 @@ async function hardware(context) {
     oscillator.connect(__nativeGain).connect(remote); oscillator.start();
     Object.defineProperty(navigator, 'mediaDevices', {configurable:true, value:{
       async getUserMedia() {await __nativeContext.resume(); const input = __nativeContext.createMediaStreamDestination();
-        window.__nativeMic = input.stream.getAudioTracks()[0]; return input.stream;},
+        window.__nativeMic = input.stream.getAudioTracks()[0];
+        const noise = __nativeContext.createOscillator(); noise.frequency.value = 170;
+        window.__nativeInputGain = __nativeContext.createGain(); __nativeInputGain.gain.value = 0;
+        noise.connect(__nativeInputGain).connect(input); noise.start(); return input.stream;},
       async enumerateDevices() {return [];}, getSupportedConstraints() {return {};}, addEventListener() {}, removeEventListener() {}
     }});
     window.RTCPeerConnection = class extends EventTarget {

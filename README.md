@@ -1485,11 +1485,10 @@ behaviour speech.
 
 ## Experimental GPT-Live
 
-The November 18 repair roadmap establishes a different target for GPT-Live:
-immediate native conversational audio alongside asynchronous backend task work,
-with meaning-preserving paraphrases. GLF-01 protects Continuous parity; it does
-not switch the Live output route. Coordination still uses the committed-Speech
-implementation described below until GLF-02. Track implemented versus pending
+The November 18 repair restores immediate native conversational audio alongside
+asynchronous backend task work, with meaning-preserving paraphrases. GLF-01
+protects Continuous parity; GLF-02 selects native Coordination output; GLF-03
+protects task authority and semantic association. Track implemented versus pending
 work in [the repair roadmap](.agents/PLAN_GPTLIVEFIX.md) and
 [results](.agents/GPTLIVEFIX_RESULTS.md).
 
@@ -2373,7 +2372,12 @@ Backend agreements, preparation, acceptance, action limits and outcomes remain
 authoritative. Captured native wording and observed browser playback remain
 separate evidence; neither demonstrates physical speaker audibility. GLF-03 verifies native task meaning and authority with scripted
 semantic judgements, persisted journeys and observed playback. Interrupted
-recording and paid provider validation remain GLF-04-05. This intermediate change is not release
+captures are marked in both conversation displays, survive reload, and cannot
+be used as complete prompt evidence. Recorded Live speech is never replayed
+through canonical TTS on a mode switch; Text/Continuous keep their canonical
+latest-assistant resume. The Live browser has no
+approval player or local RMS interruption switch. Provider validation remains
+GLF-05. This intermediate change is not release
 acceptance. The November approval/synthesis evidence remains historical in
 [the escalation results](.agents/ESCALATION_RESULTS.md); current repair evidence
 and exact test scope are in [GPTLIVEFIX_RESULTS](.agents/GPTLIVEFIX_RESULTS.md).

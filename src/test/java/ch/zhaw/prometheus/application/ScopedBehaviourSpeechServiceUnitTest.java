@@ -86,6 +86,19 @@ class ScopedBehaviourSpeechServiceUnitTest {
         assertTrue(this.service.synthesize("abc12", AGENT_ID, EVENT_ID, SETTINGS).isEmpty());
         verifyNoInteractions(this.speechGateway);
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void capturedNativeSpeechCannotBeSynthesizedOrResumeAnOlderTurn(boolean complete) {
+        Event older = event(UUID.randomUUID(), Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, "{\"speech\":\"Earlier\"}");
+        Event partial = event(EVENT_ID, Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, "{\"speech\":\"Start only after\"}");
+        when(partial.speechProvenance()).thenReturn(new ch.zhaw.prometheus.model.event.SpeechProvenance(
+                ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, UUID.randomUUID(), UUID.randomUUID(),
+                "prefix", ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, List.of(), complete));
+        when(demoService.getAgentEventHistory("abc12", AGENT_ID)).thenReturn(Optional.of(List.of(older, partial)));
+        assertTrue(service.latestAssistantSpeechEventId("abc12", AGENT_ID).isEmpty());
+        assertThrows(BehaviourSpeechUnavailableException.class, () -> service.synthesize("abc12", AGENT_ID, EVENT_ID, SETTINGS));
+        verifyNoInteractions(speechGateway);
+    }
 
     @Test
     void rejectsNonBehaviourMalformedAndSpeechlessEvents() {
