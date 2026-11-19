@@ -93,8 +93,6 @@ public class LiveContextBridgeService {
         private volatile String state = "starting", revision;
         private volatile ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue;
         private volatile long nextRefreshAt = Long.MAX_VALUE, nextCommitReadAt;
-        private volatile UUID waitingOccasion;
-        private long quietDeadline;
         private long dropped;
         Session(LiveContextSnapshot initial, ExternalSpeech owner, Consumer<Command> send,
                 Consumer<LiveContextSnapshot> applied, Consumer<String> failure) {
@@ -135,7 +133,6 @@ public class LiveContextBridgeService {
             // this caller scheduling from an obsolete, already-due deadline.
             if (closed.get() || !ready || !running.compareAndSet(false, true)) return;
             long now = clock.millis();
-            if (waitingOccasion != null && !urgent.get() && now < nextCommitReadAt) { running.set(false); return; }
             boolean deadline = now >= Math.min(nextRefreshAt, delegations.nextDeadline());
             if (!urgent.get() && !deadline && (!dirty.get() || now < nextCommitReadAt)) { running.set(false); return; }
             try { workers.execute(this::run); }
@@ -165,12 +162,6 @@ public class LiveContextBridgeService {
                 dirty.set(false);
                 urgent.set(false);
                 if (closed.get()) return;
-                if (waitingOccasion != null && waitingOccasion.equals(currentOccasion.get().id())
-                        && clock.millis() < quietDeadline && transcripts != null && transcripts.assistantBusy(owner)) {
-                    waitForQuiet(waitingOccasion, quietDeadline); return;
-                }
-                // Faster append ACKs must not turn each fragment/sensor commit into a graph read.
-                // Deferred work remains dirty; no worker sleeps while waiting for this window.
                 nextCommitReadAt = clock.millis() + 5000;
                 nextRefreshAt = clock.millis() + 30000;
                 var priorOccasion = currentOccasion.get();
@@ -181,13 +172,6 @@ public class LiveContextBridgeService {
                 currentOccasion.compareAndSet(priorOccasion, occasion(activity));
                 if (closed.get()) return;
                 scheduleRefresh(fresh.context());
-                var continuation = activity == null ? null : activity.continuation();
-                if (fresh.context().speechApprovalRequired() && !fresh.context().committedSpeechOutput() && continuation != null && !continuation.interruptible()
-                        && !continuation.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))
-                        && transcripts != null && transcripts.assistantBusy(owner)) {
-                    waitForQuiet(continuation.id(), continuation.expiresAt().toEpochMilli()); return;
-                }
-                waitingOccasion = null;
                 var batch = delivery.plan(fresh.context(), fresh.narrations());
                 var deferred = transmitAll(batch.commands());
                 if (closed.get()) return;
@@ -209,14 +193,6 @@ public class LiveContextBridgeService {
                 fail("context_delivery_unconfirmed");
             }
             finally { running.set(false); refreshIfDue(); }
-        }
-        private void waitForQuiet(UUID occasion, long deadline) {
-            if (!occasion.equals(waitingOccasion)) trace("speaking_occasion_waiting_for_quiet", null, List.of(occasion));
-            waitingOccasion = occasion; quietDeadline = deadline;
-            // The existing scheduler checks capture in memory; no worker sleeps and
-            // no repeated graph read occurs until quiet, supersession or original expiry.
-            nextCommitReadAt = nextRefreshAt = Math.min(clock.millis() + 1000, deadline);
-            state = "waiting_for_quiet";
         }
         private void transmit(Command command) {
             transmit(command, command.sourceId() == null ? List.of() : List.of(command.sourceId()));

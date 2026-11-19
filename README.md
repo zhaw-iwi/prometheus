@@ -1819,6 +1819,14 @@ use `full_plan`; former speech/complement profiles are not supported.
 
 ## Transcription-First Speech
 
+Text and Continuous share backend-owned Coordination agreements, preparation,
+acceptance and finite action counts. Continuous supplies finalized transcription
+to the ordinary FULL_PLAN route and speaks exact persisted event text through
+the existing Speech queue. The real-app, disposable-MySQL parity journey and
+its synthetic-provider limits are documented in
+[GPT-Live repair results](.agents/GPTLIVEFIX_RESULTS.md) and
+[acceptance instructions](tests/gptlive/README.md#continuous-coordination-parity-glf-01).
+
 ### Scoped live transcription
 
 The transcription-first speech architecture uses an access-code-scoped,
@@ -2030,6 +2038,13 @@ behaviour speech.
 
 ## Experimental GPT-Live
 
+The November 18 repair restores immediate native conversational audio alongside
+asynchronous backend task work, with meaning-preserving paraphrases. GLF-01
+protects Continuous parity; GLF-02 selects native Coordination output; GLF-03
+protects task authority and semantic association. Track implemented versus pending
+work in [the repair roadmap](.agents/PLAN_GPTLIVEFIX.md) and
+[results](.agents/GPTLIVEFIX_RESULTS.md).
+
 Application policies may override `ExternalVoicePolicy.livePendingGuidance()` to
 allow narrowly described waiting remarks. This is model guidance, not a timer or
 proof that a lookup/action is running. Defaults retain the existing acknowledgement
@@ -2066,14 +2081,11 @@ the tab is enabled, its model and allowed voices; it never grants eligibility.
 | Method and path below `/demo/agents/{agentId}/live` | Contract |
 | --- | --- |
 | `GET /capabilities` | Enabled flag, pilot eligibility, model, allowed voices, diagnostic-only marker. |
-| `POST /sessions` | `{ "sdp": "v=0…", "voice": "marin", "speechApproval": true }`; returns 201 with an opaque local handle and SDP answer after sideband attachment, plus `speechApprovalRequired` and `committedSpeechOutput`. Fresh delivery-aware Coordination sessions select committed Speech and require the current client. Unknown fields are rejected. |
+| `POST /sessions` | `{ "sdp": "v=0?", "voice": "marin" }`; returns 201 with an opaque local handle and SDP answer after sideband attachment. Native remote audio is played directly. Legacy `speechApprovalRequired` and `committedSpeechOutput` response fields are always false; the optional old request flag is ignored. Unknown fields are rejected. |
 | `GET /sessions/{handle}` | Bounded, content-free activity counters and event types. |
 | `POST /sessions/{handle}/input?muted=true` | Waits for the corresponding provider mute/unmute acknowledgement. |
 | `DELETE /sessions/{handle}` | Closes the session and reports whether finalization was confirmed. |
-| `POST /sessions/{handle}/speech-synthesis/{responseId}` | Synthesizes the current committed reply once; no text body. Returns approval identity, exact words, explicit synthesis receipt and bounded base64 24-kHz PCM. Repeated/obsolete claims are discarded. |
-| `POST /sessions/{handle}/speech-approvals` | `{ "segmentId": "UUID" }`; For native-approval sessions, verifies one current complete speech candidate. Returns a bounded status, approval identity, exact receipts/text and expiry when approved. |
-| `POST /sessions/{handle}/speech-approvals/{id}/release` | Same segment body; rechecks authority immediately before buffered playback. One successful release only. |
-| `POST /sessions/{handle}/speech-approvals/{id}/played` | Same segment body; records observed playback separately from approval. Does not replace the final task playback cue. |
+| `POST /sessions/{handle}/playback-cues/{id}` | `{ "segmentId": "UUID" }`; confirms scoped browser-observed native playback for the current task contribution. Capture alone does not establish delivery; this is not physical audibility. |
 
 Agent and session scope mismatches return 404; invalid access codes return 401;
 invalid settings return 400; disabled sessions return 503; an occupied agent or
@@ -2916,67 +2928,36 @@ feedback/replacement and reviewed count alternatives are available through the
 existing provider probe; see [the test instructions](tests/gptlive/README.md).
 These checks use the real agent and gateway in memory. They do not establish
 Realtime speech delivery, database capacity or physical classroom acceptance.
-Fresh Coordination Live sessions use the existing output-only Speech service for
-committed replies, following the owner's November 12 delivery-path decision.
-Live still captures user speech; backend state machines still own interpretation,
-agreements, preparation, contributions and outcomes. Other agents retain their
-existing voice paths. ES-08's agreed behavioural scope is complete, with three
-real-provider journeys and separate semantic reviews on this configuration; see
-[the escalation results](.agents/ESCALATION_RESULTS.md) for actual evidence.
+Fresh Coordination Live sessions now use native Live audio directly (GLF-02,
+2026-11-18). Ordinary replies do not wait for backend inference, transcript
+assembly, speech approval, a separate Speech call or playback-release HTTP.
+The selected Live voice produces the audible reply. User transcripts still enter
+the serialized backend exactly once; ordinary backend replies contribute only
+nonverbal behaviour. Confirmed task and sensory speaking occasions continue to
+reach Live asynchronously through the existing context bridge.
 
-The backend stores complete words separately from instructions to Live. Ordinary
-answers and task contributions use the committed utterance; ready proposal reviews
-include all saved goal, human/agent roles, success, total limit, preparation and
-visible-count terms. Preparation first requests outstanding demonstrations without
-premature acceptance. Help and perception replies preserve the task budget.
-Returning to Conversation preserves history and outcomes. Feedback uses the prior
-actually delivered question and all defining clues; synthesis does not establish
-that a backend answer is factually correct.
+Text and Continuous retain canonical backend wording and the existing Speech
+queue. Starting a Live session clears the two obsolete saved output-selection
+flags locally before projecting its instructions. It does not migrate saved graphs
+or rewrite conversation history. Stop releases local audio and microphone capture
+before waiting for backend cleanup; a new session requires explicit Start.
 
-The scoped synthesis endpoint accepts a response identity, never client-authored
-text. It shares the configured `prometheus.speech.model` and gateway with existing
-Speech, using Alloy at normal speed. The Live voice selection still configures the
-Live connection; Coordination's committed replies use Alloy. One durable synthesis
-claim prevents automatic retry after an uncertain provider result. Provider work
-runs outside database transactions and agent locks, with four bounded workers and
-the original response deadline. Owner/session/epoch/revision, interruption and
-supersession are checked again after synthesis and before release.
-
-The browser keeps native Live audio inaudible. It buffers only the authorized
-24-kHz mono PCM response, rechecks release, and requires both the audio source's
-end and observed output playback before acknowledging completion. A pause inside
-a clip cannot finish it. Known leading PCM silence extends only the observer's
-onset wait, never the response expiry. One durable release prevents replay after lost completion
-acknowledgement or reload. Final task contributions still require the separate
-playback cue before Reflection. Missing proof leaves delivery uncertain; it never
-spends another contribution or automatically repeats work.
-
-Synthesis is bounded to 3,000 committed characters and 45 seconds of PCM, and must
-fit within the original 45-second preparation / 60-second playback windows. A
-transient observation retains its shorter release deadline. Native capture retains
-its separate 30-second open bound and reflected-media coverage checks; input and
-other native agents keep their current capture behaviour. No additional model
-paraphrase or semantic verifier is used for synthesized wording. Captured native
-output cannot claim a synthesized response or become delivered conversation.
-For committed output, immediate interruption follows the existing microphone
-monitor; delayed native captions alone do not stop a clip. Tiny structural input
-fragments without recent acoustic support are retained as incomplete audit data
-only after five seconds of continuously measured silent input. Ordinary words,
-real voice, missing audio and audio gaps retain normal admission. This narrow
-guard does not detect all transcription errors or hallucinations.
-Speech receives the committed text, but playback confirmation proves delivery
-through the monitored browser path, not a word-for-word acoustic transcript or
-physical speaker audibility. Provider pronunciation, omissions and interpretation
-still require output review; the acceptance evidence records these limits.
-
-Persisted behaviour events identify synthesized speech as `SYNTHESIZED`; they are
-excluded from conversation, prompts and proposal-consent evidence until playback
-is confirmed. Raw native transcripts remain separate diagnostic evidence. The
-existing canonical behaviour Speech endpoint continues to reject unheard speech
-and backend narration intents. Use a fresh Coordination instance/session and reload
-the browser for this delivery contract. Historical native approval/correction
-results remain in the evidence record; they are not current synthesized delivery.
-Physical trials remain unrun; classroom capacity and deployment remain deferred.
+Backend agreements, preparation, acceptance, action limits and outcomes remain
+authoritative. Captured native wording and observed browser playback remain
+separate evidence; neither demonstrates physical speaker audibility. GLF-03 verifies native task meaning and authority with scripted
+semantic judgements, persisted journeys and observed playback. Interrupted
+captures are marked in both conversation displays, survive reload, and cannot
+be used as complete prompt evidence. Recorded Live speech is never replayed
+through canonical TTS on a mode switch; Text/Continuous keep their canonical
+latest-assistant resume. The retired approval/synthesis services, endpoints and
+browser players have been removed. Legacy session output flags remain always
+false for wire compatibility. GLF-05 records shared regressions, bounded real
+provider journeys, native latency and retained failures. Physical microphone/
+speaker acceptance remains **NOT RUN**; use the
+[operator checklist](.agents/GPTLIVEFIX_OPERATOR_CHECKLIST.md) on the target setup.
+The November approval/synthesis evidence remains historical in
+[the escalation results](.agents/ESCALATION_RESULTS.md); current repair evidence
+and exact test scope are in [GPTLIVEFIX_RESULTS](.agents/GPTLIVEFIX_RESULTS.md).
 
 A proposal may additionally request up to three **recognition demonstrations**,
 each checking one supported sensor field using `eq`, `lt` or `gt` and a confidence

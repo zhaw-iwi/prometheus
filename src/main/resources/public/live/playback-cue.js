@@ -116,25 +116,13 @@ export class LivePlaybackObserver {
     this.output = stream; this.start();
   }
   caption(id) { if (!this.closed) this.gate.caption(id); }
-  /** A buffered clip has known receipts before audio starts; bind them at observed onset,
-   * after the media element has begun progressing, not during its initial silent stall. */
-  scheduled(cue, segment, onsetWaitMs = 500) {
-    if (!Number.isFinite(onsetWaitMs) || onsetWaitMs < 500 || onsetWaitMs > 45000) throw Error('Invalid onset bound');
-    this.gate.reset(); this.gate.update(cue, [segment]);
-    this.onset = {ids: [...segment.receiptIds], deadline: performance.now() + onsetWaitMs};
-  }
   update(cue, segments) {
     if (this.closed) return;
     this.gate.update(cue, segments);
   }
-  interrupt() { this.onset = null; this.gate.interrupt(); }
+  interrupt() { this.gate.interrupt(); }
   sample(value) {
     this.gate.sample(value);
-    if (this.onset && performance.now() > this.onset.deadline) this.onset = null;
-    if (this.onset && value.voiced && this.gate.frames.at(-1)?.voiced) {
-      for (const id of this.onset.ids) this.gate.caption(id);
-      this.onset = null;
-    }
   }
   async start() {
     if (this.context || !this.output || this.closed) return;
@@ -168,5 +156,5 @@ export class LivePlaybackObserver {
     const context = this.context; this.context = null;
     if (context) void context.close().catch(() => {});
   }
-  close() { this.closed = true; this.onset = null; this.gate.reset(); this.release(); this.output = null; }
+  close() { this.closed = true; this.gate.reset(); this.release(); this.output = null; }
 }

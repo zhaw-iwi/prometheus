@@ -45,8 +45,8 @@ public final class CoordinationSupport {
                         ? "We need the goal, roles and success criterion before starting." : draft.questions().getFirst());
             }
             case "PREPARATION" -> {
-                yield "Before starting, demonstrate " + remainingPreparation(storage)
-                        + " for recognition, then accept the ready proposal.";
+                yield "Before starting, you need to demonstrate " + remainingPreparation(storage)
+                        + " for recognition; you can then accept the ready proposal.";
             }
             case "READY" -> "The proposal and preparation are ready; no further demonstration is needed. Say Start to accept the saved proposal."
                     + (CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT).reactions() != null
@@ -114,12 +114,9 @@ public final class CoordinationSupport {
                     + " This explanation is not the pending task contribution; do not report it as task delivery or repeat the task.";
             String facts = context.facts() + help;
             if (facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 4000) return context;
-            if (storage.containsKey(LiveSpeechRequest.ENABLED) && storage.get(LiveSpeechRequest.ENABLED).getAsBoolean()) {
-                var expires = Instant.parse(value.get("at").getAsString()).plusSeconds(30);
-                return new LiveActivityContext(facts, new LiveActivityContext.Continuation(java.util.UUID.fromString(value.get("id").getAsString()),
-                        LiveActivityContext.Occasion.USER_REQUEST, "Explain the user's requested help using the current help facts. Do not perform or repeat the task contribution.", expires), expires, context.playbackCue());
-            }
-            return new LiveActivityContext(facts, context.continuation(), context.refreshAt(), context.playbackCue());
+            var expires = Instant.parse(value.get("at").getAsString()).plusSeconds(30);
+            return new LiveActivityContext(facts, new LiveActivityContext.Continuation(java.util.UUID.fromString(value.get("id").getAsString()),
+                    LiveActivityContext.Occasion.USER_REQUEST, "Explain the user's requested help using the current help facts. Do not perform or repeat the task contribution.", expires), expires, context.playbackCue());
         } catch (RuntimeException invalid) { return context; }
     }
 }

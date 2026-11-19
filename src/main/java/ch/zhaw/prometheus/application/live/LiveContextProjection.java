@@ -132,9 +132,7 @@ public class LiveContextProjection {
                 leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveFilterIsolatedInputActivity(),
                 !(leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external) || external.livePendingAcknowledgements(),
                 leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external
-                        ? external.liveAssistantSilenceMs() : LiveTranscriptSegmenter.SILENCE_MS,
-                leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveSpeechApprovalRequired(),
-                leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveCommittedSpeechOutput());
+                        ? external.liveAssistantSilenceMs() : LiveTranscriptSegmenter.SILENCE_MS);
     }
     private static Instant observedAt(Event event) {
         if (ch.zhaw.prometheus.model.event.ObservationEvidence.supported(event.getType()))

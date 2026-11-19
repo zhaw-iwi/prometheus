@@ -73,11 +73,18 @@ public final class LiveTranscriptSegmenter {
         Track track = tracks.get(fragment.speaker());
         boolean validTime = fragment.startMs() != null && fragment.endMs() != null && fragment.startMs() >= 0
                 && fragment.endMs() >= fragment.startMs() && fragment.endMs() <= 3_600_000;
-        if (validTime && fragment.startMs() <= track.frozenEnd)
+        if (validTime && (fragment.startMs() < track.frozenEnd || fragment.endMs() <= track.frozenEnd))
             return List.of(segment(fragment.speaker(), List.of(fragment), Closure.LATE, "late_after_commit"));
         List<Segment> boundary = List.of();
         Track assistant = tracks.get(Speaker.ASSISTANT);
-        if (userInputAllowed && fragment.speaker() == Speaker.USER && validTime && !assistant.fragments.isEmpty()) {
+        // Input captions stream after the corresponding audio. A tail of the already
+        // open user turn can arrive after native speech begins; it is not a new turn.
+        long previousUserEnd = track.fragments.stream().map(Fragment::endMs).filter(java.util.Objects::nonNull)
+                .max(Long::compare).orElse(Long.MIN_VALUE);
+        boolean freshUserTurn = track.fragments.isEmpty() || validTime && previousUserEnd != Long.MIN_VALUE
+                && fragment.startMs() - previousUserEnd >= userSilenceMs;
+        if (userInputAllowed && fragment.speaker() == Speaker.USER && validTime && freshUserTurn
+                && !assistant.fragments.isEmpty()) {
             long first = assistant.fragments.stream().map(Fragment::startMs).filter(java.util.Objects::nonNull).min(Long::compare).orElse(Long.MAX_VALUE);
             long end = assistant.fragments.stream().map(Fragment::endMs).filter(java.util.Objects::nonNull).max(Long::compare).orElse(Long.MAX_VALUE);
             // A delayed fragment from before this speech is not a new interruption.

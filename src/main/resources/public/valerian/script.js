@@ -2248,7 +2248,7 @@ function handleBehaviourEnvelope(event, options = {}) {
   }
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "sse_received");
   liveVoice.ui?.event({ ...event, id: event.id || options.eventId });
-  if (!liveVoice.ui?.busy && event.provenance?.origin !== "BACKEND_INTENT") queueBehaviourSpeech(plan, options);
+  if (!liveVoice.ui?.busy && !event.provenance) queueBehaviourSpeech(plan, options);
   const keys = behaviourEventKeys(event, options.eventId);
   if (keys.some((key) => state.seenBehaviourKeys.has(key))
     || (!event.provenance && !options.fromHistory && recentBehaviourPayloadSeen(event.payload))) {
@@ -2264,7 +2264,8 @@ function handleBehaviourEnvelope(event, options = {}) {
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "rendered");
   renderLatestEvent(event);
   if (options.renderTranscript !== false && typeof plan.speech === "string" && plan.speech.trim()) {
-    appendMessage("assistant", plan.speech.trim(), event.id || options.eventId);
+    appendMessage("assistant", plan.speech.trim(), event.id || options.eventId,
+      event.provenance?.complete === false ? "Incomplete capture" : "");
   }
 }
 
@@ -5813,7 +5814,7 @@ function renderLatestEvent(event) {
   setText("latest_behaviour_event", payload ? `${event.type}: ${payload}` : event.type);
 }
 
-function appendMessage(role, text, eventId = null) {
+function appendMessage(role, text, eventId = null, label = "") {
   if (eventId && state.seenConversationEvents.has(eventId)) return;
   if (eventId) state.seenConversationEvents.add(eventId);
   const list = document.getElementById("messages");
@@ -5821,7 +5822,11 @@ function appendMessage(role, text, eventId = null) {
   row.className = `demo-message ${role}`;
   const bubble = document.createElement("div");
   bubble.className = "demo-bubble";
-  bubble.textContent = text;
+  if (label) {
+    const heading = document.createElement("div"); heading.className = "small fw-semibold mb-1";
+    heading.textContent = label; bubble.append(heading);
+  }
+  const content = document.createElement("span"); content.textContent = text; bubble.append(content);
   row.appendChild(bubble);
   list.appendChild(row);
   list.scrollTop = list.scrollHeight;
