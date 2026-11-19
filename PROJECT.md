@@ -89,7 +89,9 @@ and regulation diagnostics remain future work.
   output guidance and quiet session/turn-bound results. Verified with 218 affected
   units, 175 JavaScript cases, seven local-DB cases and two mode-switch browser
   journeys plus existing audio-independence cases. Visual poses inspected.
-  Continue TWC-04–05 sequentially under
+  TWC-04 adds stable unique instance-ID suffixes, readable long-name options and
+  full-label details; five unit cases, local-DB three-instance lifecycle and
+  light/dark/narrow browser checks pass. Continue TWC-05 under
   `.agents/PLAN_TOWARDSCOMMANDING.md`; commit/push each milestone. The owner
   authorized an additional $40/eight paid attempts, failures included; no spend
   yet. Results: `.agents/TOWARDSCOMMANDING_RESULTS.md`. No new deployment authorized.

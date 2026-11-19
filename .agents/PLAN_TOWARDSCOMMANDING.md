@@ -1,6 +1,6 @@
 # Towards reliable direct commands and current task speech
 
-Prepared: 2026-11-19. Status: **TWC-01–03 software complete; TWC-04–05 pending**.
+Prepared: 2026-11-19. Status: **TWC-01–04 software complete; TWC-05 pending**.
 Development branch: `main`. Deployment branch: `agents`.
 
 This roadmap covers three requested improvements: reliable direct requests for
@@ -113,7 +113,7 @@ task output or silently queue a demonstration for surprise execution later.
 | TWC-01 | Task speech stops requesting obsolete decisions after state advances. | Existing GLF baseline | SOFTWARE COMPLETE; provider pending |
 | TWC-02 | Supported direct requests produce one validated action through the shared backend path. | TWC-01 | SOFTWARE COMPLETE; provider pending |
 | TWC-03 | Native Live speech and direct actions agree; Text/Continuous semantics remain intact. | TWC-01, TWC-02 | SOFTWARE COMPLETE; provider pending |
-| TWC-04 | Same-type Valerian instances have stable, distinguishable labels. | Independent; scheduled after TWC-03 | NOT STARTED |
+| TWC-04 | Same-type Valerian instances have stable, distinguishable labels. | Independent; scheduled after TWC-03 | COMPLETE |
 | TWC-05 | Integrated local and real-provider journeys demonstrate the requested outcomes. | TWC-01–04; funded provider preflight | NOT STARTED |
 
 TWC-01–04 can establish deterministic software acceptance without provider spend.

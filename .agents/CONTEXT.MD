@@ -81,10 +81,12 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
-Current work is `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–03 software acceptance
+Current work is `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–04 software acceptance
 is complete (current task narration, shared one-shot commands and voice/mode
 alignment). Commands derive from persisted profile tags and declared outputs,
 use admitted history positions for deduplication, and emit canonical plans.
+Valerian instance labels use stable unique short ID suffixes; stored names and
+full selection/request IDs are unchanged. Continue integrated/provider TWC-05.
 The owner authorizes sequential milestones with commit/push after each and an
 additional $40 across eight paid attempts, failures included. Keep the completed
 repair ledger separate. No new deployment authorization. See

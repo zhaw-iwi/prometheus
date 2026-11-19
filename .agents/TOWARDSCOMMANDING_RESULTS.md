@@ -11,7 +11,7 @@ November 19. The completed GPT-Live repair ledger is unchanged.
 | TWC-01 | PASS: 332 affected unit cases | PASS: 102-case Java acceptance run | PASS: seven cases, then two strengthened native-ingress reruns | PASS: both new screenshots inspected | NOT RUN | NOT RUN | Software complete |
 | TWC-02 | PASS: 508 affected + 47 focused cases (overlap); 16 Python | PASS: four variants, reload/reset/silent rejection | PASS: two real-app Text journeys | PASS: rock/question screenshots inspected | NOT RUN | NOT RUN | Software complete |
 | TWC-03 | PASS: 218 Java, final 40-case subset; 175 JavaScript | PASS: seven Java cases | PASS: two mode journeys + two independence cases | PASS: stable light/dark/narrow poses inspected | NOT RUN | NOT RUN | Software complete |
-| TWC-04 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | N/A: labels need no provider | N/A | Not started |
+| TWC-04 | PASS: five JS + 16 harness cases | PASS: three same-type scoped instances | PASS: two real-app/fixture cases + five final static/regression cases | PASS: desktop/narrow light/dark labels inspected | N/A: labels need no provider | N/A | Complete |
 | TWC-05 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Not started |
 
 ## TWC-01 — Current task announcements
@@ -172,3 +172,32 @@ motion enabled; light scissors, dark question and narrow dark paper screenshots
 were inspected alongside normalized render-state assertions. TWC-02 supplies
 the rock screenshot. No layout overflow or browser errors. All owned applications
 and disposable schemas/accounts were cleaned. Provider/physical acceptance pending.
+
+## TWC-04 — Distinguishable instance labels
+
+Valerian appends an always-present eight-character ID prefix, extending collisions
+until unique. Ordering, full request/selection IDs, creation, deletion and stored
+names/personas remain unchanged. Long selector names shorten with an ellipsis so
+the suffix stays visible; full formatted labels wrap below the selector and in
+instance details. The full ID remains available in the existing editable field
+and option title. Names are assigned through textContent, never HTML. Visual
+review also led to an opaque dark diagnostics drawer for readable labels.
+
+Five focused JS tests and 16 Python harness tests passed. The disposable-MySQL
+browser test created three Coordination instances, selected and connected to each
+full ID, reloaded the deep-linked instance, and deleted one without changing the
+other labels/names. A separate UI fixture checked long Unicode/HTML-like names,
+deliberate prefix collisions and no markup execution. Both cases passed in
+`target/gptlive-acceptance-2c23277358/` (`target/twc04-browser-final.log`).
+The first static fixture omitted transcription capabilities and failed login;
+that fixture contract was corrected. Its failure is retained in
+`target/gptlive-acceptance-a2ac8b7674/`.
+
+After the dark-drawer refinement, five static/browser lifecycle cases passed in
+`target/twc04-static-final/`; the real-DB case is intentionally skipped by that
+static runner and had already passed against MySQL. Desktop light and narrow
+dark screenshots, including full labels and collision suffixes, were inspected.
+The final dark screenshot has no underlying cockpit text bleeding through.
+Other evidence: `target/twc04-unit.log`, `target/twc04-python.log`,
+`target/twc04-static-final.log`. Owned app/schema/account cleanup completed.
+TWC-03 commit: `9c37cfe8`. No paid calls yet.

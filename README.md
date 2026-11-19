@@ -69,6 +69,13 @@ the right with the heartbeat button, choose an agent type, create an instance,
 connect to it, and reset or delete it when needed. The drawer's diagnostics tab
 shows runtime events and agent state.
 
+Instance labels append a stable short ID, for example `Coordination · a3ca2f38`.
+They use at least eight characters and extend colliding prefixes within the
+scoped list. Long selector names shorten to keep that suffix visible; the full
+formatted label appears below the selector and in instance details. The full
+ID remains the selection/request value and is available in the Agent ID field.
+This presentation does not rename instances or change their persona or behavior.
+
 In **Diagnostics → State machine**, **Float state view** moves the current-state
 label and directed state graph over the cockpit. Drag its title bar, or focus the title and
 use arrow keys, to move it. **Maximise / Restore** expands it within the tab;
