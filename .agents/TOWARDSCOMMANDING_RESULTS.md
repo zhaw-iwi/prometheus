@@ -539,3 +539,17 @@ alongside the deterministic, persistence and reviewed browser/visual checks.
 Eleven/$55 reservations across the three commanding authorizations include failed
 attempts; they are ceilings, not invoices. No further paid run is authorized.
 Physical operator checks remain NOT RUN and no Heroku deployment was initiated.
+
+## Promotion regression follow-up — 2026-11-19
+
+The owner subsequently authorized merging main into the HRI experiment and agents,
+then deploying agents to Heroku. The experiment merge check exposed an existing
+main regression: optional facial-correction guidance made Coordination's Live
+instructions 16,069 bytes, exceeding the unchanged 16,000-byte limit. Comparing
+compiled main and experiment instructions confirmed the same baseline content.
+The direct-command voice guidance is now 83 bytes shorter while retaining its
+capabilities, single-action consent, silence, pending-turn and acknowledgement
+rules. The existing failing correction-budget test now passes, alongside all
+71 selected command/voice cases. No budget increase or provider retest was used.
+Evidence: `target/twc-deployment/main-budget-fix.log`; branch integration and
+deployment verification are recorded on their respective target branches.
