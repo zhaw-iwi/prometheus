@@ -36,7 +36,36 @@ matches Heroku. A read-only MySQL transaction confirmed connectivity, the four
 core runtime tables and `event.history_position`. No production rows were changed.
 Private CLI/database evidence stays under ignored `target/twc-deployment/`.
 
-The release will be verified after the agents push using workflow status, Heroku
-release/dyno state, health, exact changed asset hashes, read-only cockpit rendering
-and a fresh read-only DB connection. No paid provider sessions are authorized or
-used for this promotion. Physical microphone/speaker checks remain separate.
+## Deployed release
+
+Merge **`223ad2a9`** was pushed to agents. [Deployment run 44546877327](https://github.com/zhaw-iwi/prometheus/actions/runs/44546877327)
+succeeded for that exact commit. Heroku **valerian v171** succeeded at
+2026-11-19 14:44:58 UTC (15:44:58 CET), container `b244c7b6f70d`.
+
+Readiness verification passed:
+
+- Heroku CLI reports web.1 up, maintenance disabled and the release succeeded.
+  `/actuator/health` reports UP.
+- URL, username and password from the ignored Valerian properties match Heroku's
+  datasource configuration. A fresh read-only transaction confirms connectivity
+  and `event.history_position`. The local verifier initially lacked the RDS trust
+  root; loading the [official Amazon RDS CA bundle](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.SSL.html)
+  enabled certificate/hostname-verified TLS. No certificate checks were disabled
+  and no application/database configuration was changed.
+- All four changed client assets and all nine standard cockpit/robot assets match
+  the deployed commit (ten distinct assets, accounting for overlap).
+- The read-only deployment browser verifier loaded the actual cockpit, rendered
+  a local synthetic scissors/question plan, switched Robot/Details and preserved
+  speech/latest-event display. Zero page errors and zero attempted writes. Its
+  screenshot was inspected; the robot's face and requested pose are complete.
+- Post-release logs include successful Spring startup. The inspected 976-line
+  window contains no application ERROR lines, database connection failures or
+  Heroku router error codes. All owned local integration schemas were verified absent.
+
+Evidence: `target/twc-deployment/{workflow,workflow-jobs,heroku-app-after,heroku-releases-after,release-verification,startup-log-summary}.json`
+and `target/twc-deployment/browser/{verification.json,deployed-robot.png}`.
+This release record is committed separately with `[skip ci]`; the deployed runtime
+remains `223ad2a9` / v171. No paid provider sessions were used for this promotion,
+and no production agent interactions or database rows were created by verification.
+Physical microphone/speaker checks remain separate. Reload the cockpit to fetch
+the updated client before trying the commands and instance labels.

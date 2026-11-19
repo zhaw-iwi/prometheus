@@ -84,7 +84,8 @@ and regulation diagnostics remain future work.
 
 - Commanding promotion (2026-11-19): main through `84f90dc9` is integrated into
   agents with its deployment catalog/personas and workflow preserved. The HRI
-  branch is pushed as `d7d3b303`. Merged-source checks and Heroku release evidence
+  branch is pushed as `d7d3b303`. Agents merge `223ad2a9` deployed as Heroku v171;
+  health, DB, assets and read-only browser verification passed. Merged-source checks and release evidence
   are recorded in `.agents/TOWARDSCOMMANDING_DEPLOYMENT.md`.
 
 - Towards commanding (2026-11-19): TWC-01 prevents queued obsolete Coordination

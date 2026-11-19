@@ -102,6 +102,9 @@ repeated spoken prefixes remain a fluency limitation. The owner subsequently
 authorized the HRI merge and this agents/Heroku promotion. See
 `.agents/TOWARDSCOMMANDING_DEPLOYMENT.md` for integration/release evidence and
 `.agents/TOWARDSCOMMANDING_RESULTS.md` for the exact verification and limits.
+Agents merge `223ad2a9` deployed as Heroku valerian v171 on November 19, 15:44 CET.
+Health, dyno, certificate-verified read-only DB access, served asset hashes and
+read-only cockpit rendering passed. The experiment branch is pushed as `d7d3b303`.
 
 The 2026-11-18 GPT-Live repair committed GLF-01 (`f7c1033c`), GLF-02
 (`807f60cb`), GLF-03 (`973629b5`) and GLF-04 (`3de61cec`) on main.
@@ -113,7 +116,7 @@ GLF-05 removes the retired approval/synthesis route and supplies integrated
 regressions, passing bounded real-provider happy paths, retained failure/latency
 evidence and an operator checklist. Provider and physical status are separate in the per-mode
 matrix in `.agents/GPTLIVEFIX_RESULTS.md`; physical checks remain NOT RUN.
-The owner-authorized 2026-11-19 agents merge `dfc1211a` deployed as Heroku
+The preceding owner-authorized 2026-11-19 agents merge `dfc1211a` deployed as Heroku
 valerian v170, with health, asset hashes and read-only cockpit verification.
 The current owner instruction authorizes sequential milestones with a commit/push
 after each, plus bounded OpenAI happy-path smoke tests costing less than $50 total.
