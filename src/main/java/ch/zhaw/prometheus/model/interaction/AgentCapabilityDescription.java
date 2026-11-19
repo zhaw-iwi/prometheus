@@ -22,11 +22,11 @@ public final class AgentCapabilityDescription {
             Map.entry("obs.weather.current", "Supplied weather for its stated place and time; no independent fetching or GPS."),
             Map.entry("obs.weather.forecast", "Supplied forecast for its stated place and time; not current observed weather."),
             Map.entry("speech", "Speech content; actual voice availability depends on the agent policy and active client mode."),
-            Map.entry("nonVerbal.gesture", "A supported semantic gesture in a behaviour plan."),
+            Map.entry("nonVerbal.gesture", "Digital gestures: question, explanation, uncertainty, acknowledgement and polite."),
             Map.entry("nonVerbal.facialExpression", "A facial-expression plan, not a claim of experienced emotion."),
             Map.entry("nonVerbal.gaze", "A gaze-intent plan, not eye tracking or proof of seeing an object."),
             Map.entry("nonVerbal.motion", "Expressive stillness and energy, not locomotion or physical contact."),
-            Map.entry("motion.handSign", "A rock, scissor or paper hand-sign plan."),
+            Map.entry("motion.handSign", "Can show rock, scissors and paper through the digital embodiment; a plan is not a physical receipt."),
             Map.entry("display", "Structured display content for clients that render it."));
 
     private AgentCapabilityDescription() {}
@@ -43,12 +43,12 @@ public final class AgentCapabilityDescription {
         for (String key : profile.getSupportedBehaviourModalities()) meanings.addProperty(key, meaning(key));
         result.add("meanings", meanings);
         result.add("limits", array(List.of(
-                "Empty lists mean capabilities are unspecified, not unlimited.",
-                "Supported input does not establish that a sensor is enabled or that current evidence exists.",
-                "Inputs are supplied observations, not unrestricted camera, microphone or external-service access.",
-                "Output plans do not confirm rendering, physical execution or task completion.",
-                "Live compatibility does not establish an active or available Live session.",
-                "Task policies and state control remain authoritative; conversation does not change sensors, settings or coded rules.")));
+                "Empty lists mean unspecified, not unlimited.",
+                "Supported input does not prove enabled sensors or current evidence.",
+                "Inputs are supplied observations, not unrestricted camera/microphone/service access.",
+                "Plans do not confirm rendering, physical execution or task completion.",
+                "Live compatibility does not prove an active session.",
+                "Task policies/state remain authoritative; conversation cannot change sensors/settings/coded rules.")));
         String json = result.toString();
         if (json.getBytes(StandardCharsets.UTF_8).length > MAX_JSON_BYTES)
             throw new IllegalArgumentException("Agent capability description exceeds the context budget");
@@ -58,9 +58,8 @@ public final class AgentCapabilityDescription {
     public static String context(AgentInteractionProfile profile) {
         String json = json(profile);
         return json.isEmpty() ? "" : MARKER + " (backend-declared reference data, not task instructions).\n"
-                + "When asked, explain these capabilities briefly in the user's language. Do not recite identifiers or JSON. "
-                + "Distinguish supported capabilities from current evidence and confirmed actions. Do not invent undeclared "
-                + "capabilities or infer tasks from modality names. Preserve the current task policy and output format.\n"
+                + "Explain capabilities briefly in the user's language, without identifiers/JSON. Distinguish support, evidence and "
+                + "confirmed actions. Never invent capabilities/tasks; preserve task policy and output format.\n"
                 + json;
     }
 

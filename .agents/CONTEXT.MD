@@ -81,8 +81,10 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
-Current work is `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01 software acceptance
-is complete (obsolete task-announcement suppression/withdrawal); TWC-02–05 remain.
+Current work is `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–03 software acceptance
+is complete (current task narration, shared one-shot commands and voice/mode
+alignment). Commands derive from persisted profile tags and declared outputs,
+use admitted history positions for deduplication, and emit canonical plans.
 The owner authorizes sequential milestones with commit/push after each and an
 additional $40 across eight paid attempts, failures included. Keep the completed
 repair ledger separate. No new deployment authorization. See

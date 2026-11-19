@@ -2221,7 +2221,14 @@ blocks a separate demonstration without changing the agreement or its budget.
 Handled user-history positions and the latest bounded result survive reload;
 new turns may repeat an action. Metadata is internal storage, not a new public
 BehaviourPlan channel or proof of physical execution. No graph migration is needed.
-Live spoken consistency remains a separate acceptance item.
+Live receives positive digital-output guidance from the declared capabilities,
+including scoped saved instances with general capability awareness disabled.
+Quiet command results are admitted only for the current completed native user
+turn in the same session/epoch, expire after 30 seconds, and are omitted at
+session startup. They are pending-answer facts, not new speaking occasions or
+rendering/physical receipts. Text and Continuous retain their canonical speech
+routes; Live has no competing ordinary synthesis. Actual model wording and
+silence remain real-provider acceptance items.
 
 The verifier compares the requested communicative act: an equivalent question
 fulfils a requested question; feedback must actually evaluate the answer. Changed

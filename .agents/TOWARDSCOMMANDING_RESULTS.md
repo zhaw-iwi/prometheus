@@ -10,7 +10,7 @@ November 19. The completed GPT-Live repair ledger is unchanged.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | TWC-01 | PASS: 332 affected unit cases | PASS: 102-case Java acceptance run | PASS: seven cases, then two strengthened native-ingress reruns | PASS: both new screenshots inspected | NOT RUN | NOT RUN | Software complete |
 | TWC-02 | PASS: 508 affected + 47 focused cases (overlap); 16 Python | PASS: four variants, reload/reset/silent rejection | PASS: two real-app Text journeys | PASS: rock/question screenshots inspected | NOT RUN | NOT RUN | Software complete |
-| TWC-03 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Not started |
+| TWC-03 | PASS: 218 Java, final 40-case subset; 175 JavaScript | PASS: seven Java cases | PASS: two mode journeys + two independence cases | PASS: stable light/dark/narrow poses inspected | NOT RUN | NOT RUN | Software complete |
 | TWC-04 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | N/A: labels need no provider | N/A | Not started |
 | TWC-05 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Not started |
 
@@ -120,3 +120,55 @@ Artifacts (ignored): `target/twc02-regression-final.log`,
 Earlier failures remain in `target/twc02-*.log` and their runner directories.
 Owned apps and disposable schemas/accounts were cleaned. No paid calls yet.
 TWC-01 was committed/pushed as `e5a8b6e4`.
+
+## TWC-03 ? Native voice and command alignment
+
+Voice guidance now describes declared digital hand signs/gestures positively and
+separates pending validation from execution. Scoped saved instances retain direct
+command guidance even with general capability awareness disabled. Shared inference
+still supplies backend command interpretation; no second ordinary inference or
+Live speech synthesizer was introduced. Existing instruction limits are unchanged;
+redundant guidance was shortened after budget tests caught overflow.
+
+Command results are quiet deltas, bounded to 380 UTF-8 bytes before transport
+framing. They name the persisted user event and are available only when that event
+is the latest user turn, under 30 seconds old, and has a COMPLETE USER transcript
+record in the current session/epoch. Stop/owner checks exclude old work. Startup
+omits these facts; reset/new turns/expiry withdraw them. They never create a new
+speaking occasion, request replay or claim client/physical execution. This keeps
+ordinary native speech independent and avoids command follow-up announcements
+that could outlive their request. Provider compliance remains a separate gate.
+
+Verification so far: 218 affected Java unit cases passed; the final guidance
+subset passed 40 cases. Seven local-MySQL Java cases passed (four command variants
+and three transcript ingress tests), followed later by six result/fixture unit
+anchors in the disposable runner. JavaScript passed 110 Live, 15 embodiment,
+21 speech and 29 transcription cases (175 total). Both existing native
+blocked-backend browser cases passed, including Stop fencing. The two new mode
+journeys passed Continuous -> Live -> Continuous -> reconnect, with actual DB,
+production ingress/SSE and WebGL pose assertions; the strengthened duplicate
+packet replay and stable reduced-motion screenshot rerun is recorded below.
+
+Failed attempts are retained. Initial prompt overflow was corrected without
+raising limits. Existing mocked projection tests needed the unchanged overload
+when no command facts exist. Repeated synthetic user captions exposed missing
+PCM lead-in after idle gaps; the fixture now provides it before USER captions as
+it already did for ASSISTANT captions. Runtime coverage-gap rejection is intact.
+The duplicate-packet browser check was strengthened to decode fixture captions
+and assert successful replay transport, rather than ignoring a 400 response.
+
+Artifacts: `target/twc03-regression-final.log`, `target/twc03-final-guidance.log`,
+`target/twc03-*-js.log`, `target/gptlive-acceptance-0302d54977/` (seven Java cases,
+two independence cases and Live Multimodal journey pass; Coordination fixture
+failure), `target/gptlive-acceptance-89ddcd5294/` (fixture-gap failures), and
+`target/gptlive-acceptance-684d5004d6/` (six Java/two mode journeys pass before the
+strengthened replay assertion). No paid calls. TWC-02 commit: `aac0cce7`.
+
+Final strengthened rerun: both mode journeys passed in
+`target/gptlive-acceptance-f758afc4a1/` / `target/twc03-modes-replay.log`.
+The duplicate packet was actually accepted by the fixture transport and produced
+no second action. Stable representative WebGL poses were captured with reduced
+motion enabled; light scissors, dark question and narrow dark paper screenshots
+were inspected alongside normalized render-state assertions. TWC-02 supplies
+the rock screenshot. No layout overflow or browser errors. All owned applications
+and disposable schemas/accounts were cleaned. Provider/physical acceptance pending.

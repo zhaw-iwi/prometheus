@@ -59,7 +59,7 @@ public final class LiveContextDelivery {
             int start = commands.size();
             String value = current.guidance().getOrDefault(section, "");
             if (!value.equals(delivered.guidance().getOrDefault(section, "")))
-                add(commands, section.equals("state") && current.activity() != null ? "thinking" : "instructions", "CURRENT " + section.toUpperCase(Locale.ROOT)
+                add(commands, section.equals("commandResult") || section.equals("state") && current.activity() != null ? "thinking" : "instructions", "CURRENT " + section.toUpperCase(Locale.ROOT)
                         + " replaces only the earlier " + section + " section.\n"
                         + (value.isBlank() ? "This section no longer applies." : value), null, null, revision);
             if (currentSource != null && Set.of("state", "taskVoice").contains(section))

@@ -170,11 +170,11 @@ public class LiveSmokeConfiguration {
             Call call = calls.get(id); if (call == null || call.closed) throw new IllegalArgumentException("Synthetic call unavailable");
             int sequence = call.sequence.incrementAndGet(); long offset = sequence * 5000L;
             String prefix = "USER".equals(speaker) ? "input" : "output";
-            if (prefix.equals("output")) {
+            {
                 // Model the new utterance's PCM lead-in before its caption. Otherwise an
                 // intentional idle interval appears as lost coverage inside the new speech.
-                var lead = new JsonObject(); lead.addProperty("type", "session.output_audio.delta");
-                lead.addProperty("delta", Base64.getEncoder().encodeToString(new byte[4800]));
+                var lead = new JsonObject(); lead.addProperty("type", "session." + prefix + "_audio." + (prefix.equals("input") ? "append" : "delta"));
+                lead.addProperty(prefix.equals("input") ? "audio" : "delta", Base64.getEncoder().encodeToString(new byte[4800]));
                 lead.addProperty("start_ms", offset - 100); lead.addProperty("end_ms", offset);
                 call.receive.accept(lead);
             }

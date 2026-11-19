@@ -21,6 +21,13 @@ public final class DirectCommands {
     public static boolean enabled(AgentInteractionProfile profile) {
         return profile != null && profile.getProfileTags().stream().anyMatch(TAGS::contains);
     }
+    public static String voiceGuidance(AgentInteractionProfile profile) {
+        if (!enabled(profile)) return "";
+        return " Direct requests use the declared digital outputs; do not deny them for lacking a physical body."
+                + " Briefly acknowledge pending validation, never execution. Honor explicit silence."
+                + " Capability questions require no action; conditional actions require task agreement."
+                + " Command results apply only to their pending turn; do not acknowledge twice.";
+    }
     public static String guidance(AgentInteractionProfile profile, boolean taskEnvelope) {
         if (!enabled(profile)) return "";
         return """

@@ -81,7 +81,15 @@ and regulation diagnostics remain future work.
   delivery contract; ordinary native speech remains independent. Verified with
   332 affected unit cases, a 102-case local-MySQL Java run, seven browser cases
   and two strengthened native-ingress reruns. Screenshots inspected; real-provider
-  and physical acceptance remain pending. Continue TWC-02–05 sequentially under
+  and physical acceptance remain pending. TWC-02 was pushed as `aac0cce7`: shared
+  direct-command validation across four scoped variants, persisted turn identity,
+  silent outcomes and owner-loss publication fencing. Verified with 508 affected
+  units, 47 focused service/command cases (overlap), four persisted variants and
+  two real-app Text journeys; screenshots inspected. TWC-03 adds positive native
+  output guidance and quiet session/turn-bound results. Verified with 218 affected
+  units, 175 JavaScript cases, seven local-DB cases and two mode-switch browser
+  journeys plus existing audio-independence cases. Visual poses inspected.
+  Continue TWC-04–05 sequentially under
   `.agents/PLAN_TOWARDSCOMMANDING.md`; commit/push each milestone. The owner
   authorized an additional $40/eight paid attempts, failures included; no spend
   yet. Results: `.agents/TOWARDSCOMMANDING_RESULTS.md`. No new deployment authorized.
