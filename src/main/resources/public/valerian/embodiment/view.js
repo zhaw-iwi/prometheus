@@ -34,6 +34,9 @@ function draw(now=performance.now()) {
   if(!renderer||disposed)return;
   const sample=state.sample(now);stage.dataset.animating=String(sample.active);
   renderer.draw(sample,now);
+  // Expose the normalized pose actually submitted to WebGL, alongside animation state.
+  stage.dataset.handSign=sample.pose?.sign||'';
+  stage.dataset.gesture=sample.pose?.gesture||'NONE';
 }
 function stop() {cancelAnimationFrame(frame);frame=null;}
 function loop(now) {

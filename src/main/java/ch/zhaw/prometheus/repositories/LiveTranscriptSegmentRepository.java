@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import ch.zhaw.prometheus.model.event.LiveTranscriptSegment;
 
 public interface LiveTranscriptSegmentRepository extends JpaRepository<LiveTranscriptSegment, UUID> {
+    boolean existsByAgent_IdAndSessionIdAndEpochAndEventIdAndSpeakerAndStatus(UUID agentId, UUID sessionId, UUID epoch,
+            UUID eventId, String speaker, String status);
     List<LiveTranscriptSegment> findTop100ByAgent_IdAndSessionIdOrderByRecordedAtDesc(UUID agentId, UUID sessionId);
     List<LiveTranscriptSegment> findTop20ByAgent_IdAndEpochAndSpeakerAndStatusOrderByRecordedAtDesc(UUID agentId, UUID epoch, String speaker, String status);
 }

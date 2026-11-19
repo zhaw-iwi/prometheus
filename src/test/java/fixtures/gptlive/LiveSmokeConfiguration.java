@@ -17,6 +17,14 @@ import ch.zhaw.prometheus.spi.live.LiveSessionGateway;
 @TestConfiguration(proxyBeanMethods = false)
 public class LiveSmokeConfiguration {
     @Bean @Primary public Provider offlineLiveGateway() { return new Provider(); }
+    @Bean @Primary public LiveTranscriptionSessionClient offlineTranscriptionClient(
+            OpenAIProperties properties, LiveTranscriptionProviderPayloadBuilder builder) {
+        return new LiveTranscriptionSessionClient(properties, builder) {
+            @Override public LiveTranscriptionSessionInfo createSession(ch.zhaw.prometheus.application.LiveTranscriptionSettings settings) {
+                return new LiveTranscriptionSessionInfo("offline-transcription", MODEL, "https://transcription.invalid/offer");
+            }
+        };
+    }
     @Bean @Primary public LanguageModelGateway offlineLanguageGateway(Provider provider) {
         return new LanguageModelGateway() {
             public String infer(InferenceRequest request) {
@@ -40,6 +48,7 @@ public class LiveSmokeConfiguration {
                     if(!provider.studyScript.isEmpty())throw new IllegalStateException("Unscripted study inference");
                     return provider.studyReply;
                 }
+                if (provider.directReply != null && request.purpose() != InferencePurpose.DECISION && prompt.contains("DIRECT OUTPUT REQUESTS")) return provider.directReply;
                 var data = responseCheckData(request);
                 if (data != null) {
                     var result = new JsonObject();
@@ -57,6 +66,8 @@ public class LiveSmokeConfiguration {
                           "action":"Finish the agreed task","effect":"COMPLETE","minConfidence":0.6,"samples":1,"cooldownSeconds":3}]},
                          "reply":{"speech":"First fixture observation."}}
                         """;
+                if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported sensor fields:")
+                        && provider.coordinationProposal != null) return provider.coordinationProposal;
                 if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported sensor fields:")) return """
                         {"operation":"PROPOSE_AND_START","agreement":{"goal":"Offer one fixture observation",
                          "humanRole":"Listen and judge usefulness","agentRole":"Offer one observation",
@@ -66,6 +77,9 @@ public class LiveSmokeConfiguration {
                 if (request.output() == InferenceRequest.Output.BOOLEAN)
                     return Boolean.toString(prompt.contains("Return true if the person is clearly ready to start a round"));
                 if (request.output() == InferenceRequest.Output.TEXT) return "Ready for the next interaction.";
+                if (provider.coordinationProposal != null && request.purpose() == InferencePurpose.BEHAVIOUR
+                        && prompt.contains("Accepted coordination roles and constraints") && prompt.contains("Offer one welcome"))
+                    return "{\"speech\":\"Welcome to the lab.\",\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}";
                 if (prompt.contains("Produce the current embodiment")) return """
                         {"nonVerbal":{"gesture":"ACKNOWLEDGE","facialExpression":{"type":"attentive","intensity":0.4},
                         "gaze":{"direction":"toward_user","focus":"person"},"motion":{"stillness":0.8,"energy":0.2}},
@@ -97,6 +111,7 @@ public class LiveSmokeConfiguration {
             public SpeechAudio synthesize(String text, String voice, double speed) { return synthesize(text, voice, speed, SpeechAudioFormat.MP3); }
             public SpeechAudio synthesize(String text, String voice, double speed, SpeechAudioFormat format) {
                 provider.tts.incrementAndGet();
+                provider.speech.add(new Synthesized(text, voice, speed, format.wireValue()));
                 int lead = text.equals("First fixture observation.") ? 18000 : 0; // 750ms: real TTS may begin with silence.
                 byte[] pcm = new byte[48000 + lead * 2]; // One second of observable tone, not proof of physical speakers.
                 for (int i = lead; i < pcm.length / 2; i++) {
@@ -107,12 +122,16 @@ public class LiveSmokeConfiguration {
             }
         };
     }
+    public record Synthesized(String text, String voice, double speed, String format) {}
     public static final class Provider implements LiveSessionGateway, AutoCloseable {
         public volatile String studyReply="{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{\"speech\":\"Tell me about your activity.\"}}";
         public volatile String gameReply="{\"kind\":\"QUESTION\",\"words\":\"Is it used indoors?\"}";
         public volatile CompletableFuture<Void> inferenceGate;
         public volatile Map<String,String> studyScript=Map.of();
         public volatile int studyDelayMillis;
+        public volatile String coordinationProposal;
+        public volatile String directReply;
+        public final List<Synthesized> speech = new CopyOnWriteArrayList<>();
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
         public final AtomicInteger tts = new AtomicInteger();
         public final List<InferenceRequest> inferences = new CopyOnWriteArrayList<>();
@@ -142,6 +161,12 @@ public class LiveSmokeConfiguration {
                         call.activity = activity >= 0 ? content.substring(activity) : call.activity + content;
                         if (call.activity.length() > 8192) call.activity = call.activity.substring(call.activity.length() - 8192);
                     }
+                    if (type.equals(call.heldType) && call.ackGate != null && !call.ackGate.isDone()) {
+                        call.ackWaiting = true;
+                        try { call.ackGate.get(12, TimeUnit.SECONDS); }
+                        catch (Exception failure) { throw new IllegalStateException("Synthetic ACK hold failed", failure); }
+                        finally { call.ackWaiting = false; }
+                    }
                     receive.accept(ack);
                     if (type.equals("session.commentary.append")) {
                         String spoken = event.get("content").getAsString().endsWith("First fixture observation.")
@@ -160,11 +185,11 @@ public class LiveSmokeConfiguration {
             Call call = calls.get(id); if (call == null || call.closed) throw new IllegalArgumentException("Synthetic call unavailable");
             int sequence = call.sequence.incrementAndGet(); long offset = sequence * 5000L;
             String prefix = "USER".equals(speaker) ? "input" : "output";
-            if (prefix.equals("output")) {
+            {
                 // Model the new utterance's PCM lead-in before its caption. Otherwise an
                 // intentional idle interval appears as lost coverage inside the new speech.
-                var lead = new JsonObject(); lead.addProperty("type", "session.output_audio.delta");
-                lead.addProperty("delta", Base64.getEncoder().encodeToString(new byte[4800]));
+                var lead = new JsonObject(); lead.addProperty("type", "session." + prefix + "_audio." + (prefix.equals("input") ? "append" : "delta"));
+                lead.addProperty(prefix.equals("input") ? "audio" : "delta", Base64.getEncoder().encodeToString(new byte[4800]));
                 lead.addProperty("start_ms", offset - 100); lead.addProperty("end_ms", offset);
                 call.receive.accept(lead);
             }
@@ -183,7 +208,7 @@ public class LiveSmokeConfiguration {
             }
             // Supply measured quiet for the longest supported assistant assembly window.
             // Stopping synthetic PCM at one second would test a coverage gap, not completion.
-            for (int i = 1; i <= (prefix.equals("output") ? 30 : 10); i++) {
+            for (int i = 1; i <= 30; i++) {
                 int chunk = i;
                 audio.schedule(() -> {
                     if (call.closed) return;
@@ -196,6 +221,9 @@ public class LiveSmokeConfiguration {
         }
         public void close() { audio.shutdownNow(); }
         public static final class Call {
+            public volatile CompletableFuture<Void> ackGate;
+            public volatile String heldType;
+            public volatile boolean ackWaiting;
             public int ttsBefore;
             public volatile Consumer<JsonObject> receive;
             public volatile boolean closed;
@@ -237,6 +265,32 @@ public class LiveSmokeConfiguration {
             if (reply.response()==null || reply.response().length()>4096) throw new IllegalArgumentException("Invalid study fixture");
             JsonParser.parseString(reply.response()).getAsJsonObject(); provider.studyReply=reply.response(); return Map.of("accepted",true);
         }
+        @PostMapping("/__live-fixture/coordination-proposal") public void coordinationProposal(@RequestBody String proposal) {
+            provider.coordinationProposal = proposal;
+        }
+        @DeleteMapping("/__live-fixture/coordination-proposal") public void clearCoordinationProposal() {
+            provider.coordinationProposal = null;
+        }
+        @PostMapping("/__live-fixture/direct-command") public void directCommand(@RequestBody String reply) { provider.directReply = reply; }
+        @DeleteMapping("/__live-fixture/direct-command") public void clearDirectCommand() { provider.directReply = null; }
+        @GetMapping("/__live-fixture/speech") public List<Synthesized> speech() { return List.copyOf(provider.speech); }
+        @PostMapping("/__live-fixture/ack/{id}/{action}") public Map<String, Boolean> ack(
+                @PathVariable String id, @PathVariable String action, @RequestBody(required = false) Map<String, String> body) {
+            var call = provider.calls.get(id);
+            if (action.equals("hold")) {
+                call.heldType = body.getOrDefault("type", "session.thinking.append");
+                call.ackGate = new CompletableFuture<>();
+            } else if (action.equals("release")) {
+                if (call.ackGate != null) call.ackGate.complete(null);
+            } else throw new IllegalArgumentException("Unknown ACK control");
+            return Map.of("accepted", true);
+        }
+        @GetMapping("/__live-fixture/ack/{id}") public Map<String, Boolean> ackState(@PathVariable String id) {
+            return Map.of("waiting", provider.calls.get(id).ackWaiting);
+        }
+        @GetMapping("/__live-fixture/inference") public Map<String, Object> inference() {
+            return Map.of("count", provider.inferences.size(), "held", provider.inferenceGate != null && !provider.inferenceGate.isDone());
+        }
         @PostMapping("/__live-fixture/inference/{action}") public Map<String, Boolean> inference(@PathVariable String action) {
             switch (action) {
                 case "hold" -> provider.inferenceGate = new CompletableFuture<>();
@@ -259,6 +313,9 @@ public class LiveSmokeConfiguration {
                     "maximum", pool.getMaximumPoolSize());
         }
         public record Speech(String speaker, String text, String receipt) {}
+        @PostMapping("/__live-fixture/event/{id}") public void event(@PathVariable String id, @RequestBody String event) {
+            provider.calls.get(id).receive.accept(com.google.gson.JsonParser.parseString(event).getAsJsonObject());
+        }
         @PostMapping("/__live-fixture/reject-first/{id}") public Map<String, Boolean> rejectFirst(@PathVariable String id) {
             provider.calls.get(id).rejectFirst.set(true); return Map.of("accepted", true);
         }

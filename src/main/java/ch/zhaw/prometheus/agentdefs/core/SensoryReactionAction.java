@@ -27,7 +27,6 @@ public class SensoryReactionAction extends Action {
         SensoryRemarks.attempted(storage, now);
         if (runtime.externalSpeech() != null) {
             SensoryRemarks.occasion(storage, change, now);
-            CoordinationSpeechApproval.scopeSensory(storage, runtime.externalSpeech(), now);
             return;
         }
         var policy = ValerianCoreAgentFactory.corePromptPolicy(getPolicy().describe() + "\n" + SensoryRemarks.guidance(change), null);

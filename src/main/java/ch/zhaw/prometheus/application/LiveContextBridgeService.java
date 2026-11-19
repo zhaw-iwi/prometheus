@@ -43,7 +43,10 @@ public class LiveContextBridgeService {
     }
     @EventListener public void changed(AgentCommitted event) {
         sessions.values().stream().filter(session -> session.agent.equals(event.agentId())).forEach(session -> {
-            if (event.activityKnown()) session.currentOccasion.set(new OccasionIdentity(event.narrationId(), event.speechRequestId()));
+            if (event.activityKnown()) {
+                var previous = session.currentOccasion.getAndSet(new OccasionIdentity(event.narrationId(), event.speechRequestId()));
+                if (session.lastCurrentCommand != null && !Objects.equals(previous.id(), event.narrationId())) session.urgent.set(true);
+            }
             if (!session.owner.epoch().equals(event.epoch())) session.fail("agent_epoch_changed");
             else if (event.narrationId() != null) session.announcement(event.narrationId());
             else session.request();
@@ -93,9 +96,9 @@ public class LiveContextBridgeService {
         private volatile String state = "starting", revision;
         private volatile ch.zhaw.prometheus.model.policy.LivePlaybackCue playbackCue;
         private volatile long nextRefreshAt = Long.MAX_VALUE, nextCommitReadAt;
-        private volatile UUID waitingOccasion;
-        private long quietDeadline;
         private long dropped;
+        // Only the serial delivery worker writes this. Commits update currentOccasion without waiting on provider ACKs.
+        private volatile Command lastCurrentCommand;
         Session(LiveContextSnapshot initial, ExternalSpeech owner, Consumer<Command> send,
                 Consumer<LiveContextSnapshot> applied, Consumer<String> failure) {
             agent = initial.agentId(); this.owner = owner; delivery = new LiveContextDelivery(initial);
@@ -135,7 +138,6 @@ public class LiveContextBridgeService {
             // this caller scheduling from an obsolete, already-due deadline.
             if (closed.get() || !ready || !running.compareAndSet(false, true)) return;
             long now = clock.millis();
-            if (waitingOccasion != null && !urgent.get() && now < nextCommitReadAt) { running.set(false); return; }
             boolean deadline = now >= Math.min(nextRefreshAt, delegations.nextDeadline());
             if (!urgent.get() && !deadline && (!dirty.get() || now < nextCommitReadAt)) { running.set(false); return; }
             try { workers.execute(this::run); }
@@ -165,12 +167,6 @@ public class LiveContextBridgeService {
                 dirty.set(false);
                 urgent.set(false);
                 if (closed.get()) return;
-                if (waitingOccasion != null && waitingOccasion.equals(currentOccasion.get().id())
-                        && clock.millis() < quietDeadline && transcripts != null && transcripts.assistantBusy(owner)) {
-                    waitForQuiet(waitingOccasion, quietDeadline); return;
-                }
-                // Faster append ACKs must not turn each fragment/sensor commit into a graph read.
-                // Deferred work remains dirty; no worker sleeps while waiting for this window.
                 nextCommitReadAt = clock.millis() + 5000;
                 nextRefreshAt = clock.millis() + 30000;
                 var priorOccasion = currentOccasion.get();
@@ -181,13 +177,7 @@ public class LiveContextBridgeService {
                 currentOccasion.compareAndSet(priorOccasion, occasion(activity));
                 if (closed.get()) return;
                 scheduleRefresh(fresh.context());
-                var continuation = activity == null ? null : activity.continuation();
-                if (fresh.context().speechApprovalRequired() && !fresh.context().committedSpeechOutput() && continuation != null && !continuation.interruptible()
-                        && !continuation.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))
-                        && transcripts != null && transcripts.assistantBusy(owner)) {
-                    waitForQuiet(continuation.id(), continuation.expiresAt().toEpochMilli()); return;
-                }
-                waitingOccasion = null;
+                withdrawObsolete();
                 var batch = delivery.plan(fresh.context(), fresh.narrations());
                 var deferred = transmitAll(batch.commands());
                 if (closed.get()) return;
@@ -210,14 +200,6 @@ public class LiveContextBridgeService {
             }
             finally { running.set(false); refreshIfDue(); }
         }
-        private void waitForQuiet(UUID occasion, long deadline) {
-            if (!occasion.equals(waitingOccasion)) trace("speaking_occasion_waiting_for_quiet", null, List.of(occasion));
-            waitingOccasion = occasion; quietDeadline = deadline;
-            // The existing scheduler checks capture in memory; no worker sleeps and
-            // no repeated graph read occurs until quiet, supersession or original expiry.
-            nextCommitReadAt = nextRefreshAt = Math.min(clock.millis() + 1000, deadline);
-            state = "waiting_for_quiet";
-        }
         private void transmit(Command command) {
             transmit(command, command.sourceId() == null ? List.of() : List.of(command.sourceId()));
         }
@@ -228,7 +210,7 @@ public class LiveContextBridgeService {
             while (!queue.isEmpty()) {
                 // Finish a multi-part observation. Then use newer committed evidence instead
                 // of its obsolete backlog, only at the already permitted read boundary.
-                // Results remain urgent; guidance and narrations are never abandoned.
+                // Committed results remain urgent; obsolete state narration is fenced separately.
                 if (replacementDue()
                         && queue.getFirst().evidenceType() != null
                         && !Objects.equals(previousEvidence, queue.getFirst().evidenceType())
@@ -258,14 +240,14 @@ public class LiveContextBridgeService {
                 if (command.sourceId() != null) sources.add(command.sourceId());
                 // Pack compatible factual updates just before transmission. Never carry a
                 // freshness decision across an ACK wait or merge announcements/instructions.
-                while (!queue.isEmpty() && !command.interruptible() && command.type().equals("session.thinking.append")) {
+                while (!queue.isEmpty() && !command.interruptible() && !command.currentOnly() && command.type().equals("session.thinking.append")) {
                     var next = queue.getFirst();
                     // Packing must not carry another obsolete observation across this boundary.
                     if (replacementDue() && next.evidenceType() != null
                             && !Objects.equals(previousEvidence, next.evidenceType())
                             && queue.stream().allMatch(value -> value.evidenceType() != null)) break;
                     String content = command.content() + "\n" + next.content();
-                    if (next.interruptible() || !next.type().equals(command.type()) || !Objects.equals(next.delegationId(), command.delegationId())
+                    if (next.interruptible() || next.currentOnly() || !next.type().equals(command.type()) || !Objects.equals(next.delegationId(), command.delegationId())
                             || !next.revision().equals(command.revision()) || next.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))
                             || content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > LiveContextDelivery.MAX_APPEND_BYTES) break;
                     queue.removeFirst(); previousEvidence = next.evidenceType(); if (next.sourceId() != null) sources.add(next.sourceId());
@@ -279,11 +261,34 @@ public class LiveContextBridgeService {
         private boolean replacementDue() { return urgent.get() || dirty.get() && clock.millis() >= nextCommitReadAt; }
         private void transmit(Command command, List<UUID> sources) {
             if (closed.get()) throw new IllegalStateException("Context session closed");
+            withdrawObsolete();
+            if (command.currentOnly() && !Objects.equals(command.sourceId(), currentOccasion.get().id())) {
+                trace("task_narration_superseded", command, replacementSources(command.sourceId()));
+                urgent.set(true);
+                return;
+            }
+            if (command.currentOnly()) lastCurrentCommand = command;
             state = "awaiting_ack"; trace("send", command, sources);
             ch.zhaw.prometheus.logging.ActivityTrace.measure("preparing_speech", () -> {
                 send.accept(command); return null;
             }); // ACK is context delivery, never proof of playback.
             if (!closed.get()) trace("ack", command, sources);
+            withdrawObsolete();
+        }
+        private void withdrawObsolete() {
+            var previous = lastCurrentCommand;
+            if (closed.get() || previous == null || Objects.equals(previous.sourceId(), currentOccasion.get().id())) return;
+            lastCurrentCommand = null; // Withdraw each sent occasion once, including a change during its ACK wait.
+            trace("task_narration_withdrawn", previous, replacementSources(previous.sourceId()));
+            transmit(new Command("session.thinking.append", "Speaking occasion " + previous.sourceId()
+                    + " is withdrawn. Do not finish or repeat its pending invitation or state announcement. "
+                    + "Use the latest CURRENT state facts. If already-spoken wording conflicts with them, briefly correct it once; "
+                    + "otherwise say nothing. Do not ask for an obsolete decision or perform another task action.",
+                    null, previous.sourceId(), previous.revision()));
+        }
+        private List<UUID> replacementSources(UUID previous) {
+            UUID current = currentOccasion.get().id();
+            return current == null || current.equals(previous) ? List.of(previous) : List.of(previous, current);
         }
         private synchronized void trace(String phase, Command command) {
             trace(phase, command, command == null || command.sourceId() == null ? List.of() : List.of(command.sourceId()));

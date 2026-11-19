@@ -283,6 +283,7 @@ public class State extends PersistedNode {
         Policy policy = this.resolvePolicy(outerPolicy);
         BehaviourPlan behaviourPlan = policy.onStart(this, this.getEventHistory(), runtime.promptMessageAssembler(),
                 runtime.languageModelGateway(), runtime.outputProfile());
+        if (runtime.externalSpeech() != null && !runtime.taskContinuation().getAsBoolean()) return null;
         if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }
@@ -303,6 +304,7 @@ public class State extends PersistedNode {
                     runtime.promptMessageAssembler(), runtime.languageModelGateway(), runtime.outputProfile());
             if (runtime.externalSpeech() != null && behaviourPlan != null) behaviourPlan.setSpeech(null);
         }
+        if (runtime.externalSpeech() != null && !runtime.taskContinuation().getAsBoolean()) return null;
         if (behaviourPlan == null || behaviourPlan.isEmpty()) {
             return null;
         }

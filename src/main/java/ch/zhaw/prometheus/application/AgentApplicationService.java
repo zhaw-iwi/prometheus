@@ -327,6 +327,9 @@ public class AgentApplicationService {
             try { response = LatencyTrace.measure("generate", () -> agent.generate(preparedRuntime)); }
             finally { discardSpeculation(agentID, "unused_generation"); }
             if (response == null) {
+                // A policy may record a silent rejection/handled-turn receipt without emitting behaviour.
+                // Keep those decisions durable so a retry cannot reinterpret the same admitted turn.
+                if (preparedRuntime.taskContinuation().getAsBoolean()) this.persistAndPublishMonitor(agent);
                 return BehaviourGenerationOutcome.NO_BEHAVIOUR_GENERATED;
             }
             this.applyOmittedModalities(response, omitModalities);
