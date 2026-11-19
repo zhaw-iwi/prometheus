@@ -997,13 +997,25 @@ function renderAgents() {
     }
     const option = document.createElement("option");
     option.value = id;
-    option.textContent = prometheusFacingText(agent.name || id, agentPersonaName(agent));
+    const label = instanceLabel(agent);
+    option.textContent = globalThis.PrometheusInstanceLabels.optionLabel(label);
+    option.title = `${label}\nInstance ID: ${id}`;
     select.appendChild(option);
   }
   if (state.selectedAgentId) {
     select.value = state.selectedAgentId;
   }
-  updateAgentSelectionControls();
+  updateSelectedAgentStatus();
+}
+
+function instanceLabel(agentOrId) {
+  const requestedId = typeof agentOrId === 'string' ? agentOrId : agentIdOf(agentOrId);
+  const entries = [...state.agents];
+  if (agentOrId && typeof agentOrId === 'object') entries.push(agentOrId);
+  const labels = globalThis.PrometheusInstanceLabels.labels(entries.map(agent => ({
+    id: agentIdOf(agent), name: prometheusFacingText(agent.name, agentPersonaName(agent)),
+  })));
+  return labels.get(requestedId) || globalThis.PrometheusInstanceLabels.labels([{id:requestedId}]).get(requestedId) || '';
 }
 
 async function createAgentInstance() {
@@ -1035,10 +1047,7 @@ async function createAgentInstance() {
       await selectAgent(createdId, { updateInput: true, updateSelect: true });
     }
     setAgentTypeStatus("Instance created.", "success");
-    appendLog("app", `created ${prometheusFacingText(
-      agent.name || createdId || "agent instance",
-      agentPersonaName(agent),
-    )}.`);
+    appendLog("app", `created ${instanceLabel(agent)}.`);
   } catch (error) {
     setAgentTypeStatus("Create failed.", "error");
     appendLog("app", "create agent failed: " + error.message);
@@ -1164,7 +1173,7 @@ async function loadAgentInfo() {
     const data = await response.json();
     if (!currentConnection(connection)) return false;
     state.agentInfo = data;
-    document.getElementById("agent_info_name").textContent = prometheusFacingText(data.name, data.personaName) || "-";
+    document.getElementById("agent_info_name").textContent = instanceLabel({...data, id:state.agentId}) || "-";
     document.getElementById("agent_info_description").textContent = prometheusFacingText(
       data.description,
       data.personaName,
@@ -1416,6 +1425,7 @@ function currentProfileSupportsObservation(observation) {
 
 function updateSelectedAgentStatus() {
   const selected = state.selectedAgentId || document.getElementById("agent_id_input").value.trim();
+  setText("selected_agent_identity", selected ? instanceLabel(selected) : "");
   const text = state.agentId
     ? `Connected to ${state.agentId}`
     : selected

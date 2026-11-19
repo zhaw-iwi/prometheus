@@ -19,6 +19,9 @@ public class LiveAgentContextService {
     private final TransactionTemplate transaction;
     private final ExternalSpeechOwnership ownership;
     private LiveTaskResponseService taskResponses;
+    private ch.zhaw.prometheus.repositories.LiveTranscriptSegmentRepository transcriptSegments;
+    @org.springframework.beans.factory.annotation.Autowired
+    void transcriptSegments(ch.zhaw.prometheus.repositories.LiveTranscriptSegmentRepository repository) { transcriptSegments = repository; }
     @org.springframework.beans.factory.annotation.Autowired
     void taskResponses(LiveTaskResponseService service) { this.taskResponses = service; }
     public LiveAgentContextService(ScopedDemoService demo, AgentApplicationService turns, AgentRepository agents,
@@ -138,7 +141,11 @@ public class LiveAgentContextService {
                             .map(event -> new ch.zhaw.prometheus.application.live.LiveContextDelivery.Narration(event.getId(),
                                     ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()).getSpeech()))
                             .filter(value -> value.sourceId() != null && value.text() != null && !value.text().isBlank()).toList();
-                    return new Update(projection.project(agent), narrations);
+                    String command = transcriptSegments == null || !ownership.taskWorkAllowed(id, owner) ? ""
+                            : ch.zhaw.prometheus.application.live.LiveCommandResult.facts(agent, java.time.Instant.now(), eventId ->
+                                transcriptSegments.existsByAgent_IdAndSessionIdAndEpochAndEventIdAndSpeakerAndStatus(
+                                        id, owner.sessionId(), owner.epoch(), eventId, "USER", "COMPLETE"));
+                    return new Update(command.isEmpty() ? projection.project(agent) : projection.project(agent, command), narrations);
                 }));
     }
 }

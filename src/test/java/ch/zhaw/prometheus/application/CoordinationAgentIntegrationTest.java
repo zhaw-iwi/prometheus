@@ -37,6 +37,7 @@ class CoordinationAgentIntegrationTest {
     @Autowired LiveTranscriptIngressService ingress;
     @Autowired ExternalSpeechOwnership ownership;
     @Autowired LiveAgentContextService liveContexts;
+    @Autowired LiveContextBridgeService liveBridge;
     @Autowired ScopedBehaviourSpeechService canonicalSpeech;
     @MockitoBean LanguageModelGateway gateway;
     @MockitoBean SpeechSynthesisGateway speech;
@@ -59,6 +60,53 @@ class CoordinationAgentIntegrationTest {
         var agent = agents.findById(scope.id()).orElseThrow();
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
+    }
+    @Test void acceptedPersistedTaskWithdrawsQueuedProposalAndReconnectNeverReplaysIt() throws Exception {
+        var scope = create(); var sessionId = UUID.randomUUID();
+        var initial = liveContexts.claim(scope.code(), scope.id(), sessionId).orElseThrow();
+        var owner = new ch.zhaw.prometheus.model.policy.ExternalSpeech(sessionId, initial.epoch());
+        var entered = new java.util.concurrent.CountDownLatch(1); var release = new java.util.concurrent.CountDownLatch(1);
+        var sent = new java.util.concurrent.CopyOnWriteArrayList<ch.zhaw.prometheus.application.live.LiveContextDelivery.Command>();
+        var bridge = liveBridge.open(initial, owner, command -> {
+            sent.add(command);
+            if (command.currentOnly() && entered.getCount() > 0) {
+                entered.countDown();
+                try { assertTrue(release.await(10, java.util.concurrent.TimeUnit.SECONDS)); }
+                catch (InterruptedException e) { throw new IllegalStateException(e); }
+            }
+        }, ignored -> {}, reason -> fail(reason));
+        try {
+            bridge.ready();
+            var proposal = JsonParser.parseString(AGREEMENT).getAsJsonObject();
+            proposal.add("reactions", JsonParser.parseString("""
+                {"goal":"Draft an invitation","maxActions":1,"sessionBound":true,"firstAction":"ON_CUE",
+                 "rules":[{"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"rock",
+                 "action":"Offer one invitation idea","effect":"ACT","minConfidence":0,"samples":1,"cooldownSeconds":3}]}
+                """));
+            turn(scope, "PROPOSE", proposal.toString(), "Propose one invitation idea on rock, without starting");
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS));
+            UUID old = UUID.fromString(memory(scope).get("core.task.response").getAsJsonObject().get("id").getAsString());
+            turn(scope, "START", "null", "Start now");
+            var reloaded = memory(scope);
+            assertEquals("EXECUTION", CoordinationMemory.stage(reloaded));
+            assertEquals("0", TaskMemory.text(reloaded, TaskMemory.ACTIONS, "0"));
+            assertEquals(proposal, reloaded.get(CoordinationMemory.AGREEMENT));
+            UUID current = UUID.fromString(reloaded.get("core.task.response").getAsJsonObject().get("id").getAsString());
+            release.countDown();
+            org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(5)).until(() -> sent.stream()
+                    .anyMatch(c -> current.equals(c.sourceId()) && c.type().equals("session.commentary.append")));
+            assertTrue(sent.stream().noneMatch(c -> old.equals(c.sourceId()) && c.type().equals("session.commentary.append")));
+            assertEquals(1, sent.stream().filter(c -> c.content().contains("is withdrawn")).count());
+            turn(scope, "STOP", "null", "Stop the task");
+            assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+            bridge.close(); ownership.release(scope.id(), sessionId);
+            UUID secondId = UUID.randomUUID();
+            var reconnect = liveContexts.claim(scope.code(), scope.id(), secondId).orElseThrow();
+            var secondOwner = new ch.zhaw.prometheus.model.policy.ExternalSpeech(secondId, reconnect.epoch());
+            var delivery = new ch.zhaw.prometheus.application.live.LiveContextDelivery(reconnect); delivery.ready();
+            assertTrue(delivery.plan(reconnect, List.of()).commands().isEmpty());
+            ownership.release(scope.id(), secondId);
+        } finally { release.countDown(); bridge.close(); ownership.release(scope.id(), sessionId); }
     }
     @Test void freshLiveClaimClearsSavedOutputFlagsBeforeProjectingNativeInstructions() {
         var scope = create();

@@ -27,6 +27,9 @@ public class CoordinationUpdateAction extends Action {
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
         var storage = getStorage();
         if (events.isEmpty() || !runtime.taskContinuation().getAsBoolean()) return;
+        if (DirectCommands.enabled(runtime.promptMessageAssembler().capabilities()) && DirectCommands.handled(storage, events)) {
+            storage.put(TaskMemory.REPLY, new JsonObject()); return;
+        }
         var event = events.toList().getLast(); String text = event.getPayload(); Instant now = Instant.now();
         String revision = TaskMemory.text(storage, TaskMemory.REVISION, "0");
         CoordinationMemory.remove(storage, CoordinationSupport.LIVE_HELP);
@@ -100,6 +103,8 @@ public class CoordinationUpdateAction extends Action {
                         + DecorativeGestures.guidance(storage, now)
                         + CoordinationSocialContract.interpretationGuidance(text);
                 var messages = TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now);
+                if (!selectedStart && DirectCommands.enabled(runtime.promptMessageAssembler().capabilities()))
+                    messages.add(PromptMessage.system(DirectCommands.guidance(runtime.promptMessageAssembler().capabilities(), true)));
                 messages.add(PromptMessage.system(CoordinationTaskContract.currentTurn(storage, text, events, runtime.externalSpeech())));
                 if (selectedStart) messages.add(PromptMessage.system("The backend has selected START of the unchanged ready proposal from explicit acceptance. "
                         + "Supply its first agreed contribution in reply.speech; for a riddle, ask the question without its solution. "
@@ -110,6 +115,8 @@ public class CoordinationUpdateAction extends Action {
                 inferred = true;
                 rejection = "update_shape";
                 var update = JsonParser.parseString(raw).getAsJsonObject();
+                if (!selectedStart && DirectCommands.taskEnvelope(update, "agreement", runtime.promptMessageAssembler().capabilities(),
+                        storage, events, runtime.externalSpeech() != null)) return;
                 CoordinationAgreement.exact(update, Set.of("operation", "agreement", "reply"));
                 operation = update.get("operation").getAsString();
                 rejection = "agreement_shape";

@@ -81,6 +81,28 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
+Current work is `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–05 acceptance
+is complete (current task narration, shared one-shot commands and voice/mode
+alignment). Commands derive from persisted profile tags and declared outputs,
+use admitted history positions for deduplication, and emit canonical plans.
+Valerian instance labels use stable unique short ID suffixes; stored names and
+full selection/request IDs are unchanged. All four required provider journeys
+passed, including Coordination direct commands/silent output, current task
+acceptance and one confirmed contribution, Live Multimodal supported/unsupported
+requests, and matched ordinary timing. Malformed optional command metadata cannot
+close native capture; guidance forbids substituting a previous gesture for an
+unavailable action and separates user silence from native speech ownership.
+The final HP-03 provider retest confirms both interpretation corrections.
+The owner authorized sequential milestones with commit/push after each. Paid
+authorizations were $40/eight attempts, $10/two retests and $5/one HP-03 follow-up;
+all eleven/$55 reservations are consumed, including failures. Preserve all three
+commanding ledgers and the separate completed repair ledger. No further paid
+attempt is authorized. Physical microphone/speaker checks remain NOT RUN; minor
+repeated spoken prefixes remain a fluency limitation. The owner subsequently
+authorized the HRI merge and this agents/Heroku promotion. See
+`.agents/TOWARDSCOMMANDING_DEPLOYMENT.md` for integration/release evidence and
+`.agents/TOWARDSCOMMANDING_RESULTS.md` for the exact verification and limits.
+
 The 2026-11-18 GPT-Live repair committed GLF-01 (`f7c1033c`), GLF-02
 (`807f60cb`), GLF-03 (`973629b5`) and GLF-04 (`3de61cec`) on main.
 Native Coordination audio is independent of backend inference/capture, while

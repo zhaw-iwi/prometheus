@@ -82,6 +82,42 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Commanding promotion (2026-11-19): main through `84f90dc9` is integrated into
+  agents with its deployment catalog/personas and workflow preserved. The HRI
+  branch is pushed as `d7d3b303`. Merged-source checks and Heroku release evidence
+  are recorded in `.agents/TOWARDSCOMMANDING_DEPLOYMENT.md`.
+
+- Towards commanding (2026-11-19): TWC-01 prevents queued obsolete Coordination
+  state announcements from surviving a later committed occasion and withdraws
+  already-sent obsolete instructions once. Valid task contributions retain their
+  delivery contract; ordinary native speech remains independent. Verified with
+  332 affected unit cases, a 102-case local-MySQL Java run, seven browser cases
+  and two strengthened native-ingress reruns. Screenshots inspected; real-provider
+  and physical acceptance remain pending. TWC-02 was pushed as `aac0cce7`: shared
+  direct-command validation across four scoped variants, persisted turn identity,
+  silent outcomes and owner-loss publication fencing. Verified with 508 affected
+  units, 47 focused service/command cases (overlap), four persisted variants and
+  two real-app Text journeys; screenshots inspected. TWC-03 adds positive native
+  output guidance and quiet session/turn-bound results. Verified with 218 affected
+  units, 175 JavaScript cases, seven local-DB cases and two mode-switch browser
+  journeys plus existing audio-independence cases. Visual poses inspected.
+  TWC-04 adds stable unique instance-ID suffixes, readable long-name options and
+  full-label details; five unit cases, local-DB three-instance lifecycle and
+  light/dark/narrow browser checks pass. TWC-05 is complete under
+  `.agents/PLAN_TOWARDSCOMMANDING.md`; commit/push each milestone. The owner
+  authorized an additional $40/eight paid attempts, failures included; all are
+  now reserved. Coordination demonstrations, repetition and native silence passed.
+  The separately authorized $10/two retests are also fully reserved. Coordination
+  task acceptance passed: current waiting state, one confirmed joke, no replay,
+  return and standalone gesture. A final authorized $5 HP-03 follow-up passed
+  scissors/question, correct silence flags and unsupported walking rejection,
+  confirming the interpretation fix. Malformed metadata propagation is contained
+  and locally covered. Matched ordinary timing and complete-face provider images
+  passed. All eleven/$55 reservations are consumed; no further paid attempt is
+  authorized. Physical audio remains NOT RUN; repeated short spoken prefixes remain
+  a fluency limitation. Results: `.agents/TOWARDSCOMMANDING_RESULTS.md`.
+  No new deployment authorized.
+
 - GPT-Live repair (2026-11-18/19): GLF-01 committed/pushed as `f7c1033c` protects
   Text/Continuous canonical Speech, preparation, acceptance, fresh cues and budgets.
   GLF-02 restores immediate native Coordination audio and nonverbal backend replies;

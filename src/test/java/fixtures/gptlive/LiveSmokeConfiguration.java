@@ -37,6 +37,7 @@ public class LiveSmokeConfiguration {
                 }
                 ch.zhaw.prometheus.logging.ActivityTrace.inference(request.requestId(), request.purpose().name(), "fixture-model", "low", 10, 5, 1);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
+                if (provider.directReply != null && request.purpose() != InferencePurpose.DECISION && prompt.contains("DIRECT OUTPUT REQUESTS")) return provider.directReply;
                 var data = responseCheckData(request);
                 if (data != null) {
                     var result = new JsonObject();
@@ -114,6 +115,7 @@ public class LiveSmokeConfiguration {
     public static final class Provider implements LiveSessionGateway, AutoCloseable {
         public volatile CompletableFuture<Void> inferenceGate;
         public volatile String coordinationProposal;
+        public volatile String directReply;
         public final List<Synthesized> speech = new CopyOnWriteArrayList<>();
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
         public final AtomicInteger tts = new AtomicInteger();
@@ -144,6 +146,12 @@ public class LiveSmokeConfiguration {
                         call.activity = activity >= 0 ? content.substring(activity) : call.activity + content;
                         if (call.activity.length() > 8192) call.activity = call.activity.substring(call.activity.length() - 8192);
                     }
+                    if (type.equals(call.heldType) && call.ackGate != null && !call.ackGate.isDone()) {
+                        call.ackWaiting = true;
+                        try { call.ackGate.get(12, TimeUnit.SECONDS); }
+                        catch (Exception failure) { throw new IllegalStateException("Synthetic ACK hold failed", failure); }
+                        finally { call.ackWaiting = false; }
+                    }
                     receive.accept(ack);
                     if (type.equals("session.commentary.append")) {
                         String spoken = event.get("content").getAsString().endsWith("First fixture observation.")
@@ -162,11 +170,11 @@ public class LiveSmokeConfiguration {
             Call call = calls.get(id); if (call == null || call.closed) throw new IllegalArgumentException("Synthetic call unavailable");
             int sequence = call.sequence.incrementAndGet(); long offset = sequence * 5000L;
             String prefix = "USER".equals(speaker) ? "input" : "output";
-            if (prefix.equals("output")) {
+            {
                 // Model the new utterance's PCM lead-in before its caption. Otherwise an
                 // intentional idle interval appears as lost coverage inside the new speech.
-                var lead = new JsonObject(); lead.addProperty("type", "session.output_audio.delta");
-                lead.addProperty("delta", Base64.getEncoder().encodeToString(new byte[4800]));
+                var lead = new JsonObject(); lead.addProperty("type", "session." + prefix + "_audio." + (prefix.equals("input") ? "append" : "delta"));
+                lead.addProperty(prefix.equals("input") ? "audio" : "delta", Base64.getEncoder().encodeToString(new byte[4800]));
                 lead.addProperty("start_ms", offset - 100); lead.addProperty("end_ms", offset);
                 call.receive.accept(lead);
             }
@@ -198,6 +206,9 @@ public class LiveSmokeConfiguration {
         }
         public void close() { audio.shutdownNow(); }
         public static final class Call {
+            public volatile CompletableFuture<Void> ackGate;
+            public volatile String heldType;
+            public volatile boolean ackWaiting;
             public int ttsBefore;
             public volatile Consumer<JsonObject> receive;
             public volatile boolean closed;
@@ -220,7 +231,23 @@ public class LiveSmokeConfiguration {
         @DeleteMapping("/__live-fixture/coordination-proposal") public void clearCoordinationProposal() {
             provider.coordinationProposal = null;
         }
+        @PostMapping("/__live-fixture/direct-command") public void directCommand(@RequestBody String reply) { provider.directReply = reply; }
+        @DeleteMapping("/__live-fixture/direct-command") public void clearDirectCommand() { provider.directReply = null; }
         @GetMapping("/__live-fixture/speech") public List<Synthesized> speech() { return List.copyOf(provider.speech); }
+        @PostMapping("/__live-fixture/ack/{id}/{action}") public Map<String, Boolean> ack(
+                @PathVariable String id, @PathVariable String action, @RequestBody(required = false) Map<String, String> body) {
+            var call = provider.calls.get(id);
+            if (action.equals("hold")) {
+                call.heldType = body.getOrDefault("type", "session.thinking.append");
+                call.ackGate = new CompletableFuture<>();
+            } else if (action.equals("release")) {
+                if (call.ackGate != null) call.ackGate.complete(null);
+            } else throw new IllegalArgumentException("Unknown ACK control");
+            return Map.of("accepted", true);
+        }
+        @GetMapping("/__live-fixture/ack/{id}") public Map<String, Boolean> ackState(@PathVariable String id) {
+            return Map.of("waiting", provider.calls.get(id).ackWaiting);
+        }
         @GetMapping("/__live-fixture/inference") public Map<String, Object> inference() {
             return Map.of("count", provider.inferences.size(), "held", provider.inferenceGate != null && !provider.inferenceGate.isDone());
         }

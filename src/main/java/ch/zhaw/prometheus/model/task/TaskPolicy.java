@@ -47,7 +47,10 @@ public class TaskPolicy extends Policy {
         if (storage.containsKey(DecorativeGestures.REQUIRED)) storage.remove(DecorativeGestures.REQUIRED);
         return DecorativeGestures.publish(storage, plan, required, java.time.Instant.now());
     }
-    @Override public void reset() { if (DecorativeGestures.enabled(storage)) DecorativeGestures.clear(storage); }
+    @Override public void reset() {
+        if (DecorativeGestures.enabled(storage)) DecorativeGestures.clear(storage);
+        ch.zhaw.prometheus.model.behaviour.DirectCommands.clear(storage);
+    }
     @Override public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway gateway) { return null; }
     @Override public String summarise(State state, EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway gateway) { return TaskMemory.description(storage); }
 }

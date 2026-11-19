@@ -1,3 +1,4 @@
+import {hardware} from './fixtures/native-hardware.mjs';
 import { test, expect } from './fixtures/offline-ui-assets.mjs';
 
 // Real application, MySQL, SSE, audio element and Web Audio. Only provider
@@ -219,34 +220,60 @@ test('native Coordination interruption preserves prefixes through Stop reconnect
   } finally {await request.delete(path, {headers});}
 });
 
-async function hardware(context) {
-  await context.route('https://transcription.invalid/offer', r => r.fulfill({contentType:'application/sdp', body:'synthetic-answer'}));
-  await context.addInitScript(() => {
-    window.__nativeContext = new AudioContext();
-    const remote = __nativeContext.createMediaStreamDestination(), oscillator = __nativeContext.createOscillator();
-    window.__nativeGain = __nativeContext.createGain(); __nativeGain.gain.value = 0;
-    oscillator.connect(__nativeGain).connect(remote); oscillator.start();
-    Object.defineProperty(navigator, 'mediaDevices', {configurable:true, value:{
-      async getUserMedia() {await __nativeContext.resume(); const input = __nativeContext.createMediaStreamDestination();
-        window.__nativeMic = input.stream.getAudioTracks()[0];
-        const noise = __nativeContext.createOscillator(); noise.frequency.value = 170;
-        window.__nativeInputGain = __nativeContext.createGain(); __nativeInputGain.gain.value = 0;
-        noise.connect(__nativeInputGain).connect(input); noise.start(); return input.stream;},
-      async enumerateDevices() {return [];}, getSupportedConstraints() {return {};}, addEventListener() {}, removeEventListener() {}
-    }});
-    window.RTCPeerConnection = class extends EventTarget {
-      constructor() {super(); this.iceGatheringState = 'complete'; this.connectionState = 'new'; this.senders = [];}
-      createDataChannel() {const channel = new EventTarget(); channel.readyState = 'connecting'; channel.send = () => {}; channel.close = () => {};
-        window.__nativeChannel = this.channel = channel; window.__nativeReceive = event => channel.onmessage?.({data:JSON.stringify(event)}); return channel;}
-      addTrack(track) {this.senders.push({track});} getSenders() {return this.senders;}
-      async createOffer() {return {type:'offer', sdp:'v=0 synthetic-offer'};} async setLocalDescription(value) {this.localDescription = value;}
-      async setRemoteDescription(value) {
-        this.connectionState = 'connected'; this.channel.readyState = 'open';
-        this.channel.onmessage?.({data:'{"type":"session.started"}'});
-        queueMicrotask(() => this.channel.dispatchEvent(new Event('open')));
-        if (value.sdp.startsWith('v=0')) this.ontrack?.({streams:[remote.stream], track:remote.stream.getAudioTracks()[0]});
-      }
-      async getStats() {return new Map();} close() {this.connectionState = 'closed';}
-    };
-  });
-}
+for (const inFlight of [false, true]) test(`native Coordination withdraws obsolete ${inFlight ? 'in-flight' : 'queued'} proposal after acceptance`, async ({page, context, request}, info) => {
+  test.skip(process.env.PROMETHEUS_LIVE_EXPECT_ENABLED !== 'true' || !process.env.PROMETHEUS_ADMIN_TOKEN,
+    'Use the enabled disposable MySQL acceptance runner.');
+  const admin = {'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
+  const code = Math.random().toString(36).slice(2, 7).toUpperCase();
+  const access = await (await request.post('/admin/access-codes', {headers:admin, data:{code, enabled:true}})).json();
+  await request.put(`/admin/access-codes/${access.id}/agent-types`, {headers:admin, data:{agentTypeKeys:['core.coordination']}});
+  const headers = {'X-Prometheus-Access-Code':code};
+  const agent = await (await request.post('/demo/agents', {headers, data:{agentDefinitionKey:'core.coordination'}})).json();
+  const path = `/demo/agents/${agent.id}`;
+  const memory = async () => Object.fromEntries((await (await request.get(path + '/storage', {headers})).json()).map(e => [e.key, JSON.parse(e.value)]));
+  const turn = async text => expect((await request.post(`/__live-fixture/speak/${providerId}`,
+    {data:{speaker:'USER', text}})).ok()).toBe(true);
+  const agreement = {goal:'One joke on rock', humanRole:'Show rock', agentRole:'Tell one joke', success:'The visitor judges the joke',
+    questions:[], checks:[], dialogueLimit:1, reactions:{goal:'One joke on rock', maxActions:1, sessionBound:true, firstAction:'ON_CUE',
+      rules:[{eventType:'obs.hand.sign', field:'sign', operator:'eq', value:'rock', action:'Tell one joke', effect:'ACT', minConfidence:0, samples:1, cooldownSeconds:3}]}};
+  const outputs = []; let providerId;
+  page.on('request', r => {if (r.method() === 'POST' && /playback-cues|speech-synthesis|speech-approvals/.test(r.url())) outputs.push(r.url());});
+  await hardware(context);
+  try {
+    await page.goto(`/valerian/?agentId=${agent.id}`);
+    await page.getByTestId('access-code-input').fill(code); await page.getByTestId('submit-access-code').click();
+    await expect(page.locator('#behaviour_status')).toHaveText('Behaviour Live');
+    await page.getByTestId('gptlive-tab').click(); await page.getByTestId('gptlive-start').click();
+    await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
+    providerId = (await (await request.get('/__live-fixture/latest')).json()).providerId;
+    await request.post(`/__live-fixture/ack/${providerId}/hold`, {data:{type:inFlight ? 'session.commentary.append' : 'session.thinking.append'}});
+    await request.post('/__live-fixture/coordination-proposal', {data:{operation:'PROPOSE', agreement, reply:{speech:'Ready to start?'}}});
+    await turn('Propose one joke after rock, without starting.');
+    await expect.poll(async () => (await (await request.get(`/__live-fixture/ack/${providerId}`)).json()).waiting).toBe(true);
+    const oldId = (await memory())['core.task.response'].id;
+    if (inFlight) await page.evaluate(() => {__nativeGain.gain.value = .15;});
+    await request.post('/__live-fixture/coordination-proposal', {data:{operation:'START', agreement:null, reply:{speech:'Waiting for rock.'}}});
+    await turn('Start now');
+    await expect.poll(async () => (await memory())['core.task.response']?.id).not.toBe(oldId);
+    const accepted = await memory(); const currentId = accepted['core.task.response'].id;
+    expect(currentId).not.toBe(oldId); expect(accepted['task.actions']).toBe(0);
+    expect(accepted['coordination.agreement']).toEqual(agreement);
+    await request.post(`/__live-fixture/ack/${providerId}/release`);
+    const commands = async () => (await (await request.get('/__live-fixture/latest')).json()).commands.map(JSON.parse);
+    await expect.poll(async () => (await commands()).filter(c => c.type === 'session.commentary.append' && c.content.includes(currentId)).length).toBe(1);
+    const sent = await commands();
+    expect(sent.filter(c => c.type === 'session.commentary.append' && c.content.includes(oldId))).toHaveLength(inFlight ? 1 : 0);
+    expect(sent.filter(c => c.content?.includes(oldId) && c.content.includes('is withdrawn'))).toHaveLength(1);
+    expect(await page.evaluate(() => ({paused:document.getElementById('gptlive_audio').paused, muted:document.getElementById('gptlive_audio').muted})))
+      .toEqual({paused:false, muted:false});
+    expect(outputs).toHaveLength(0); expect((await memory())['task.actions']).toBe(0);
+    await expect(page.getByTestId('gptlive-history')).toContainText('Start now');
+    await page.screenshot({path:info.outputPath(`accepted-${inFlight ? 'in-flight' : 'queued'}.png`), fullPage:true});
+    await info.attach('task-announcement-evidence', {contentType:'application/json', body:Buffer.from(JSON.stringify({inFlight, oldId, currentId, commands:sent, memory:await memory()}))});
+    await page.getByTestId('gptlive-stop').click(); await expect(page.getByTestId('gptlive-status')).toHaveText('Idle');
+  } finally {
+    if (providerId) await request.post(`/__live-fixture/ack/${providerId}/release`);
+    await request.delete('/__live-fixture/coordination-proposal');
+    await request.delete(path, {headers});
+  }
+});

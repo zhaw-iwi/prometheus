@@ -137,8 +137,18 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         response.addProperty("consumed", true); storage().put(CoreTaskVoice.RESPONSE, response); return true;
     }
     @Override public LiveActivityContext liveActivityContext() {
-        return CoordinationDelivery.withPlayback(storage(),
+        var context = CoordinationDelivery.withPlayback(storage(),
                 ch.zhaw.prometheus.model.coordination.CoordinationSupport.withHelp(storage(), speechContext(), Instant.now()));
+        var continuation = context.continuation();
+        var response = storage().containsKey(TaskResponse.KEY) ? storage().get(TaskResponse.KEY).getAsJsonObject() : null;
+        boolean contribution = continuation != null && response != null
+                && continuation.responseId().toString().equals(response.get("id").getAsString())
+                && (!response.has("purpose") || !"ARMING".equals(response.get("purpose").getAsString()));
+        // The persisted occasion already binds revision/run and phase preconditions. Its identity
+        // changes on control transitions, but not on unrelated sensory/context updates.
+        if (continuation != null && !continuation.interruptible() && !contribution)
+            return new LiveActivityContext(context.facts(), continuation.whileCurrent(), context.refreshAt(), context.playbackCue());
+        return context;
     }
     private LiveActivityContext speechContext() {
         var storage = storage(); Instant now = Instant.now();

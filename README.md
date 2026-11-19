@@ -69,6 +69,13 @@ the right with the heartbeat button, choose an agent type, create an instance,
 connect to it, and reset or delete it when needed. The drawer's diagnostics tab
 shows runtime events and agent state.
 
+Instance labels append a stable short ID, for example `Coordination · a3ca2f38`.
+They use at least eight characters and extend colliding prefixes within the
+scoped list. Long selector names shorten to keep that suffix visible; the full
+formatted label appears below the selector and in instance details. The full
+ID remains the selection/request value and is available in the Agent ID field.
+This presentation does not rename instances or change their persona or behavior.
+
 In **Diagnostics → State machine**, **Float state view** moves the current-state
 label and directed state graph over the cockpit. Drag its title bar, or focus the title and
 use arrow keys, to move it. **Maximise / Restore** expands it within the tab;
@@ -2778,6 +2785,57 @@ default single-candidate behavior is unchanged.
 Coordination records whether that occasion requests arming or an actual task
 contribution, so a cue-triggered action cannot be confused with initial ON_CUE
 activation during semantic verification. Capture still does not prove audibility.
+State announcements and proposal invitations are scoped to their current persisted
+speaking occasion. The Live bridge rechecks that identity before sending each
+part and after provider acknowledgement waits, discarding obsolete queued parts.
+Already-sent obsolete instructions receive one quiet withdrawal directing the
+voice to use current facts and correct conflicting wording once if needed. This
+does not retract words already heard or hard-cancel the native audio stream.
+Committed task contributions keep their separate delivery contract; ordinary
+sensor updates cannot withdraw a valid invitation. See the
+[commanding roadmap](.agents/PLAN_TOWARDSCOMMANDING.md) and
+[verification record](.agents/TOWARDSCOMMANDING_RESULTS.md).
+Coordination, Live Multimodal and both Generic Multimodal variants share an opt-in
+one-shot command validator, derived from their existing persisted profiles.
+Their existing inference interprets capability questions, single demonstrations,
+ambiguity and unsupported requests. The validator accepts rock/scissor/paper and
+OPEN_QUESTION/EXPLAIN/UNCERTAIN/ACKNOWLEDGE/POLITE only when the instance declares
+the relevant output. Explicit silence omits backend speech. Pending task output
+blocks a separate demonstration without changing the agreement or its budget.
+Handled user-history positions and the latest bounded result survive reload;
+new turns may repeat an action. Metadata is internal storage, not a new public
+BehaviourPlan channel or proof of physical execution. No graph migration is needed.
+Malformed optional command metadata in the Live Multimodal embodiment complement
+rejects that entire complement without publishing movement or retrying inference;
+it does not close independently running native speech.
+Commanding acceptance uses `tests/gptlive/commanding-paid-plan.json`, local Windows
+SAPI visitor clips (`prepare_commanding_audio.py`), and a separate persistent budget
+ledger. Its eight-attempt/$40 reservation envelope is exhausted, including failures.
+Do not reset it to rerun `--paid-core commanding-*`; remaining provider acceptance
+requires new authorization. Deterministic checks remain available without spending:
+`python -m unittest discover -s tests/gptlive -p 'test_*.py'` and
+`node --test tests/gptlive/test_commanding_evidence.mjs`.
+A subsequent $10/two-attempt authorization uses `commanding-retests-plan.json`
+and its separate ledger via `--commanding-retests`, restricted to one HP-02 and
+one HP-03 attempt. Both are now reserved and this envelope is also exhausted.
+The final separately authorized $5 HP-03 follow-up uses
+`commanding-hp3-retest-plan.json` and `--commanding-hp3-retest`; its single attempt
+is also consumed. All required journeys passed: Coordination commands/current
+task speech, Live Multimodal supported actions and unsupported rejection, matched
+ordinary timing, persistence, mode parity and reviewed gesture screenshots.
+TWC-05 is complete; eleven/$55 reservations include failed attempts and are not
+provider invoices. No additional paid run is authorized. Physical audio checks
+remain NOT RUN. See `.agents/TOWARDSCOMMANDING_RESULTS.md`.
+Live receives positive digital-output guidance from the declared capabilities,
+including scoped saved instances with general capability awareness disabled.
+Quiet command results are admitted only for the current completed native user
+turn in the same session/epoch, expire after 30 seconds, and are omitted at
+session startup. They are pending-answer facts, not new speaking occasions or
+rendering/physical receipts. Text and Continuous retain their canonical speech
+routes; Live has no competing ordinary synthesis. Actual model wording and
+silence were checked in the recorded provider journeys; this small synthetic
+sample does not establish physical audibility or general reliability.
+
 The verifier compares the requested communicative act: an equivalent question
 fulfils a requested question; feedback must actually evaluate the answer. Changed
 polarity, quantities, conditions, partial content or a promise to speak are not a

@@ -12,9 +12,12 @@ public record LiveActivityContext(String facts, Continuation continuation, Insta
     public LiveActivityContext { bounded(facts, 4000); }
     public enum Occasion { USER_REQUEST, PROACTIVE }
     /** A persisted identity authorizes one speaking occasion; selfContained facts travel with its speaking instruction. */
-    public record Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, boolean selfContained, boolean correction, UUID responseId) {
+    public record Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, boolean selfContained, boolean correction, UUID responseId, boolean currentOnly) {
         public static final int MAX_FACTS_BYTES = 1000;
         public static final int MAX_SELF_CONTAINED_BYTES = 340;
+        public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, boolean selfContained, boolean correction, UUID responseId) {
+            this(id, occasion, facts, expiresAt, interruptible, selfContained, correction, responseId, false);
+        }
         public Continuation(UUID id, Occasion occasion, String facts, Instant expiresAt, boolean interruptible, boolean selfContained, boolean correction) {
             this(id, occasion, facts, expiresAt, interruptible, selfContained, correction, id);
         }
@@ -33,6 +36,10 @@ public record LiveActivityContext(String facts, Continuation continuation, Insta
             if (correction && (interruptible || occasion != Occasion.USER_REQUEST)) throw new IllegalArgumentException("Corrections require an uninterrupted requested response");
         }
         public boolean expiredAt(Instant now) { return expiresAt != null && !now.isBefore(expiresAt); }
+        /** State narration may be withdrawn; committed task contributions keep their delivery contract. */
+        public Continuation whileCurrent() {
+            return new Continuation(id, occasion, facts, expiresAt, interruptible, selfContained, correction, responseId, true);
+        }
         @Override public String toString() { return "LiveContinuation[id=" + id + ",occasion=" + occasion + "]"; }
     }
     private static void bounded(String text, int limit) {

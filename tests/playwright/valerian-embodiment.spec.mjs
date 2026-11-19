@@ -1,4 +1,6 @@
 import {test,expect} from './fixtures/offline-ui-assets.mjs';
+import {trialCapture} from '../gptlive/trial_capture.mjs';
+import {synchronizeEmbodimentFrame} from './fixtures/embodiment-frame.mjs';
 
 const id='82828282-8282-4282-8282-828282828282';
 const plan={speech:'Which option would you prefer?',nonVerbal:{gesture:'OPEN_QUESTION',facialExpression:{type:'warm_smile',intensity:0.7},
@@ -22,7 +24,7 @@ async function fixture({context,page},options={}) {
     if(path==='/demo/agent-types')return route.fulfill(json([{key:'core.multimodal_behaviour',displayName:'Multimodal',interactionProfile:profile}]));
     if(path==='/demo/agents')return route.fulfill(json([agent]));
     if(path.endsWith('/info'))return route.fulfill(json(agent));
-    if(path.endsWith('/eventhistory'))return route.fulfill(json([event(plan)]));
+    if(path.endsWith('/eventhistory'))return route.fulfill(json(options.empty?[]:[event(plan)]));
     if(path.endsWith('/storage'))return route.fulfill(json([]));
     if(path.endsWith('/state'))return route.fulfill(json({name:'Conversation',innerNames:[]}));
     if(path.endsWith('/states'))return route.fulfill(json(['Conversation']));
@@ -31,7 +33,7 @@ async function fixture({context,page},options={}) {
   });
   await page.goto(`/valerian/?agentId=${id}`);
   await page.getByTestId('access-code-input').fill('ROBOT');await page.getByTestId('submit-access-code').click();
-  await expect(page.getByTestId('speech-preview')).toHaveText(plan.speech);
+  if(!options.empty)await expect(page.getByTestId('speech-preview')).toHaveText(plan.speech);
   if(options.robot!==false)await robot(page);
   return ()=>writes;
 }
@@ -42,6 +44,25 @@ async function robot(page) {
 async function publish(page,p,n=2,delivery='live',extra={}) {
   await page.evaluate(({e,delivery,extra})=>handleBehaviourEnvelope(e,{delivery,eventId:e.id,...extra}),{e:event(p,n),delivery,extra});
 }
+
+for(const capture of [false,true]) test(`embodiment renders a minimal command after an initially empty history (capture ${capture})`,async({page,context},info)=>{
+  const diagnostics=[];page.on('console',m=>{if(['warning','error'].includes(m.type()))diagnostics.push(m.text());});
+  if(capture)await context.addInitScript(trialCapture);
+  await page.emulateMedia({reducedMotion:'reduce'});await fixture({page,context},{empty:true});
+  await page.evaluate(async(capture)=>{
+    if(capture)await navigator.mediaDevices.getUserMedia({audio:true});
+    const ctx=capture?__trial.context:new AudioContext();await ctx.resume();
+    const source=ctx.createOscillator(),remote=ctx.createMediaStreamDestination();
+    source.connect(remote);source.start();
+    const audio=document.createElement('audio');audio.srcObject=remote.stream;document.body.append(audio);await audio.play();
+  },capture);
+  await publish(page,{nonVerbal:{gesture:'NONE'},motion:{handSign:'rock'}});
+  await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-hand-sign','rock');
+  const {irisPixels,glError}=await synchronizeEmbodimentFrame(page);expect(glError).toBe(0);
+  expect(irisPixels,'The default eyes remain visible with a minimal hand command and active audio').toBeGreaterThan(100);
+  await page.locator('#embodiment_panel').screenshot({path:info.outputPath('minimal-rock-empty-history.png')});
+  await info.attach('graphics-diagnostics',{contentType:'application/json',body:Buffer.from(JSON.stringify(diagnostics))});
+});
 
 test('embodiment switches middle region only, persists preference and renders real WebGL',async({page,context},info)=>{
   const writes=await fixture({page,context},{robot:false});

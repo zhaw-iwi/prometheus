@@ -12,6 +12,9 @@ def reserve(ledger: Path, plan: dict, mode: str, artifact: Path):
     try:
         history = json.loads(ledger.read_text(encoding='utf-8')) if ledger.exists() else {'attempts': []}
         attempts = history['attempts']
+        by_mode = plan.get('maximumAttemptsByMode')
+        if by_mode is not None and (mode not in by_mode or sum(a['mode'] == mode for a in attempts) >= by_mode[mode]):
+            raise ValueError('Paid mode attempt budget exhausted; no provider call is permitted')
         reserved = sum(entry['reservedUsd'] for entry in attempts)
         amount = plan.get('reserveUsdByMode', {}).get(mode, plan['reserveUsdPerAttempt'])
         if (len(attempts) >= plan['maximumAttempts'] or reserved + amount > plan['maximumReservedUsd']

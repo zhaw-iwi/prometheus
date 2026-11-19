@@ -1244,6 +1244,9 @@
       border-color: var(--demo-line);
       color: var(--ink);
     }
+    [data-theme="dark"] #diagnostics_drawer {
+      background: #142023;
+    }
 
     [data-theme="dark"] .emotion-meter,
     [data-theme="dark"] .signal-meter {
@@ -2576,7 +2579,8 @@
           </div>
           <div id="agent_type_status" class="access-status mb-3" data-testid="agent-type-status"></div>
           <label class="form-label metric-label" for="agent_select">Known Agents</label>
-          <select id="agent_select" class="form-select form-select-sm mb-3" data-testid="agent-select"></select>
+          <select id="agent_select" class="form-select form-select-sm mb-1" data-testid="agent-select" aria-describedby="selected_agent_identity"></select>
+          <div id="selected_agent_identity" class="small mb-3" style="overflow-wrap:anywhere" data-testid="selected-agent-identity" aria-live="polite"></div>
           <label class="form-label metric-label" for="agent_id_input">Agent ID</label>
           <input id="agent_id_input" class="form-control form-control-sm mono mb-3" data-testid="agent-id-input"
             placeholder="Select an agent first">
@@ -2602,7 +2606,7 @@
           </div>
           <div class="surface-panel drawer-info-panel">
             <div class="metric-label">Name</div>
-            <div id="agent_info_name" class="mb-3">-</div>
+            <div id="agent_info_name" class="mb-3" style="overflow-wrap:anywhere">-</div>
             <div class="metric-label">Description</div>
             <div id="agent_info_description" class="mb-3">-</div>
             <div class="metric-label">Language</div>
@@ -2739,6 +2743,7 @@
   <script src="/valerian/state-graph.js"></script>
   <link rel="stylesheet" href="/valerian/embodiment/view.css">
   <script type="module" src="/valerian/embodiment/view.js"></script>
+  <script src="/valerian/instance-labels.js"></script>
   <script src="script.js"></script>
   <script type="module" src="/valerian/service-recovery.js"></script>
 </body>

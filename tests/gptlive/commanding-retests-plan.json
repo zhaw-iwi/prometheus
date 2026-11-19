@@ -1,0 +1,48 @@
+{
+  "schema": "commanding-retests-plan-v1",
+  "authorized": true,
+  "dated": "2026-11-19",
+  "maximumAttempts": 2,
+  "maximumReservedUsd": 10,
+  "reserveUsdPerAttempt": 5,
+  "models": {
+    "backend": "gpt-5.6-luna",
+    "live": "gpt-live-1"
+  },
+  "limits": {
+    "backendRequests": 36,
+    "requestBytes": 80000,
+    "completionTokensPerRequest": 2048,
+    "reportedTokens": 250000,
+    "sessions": 1,
+    "sessionSeconds": 360,
+    "journeySeconds": 390,
+    "visitorTurns": 12,
+    "stimulusCalls": 0,
+    "outputSpeechCalls": 0
+  },
+  "pricing": {
+    "backendInputUsdPerMillion": 0.2,
+    "backendOutputUsdPerMillion": 1.2,
+    "cacheWriteMultiplier": 1.25,
+    "liveUsdPerMinute": 0.05
+  },
+  "pricingChecked": "2026-11-19",
+  "sources": [
+    "https://developers.openai.com/api/docs/models/gpt-5.6-luna.md",
+    "https://developers.openai.com/api/docs/models/gpt-live-1.md"
+  ],
+  "latency": {
+    "medianAllowanceOverBaselineMs": 1000,
+    "maximumAllowanceOverBaselineMs": 2000,
+    "turns": 3
+  },
+  "stimulus": "Locally generated Windows speech, 24kHz mono PCM. No provider stimulus or grading calls.",
+  "rubric": "Review entire replies. Paraphrases allowed; wrong actions/signs/roles/counts/conditions, renewed consent after activation, false capability denials and unsupported execution claims fail. Silent commands require no associated native audio. Missing evidence is INCONCLUSIVE. Physical audibility is not measured.",
+  "failurePolicy": "Separately authorized USD 10 total replaces the earlier USD 5 question. Reserve USD 5 for each of one HP-02 and one HP-03 attempt, failures included. Preserve both exhausted ledgers. No automatic retries or refunds.",
+  "authorization": "commanding-retests-2026-11-19-usd10",
+  "maximumAttemptsByMode": {
+    "commanding-hp2": 1,
+    "commanding-hp3": 1
+  }
+}
