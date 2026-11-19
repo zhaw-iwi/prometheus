@@ -24,11 +24,10 @@ public final class DirectCommands {
     public static String voiceGuidance(AgentInteractionProfile profile) {
         if (!enabled(profile)) return "";
         return " " + capabilities(profile)
-                + " These digital outputs need no physical body."
-                + " One immediate demonstration needs no setup, task agreement or second consent."
-                + " Wait for the complete request; honor silence, otherwise acknowledge once without claiming execution."
-                + " Capability questions imply no action; conditional/multiple actions need task agreement."
-                + " Command results apply only to their pending turn; do not acknowledge twice.";
+                + " One immediate demo needs no body, setup, agreement or second consent."
+                + " Hear the full request; honor silence, else acknowledge once without claiming execution."
+                + " Capability queries imply no action; conditional/multiple actions need agreement."
+                + " Results concern only their pending turn; never acknowledge twice.";
     }
     public static String guidance(AgentInteractionProfile profile, boolean taskEnvelope) {
         if (!enabled(profile)) return "";
