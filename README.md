@@ -2211,6 +2211,18 @@ Committed task contributions keep their separate delivery contract; ordinary
 sensor updates cannot withdraw a valid invitation. See the
 [commanding roadmap](.agents/PLAN_TOWARDSCOMMANDING.md) and
 [verification record](.agents/TOWARDSCOMMANDING_RESULTS.md).
+Coordination, Live Multimodal and both Generic Multimodal variants share an opt-in
+one-shot command validator, derived from their existing persisted profiles.
+Their existing inference interprets capability questions, single demonstrations,
+ambiguity and unsupported requests. The validator accepts rock/scissor/paper and
+OPEN_QUESTION/EXPLAIN/UNCERTAIN/ACKNOWLEDGE/POLITE only when the instance declares
+the relevant output. Explicit silence omits backend speech. Pending task output
+blocks a separate demonstration without changing the agreement or its budget.
+Handled user-history positions and the latest bounded result survive reload;
+new turns may repeat an action. Metadata is internal storage, not a new public
+BehaviourPlan channel or proof of physical execution. No graph migration is needed.
+Live spoken consistency remains a separate acceptance item.
+
 The verifier compares the requested communicative act: an equivalent question
 fulfils a requested question; feedback must actually evaluate the answer. Changed
 polarity, quantities, conditions, partial content or a promise to speak are not a

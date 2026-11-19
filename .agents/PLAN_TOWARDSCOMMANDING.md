@@ -111,7 +111,7 @@ task output or silently queue a demonstration for surprise execution later.
 | Milestone | User-visible outcome | Dependencies | Status |
 | --- | --- | --- | --- |
 | TWC-01 | Task speech stops requesting obsolete decisions after state advances. | Existing GLF baseline | SOFTWARE COMPLETE; provider pending |
-| TWC-02 | Supported direct requests produce one validated action through the shared backend path. | TWC-01 | NOT STARTED |
+| TWC-02 | Supported direct requests produce one validated action through the shared backend path. | TWC-01 | SOFTWARE COMPLETE; provider pending |
 | TWC-03 | Native Live speech and direct actions agree; Text/Continuous semantics remain intact. | TWC-01, TWC-02 | NOT STARTED |
 | TWC-04 | Same-type Valerian instances have stable, distinguishable labels. | Independent; scheduled after TWC-03 | NOT STARTED |
 | TWC-05 | Integrated local and real-provider journeys demonstrate the requested outcomes. | TWC-01–04; funded provider preflight | NOT STARTED |

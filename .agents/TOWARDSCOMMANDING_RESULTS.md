@@ -9,7 +9,7 @@ November 19. The completed GPT-Live repair ledger is unchanged.
 | Milestone | Unit | Local DB | Browser functional | Visual review | Provider | Physical | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | TWC-01 | PASS: 332 affected unit cases | PASS: 102-case Java acceptance run | PASS: seven cases, then two strengthened native-ingress reruns | PASS: both new screenshots inspected | NOT RUN | NOT RUN | Software complete |
-| TWC-02 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Not started |
+| TWC-02 | PASS: 508 affected + 47 focused cases (overlap); 16 Python | PASS: four variants, reload/reset/silent rejection | PASS: two real-app Text journeys | PASS: rock/question screenshots inspected | NOT RUN | NOT RUN | Software complete |
 | TWC-03 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Not started |
 | TWC-04 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | N/A: labels need no provider | N/A | Not started |
 | TWC-05 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Not started |
@@ -77,3 +77,46 @@ Ignored artifacts: `target/twc01-unit.log`, `target/twc01-regression.log`,
 both disposable schemas/accounts removed. New screenshots are in the latter
 run's `browser-true/` case directories.
 No paid provider calls have been made for this roadmap.
+
+## TWC-02 ? Shared direct requests
+
+Existing task/embodiment inference now returns optional internal command metadata.
+A shared validator gates the finite vocabulary on persisted profile modalities,
+blocks overlapping task outputs, and emits ordinary canonical BehaviourPlans.
+It never creates/starts/changes a task or spends its contribution budget. Silent
+requests have no backend speech. A bounded handled-turn ledger uses the admitted
+history position (the event UUID is assigned only when flushed), survives event
+selection and database reload, and is cleared on reset. Distinct new turns can
+repeat an action. Existing transport receipt deduplication remains authoritative
+for native/Continuous retries; this is not a new general HTTP idempotency API.
+Saved profile tags opt in without graph or schema migration. Owner loss after
+inference prevents late plan publication. Silent decisions persist even when no
+behaviour event is emitted; otherwise an unsupported request could be retried.
+
+Validation: 508 affected unit cases passed; after the silent-persistence fix,
+47 focused service/command cases passed (overlapping, not additive unique totals).
+The Python harness passed 16 tests. A local-MySQL run passed ten Java cases
+(four persisted agent variants plus six Coordination contract tests); the final
+run repeated the four integration variants with silent rejection persistence.
+Two final real-app browser journeys passed through Text, DB and SSE, checking
+rock, question gesture, deliberate repeat, unsupported request, reload and no
+animation replay. Successful rock/question WebGL screenshots were inspected.
+No assistant output was injected into the UI; inference was synthetic. These
+fixtures prove validation/routing/rendering, not model language understanding.
+Native speech and paid model interpretation remain TWC-03/TWC-05 work.
+
+Implementation failures retained: initial event UUID assumptions corrected to
+history position; EventSelector wrapper and foreign-scope Optional contract fixed
+in tests; Mockito restubbing fixed; final-current-turn prompt position restored.
+The browser correctly exposed a lost silent-result persistence path, now fixed
+and covered in the four-variant integration test. Its initial SSE readiness wait
+was moved after the first output because an empty stream has no event to flush.
+
+Artifacts (ignored): `target/twc02-regression-final.log`,
+`target/twc02-service-regression.log`, `target/twc02-python.log`,
+`target/gptlive-acceptance-89c4066634/` (Java pass, browser setup failure),
+`target/gptlive-acceptance-1181077693/` (silent-result failure), and
+`target/gptlive-acceptance-50512df0f0/` (final four Java/two browser pass).
+Earlier failures remain in `target/twc02-*.log` and their runner directories.
+Owned apps and disposable schemas/accounts were cleaned. No paid calls yet.
+TWC-01 was committed/pushed as `e5a8b6e4`.

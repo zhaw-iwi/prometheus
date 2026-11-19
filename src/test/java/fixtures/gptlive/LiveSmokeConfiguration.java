@@ -37,6 +37,7 @@ public class LiveSmokeConfiguration {
                 }
                 ch.zhaw.prometheus.logging.ActivityTrace.inference(request.requestId(), request.purpose().name(), "fixture-model", "low", 10, 5, 1);
                 String prompt = request.messages().stream().map(PromptMessage::getContent).reduce("", (a, b) -> a + "\n" + b);
+                if (provider.directReply != null && request.purpose() != InferencePurpose.DECISION && prompt.contains("DIRECT OUTPUT REQUESTS")) return provider.directReply;
                 var data = responseCheckData(request);
                 if (data != null) {
                     var result = new JsonObject();
@@ -114,6 +115,7 @@ public class LiveSmokeConfiguration {
     public static final class Provider implements LiveSessionGateway, AutoCloseable {
         public volatile CompletableFuture<Void> inferenceGate;
         public volatile String coordinationProposal;
+        public volatile String directReply;
         public final List<Synthesized> speech = new CopyOnWriteArrayList<>();
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
         public final AtomicInteger tts = new AtomicInteger();
@@ -229,6 +231,8 @@ public class LiveSmokeConfiguration {
         @DeleteMapping("/__live-fixture/coordination-proposal") public void clearCoordinationProposal() {
             provider.coordinationProposal = null;
         }
+        @PostMapping("/__live-fixture/direct-command") public void directCommand(@RequestBody String reply) { provider.directReply = reply; }
+        @DeleteMapping("/__live-fixture/direct-command") public void clearDirectCommand() { provider.directReply = null; }
         @GetMapping("/__live-fixture/speech") public List<Synthesized> speech() { return List.copyOf(provider.speech); }
         @PostMapping("/__live-fixture/ack/{id}/{action}") public Map<String, Boolean> ack(
                 @PathVariable String id, @PathVariable String action, @RequestBody(required = false) Map<String, String> body) {

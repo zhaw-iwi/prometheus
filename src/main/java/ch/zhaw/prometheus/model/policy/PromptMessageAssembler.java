@@ -42,26 +42,30 @@ public class PromptMessageAssembler {
     public boolean supportsSpeculativeComposition() { return getClass() == PromptMessageAssembler.class && speculativeComposition; }
 
     public boolean supportsGuardComposition() { return getClass() == PromptMessageAssembler.class; }
+    /** Declared output contract for deterministic validation; absent on an unbound assembler. */
+    public AgentInteractionProfile capabilities() { return null; }
 
     /** Immutable binding; never mutate the shared Spring assembler or its extension points. */
     public PromptMessageAssembler forCapabilities(AgentInteractionProfile profile) {
         String context = AgentCapabilityDescription.context(profile);
-        return context.isEmpty() ? this : new CapabilityAssembler(this, context);
+        return profile == null ? this : new CapabilityAssembler(this, context, profile);
     }
 
     private static final class CapabilityAssembler extends PromptMessageAssembler {
         private final PromptMessageAssembler delegate;
         private final String context;
+        private final AgentInteractionProfile profile;
 
-        private CapabilityAssembler(PromptMessageAssembler delegate, String context) {
+        private CapabilityAssembler(PromptMessageAssembler delegate, String context, AgentInteractionProfile profile) {
             super(List.of(), List.of());
             this.delegate = delegate;
             this.context = context;
+            this.profile = AgentInteractionProfile.fromJson(profile.toJson());
         }
+        @Override public AgentInteractionProfile capabilities() { return AgentInteractionProfile.fromJson(profile.toJson()); }
 
         @Override public PromptMessageAssembler forCapabilities(AgentInteractionProfile profile) {
-            String updated = AgentCapabilityDescription.context(profile);
-            return context.equals(updated) ? this : delegate.forCapabilities(profile);
+            return profile != null && this.profile.toJson().equals(profile.toJson()) ? this : delegate.forCapabilities(profile);
         }
         @Override public boolean supportsSpeculativeComposition() { return delegate.supportsSpeculativeComposition(); }
         @Override public boolean supportsGuardComposition() { return delegate.supportsGuardComposition(); }
@@ -81,6 +85,7 @@ public class PromptMessageAssembler {
         @Override public PromptMessage toPromptMessage(Event event) { return delegate.toPromptMessage(event); }
         @Override public String mapRole(Event event) { return delegate.mapRole(event); }
         private List<PromptMessage> withContext(List<PromptMessage> original) {
+            if (context.isEmpty()) return original;
             var result = new ArrayList<>(original);
             result.add(Math.min(1, result.size()), PromptMessage.system(context));
             return result;
