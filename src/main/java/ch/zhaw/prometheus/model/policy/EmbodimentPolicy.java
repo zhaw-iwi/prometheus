@@ -70,7 +70,16 @@ public class EmbodimentPolicy extends Policy {
                 imagined speech, or treat an intended action as proof of physical execution.
                 """), this.embodimentInstructions + (gestureStorage == null ? "" : DecorativeGestures.guidance(gestureStorage, now))
                         + (commanding ? DirectCommands.guidance(profile, false) : ""), false, gateway, commanding ? object -> {
-                    var command = DirectCommands.take(object);
+                    DirectCommands.Request command;
+                    try {
+                        command = DirectCommands.take(object);
+                    } catch (IllegalArgumentException malformed) {
+                        // Reject this entire complement, not the independently running native voice.
+                        // Do not salvage movement from an invalid command envelope or retry inference.
+                        org.slf4j.LoggerFactory.getLogger(EmbodimentPolicy.class)
+                                .warn("Rejected malformed direct command interpretation; no behaviour published");
+                        return BehaviourPlan.fromJson("{}");
+                    }
                     return command == null ? null : DirectCommands.evaluate(command, profile, gestureStorage, events, true).plan();
                 } : null);
         boolean required = DecorativeGestures.requested(events) || gestureStorage != null && gestureStorage.containsKey(DecorativeGestures.REQUIRED);

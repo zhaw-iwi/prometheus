@@ -96,8 +96,7 @@ public class LiveVoicePolicyAdapter {
         // Stable instance context lives with guidance, outside sensory TTL/selection/history eviction.
         String capabilities = AgentCapabilityDescription.context(agent.getInteractionProfile());
         if (ch.zhaw.prometheus.model.behaviour.DirectCommands.enabled(agent.getInteractionProfile())) {
-            String commandGuidance = ch.zhaw.prometheus.model.behaviour.DirectCommands.voiceGuidance(agent.getInteractionProfile())
-                    + (capabilities.isBlank() ? ch.zhaw.prometheus.model.behaviour.DirectCommands.capabilities(agent.getInteractionProfile()) : "");
+            String commandGuidance = ch.zhaw.prometheus.model.behaviour.DirectCommands.voiceGuidance(agent.getInteractionProfile());
             sections.put("directCommands", commandGuidance);
         }
         sections.put("capabilities", capabilities);

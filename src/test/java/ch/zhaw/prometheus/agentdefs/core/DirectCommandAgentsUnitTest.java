@@ -87,6 +87,50 @@ class DirectCommandAgentsUnitTest {
         assertEquals(draft, fixture.storage().get("coordination.draft"));
         assertFalse(fixture.storage().containsKey(DirectCommands.LAST));
     }
+    @Test void malformedOptionalCommandCannotCloseNativeWorkOrPublishCompetingMovement() {
+        var agent = create("live"); var gateway = mock(LanguageModelGateway.class);
+        var runtime = new PolicyRuntime(new PromptMessageAssembler(), gateway)
+                .withExternalSpeech(new ExternalSpeech(UUID.randomUUID(), agent.executionEpoch()));
+        when(gateway.infer(any())).thenAnswer(c -> ((InferenceRequest)c.getArgument(0)).purpose() == InferencePurpose.DECISION
+                ? "false" : """
+                {"nonVerbal":{"gesture":"EXPLAIN"},"motion":{"handSign":"rock"},
+                 "command":{"intent":null,"kind":null,"value":null,"silent":false}}
+                """);
+        var result = assertDoesNotThrow(() -> turn(agent,
+                Event.observation(Event.TYPE_USER_UTTERANCE, "user", "What can we do together?"), runtime));
+        assertTrue(result == null || BehaviourPlan.fromJson(result.getPayload()).isEmpty());
+        assertFalse(agent.getStorage().containsKey(DirectCommands.LAST));
+        assertFalse(agent.getStorage().containsKey(DirectCommands.HISTORY));
+        doAnswer(c -> ((InferenceRequest)c.getArgument(0)).purpose() == InferencePurpose.DECISION
+                ? "false" : output("live", "ACTION", "HAND_SIGN", "scissor", false)).when(gateway).infer(any());
+        var next = turn(agent, Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Show scissors"), runtime);
+        assertEquals("scissor", BehaviourPlan.fromJson(next.getPayload()).getMotion().getAsJsonObject().get("handSign").getAsString());
+        assertNull(BehaviourPlan.fromJson(next.getPayload()).getSpeech());
+    }
+    @ParameterizedTest @ValueSource(strings = {"coordination", "generic", "social", "live"})
+    void unsupportedTurnAfterDemonstrationCannotReplayThePreviousOutput(String type) {
+        var agent = create(type); var gateway = mock(LanguageModelGateway.class);
+        var runtime = new PolicyRuntime(new PromptMessageAssembler(), gateway)
+                .withExternalSpeech(new ExternalSpeech(UUID.randomUUID(), agent.executionEpoch()));
+        when(gateway.infer(any())).thenAnswer(c -> ((InferenceRequest)c.getArgument(0)).purpose() == InferencePurpose.DECISION
+                ? "false" : output(type, "ACTION", "GESTURE", "OPEN_QUESTION", false));
+        assertNotNull(turn(agent, Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Show a question gesture"), runtime));
+        var previous = agent.getStorage().get(DirectCommands.LAST).deepCopy().getAsJsonObject();
+        int before = agent.getEventHistory().toList().size();
+        doAnswer(c -> ((InferenceRequest)c.getArgument(0)).purpose() == InferencePurpose.DECISION
+                ? "false" : output(type, "UNSUPPORTED", null, null, false)).when(gateway).infer(any());
+        var rejected = turn(agent, Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Walk over here"), runtime);
+        assertTrue(rejected == null || BehaviourPlan.fromJson(rejected.getPayload()).isEmpty());
+        var receipt = agent.getStorage().get(DirectCommands.LAST).getAsJsonObject();
+        assertEquals("UNSUPPORTED", receipt.get("status").getAsString());
+        assertTrue(receipt.get("sourcePosition").getAsLong() > previous.get("sourcePosition").getAsLong());
+        assertTrue(receipt.get("kind").isJsonNull()); assertTrue(receipt.get("value").isJsonNull());
+        assertFalse(receipt.get("silent").getAsBoolean());
+        assertEquals(2, agent.getStorage().get(DirectCommands.HISTORY).getAsJsonArray().size());
+        assertTrue(agent.getEventHistory().toList().subList(before, agent.getEventHistory().toList().size()).stream()
+                .noneMatch(e -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType())));
+        assertFalse(agent.getStorage().containsKey("task.spec")); assertFalse(agent.getStorage().containsKey("coordination.agreement"));
+    }
     @Test void conditionalInterpretationStillProposesAnInactiveTaskWithoutAnImmediateDemonstration() {
         var fixture = new CoordinationAgentUnitTest();
         var interpreted = JsonParser.parseString(fixture.update("PROPOSE", fixture.sensor(false), "Shall we start?")).getAsJsonObject();

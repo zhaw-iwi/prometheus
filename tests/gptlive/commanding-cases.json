@@ -1,0 +1,15 @@
+{
+  "hello": "Hello. In one short sentence, who are you?",
+  "activities": "What small activities can we do together? Please answer briefly.",
+  "planning": "How can you help me plan something? Give a short answer.",
+  "capability": "Which hand signs can you show? Briefly name them.",
+  "rock": "Make a rock sign.",
+  "scissors": "Show me scissors.",
+  "question": "Show me a question gesture.",
+  "repeat": "Show me that question gesture again.",
+  "silent": "Show paper without speaking.",
+  "unsupported": "Walk over here.",
+  "proposal": "Propose, but do not start: after acceptance and a fresh rock sign, tell one short joke. I show the sign and judge the joke; you tell it. Success means I find it funny. One action total. No preparation checks are needed. Use default settings.",
+  "accept": "Start the saved proposal now.",
+  "return": "That joke was good. Return to conversation now."
+}

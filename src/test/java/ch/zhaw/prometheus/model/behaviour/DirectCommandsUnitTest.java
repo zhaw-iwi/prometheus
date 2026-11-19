@@ -85,6 +85,18 @@ class DirectCommandsUnitTest {
         assertThrows(IllegalArgumentException.class, () -> DirectCommands.evaluate(request("ACTION", "HAND_SIGN", "rock", false), profile, storage, history, false));
         assertFalse(storage.containsKey(DirectCommands.HISTORY));
     }
+    @ParameterizedTest @ValueSource(strings = {"CAPABILITY", "CLARIFY", "UNSUPPORTED"})
+    void commandMetadataCannotSmuggleACompetingReply(String intent) {
+        var update = JsonParser.parseString("""
+                {"operation":"KEEP","agreement":null,"reply":{"speech":"Rock, scissor, and paper."},
+                 "command":{"intent":"%s","kind":null,"value":null,"silent":false}}
+                """.formatted(intent)).getAsJsonObject();
+        assertThrows(IllegalArgumentException.class, () -> DirectCommands.taskEnvelope(update, "agreement", profile,
+                storage, turn("Which signs can you show?"), true));
+        assertFalse(storage.containsKey(DirectCommands.HISTORY));
+        assertFalse(storage.containsKey(DirectCommands.LAST));
+        assertFalse(storage.containsKey(TaskMemory.REPLY));
+    }
     @Test void identityHistoryIsBoundedReloadableAndExplicitResetClearsIt() {
         for (int i = 0; i < 70; i++) DirectCommands.evaluate(request("ACTION", "HAND_SIGN", "rock", false), profile, storage, turn("Show rock"), true);
         assertEquals(64, storage.get(DirectCommands.HISTORY).getAsJsonArray().size());

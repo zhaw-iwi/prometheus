@@ -105,8 +105,17 @@ for (const type of ['core.coordination', 'core.live_multimodal']) test(`direct c
     await page.getByTestId('gptlive-start').click(); await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
     const provider=await (await request.get('/__live-fixture/latest')).json();
     const before=speech.length;
-    await interpret('HAND_SIGN','scissor');
     const native=async(text,receipt)=>request.post(`/__live-fixture/speak/${provider.providerId}`,{data:{speaker:'USER',text,receipt}});
+    if(type==='core.live_multimodal'){
+      await request.post('/__live-fixture/direct-command',{data:{nonVerbal:{gesture:'EXPLAIN'},motion:{handSign:'paper'},
+        command:{intent:null,kind:null,value:null,silent:false}}});
+      expect((await native('What small activities can we do together?','malformed-optional-command')).ok()).toBe(true);
+      await expect(page.getByTestId('gptlive-history')).toContainText('What small activities can we do together?');
+      expect((await memory())['command.handledTurns']).toHaveLength(1);
+      await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
+      await expect(stage).toHaveAttribute('data-hand-sign','rock');
+    }
+    await interpret('HAND_SIGN','scissor');
     await native('Show me scissors','command-scissor');
     await expect.poll(async()=>(await memory())['command.handledTurns']?.length).toBe(2);
     await expect(stage).toHaveAttribute('data-hand-sign','scissor');
@@ -123,10 +132,21 @@ for (const type of ['core.coordination', 'core.live_multimodal']) test(`direct c
     await expect(stage).toHaveAttribute('data-gesture','OPEN_QUESTION');
     await page.evaluate(()=>setTheme('dark'));
     await page.locator('#embodiment_panel').screenshot({path:info.outputPath('native-question-dark.png')});
+    const behaviourIds=async()=>(await (await request.get(path+'/live/history',{headers})).json())
+      .filter(e=>e.type==='resp.behaviour_plan').map(e=>e.id);
+    const previousOutputs=await behaviourIds();
+    const unavailable={intent:'UNSUPPORTED',kind:null,value:null,silent:false};
+    await request.post('/__live-fixture/direct-command',{data:type==='core.coordination'
+      ?{operation:'KEEP',agreement:null,reply:{},command:unavailable}:{command:unavailable}});
+    await native('Walk over here','command-unsupported-after-question');
+    await expect.poll(async()=>(await memory())['command.handledTurns']?.length).toBe(4);
+    expect((await memory())['command.lastResult']).toMatchObject({status:'UNSUPPORTED',kind:null,value:null,silent:false});
+    expect(await behaviourIds()).toEqual(previousOutputs);
+    await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
     expect(speech).toHaveLength(before);
     await page.getByTestId('gptlive-stop').click(); await expect(page.getByTestId('gptlive-status')).toHaveText('Idle');
     await interpret('HAND_SIGN','paper'); await continuous(); await transcript('continuous-paper','Show paper');
-    await expect.poll(async()=>(await memory())['command.handledTurns']?.length).toBe(4);
+    await expect.poll(async()=>(await memory())['command.handledTurns']?.length).toBe(5);
     await expect(stage).toHaveAttribute('data-hand-sign','paper');
     await expect(page.locator('#listen_status')).toHaveText('Listening');
     if(type==='core.coordination') expect(speech.length).toBeGreaterThan(before);
@@ -138,7 +158,7 @@ for (const type of ['core.coordination', 'core.live_multimodal']) test(`direct c
     await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
     const reconnect=await (await request.get('/__live-fixture/latest')).json();
     expect(reconnect.instructions).not.toContain('COMMAND RESULT for user turn');
-    expect((await memory())['command.handledTurns']).toHaveLength(4);
+    expect((await memory())['command.handledTurns']).toHaveLength(5);
     await page.getByTestId('gptlive-stop').click();
     expect(errors).toEqual([]);
     await info.attach('mode-parity-memory',{contentType:'application/json',body:Buffer.from(JSON.stringify(await memory()))});

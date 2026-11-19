@@ -1,6 +1,6 @@
 # Towards reliable direct commands and current task speech
 
-Prepared: 2026-11-19. Status: **TWC-01–04 software complete; TWC-05 pending**.
+Prepared: 2026-11-19. Status: **TWC-01–05 complete; physical operator checklist NOT RUN**.
 Development branch: `main`. Deployment branch: `agents`.
 
 This roadmap covers three requested improvements: reliable direct requests for
@@ -8,7 +8,8 @@ supported gestures and hand signs, cancellation of obsolete task announcements,
 and distinguishable Valerian instance labels. The owner has authorized sequential
 implementation, committing and pushing each completed milestone before continuing.
 Results: [TOWARDSCOMMANDING_RESULTS.md](TOWARDSCOMMANDING_RESULTS.md). The owner
-additionally authorized the $40/eight-attempt provider envelope on November 19.
+additionally authorized $40/eight provider attempts, $10/two retests and one
+further HP-03 attempt capped at $5 on November 19. All reservations are consumed.
 Deployment still requires a separate instruction.
 
 ## Starting evidence
@@ -110,15 +111,15 @@ task output or silently queue a demonstration for surprise execution later.
 
 | Milestone | User-visible outcome | Dependencies | Status |
 | --- | --- | --- | --- |
-| TWC-01 | Task speech stops requesting obsolete decisions after state advances. | Existing GLF baseline | SOFTWARE COMPLETE; provider pending |
-| TWC-02 | Supported direct requests produce one validated action through the shared backend path. | TWC-01 | SOFTWARE COMPLETE; provider pending |
-| TWC-03 | Native Live speech and direct actions agree; Text/Continuous semantics remain intact. | TWC-01, TWC-02 | SOFTWARE COMPLETE; provider pending |
+| TWC-01 | Task speech stops requesting obsolete decisions after state advances. | Existing GLF baseline | COMPLETE; HP-02 passed |
+| TWC-02 | Supported direct requests produce one validated action through the shared backend path. | TWC-01 | COMPLETE; HP-01/03 passed |
+| TWC-03 | Native Live speech and direct actions agree; Text/Continuous semantics remain intact. | TWC-01, TWC-02 | COMPLETE; provider and mode parity passed |
 | TWC-04 | Same-type Valerian instances have stable, distinguishable labels. | Independent; scheduled after TWC-03 | COMPLETE |
-| TWC-05 | Integrated local and real-provider journeys demonstrate the requested outcomes. | TWC-01–04; funded provider preflight | NOT STARTED |
+| TWC-05 | Integrated local and real-provider journeys demonstrate the requested outcomes. | TWC-01–04; funded provider preflight | COMPLETE; HP-01–04 passed; eleven attempts/$55 reserved |
 
 TWC-01–04 can establish deterministic software acceptance without provider spend.
-Their real-provider acceptance remains pending until TWC-05. Do not describe the
-whole roadmap as complete if required Live journeys have not run or failed.
+Their required real-provider acceptance is now recorded under TWC-05. Failed
+attempts remain in the results; final passing follow-ups do not erase them.
 
 ## TWC-01 — Invalidate obsolete task announcements
 
@@ -311,8 +312,8 @@ and physical operator observations.
 Reuse `tests/gptlive/run_acceptance.py`, the disposable loopback-MySQL setup,
 `LiveSmokeConfiguration`, native browser fixtures, budget reservation logic and
 the current repair journey's audio/telemetry instrumentation. Add a clearly named
-commanding scenario/runner selection and its tests; these options do not exist
-yet. Extend the explicit Playwright spec list when adding new real-app specs.
+commanding scenario/runner selection and its tests. The `commanding-*` options
+now implement this selection. Extend the explicit Playwright spec list when adding new real-app specs.
 Do not revive the retired approval/committed-Speech Coordination harness.
 
 The preceding GPT-Live repair plan reached its **12-attempt limit and $49.50
@@ -325,6 +326,30 @@ The owner explicitly authorized this additional envelope on November 19:
 attempt**, including failed attempts. Retain a separate ledger for this additional
 authorization. The old repair ledger remains unchanged. The technical cost/bounds
 preflight below must still pass before a paid call.
+
+Execution update: all eight reservations are now consumed, including failures.
+HP-01 passed on Coordination. HP-02 needs a fresh-cue harness retest after the
+confirmed arming boundary; HP-03 exposed malformed-command error propagation,
+now fixed and verified locally. HP-04 passed an earlier corrected onset analysis
+but needs its final matched baseline after guidance changes. No further paid
+attempt is authorized by this envelope; never reset or loosen its ledger.
+Detailed failures, fixes, timing-method correction and remaining visual evidence
+are in the results record.
+
+The owner subsequently approved **$10 total for two retests**, replacing the
+earlier $5 question. The separate `commanding-retests-plan.json` and
+`commanding-retests-budget.json` allow one HP-02 and one HP-03 reservation at $5
+each. Select them with `--commanding-retests`; neither exhausted ledger changes.
+Both reservations are now consumed: HP-02 passed; HP-03 failed because the backend
+repeated a question gesture for an unsupported walking request. Native speech
+correctly declined. Both requested poses and the matched ordinary timing comparison
+passed. The latest interpretation fix has local coverage, but provider effectiveness
+was pending at that point. The owner then authorized one further HP-03 attempt
+capped at $5 through `commanding-hp3-retest-plan.json` and its separate ledger,
+selected with `--commanding-hp3-retest`. That final attempt passed supported outputs,
+explicit silence flags and unsupported rejection, with complete visual review and
+passing matched ordinary timing. Eleven/$55 reservations across all three envelopes
+are consumed. No further paid attempt is authorized; see the results record.
 
 Before enabling the new paid runner:
 
@@ -450,4 +475,5 @@ expanding command scope, changing active-task authority, requiring a migration,
 or sacrificing ordinary native responsiveness to guarantee speech cancellation.
 Record the concrete alternatives and recommendation before asking. The known
 additional paid-test budget decision was resolved by the owner's explicit $40
-authorization; do not exceed that cap or its eight-attempt limit.
+authorization, subsequent $10/two-attempt authorization and final $5/one-attempt
+HP-03 authorization. All are exhausted; do not exceed their limits or reset their ledgers.

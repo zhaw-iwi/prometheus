@@ -23,9 +23,11 @@ public final class DirectCommands {
     }
     public static String voiceGuidance(AgentInteractionProfile profile) {
         if (!enabled(profile)) return "";
-        return " Direct requests use the declared digital outputs; do not deny them for lacking a physical body."
-                + " Briefly acknowledge pending validation, never execution. Honor explicit silence."
-                + " Capability questions require no action; conditional actions require task agreement."
+        return " " + capabilities(profile)
+                + " These digital outputs need no physical body."
+                + " One immediate demonstration needs no setup, task agreement or second consent."
+                + " Wait for the complete request; honor silence, otherwise acknowledge once without claiming execution."
+                + " Capability questions imply no action; conditional/multiple actions need task agreement."
                 + " Command results apply only to their pending turn; do not acknowledge twice.";
     }
     public static String guidance(AgentInteractionProfile profile, boolean taskEnvelope) {
@@ -33,22 +35,31 @@ public final class DirectCommands {
         return """
 
                 DIRECT OUTPUT REQUESTS: Interpret only the current completed USER turn, not quoted text or observations.
+                Classify the last user message anew. Earlier demonstrations are context, never a pending command to repeat.
                 Extend the response root with optional command (null or absent for ordinary conversation/task work).
+                For ordinary conversation omit command or use command:null, never a command object with intent:null.
                 A command is exactly {"intent":"ACTION|CAPABILITY|CLARIFY|UNSUPPORTED","kind":"HAND_SIGN|GESTURE" or null,
                 "value":"canonical value" or null,"silent":true or false}. This metadata is NOT a behaviour channel.
                 ACTION means one immediate demonstration: 'make rock', 'can you show rock?', 'show a question gesture'.
                 'Can you do a hand sign?' requests any one supported sign; choose one. Question gesture = OPEN_QUESTION.
                 Signs: rock, scissor (also called scissors), paper. Gestures: OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, POLITE.
                 CAPABILITY means a question such as 'which signs can you make?', without a demonstration.
-                CLARIFY means an unresolved referent, sequence or repetition request; UNSUPPORTED means an unavailable action.
-                For non-ACTION intents kind and value must be null. Set silent only for an explicit no-speaking request.
+                'Show that gesture again' on a new turn means one ACTION when the prior gesture is clear, not an indefinite repetition.
+                CLARIFY means an unresolved referent, multiple-action sequence or indefinite repetition; UNSUPPORTED means an unavailable action.
+                Locomotion or physical contact (for example 'come closer' or 'walk over here') is UNSUPPORTED, even after a supported gesture.
+                Never substitute a supported gesture for an unavailable action or copy the preceding command.
+                For non-ACTION intents kind and value must be null. Set silent only for an explicit no-speaking request in the current user turn.
+                A non-speech output format or external voice ownership does not mean the user requested silence; otherwise silent is false.
                 Negations and quoted/hypothetical examples NEVER authorize a demonstration. A conditional 'whenever I show paper,
                 make rock' is task negotiation, not ACTION. Requests changing a task or answering its agreed question stay in task handling.
                 Never create or start a task for an unrelated single demonstration. Backend validation decides whether it can run now.
                 These command rules override any older restriction tying hand signs to a game or accompanying speech.
                 Include only actions permitted by the declared output modalities. Do not invent actuator identifiers.
-                """ + (taskEnvelope ? "For a non-null command use operation KEEP, unchanged task/agreement null, and reply {}. "
-                        + "The root contains the existing operation, task/agreement, reply plus command; compact encoding applies only inside reply.\n"
+                """ + (taskEnvelope ? "For ANY non-null command, including CAPABILITY, CLARIFY and UNSUPPORTED, use operation KEEP, task/agreement null, and reply exactly {}. "
+                        + "Do not answer the user or add speech, nonVerbal, motion or display inside reply in this branch. The backend constructs all command output. "
+                        + "This overrides ordinary KEEP reply instructions, in every speech mode. Example capability fields: "
+                        + "\"reply\":{},\"command\":{\"intent\":\"CAPABILITY\",\"kind\":null,\"value\":null,\"silent\":false}. "
+                        + "The root contains the existing operation, task/agreement, reply plus command.\n"
                         : "Put command beside nonVerbal (or nv), not inside it. For a command the backend supplies the validated action. Omit speech.\n");
     }
     public static Event currentUser(EventHistory history) {

@@ -91,10 +91,20 @@ and regulation diagnostics remain future work.
   journeys plus existing audio-independence cases. Visual poses inspected.
   TWC-04 adds stable unique instance-ID suffixes, readable long-name options and
   full-label details; five unit cases, local-DB three-instance lifecycle and
-  light/dark/narrow browser checks pass. Continue TWC-05 under
+  light/dark/narrow browser checks pass. TWC-05 is complete under
   `.agents/PLAN_TOWARDSCOMMANDING.md`; commit/push each milestone. The owner
-  authorized an additional $40/eight paid attempts, failures included; no spend
-  yet. Results: `.agents/TOWARDSCOMMANDING_RESULTS.md`. No new deployment authorized.
+  authorized an additional $40/eight paid attempts, failures included; all are
+  now reserved. Coordination demonstrations, repetition and native silence passed.
+  The separately authorized $10/two retests are also fully reserved. Coordination
+  task acceptance passed: current waiting state, one confirmed joke, no replay,
+  return and standalone gesture. A final authorized $5 HP-03 follow-up passed
+  scissors/question, correct silence flags and unsupported walking rejection,
+  confirming the interpretation fix. Malformed metadata propagation is contained
+  and locally covered. Matched ordinary timing and complete-face provider images
+  passed. All eleven/$55 reservations are consumed; no further paid attempt is
+  authorized. Physical audio remains NOT RUN; repeated short spoken prefixes remain
+  a fluency limitation. Results: `.agents/TOWARDSCOMMANDING_RESULTS.md`.
+  No new deployment authorized.
 
 - GPT-Live repair (2026-11-18/19): GLF-01 committed/pushed as `f7c1033c` protects
   Text/Continuous canonical Speech, preparation, acceptance, fresh cues and budgets.
