@@ -95,8 +95,10 @@ and regulation diagnostics remain future work.
   native Live provider happy paths pass; the cumulative test envelope is $49.50.
   The per-mode matrix, retained failures and latency are in
   `.agents/GPTLIVEFIX_RESULTS.md`; physical checks remain NOT RUN in the linked
-  operator checklist. No deployment or branch promotion was performed. The owner
-  authorized sequential milestone commits/pushes and paid smoke tests under $50.
+  operator checklist. On 2026-11-19 the authorized agents merge `dfc1211a` deployed
+  as Heroku valerian v170 (06:19 CET). Health, changed/retired assets and read-only
+  cockpit rendering were verified; deployment-specific catalog/personas remain
+  preserved. No additional provider calls or experiment promotion.
 
 - Robot mouth calibration (2026-11-17; deployed 2026-11-18): a subtly upturned
   resting mouth replaces the straight line. All supported facial expressions blend their

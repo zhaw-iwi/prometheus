@@ -3,12 +3,13 @@
 ## GLF-05 - Integrated acceptance and cleanup (2026-11-18/19)
 
 Status: **software checks and bounded provider happy paths PASS; physical
-acceptance NOT RUN**. This is a main-branch engineering handoff, not a deployment
-or a claim of production reliability.
+acceptance NOT RUN**. The owner-authorized agents promotion below deployed
+Heroku v170 on 2026-11-19; this is not a claim of physical or production reliability.
 
 Baseline: `3de61cec` (GLF-04), already pushed to main. The current owner authorized
 sequential milestones and commits/pushes, plus cumulative paid smoke tests below
-$50. No deployment or branch promotion is part of this run.
+$50. That implementation run did not deploy; the subsequent authorized promotion
+is recorded below.
 
 Production cleanup removes the unused approval/committed-Speech services, policy
 hooks, release/synthesis endpoints, browser players, buffering worklet and unheard
@@ -257,6 +258,66 @@ Physical checks are **NOT RUN**;
 the executable device/room/settings checklist is
 [GPTLIVEFIX_OPERATOR_CHECKLIST.md](GPTLIVEFIX_OPERATOR_CHECKLIST.md).
 
+
+## Agents promotion and Heroku v170 - 2026-11-19
+
+The owner explicitly authorized merging the repair into `agents` and starting
+Heroku deployment. Main `97469a97` was merged into agents `9f3bb418` as
+**`dfc1211a`**, then pushed. The deployment catalog, persona/embodiment behavior,
+Gala definitions, configuration and workflow remain preserved. No experiment
+branch was changed and no new provider trial was run.
+
+The two conflicted files were the acceptance runner and its README. Resolution
+keeps the branch's Gala arguments/journey and countdown documentation alongside
+the repaired native harness, budget checks and retired-route rejection. Obsolete
+approval-player documentation remains removed. Automatic merges retain persona
+binding in prompt/Live projection and the cockpit's embodiment/round controls.
+
+Merged-source verification:
+
+- `target/gptlive-acceptance-6cfd51dc69`: 859 Java cases ran, with one stale static
+  client assertion failing because it expected the pre-repair transcript-rendering
+  call without the new incomplete-capture label. The other 858 cases passed.
+- Updated that existing assertion to check retained event identity and the label.
+  `target/gptlive-acceptance-ae58dcc8bb` passed all 14 static client cases and
+  all seven real-browser/database cases, zero skips. Across the broad/focused
+  results, all **859 applicable Java cases pass**. This includes Gala, catalog,
+  persona, Coordination and shared Live authority/delivery coverage.
+- **161 JS cases passed** (111 Live, 29 transcription, 21 Speech), plus
+  **17 Python runner/budget cases**. Logs: `target/gptlivefix-agents-release/`.
+- The shared test correction is also carried to main; its focused result is
+  `target/gptlive-acceptance-8f98ff83bf`. No production change was needed for it.
+- The disposable apps, schemas and restricted accounts were cleaned. No paid
+  API calls or production agent interactions were part of these release checks.
+
+The expanded merged Java selection used the GLF-05 command above plus
+`Gala*Test,*PromptContractTest,AgentDefinitionRegistryUnitTest,AgentEmbodimentUnitTest,PromptMessageAssemblerUnitTest,Aisha*Test,ValerianClientStaticResourceContractTest`.
+The focused command was:
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests ValerianClientStaticResourceContractTest --browser --browser-mode enabled --browser-grep 'native Coordination|Coordination Text and Continuous|real scoped cockpit'
+```
+
+[GitHub deployment run 44464206991](https://github.com/zhaw-iwi/prometheus/actions/runs/44464206991)
+succeeded for `dfc1211a`. Heroku **valerian v170** succeeded on
+**2026-11-19 at 06:19 CET** (05:19:07 UTC), container `b15e26827dce`.
+The [deployed cockpit](https://valerian-e613edef27a0.herokuapp.com/valerian/)
+passed read-only checks:
+
+- Health is **UP**. All four changed client files (`live/captions.js`,
+  `live/client.js`, `live/playback-cue.js`, `valerian/script.js`) match the deployed
+  commit. All four retired player/buffer/worklet URLs return **404**.
+- The nine cockpit/robot asset hashes also match. The existing deployment browser
+  verifier rendered a synthetic local plan with real WebGL, switched Robot/Details,
+  preserved speech/latest event and static replay, and recorded **zero page errors
+  and zero attempted writes**. Its screenshot was inspected.
+- Evidence: `target/gptlivefix-agents-release/{workflow,heroku-releases,gptlivefix-deployed}.json`
+  and `target/gptlivefix-agents-release/browser/{verification.json,deployed-robot.png}`.
+
+Release evidence and the test-only correction are synchronized with `[skip ci]`
+audit commits; the deployed runtime remains v170. The paid reservation ledger
+remains $49.50. Physical microphone/speaker acceptance is still **NOT RUN**;
+reload the cockpit before using the new client and follow the operator checklist.
 
 ## GLF-04 - Recording and native interruption (2026-11-18)
 

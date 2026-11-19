@@ -6,7 +6,9 @@ Development branch: `main`. Results and retained failures: `GPTLIVEFIX_RESULTS.m
 GLF-01 commit: `f7c1033c`; evidence is in `GPTLIVEFIX_RESULTS.md`.
 The owner now authorizes sequential milestones, committing and pushing each,
 and bounded real OpenAI happy-path tests costing less than $50 total. Halt for
-an unforeseen owner decision. No deployment has been performed.
+an unforeseen owner decision. On 2026-11-19 the owner authorized promotion to
+`agents`; merge `dfc1211a` deployed successfully as Heroku valerian v170.
+Release evidence is in `GPTLIVEFIX_RESULTS.md`; physical checks remain NOT RUN.
 
 ## Owner direction and working model
 
@@ -365,7 +367,7 @@ changes. Preserve earlier audit records and explain supersession with dated note
 - [x] GLF-02: native Live conversation — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
 - [x] GLF-03: semantic Coordination Live happy path — verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
 - [x] GLF-04: recording and interruption - verified 2026-11-18; results in `GPTLIVEFIX_RESULTS.md`
-- [x] GLF-05: integrated software/provider acceptance and engineering handoff - verified 2026-11-19; physical checks **NOT RUN**, no deployment
+- [x] GLF-05: integrated software/provider acceptance and engineering handoff - verified 2026-11-19; physical checks **NOT RUN**; subsequent authorized agents/Heroku v170 deployment verified
 
 Suggested instruction for a new session:
 
