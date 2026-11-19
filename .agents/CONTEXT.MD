@@ -91,6 +91,8 @@ GLF-05 removes the retired approval/synthesis route and supplies integrated
 regressions, passing bounded real-provider happy paths, retained failure/latency
 evidence and an operator checklist. Provider and physical status are separate in the per-mode
 matrix in `.agents/GPTLIVEFIX_RESULTS.md`; physical checks remain NOT RUN.
+The owner-authorized 2026-11-19 agents merge `dfc1211a` deployed as Heroku
+valerian v170, with health, asset hashes and read-only cockpit verification.
 The current owner instruction authorizes sequential milestones with a commit/push
 after each, plus bounded OpenAI happy-path smoke tests costing less than $50 total.
 Pause for an unforeseen owner decision. Physical acceptance is not established by
