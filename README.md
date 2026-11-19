@@ -2201,6 +2201,16 @@ default single-candidate behavior is unchanged.
 Coordination records whether that occasion requests arming or an actual task
 contribution, so a cue-triggered action cannot be confused with initial ON_CUE
 activation during semantic verification. Capture still does not prove audibility.
+State announcements and proposal invitations are scoped to their current persisted
+speaking occasion. The Live bridge rechecks that identity before sending each
+part and after provider acknowledgement waits, discarding obsolete queued parts.
+Already-sent obsolete instructions receive one quiet withdrawal directing the
+voice to use current facts and correct conflicting wording once if needed. This
+does not retract words already heard or hard-cancel the native audio stream.
+Committed task contributions keep their separate delivery contract; ordinary
+sensor updates cannot withdraw a valid invitation. See the
+[commanding roadmap](.agents/PLAN_TOWARDSCOMMANDING.md) and
+[verification record](.agents/TOWARDSCOMMANDING_RESULTS.md).
 The verifier compares the requested communicative act: an equivalent question
 fulfils a requested question; feedback must actually evaluate the answer. Changed
 polarity, quantities, conditions, partial content or a promise to speak are not a

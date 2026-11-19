@@ -144,6 +144,12 @@ public class LiveSmokeConfiguration {
                         call.activity = activity >= 0 ? content.substring(activity) : call.activity + content;
                         if (call.activity.length() > 8192) call.activity = call.activity.substring(call.activity.length() - 8192);
                     }
+                    if (type.equals(call.heldType) && call.ackGate != null && !call.ackGate.isDone()) {
+                        call.ackWaiting = true;
+                        try { call.ackGate.get(12, TimeUnit.SECONDS); }
+                        catch (Exception failure) { throw new IllegalStateException("Synthetic ACK hold failed", failure); }
+                        finally { call.ackWaiting = false; }
+                    }
                     receive.accept(ack);
                     if (type.equals("session.commentary.append")) {
                         String spoken = event.get("content").getAsString().endsWith("First fixture observation.")
@@ -198,6 +204,9 @@ public class LiveSmokeConfiguration {
         }
         public void close() { audio.shutdownNow(); }
         public static final class Call {
+            public volatile CompletableFuture<Void> ackGate;
+            public volatile String heldType;
+            public volatile boolean ackWaiting;
             public int ttsBefore;
             public volatile Consumer<JsonObject> receive;
             public volatile boolean closed;
@@ -221,6 +230,20 @@ public class LiveSmokeConfiguration {
             provider.coordinationProposal = null;
         }
         @GetMapping("/__live-fixture/speech") public List<Synthesized> speech() { return List.copyOf(provider.speech); }
+        @PostMapping("/__live-fixture/ack/{id}/{action}") public Map<String, Boolean> ack(
+                @PathVariable String id, @PathVariable String action, @RequestBody(required = false) Map<String, String> body) {
+            var call = provider.calls.get(id);
+            if (action.equals("hold")) {
+                call.heldType = body.getOrDefault("type", "session.thinking.append");
+                call.ackGate = new CompletableFuture<>();
+            } else if (action.equals("release")) {
+                if (call.ackGate != null) call.ackGate.complete(null);
+            } else throw new IllegalArgumentException("Unknown ACK control");
+            return Map.of("accepted", true);
+        }
+        @GetMapping("/__live-fixture/ack/{id}") public Map<String, Boolean> ackState(@PathVariable String id) {
+            return Map.of("waiting", provider.calls.get(id).ackWaiting);
+        }
         @GetMapping("/__live-fixture/inference") public Map<String, Object> inference() {
             return Map.of("count", provider.inferences.size(), "held", provider.inferenceGate != null && !provider.inferenceGate.isDone());
         }

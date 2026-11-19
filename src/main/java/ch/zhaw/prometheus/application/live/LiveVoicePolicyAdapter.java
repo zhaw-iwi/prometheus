@@ -61,8 +61,8 @@ public class LiveVoicePolicyAdapter {
                 interpretations as uncertain; explicit user statements take precedence. Expired, removed
                 or unknown evidence does not establish the current situation. Do not read metadata aloud.
                 Backend announcements may be paraphrased, preserving the confirmed result and meaning.
-                Finish an announcement before reacting to routine observation updates. Observations alone
-                do not authorize another task action or require you to stop speaking.
+                Routine observations neither interrupt speech nor authorize actions. Withdrawn occasions do:
+                abandon obsolete invitations; if already spoken, correct once from the latest state.
                 Produce spoken language only; backend output-format rules do not apply to your speech.
                 """.formatted(leaf.ownPolicy() instanceof ExternalVoicePolicy external ? external.livePendingGuidance()
                         : "You may acknowledge immediately while work is pending.",

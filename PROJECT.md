@@ -75,6 +75,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Towards commanding (2026-11-19): TWC-01 prevents queued obsolete Coordination
+  state announcements from surviving a later committed occasion and withdraws
+  already-sent obsolete instructions once. Valid task contributions retain their
+  delivery contract; ordinary native speech remains independent. Verified with
+  332 affected unit cases, a 102-case local-MySQL Java run, seven browser cases
+  and two strengthened native-ingress reruns. Screenshots inspected; real-provider
+  and physical acceptance remain pending. Continue TWC-02–05 sequentially under
+  `.agents/PLAN_TOWARDSCOMMANDING.md`; commit/push each milestone. The owner
+  authorized an additional $40/eight paid attempts, failures included; no spend
+  yet. Results: `.agents/TOWARDSCOMMANDING_RESULTS.md`. No new deployment authorized.
+
 - GPT-Live repair (2026-11-18/19): GLF-01 committed/pushed as `f7c1033c` protects
   Text/Continuous canonical Speech, preparation, acceptance, fresh cues and budgets.
   GLF-02 restores immediate native Coordination audio and nonverbal backend replies;

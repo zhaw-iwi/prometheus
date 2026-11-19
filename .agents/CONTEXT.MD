@@ -81,6 +81,13 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
+Current work is `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01 software acceptance
+is complete (obsolete task-announcement suppression/withdrawal); TWC-02–05 remain.
+The owner authorizes sequential milestones with commit/push after each and an
+additional $40 across eight paid attempts, failures included. Keep the completed
+repair ledger separate. No new deployment authorization. See
+`.agents/TOWARDSCOMMANDING_RESULTS.md` for the exact verification and limits.
+
 The 2026-11-18 GPT-Live repair committed GLF-01 (`f7c1033c`), GLF-02
 (`807f60cb`), GLF-03 (`973629b5`) and GLF-04 (`3de61cec`) on main.
 Native Coordination audio is independent of backend inference/capture, while

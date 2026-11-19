@@ -9,13 +9,20 @@ public final class LiveContextDelivery {
     public static final int MAX_APPEND_BYTES = 480; // Conservatively below the provider's 500-token limit.
     public record Narration(UUID sourceId, String text) {}
     public record Command(String type, String content, String delegationId, UUID sourceId, String revision,
-            String evidenceType, Instant expiresAt, boolean interruptible) {
+            String evidenceType, Instant expiresAt, boolean interruptible, boolean currentOnly) {
+        public Command(String type, String content, String delegationId, UUID sourceId, String revision,
+                String evidenceType, Instant expiresAt, boolean interruptible) {
+            this(type, content, delegationId, sourceId, revision, evidenceType, expiresAt, interruptible, false);
+        }
         public Command(String type, String content, String delegationId, UUID sourceId, String revision,
                 String evidenceType, Instant expiresAt) { this(type, content, delegationId, sourceId, revision, evidenceType, expiresAt, false); }
         public Command(String type, String content, String delegationId, UUID sourceId, String revision) {
             this(type, content, delegationId, sourceId, revision, null, null);
         }
         public boolean expiredAt(Instant now) { return expiresAt != null && !now.isBefore(expiresAt); }
+        public Command whileCurrent(UUID occasion) {
+            return new Command(type, content, delegationId, occasion, revision, evidenceType, expiresAt, interruptible, true);
+        }
         public Command expired() {
             if (evidenceType == null)
                 return new Command("session.thinking.append", "Speaking occasion " + sourceId
@@ -41,18 +48,24 @@ public final class LiveContextDelivery {
         if (!delivered.epoch().equals(current.epoch())) throw new IllegalStateException("Obsolete Live context");
         List<Command> commands = new ArrayList<>();
         String revision = current.revision();
+        var continuation = current.activity() == null ? null : current.activity().continuation();
+        UUID currentSource = continuation != null && continuation.currentOnly() ? continuation.id() : null;
         // Opening belongs only to a new voice session. Dynamic sections must also be withdrawn.
         var sections = new LinkedHashSet<>(List.of("voice", "policy", "taskVoice", "state", "capabilities"));
         sections.addAll(new TreeSet<>(current.guidance().keySet()));
         sections.addAll(new TreeSet<>(delivered.guidance().keySet()));
         sections.remove("opening");
         for (String section : sections) {
+            int start = commands.size();
             String value = current.guidance().getOrDefault(section, "");
             if (!value.equals(delivered.guidance().getOrDefault(section, "")))
                 add(commands, section.equals("state") && current.activity() != null ? "thinking" : "instructions", "CURRENT " + section.toUpperCase(Locale.ROOT)
                         + " replaces only the earlier " + section + " section.\n"
                         + (value.isBlank() ? "This section no longer applies." : value), null, null, revision);
+            if (currentSource != null && Set.of("state", "taskVoice").contains(section))
+                scope(commands, start, currentSource);
         }
+        int activityStart = commands.size();
         if (!current.statePath().equals(delivered.statePath())
                 && Objects.equals(current.guidance().get("state"), delivered.guidance().get("state"))) add(commands, "thinking",
                 "CURRENT STATE: " + String.join(" / ", current.statePath()) + ". No action is implied by this update.", null, null, revision);
@@ -63,7 +76,7 @@ public final class LiveContextDelivery {
                     + current.activity().facts(), null, null, revision);
         else if (current.activity() == null && delivered.activity() != null)
             add(commands, "thinking", "CURRENT ACTIVITY DATA removed; prior activity facts are no longer current.", null, null, revision);
-        var continuation = current.activity() == null ? null : current.activity().continuation();
+        if (currentSource != null) scope(commands, activityStart, currentSource);
         if (continuation != null && !attemptedNarrations.contains(continuation.id())) {
             if (attemptedNarrations.size() >= 4096) throw new IllegalStateException("Narration identity capacity reached");
             attemptedNarrations.add(continuation.id());
@@ -90,7 +103,7 @@ public final class LiveContextDelivery {
                             + " Do not repeat an answer already spoken or read metadata aloud.", null, continuation.id(), revision);
                 }
                 for (var command : occasion) commands.add(new Command(command.type(), command.content(), null,
-                        continuation.id(), revision, null, continuation.expiresAt(), continuation.interruptible()));
+                        continuation.id(), revision, null, continuation.expiresAt(), continuation.interruptible(), continuation.currentOnly()));
             }
         }
         // Legacy backend speech intents retain their existing delivery contract.
@@ -140,6 +153,10 @@ public final class LiveContextDelivery {
         return delivered;
     }
     public String revision() { return delivered.revision(); }
+
+    private static void scope(List<Command> commands, int start, UUID source) {
+        for (int index = start; index < commands.size(); index++) commands.set(index, commands.get(index).whileCurrent(source));
+    }
 
     private static Map<String, LiveContextSnapshot.Item> evidenceByType(LiveContextSnapshot context) {
         var result = new LinkedHashMap<String, LiveContextSnapshot.Item>();

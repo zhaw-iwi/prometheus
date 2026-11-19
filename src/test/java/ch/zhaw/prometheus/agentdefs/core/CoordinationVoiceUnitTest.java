@@ -13,6 +13,23 @@ import ch.zhaw.prometheus.model.task.*;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 
 class CoordinationVoiceUnitTest {
+    @Test void controlOccasionsAreSupersedableButCommittedContributionsAreNot() {
+        var sensor = new CoordinationAgentUnitTest();
+        sensor.propose(sensor.sensor(false), sensor.live);
+        var proposal = sensor.policy().liveActivityContext().continuation();
+        assertTrue(proposal.currentOnly());
+        sensor.start(sensor.live);
+        var activation = sensor.policy().liveActivityContext().continuation();
+        assertTrue(activation.currentOnly());
+        assertNotEquals(proposal.id(), activation.id());
+        assertEquals("0", TaskMemory.text(sensor.storage(), TaskMemory.ACTIONS, "0"));
+        var dialogue = new CoordinationAgentUnitTest();
+        dialogue.propose(dialogue.dialogue(), dialogue.live); dialogue.start(dialogue.live);
+        assertFalse(dialogue.policy().liveActivityContext().continuation().currentOnly());
+        var legacy = dialogue.storage().get(TaskResponse.KEY).getAsJsonObject().deepCopy();
+        legacy.remove("purpose"); dialogue.storage().put(TaskResponse.KEY, legacy);
+        assertFalse(dialogue.policy().liveActivityContext().continuation().currentOnly(), "Legacy pending work keeps its original delivery contract");
+    }
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
     @Test void returningFromReflectionRequiresNewConfirmedSpeechAndPreservesTheOutcome() {
         f.propose(f.sensor(false), f.text); f.start(f.text);
