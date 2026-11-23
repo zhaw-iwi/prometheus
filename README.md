@@ -338,9 +338,43 @@ require releasing and repeating the pose. Sample stability does not establish
 physical hand identity across frames. Classification does not change the emission
 interval or add between-frame transition rules or hand tracking.
 
+New Coordination instances accept per-hand communication signs through
+`obs.hand.signs` v1: `fist`, `peace`, `open_palm` (halt), `thumbs_up`, `thumbs_down`
+and `index_up` (attention). This is **input support**; immediate named-sign output,
+custom poses and pointing are staged in the [roadmap](.agents/PLAN_HAND_INTERACTION.md).
+The existing output and RPS input vocabulary remains `rock`/`scissor`/`paper`.
+
+A new named-sign task rule replaces scalar `field`/`operator`/`value` with
+`"handSign":{"sign":"thumbs_up","handedness":"right"}` and uses
+`"eventType":"obs.hand.signs"`. Other rule fields and limits stay the same.
+A preparation check has exactly `eventType`, `handSign`, `minConfidence`.
+`handedness` is `any`, `left` or `right`; a specified side must identify one
+reported hand. Two reported hands with the same side are ambiguous. No person
+identity or intent is inferred. Use task `minConfidence:0` unless the user asks
+for an additional minimum; the camera confidence control remains authoritative.
+
+The browser requires three ordered frames over at least 300 ms, respects the
+configured emission interval, and keeps capture times through delayed requests.
+Ingress validates the bounded envelope before persistence (16 KiB, two hands,
+five new hand frames per second). Source/frame identities and a bounded persisted
+consumption record prevent preparation evidence or a retried cue from spending an
+action again. Acceptance is still explicit. Holding a sign can produce another
+fresh cue after the existing cooldown; it is not a release-and-repeat detector.
+Local classification, delivery status and the task's Activity status remain separate.
+
+Saved instances retain their existing profile and agreements. Create a new
+Coordination instance to enable the new signs; an old instance's hand report
+explains when classification is local only. This preserves its history and RPS
+terms. [Contract examples and verification commands](tests/hand-interaction/README.md)
+include the pinned real-detector corpus. That small corpus passes at an explicitly
+selected 0.60 camera threshold. The unchanged 0.65 default withholds its open-palm
+sample (about 0.61); other views also produced misses. Adjusting sensitivity is
+an operator choice, not proof of general accuracy. See the retained
+[evidence and limits](.agents/HAND_INTERACTION_RESULTS.md).
+
 Numeric hand poses currently apply to Generic task agents; Coordination does
 not yet admit `obs.hand.pose` or pose preparation checks. Its current hand cues
-remain legacy `rock`/`scissor`/`paper`. The [hand interaction roadmap](.agents/PLAN_HAND_INTERACTION.md)
+include legacy `rock`/`scissor`/`paper` and the opt-in named signs above. The [hand interaction roadmap](.agents/PLAN_HAND_INTERACTION.md)
 and [versioned contracts](tests/hand-interaction/README.md) cover explicit future
 Coordination adoption. Saved agreements are unchanged. The existing
 `obs.hand.pose` event contains no named sign, and Generic task setup must not
@@ -2295,7 +2329,8 @@ Generic variants remain available and saved graphs are not migrated. Text,
 Continuous and GPT-Live use the same backend agreement. The observation and output
 profile retains its existing sensing, speech, supported nonverbal expression and RPS hand-sign output.
 The new finger/hand-pose observations, preparation checks and reaction rules remain
-unavailable to Coordination; its existing hand-sign sensing is unchanged.
+unavailable to Coordination. New instances additionally accept the six per-hand
+communication signs documented above; saved instance profiles are unchanged.
 
 The agent reuses Social Space's complete voice and shared `ValerianPersona` /
 `CoreAgentReference`: SIRA Lab, IWI, Theresa, Marc, Jasmin and Alexandre, the fictional

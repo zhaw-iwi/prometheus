@@ -28,6 +28,7 @@ public class TaskDecision extends Decision {
         TaskMemory.trace(storage);
         if (!TaskMemory.active(storage) || !storage.containsKey(TaskMemory.SPEC) || history.isEmpty()) return waitFor("task_inactive", null);
         var events = history.toList(); var latest = events.getLast();
+        if (ch.zhaw.prometheus.model.hand.HandEvidence.consumed(storage, latest)) return waitFor("duplicate_or_invalid_hand_observation", latest.getId());
         if (!Event.KIND_OBSERVATION.equals(latest.getKind())) return waitFor("stale_or_missing_observation", latest.getId());
         var freshness = TaskMemory.freshness(latest, now);
         if (freshness != ObservationEvidence.Freshness.FRESH) return waitFor(freshness.reason(), latest.getId());
@@ -107,7 +108,7 @@ public class TaskDecision extends Decision {
         ch.zhaw.prometheus.logging.ActivityTrace.cue(reason, source); return Optional.empty();
     }
     private static boolean stable(TaskSpec.Rule rule, List<Event> events, Instant after, Instant now, String[] reason) {
-        int count = 0; var seen = new HashSet<Instant>(); Instant newer = null;
+        int count = 0; var seen = new HashSet<String>(); Instant newer = null;
         for (int i = events.size() - 1; i >= 0; i--) {
             var event = events.get(i);
             if (!rule.eventType().equals(event.getType())) continue;
@@ -118,7 +119,9 @@ public class TaskDecision extends Decision {
             if (!matches(rule, event, reason)) return false;
             if (newer != null && time.isAfter(newer)) return false;
             newer = time;
-            if (seen.add(time) && ++count >= rule.samples()) return true;
+            String identity = rule.handSign() == null ? time.toString()
+                    : ch.zhaw.prometheus.model.hand.HandSignObservation.parse(event.getPayload()).identity();
+            if (seen.add(identity) && ++count >= rule.samples()) return true;
         }
         reason[0] = "insufficient_samples";
         return false;
@@ -130,6 +133,11 @@ public class TaskDecision extends Decision {
     }
     private static boolean matches(TaskSpec.Rule rule, Event event, String[] reason) {
         try {
+            if (rule.handSign() != null) {
+                boolean match = rule.handSign().matches(ch.zhaw.prometheus.model.hand.HandSignObservation.parse(event.getPayload()), rule.minConfidence());
+                if (!match) reason[0] = "condition_not_met";
+                return match;
+            }
             var object = JsonParser.parseString(event.getPayload()).getAsJsonObject();
             // A client-selected threshold removes a second quality floor, never payload validation.
             if (Event.TYPE_HAND_SIGN.equals(event.getType())) {

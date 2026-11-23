@@ -119,6 +119,7 @@ public class CoordinationAgent implements AgentDefinition {
     @Override public Agent createAgent() { return createAgent(reception); }
     public Agent createAgent(boolean presenceReception) {
         var storage = new Storage();
+        storage.put(ch.zhaw.prometheus.model.hand.HandEvidence.ENABLED, new JsonPrimitive(true));
         storage.put(CoordinationDelivery.ENABLED, new JsonPrimitive(true));
         storage.put(DecorativeGestures.ENABLED, new JsonPrimitive(true));
         storage.put(CoreTaskVoice.ENABLED, new JsonPrimitive(true));
@@ -152,8 +153,10 @@ public class CoordinationAgent implements AgentDefinition {
         var agent = new Agent("Valerian Core - Coordination Agent",
                 "Valerian coordinates conversational and multimodal tasks through shared agreements, preparation, execution and reflection.", states.get("CONVERSATION"), storage);
         var base = ValerianCoreAgentFactory.multimodalBehaviourProfile();
-        agent.setInteractionProfile(AgentInteractionProfile.of(base.getSupportedObservations().stream()
-                .filter(type -> !AgentInteractionProfile.OBS_HAND_POSE.equals(type)).toList(), base.getSupportedBehaviourModalities(),
+        var observations = new ArrayList<>(base.getSupportedObservations());
+        observations.remove(AgentInteractionProfile.OBS_HAND_POSE);
+        observations.add(AgentInteractionProfile.OBS_HAND_SIGNS);
+        agent.setInteractionProfile(AgentInteractionProfile.of(observations, base.getSupportedBehaviourModalities(),
                 List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination")).withPresenceControlledLive(presenceReception));
         return applyDefinitionMetadata(agent);
     }

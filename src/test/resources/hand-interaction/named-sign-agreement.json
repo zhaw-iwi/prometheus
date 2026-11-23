@@ -1,0 +1,38 @@
+{
+  "goal": "Acknowledge thumbs up once",
+  "humanRole": "Show a right-hand thumbs up after accepting",
+  "agentRole": "Acknowledge the new cue",
+  "success": "One acknowledgement",
+  "questions": [],
+  "checks": [
+    {
+      "eventType": "obs.hand.signs",
+      "handSign": {
+        "sign": "thumbs_up",
+        "handedness": "right"
+      },
+      "minConfidence": 0.8
+    }
+  ],
+  "dialogueLimit": 2,
+  "reactions": {
+    "goal": "Acknowledge thumbs up once",
+    "maxActions": 1,
+    "sessionBound": true,
+    "firstAction": "ON_CUE",
+    "rules": [
+      {
+        "eventType": "obs.hand.signs",
+        "handSign": {
+          "sign": "thumbs_up",
+          "handedness": "right"
+        },
+        "action": "Say exactly: Acknowledged.",
+        "effect": "ACT",
+        "minConfidence": 0.8,
+        "samples": 1,
+        "cooldownSeconds": 3
+      }
+    ]
+  }
+}

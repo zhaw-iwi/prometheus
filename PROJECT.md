@@ -80,8 +80,8 @@ and regulation diagnostics remain future work.
   signs, explicit one/two-hand finger poses and directional/target pointing, each
   as Coordination triggers and robot output, plus bounded input/output sequences.
   The plan defines unit/contract, isolated local-MySQL, reviewed Playwright visual
-  and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline is complete; subsequent
-  milestones have not started. The owner authorized sequential implementation,
+  and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
+  HI-02 named-sign triggers are complete; HI-03 output is next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10149,3 +10149,19 @@ deployment remain deferred.
 - Exact commands, local artifacts, resource counts and limits are recorded in
   `.agents/HAND_INTERACTION_RESULTS.md`. No provider spend, physical acceptance or
   deployment. Owner requested commit/push and continuation to HI-02.
+
+## Hand interaction HI-02 (2026-11-23): per-hand named-sign triggers
+
+- New Coordination profiles accept six named signs through strict versioned
+  `obs.hand.signs`; typed predicates, confidence/side selection, preparation and
+  consumed-frame fencing share the existing task controller. Old profiles and
+  legacy RPS remain compatible. No new output capability is claimed yet.
+- Local MySQL persistence/ingress/query checks, 40 JS and seven contract tests,
+  four real-app browser journeys and packaging pass. Named-input screenshots
+  reviewed in light, dark and narrow layouts. Exact overlapping Java counts and
+  artifact paths are in `.agents/HAND_INTERACTION_RESULTS.md`.
+- Actual pinned MediaPipe corpus passes 9/9 at explicit 0.60 calibration; unchanged
+  0.65 default passes 8/9. Palm-view misses are retained and documented. This is
+  fixture smoke evidence, not broad camera accuracy or physical acceptance.
+- Paid provider spend/reservations remain $0/$0. No deployment. Continue HI-03
+  after the authorized commit/push.

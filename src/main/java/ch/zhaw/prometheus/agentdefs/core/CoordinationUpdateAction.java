@@ -97,6 +97,7 @@ public class CoordinationUpdateAction extends Action {
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
                         + "\nLatest user reflection (their report, not a measured outcome): " + (storage.containsKey(CoordinationMemory.REVIEW) ? storage.get(CoordinationMemory.REVIEW) : "none")
                         + "\nSupported sensor fields: " + TaskSpec.FIELDS
+                        + (ch.zhaw.prometheus.model.hand.HandEvidence.enabled(storage) ? ch.zhaw.prometheus.model.task.HandSignCondition.instructions() : "")
                         + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. For ordinary KEEP or REFLECT replies, omit reply.speech and supply only supported nonverbal behaviour. For a confirmed task contribution, describe the required contribution in reply.speech in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
                         + (assent ? "\nInterpret this short reply ONLY against the completed utterance: " + new JsonPrimitive(invitation)
                                 + ". It is not automatically consent. Only KEEP or START of the unchanged saved proposal is permitted. A question about future activation or changing a proposal does not authorize starting now." : "")
@@ -192,6 +193,10 @@ public class CoordinationUpdateAction extends Action {
     }
     private void validate(String operation, CoordinationAgreement proposed, boolean assent, String invitation, String text) {
         var storage = getStorage(); var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
+        if (proposed != null && !ch.zhaw.prometheus.model.hand.HandEvidence.enabled(storage)
+                && (proposed.checks().stream().anyMatch(c -> c.handSign() != null)
+                    || proposed.reactions() != null && proposed.reactions().rules().stream().anyMatch(r -> r.handSign() != null)))
+            throw new IllegalArgumentException("Create a new Coordination instance to enable named hand signs");
         if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "REPLACE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
         if (CoreTaskVoice.normalize(text).matches("what can you do|what are your capabilities|who are you|was kannst du|wer bist du")
                 && !Set.of("KEEP", "SUPPORT").contains(operation))
@@ -365,7 +370,7 @@ public class CoordinationUpdateAction extends Action {
             case "START" -> action ? "Task accepted. Give its first agreed contribution now. " + intent(speech)
                     : "Task accepted and armed. Confirm only that you are waiting for a fresh cue: "
                         + accepted.reactions().rules().stream().filter(rule -> rule.effect() == TaskSpec.Effect.ACT)
-                            .map(rule -> rule.value().toString()).collect(java.util.stream.Collectors.joining(", "))
+                            .map(TaskSpec.Rule::conditionDescription).collect(java.util.stream.Collectors.joining(", "))
                         + ". Do not perform the future action, joke or perception estimate. Preparation is satisfied; waiting for a new cue does not mean recognition failed. The future task is not completed.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
             case "COMPLETE" -> "The user's completion report ended the task. Reflect on available evidence; this is not independently measured success.";
@@ -414,7 +419,7 @@ public class CoordinationUpdateAction extends Action {
         var draft = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
         if (!draft.complete()) return "Clarify the remaining questions; do not ask to start yet.";
         return "Before asking for acceptance, request fresh recognition evidence for: "
-                + draft.checks().stream().map(check -> check.value().getAsString()).collect(java.util.stream.Collectors.joining(", "))
+                + draft.checks().stream().map(ch.zhaw.prometheus.model.coordination.CoordinationAgreement.Check::description).collect(java.util.stream.Collectors.joining(", "))
                 + ". Do not ask to start until these checks are confirmed.";
     }
     private static BehaviourPlan controlReply(String operation, JsonElement raw) {

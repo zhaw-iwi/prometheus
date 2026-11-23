@@ -19,6 +19,7 @@ public final class AgentCapabilityDescription {
             Map.entry("obs.social.context", "Supplied social-scene estimates; explicit participant statements take precedence."),
             Map.entry("obs.social.situation_change", "Backend-derived changes in social grouping, not direct sensing."),
             Map.entry("obs.hand.sign", "Supplied rock, scissor or paper estimates, not intent; task state decides if a move counts."),
+            Map.entry("obs.hand.signs", "Per-hand fist, peace, open palm/halt, thumbs up/down, index up/attention. Estimated side; no intent or consent. Input support only."),
             Map.entry("obs.hand.pose", "Finger bend estimates for up to two hands: 0 straight, 1 fully bent, null unavailable. Client states: straight <0.4, bent >0.55, neutral 0.4-0.55 inclusive; missing labels unknown. Hidden fingers may be inferred. Handedness is estimated, not identity; no named sign or intent is established."),
             Map.entry("obs.weather.current", "Supplied weather for its stated place and time; no independent fetching or GPS."),
             Map.entry("obs.weather.forecast", "Supplied forecast for its stated place and time; not current observed weather."),

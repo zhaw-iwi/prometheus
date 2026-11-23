@@ -354,6 +354,11 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get().agent();
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
+            if (Event.TYPE_HAND_SIGNS.equals(event.getType())) {
+                if (!Event.KIND_OBSERVATION.equals(event.getKind()) || !agent.getInteractionProfile().supportsObservation(event.getType()))
+                    throw new IllegalArgumentException("This instance does not support named hand observations; create a new Coordination instance");
+                ch.zhaw.prometheus.model.hand.HandObservationAdmission.validate(event.getPayload(), agent.getEventHistory().toList(), java.time.Instant.now());
+            }
             PolicyRuntime acknowledgementRuntime = agentMaybe.get().runtime();
             try (var preview = speculation == null || acknowledgementRuntime.externalSpeech() != null ? null : speculation.open(agentID, agent.executionEpoch(),
                     agent.getRegulationSystem().getClass() == ch.zhaw.prometheus.model.regulation.NoOpRegulationSystem.class)) {

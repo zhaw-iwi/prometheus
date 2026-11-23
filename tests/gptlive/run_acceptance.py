@@ -334,6 +334,8 @@ def main():
                     specs = ['tests/playwright/valerian-instance-labels.spec.mjs', 'tests/playwright/valerian-commanding.spec.mjs', 'tests/playwright/valerian-gptlive-smoke.spec.mjs', 'tests/playwright/valerian-gptlive-native.spec.mjs', 'tests/playwright/valerian-continuous-smoke.spec.mjs', 'tests/playwright/valerian-state-view.spec.mjs',
                         'tests/playwright/valerian-state-graph.spec.mjs']
                     if enabled == 'true':
+                        specs.append('tests/playwright/valerian-named-signs.spec.mjs')
+                        specs.append('tests/playwright/valerian-finger-pose.spec.mjs')
                         specs += ['tests/playwright/valerian-gptlive.spec.mjs']
                         if not args.live_only:
                             specs += ['tests/playwright/valerian-lifecycle.spec.mjs', 'tests/playwright/valerian-transcription.spec.mjs',

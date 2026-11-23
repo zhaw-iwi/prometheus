@@ -86,7 +86,7 @@ public final class CoordinationSupport {
         var evidence = CoordinationMemory.evidence(storage);
         return java.util.stream.IntStream.range(0, draft.checks().size())
                 .filter(i -> !evidence.has(Integer.toString(i)))
-                .mapToObj(i -> draft.checks().get(i).value().getAsString())
+                .mapToObj(i -> draft.checks().get(i).description())
                 .collect(java.util.stream.Collectors.joining(", "));
     }
 

@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
 import { estimateHandPoses } from "../../../src/main/resources/public/valerian/hand/finger-pose.js";
+import { createNamedSignTracker } from "../../../src/main/resources/public/valerian/hand/named-signs.js";
 import { handResult } from "../../fixtures/hand-landmarks.mjs";
 
 const source = fs.readFileSync(new URL("../../../src/main/resources/public/valerian/script.js", import.meta.url), "utf8");
 
 // Exercise camera classification through the real acknowledgement/header code.
 // Only media, rendering and the HTTP response are simulated.
-function fixture({ poseSupported = false, signSupported = true } = {}) {
+function fixture({ poseSupported = false, signSupported = true, namedSupported = false } = {}) {
   let now = Date.parse("2026-10-20T08:00:00Z");
   const requests = [], elements = new Map();
   const element = id => {
@@ -28,7 +29,7 @@ function fixture({ poseSupported = false, signSupported = true } = {}) {
     renderHandSignReport(sign, options) { context.setHandSignStatus(options.statusText, options.statusMode); },
     resetHandSignReport(status) { context.setHandSignStatus(status); },
     renderHandPoseReport(payload, status = "Detected") { context.posePayload = payload; context.setHandPoseStatus(status); },
-    currentProfileSupportsObservation(type) { return type === "obs.hand.pose" ? context.poseSupported : context.signSupported; },
+    currentProfileSupportsObservation(type) { return type === "obs.hand.signs" ? namedSupported : type === "obs.hand.pose" ? context.poseSupported : context.signSupported; },
     poseSupported, signSupported, estimateHandPoses, recognitions: 0,
     renderUserSign() {}, setActiveStatus() {}, renderLatestEvent() {}, appendLog() {}, handleResponseEvent() {},
     renderAgentSign() {}, resetBehaviourPanels() {}, renderNonVerbal() {}, renderMotionEnergyState() {},
@@ -45,6 +46,7 @@ function fixture({ poseSupported = false, signSupported = true } = {}) {
     capture: () => context.timingAvailable ? {ts: new Date(now - 2640).toISOString(), epoch: context.timingEpoch} : null,
     accepts: capture => context.timingAvailable && capture?.epoch === context.timingEpoch,
   };
+  context.window = context;
   for (const name of ["camera", "CANNED_GESTURE_TO_SIGN", "SIGNS"]) {
     vm.runInContext(new RegExp(`^const ${name} = \\{[\\s\\S]*?^\\};`, "m").exec(source)[0], context);
   }
@@ -60,7 +62,7 @@ function fixture({ poseSupported = false, signSupported = true } = {}) {
     const rest = source.slice(match.index), end = /^}/m.exec(rest);
     vm.runInContext(rest.slice(0, end.index + 1), context);
   }
-  for (const name of ["maybeEmitHandPose", "passesSensorEmitInterval"]) {
+  for (const name of ["maybeEmitHandPose", "passesSensorEmitInterval", "renderNamedHandReport", "maybeEmitNamedHands"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
     const rest = source.slice(match.index), end = /^}/m.exec(rest);
     vm.runInContext(rest.slice(0, end.index + 1), context);
@@ -71,6 +73,7 @@ function fixture({ poseSupported = false, signSupported = true } = {}) {
     camera.handPoseEstimator = estimateHandPoses;
     globalThis.camera = camera;
   `, context);
+  if (namedSupported) context.camera.namedSignTracker = createNamedSignTracker('test-camera');
   let overlay = null;
   context.drawGestureOverlay = candidate => { overlay = candidate; };
   return { context, requests, element,
@@ -92,6 +95,25 @@ function fixture({ poseSupported = false, signSupported = true } = {}) {
     },
   };
 }
+
+test("named signs use the real scoped emitter, preserve capture time and fence reset acknowledgements", async () => {
+  const f = fixture({namedSupported:true,signSupported:false});
+  const result = handResult({}, 'Right');result.gestures=[[{categoryName:'Thumb_Up',score:.9}]];
+  await f.poseFrame(result);f.advance(150);await f.poseFrame(result);assert.equal(f.requests.length,0);
+  f.advance(150);await f.poseFrame(result);assert.equal(f.requests.length,1);
+  const request=f.requests[0], event=JSON.parse(request.body), payload=JSON.parse(event.payload);
+  assert.equal(event.type,'obs.hand.signs');assert.equal(request.headers.get('X-Prometheus-Access-Code'),'code');
+  assert.equal(payload.hands[0].sign,'thumbs_up');assert.equal(payload.hands[0].handedness,'right');
+  assert.equal(Date.parse(payload.ts),f.context.Date.now()-2640);assert.equal(payload.frame.mirrored,false);
+  assert.match(f.element('hand_named_status').textContent,/Delivered.*task acceptance/);
+  f.element('sensor_emit_enabled').checked=false;f.advance(300);await f.poseFrame(result);
+  assert.equal(f.requests.length,1);assert.match(f.element('hand_named_status').textContent,/delivery is off/);
+  f.element('sensor_emit_enabled').checked=true;
+  f.advance(300);f.context.fetch=async()=>{f.context.resetCameraEmissionGate();return {ok:true,status:200,json:async()=>({active:true})};};
+  await f.poseFrame(result);assert.equal(f.context.camera.lastNamedSignEmitAt,0);
+  f.context.timingAvailable=false;f.advance(300);await f.poseFrame(result);
+  assert.match(f.element('hand_named_status').textContent,/synchronized/);
+});
 
 test("RPS capture uses the configured confidence and still requires three qualifying samples", async () => {
   const f = fixture();

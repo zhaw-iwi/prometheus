@@ -25,9 +25,10 @@ class CoordinationHandPoseUnitTest {
         return proposal;
     }
 
-    @Test void coordinationKeepsItsExistingObservationProfileAndScalarPrompt() {
+    @Test void coordinationKeepsPoseExcludedWhileAddingNamedSignInput() {
         assertFalse(f.agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_POSE));
         assertTrue(f.agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_SIGN));
+        assertTrue(f.agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_SIGNS));
         assertFalse(f.agent.getInteractionProfile().getSupportedObservations().contains(AgentInteractionProfile.OBS_HAND_POSE));
         assertTrue(new GenericMultimodalBehaviourAtSocialSpace().createAgent().getInteractionProfile()
                 .getSupportedObservations().contains(AgentInteractionProfile.OBS_HAND_POSE));

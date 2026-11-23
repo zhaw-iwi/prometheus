@@ -23,11 +23,20 @@ public final class CoordinationPerception {
         // A proposal/control request is not turned into a perception question by mentioning a sensor.
         if (value.matches(".*\\b(start|stop|pause|resume|restart|when|whenever|wenn|sobald|erzähle|tell|propose)\\b.*")) return null;
         Event latest = null;
-        for (var event : history.toList()) if (type.equals(event.getType())) latest = event;
+        for (var event : history.toList()) if (type.equals(event.getType())
+                || type.equals(Event.TYPE_HAND_SIGN) && Event.TYPE_HAND_SIGNS.equals(event.getType())) latest = event;
         String label = type.equals(Event.TYPE_HAND_SIGN) ? "hand sign" : "facial expression";
         if (latest == null) return "No " + label + " observation has been supplied. Check that the detector and observation delivery are enabled.";
         if (!TaskMemory.fresh(latest, now)) return "The supplied " + label + " observation is expired or has an invalid source time. I cannot describe it as current. Supply a fresh observation.";
         try {
+            if (Event.TYPE_HAND_SIGNS.equals(latest.getType())) {
+                var observation = ch.zhaw.prometheus.model.hand.HandSignObservation.parse(latest.getPayload());
+                var signs = observation.hands().stream().filter(h -> h.sign() != null && h.confidence() != null)
+                        .map(h -> h.handedness() + " hand: " + h.sign().replace('_', ' ') + " (" + Math.round(h.confidence() * 100) + "%)")
+                        .collect(java.util.stream.Collectors.joining(", "));
+                return signs.isBlank() ? "No named sign is established by the fresh supplied hand observation."
+                        : "The fresh supplied estimate reports " + signs + ". This is recognition, not intent or task acceptance.";
+            }
             var data = JsonParser.parseString(latest.getPayload()).getAsJsonObject();
             if (!data.has("confidence") || !data.get("confidence").isJsonPrimitive()
                     || !data.get("confidence").getAsJsonPrimitive().isNumber()) throw new IllegalArgumentException();

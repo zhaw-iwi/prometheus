@@ -91,7 +91,9 @@ class CoordinationAgentUnitTest {
         var original = new GenericMultimodalBehaviourAtSocialSpace().createAgent().getInteractionProfile();
         assertEquals(original.getSupportedObservations().stream()
                 .filter(type -> !ch.zhaw.prometheus.model.interaction.AgentInteractionProfile.OBS_HAND_POSE.equals(type)).toList(),
-                agent.getInteractionProfile().getSupportedObservations());
+                agent.getInteractionProfile().getSupportedObservations().stream()
+                    .filter(type -> !Event.TYPE_HAND_SIGNS.equals(type)).toList());
+        assertTrue(agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_SIGNS));
         assertEquals(original.getSupportedBehaviourModalities(), agent.getInteractionProfile().getSupportedBehaviourModalities());
         var adapter = new LiveVoicePolicyAdapter(); assertTrue(adapter.supports(agent));
         for (var state : agent.reachableStates()) {

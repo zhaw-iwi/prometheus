@@ -86,7 +86,11 @@ HI-12 implementation, commit and push after each verified milestone, authorized
 on 2026-11-23. The new cumulative provider cap is $50 including failures and all
 provider modalities; use its separate ledger, not the exhausted historical
 budgets below. New hand contracts are specifications until their implementing
-milestone. Actual progress and evidence: `.agents/HAND_INTERACTION_RESULTS.md`.
+milestone. HI-02 enables six per-hand named-sign inputs for new Coordination
+instances through `obs.hand.signs`, shared typed task predicates and consumed-frame
+fencing. Saved profiles and legacy RPS stay unchanged. New named output is still
+pending HI-03. Actual progress, calibrated detector limits and verification:
+`.agents/HAND_INTERACTION_RESULTS.md`.
 
 Previous work `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–05 acceptance
 is complete (current task narration, shared one-shot commands and voice/mode

@@ -50,7 +50,7 @@ public final class CoordinationMemory {
         if (!draft.complete()) return "The proposal is not complete yet. " + (draft.questions().isEmpty()
                 ? "We still need to agree the goal, roles and success criterion." : draft.questions().getFirst());
         return "Proposed task: " + draft.goal() + "." + limit + " Before acceptance, we need fresh recognition evidence for: "
-                + draft.checks().stream().map(check -> check.value().getAsString()).collect(java.util.stream.Collectors.joining(", "))
+                + draft.checks().stream().map(CoordinationAgreement.Check::description).collect(java.util.stream.Collectors.joining(", "))
                 + ". The task is not active. I will ask to start after those checks are recognised.";
     }
     public static JsonObject evidence(Storage storage) {
@@ -63,6 +63,7 @@ public final class CoordinationMemory {
     /** Only a fresh observation after this proposal/encounter can discharge a check. No verbal bypass. */
     public static boolean observe(Storage storage, Event event, Instant now) {
         if (!"PREPARATION".equals(stage(storage))) return false;
+        if (ch.zhaw.prometheus.model.hand.HandEvidence.consumed(storage, event)) return false;
         var observed = TaskMemory.observed(event);
         Instant boundary = Instant.parse(TaskMemory.text(storage, PREPARED_AFTER, now.toString()));
         if (observed == null || !observed.isAfter(boundary)) return false;
@@ -74,7 +75,10 @@ public final class CoordinationMemory {
             proof.addProperty("eventId", event.getId() == null ? event.getType() + ":" + observed : event.getId().toString());
             evidence.add(key, proof); changed = true;
         }
-        if (changed) storage.put(EVIDENCE, evidence);
+        if (changed) {
+            storage.put(EVIDENCE, evidence);
+            ch.zhaw.prometheus.model.hand.HandEvidence.consume(storage, event);
+        }
         return changed;
     }
     public static void revise(Storage storage) {

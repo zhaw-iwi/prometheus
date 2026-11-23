@@ -25,16 +25,23 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
     public TaskSpec(String goal, int maxActions, List<Rule> rules) { this(goal, maxActions, rules, true); }
     public enum Effect { ACT, WAIT, COMPLETE }
     public record Rule(String eventType, String field, String operator, JsonPrimitive value,
-            String action, Effect effect, double minConfidence, int samples, int cooldownSeconds, HandPoseCondition handPose) {
+            String action, Effect effect, double minConfidence, int samples, int cooldownSeconds,
+            HandPoseCondition handPose, HandSignCondition handSign) {
+        public Rule(String eventType, String field, String operator, JsonPrimitive value,
+                String action, Effect effect, double minConfidence, int samples, int cooldownSeconds, HandPoseCondition handPose) {
+            this(eventType, field, operator, value, action, effect, minConfidence, samples, cooldownSeconds, handPose, null);
+        }
         public Rule(String eventType, String field, String operator, JsonPrimitive value,
                 String action, Effect effect, double minConfidence, int samples, int cooldownSeconds) {
             this(eventType, field, operator, value, action, effect, minConfidence, samples, cooldownSeconds, null);
         }
         public boolean complete() { return effect == Effect.COMPLETE; }
         public String conditionDescription() {
+            if (handSign != null) return eventType + " " + handSign.description();
             return eventType + (handPose == null ? "." + field + " " + operator + " " + value : " " + handPose.description());
         }
         public String conditionKey() {
+            if (handSign != null) return eventType + "/" + handSign.sign() + "/" + handSign.handedness();
             return handPose == null ? conditionDescription()
                     : eventType + "/" + handPose.handedness() + "/" + handPose.all().stream()
                         .sorted(Comparator.comparing(HandPoseCondition.Comparison::finger)).toList();
@@ -80,8 +87,11 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
                 var rule = item.getAsJsonObject();
                 boolean legacy = !rule.has("effect");
                 String type = string(rule, "eventType", 80), field = null, op = null;
-                JsonPrimitive value = null; HandPoseCondition handPose = null;
-                if (type.equals(Event.TYPE_HAND_POSE)) {
+                JsonPrimitive value = null; HandPoseCondition handPose = null; HandSignCondition handSign = null;
+                if (type.equals(Event.TYPE_HAND_SIGNS)) {
+                    exact(rule, Set.of("eventType", "handSign", "action", "effect", "minConfidence", "samples", "cooldownSeconds"));
+                    handSign = HandSignCondition.parse(rule.get("handSign"));
+                } else if (type.equals(Event.TYPE_HAND_POSE)) {
                     exact(rule, Set.of("eventType", "handPose", "action", "effect", "minConfidence", "samples", "cooldownSeconds"));
                     handPose = HandPoseCondition.parse(rule.get("handPose"));
                 } else {
@@ -103,7 +113,7 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
                 Effect effect = legacy ? (rule.get("complete").getAsBoolean() ? Effect.COMPLETE : Effect.ACT)
                         : Effect.valueOf(string(rule, "effect", 12));
                 rules.add(new Rule(type, field, op, value == null ? null : value.deepCopy(), string(rule, "action", 300), effect,
-                        confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60), handPose));
+                        confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60), handPose, handSign));
             }
             return new TaskSpec(goal, max, List.copyOf(rules), sessionBound, firstAction);
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid task configuration; use supported observations and bounded rules"); }

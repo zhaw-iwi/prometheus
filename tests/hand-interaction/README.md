@@ -20,7 +20,8 @@ The roadmap and evidence are in `.agents/PLAN_HAND_INTERACTION.md` and
 | Connected embodiment capabilities | `capabilities` | Input and output must be checked separately |
 | Scoped execution evidence | `executionReceipt` v1 | Bound to canonical event, command, owner and epoch |
 
-These new boundaries are specifications until their implementing milestone. Do
+HI-02 implements `obs.hand.signs` and its `handSign` condition for new Coordination
+instances. Other new boundaries remain specifications until their milestone. Do
 not send new envelopes to old agents. Later adoption must explicitly check the
 persisted profile and offer recreation/upgrade without silently widening an
 accepted agreement or deleting history. Legacy `rock`, `scissor`, `paper` remain
@@ -94,3 +95,20 @@ requires two provider sessions within its reservation. Historical exhausted
 ledgers remain untouched. Actual model prices and conservative per-session limits
 must be verified and enforced before enabling the first paid journey; the
 manifest is not itself a billing meter. No paid call is enabled by HI-01.
+
+## Actual detector smoke
+
+```powershell
+node tests/hand-interaction/detector-smoke.mjs
+```
+
+This downloads/cache-checks SHA-256 pinned MediaPipe 0.10.35 CPU WASM, its existing
+model bundle and public upstream images under ignored `target`. Seven frames per
+case exercise actual model inference plus the production stability tracker. The
+corpus declares a 0.60 operator threshold, 150 ms frame intervals and a 1000 ms
+stable-result deadline; this does not change the product's 0.65 default. Images,
+per-frame classifications/timing, the manifest and results are retained in a new
+run directory each time. Rotated/mirrored/cropped views are declared pixel
+transforms, not additional independent people or private captures. Model/source
+digest drift fails before inference. This small corpus is not a real-room accuracy
+claim; retained default-threshold and exploratory-view failures are in the results.

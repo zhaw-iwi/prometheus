@@ -65,6 +65,7 @@ public class TaskUpdateAction extends Action {
         if (taskCue) {
             var rule = TaskDecision.matching(storage, events, runtime, now).orElse(null);
             if (rule == null) return;
+            ch.zhaw.prometheus.model.hand.HandEvidence.consume(storage, events.toList().getLast());
             var spec = TaskSpec.parse(storage.get(TaskMemory.SPEC));
             if (rule.effect() == TaskSpec.Effect.WAIT) {
                 TaskMemory.put(storage, TaskMemory.PHASE, "WAITING"); TaskMemory.revise(storage);
@@ -146,6 +147,8 @@ public class TaskUpdateAction extends Action {
                 task = TaskSpec.parse(storage.get(TaskMemory.DRAFT)).executable();
             }
             if ((operation.equals("PROPOSE") || operation.equals("ACTIVATE")) && task == null) throw new IllegalArgumentException();
+            if (task != null && !ch.zhaw.prometheus.model.hand.HandEvidence.enabled(storage)
+                    && task.rules().stream().anyMatch(rule -> rule.handSign() != null)) throw new IllegalArgumentException("Unsupported named-hand capability");
             if (Set.of("KEEP", "STOP", "PAUSE", "RESUME").contains(operation) && task != null) throw new IllegalArgumentException();
             if (operation.equals("PAUSE") && !TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))) throw new IllegalArgumentException();
             if (operation.equals("RESUME")) {

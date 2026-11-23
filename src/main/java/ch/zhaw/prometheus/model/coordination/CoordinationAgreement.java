@@ -4,16 +4,25 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import com.google.gson.*;
 import ch.zhaw.prometheus.model.task.TaskSpec;
+import ch.zhaw.prometheus.model.task.HandSignCondition;
+import ch.zhaw.prometheus.model.event.Event;
 
 /** A bounded agreement; dialogue needs no invented sensor rule. Preparation is evidence, not model output. */
 public record CoordinationAgreement(String goal, String humanRole, String agentRole, String success,
         List<String> questions, List<Check> checks, int dialogueLimit, TaskSpec reactions) {
     private static final Gson JSON = new Gson();
-    public record Check(String eventType, String field, String operator, JsonPrimitive value, double minConfidence) {
+    public record Check(String eventType, String field, String operator, JsonPrimitive value, double minConfidence, HandSignCondition handSign) {
+        public Check(String eventType, String field, String operator, JsonPrimitive value, double minConfidence) {
+            this(eventType, field, operator, value, minConfidence, null);
+        }
         public TaskSpec.Rule rule() {
             return new TaskSpec.Rule(eventType, field, operator, value, "Recognise the agreed observation",
-                    TaskSpec.Effect.ACT, minConfidence, 1, 3);
+                    TaskSpec.Effect.ACT, minConfidence, 1, 3, null, handSign);
         }
+        public String description() { return handSign == null ? value.getAsString() : handSign.description(); }
+    }
+    public static boolean supportedObservation(String type) {
+        return TaskSpec.FIELDS.containsKey(type) || Event.TYPE_HAND_SIGNS.equals(type);
     }
     public static CoordinationAgreement parse(JsonElement raw) {
         try {
@@ -30,13 +39,17 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
             var checks = new ArrayList<Check>(); var seen = new HashSet<String>();
             for (var item : object.getAsJsonArray("checks")) {
                 var check = item.getAsJsonObject();
-                exact(check, Set.of("eventType", "field", "operator", "value", "minConfidence"));
+                String type = text(check, "eventType", 80);
+                boolean named = Event.TYPE_HAND_SIGNS.equals(type);
+                exact(check, named ? Set.of("eventType", "handSign", "minConfidence")
+                        : Set.of("eventType", "field", "operator", "value", "minConfidence"));
                 if (!check.get("minConfidence").getAsJsonPrimitive().isNumber()) throw new IllegalArgumentException();
-                var parsed = new Check(text(check, "eventType", 80), text(check, "field", 80), text(check, "operator", 8),
-                        check.getAsJsonPrimitive("value").deepCopy(), check.get("minConfidence").getAsDouble());
+                var parsed = named ? new Check(type, null, null, null, check.get("minConfidence").getAsDouble(), HandSignCondition.parse(check.get("handSign")))
+                        : new Check(type, text(check, "field", 80), text(check, "operator", 8),
+                            check.getAsJsonPrimitive("value").deepCopy(), check.get("minConfidence").getAsDouble());
                 // Reuse the executable field/type/confidence contract, including observed-absence semantics.
                 TaskSpec.parse(new TaskSpec("Preparation", 1, List.of(parsed.rule())).json()).executable();
-                if (!seen.add(parsed.eventType() + "/" + parsed.field() + "/" + parsed.operator() + "/" + parsed.value()))
+                if (!seen.add(parsed.rule().conditionKey()))
                     throw new IllegalArgumentException();
                 checks.add(parsed);
             }
@@ -47,7 +60,7 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
             if (turns < 1 || turns > 50) throw new IllegalArgumentException();
             var task = object.get("reactions").isJsonNull() ? null : TaskSpec.parse(object.get("reactions")).executable();
             if (task != null && (!task.goal().equals(goal)
-                    || task.rules().stream().anyMatch(rule -> !TaskSpec.FIELDS.containsKey(rule.eventType()))))
+                    || task.rules().stream().anyMatch(rule -> !supportedObservation(rule.eventType()))))
                 throw new IllegalArgumentException();
             var agreement = new CoordinationAgreement(goal, human, agent, success, List.copyOf(questions), List.copyOf(checks), turns, task);
             if (agreement.json().toString().getBytes(StandardCharsets.UTF_8).length > 3000) throw new IllegalArgumentException();

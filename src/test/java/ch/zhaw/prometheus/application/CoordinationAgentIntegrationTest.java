@@ -63,9 +63,10 @@ class CoordinationAgentIntegrationTest {
     }
     @Test void legacyScissorsAgreementAndHistorySurviveReloadUnchanged() throws Exception {
         var scope = create(); JsonObject proposal;
-        int instructions = liveContexts.snapshot(scope.code(), scope.id()).orElseThrow().instructions().length();
-        assertTrue(instructions <= 16000, "Keep the existing Live instruction ceiling");
-        System.out.println("HI-01 Live instruction characters=" + instructions);
+        String instructions = liveContexts.snapshot(scope.code(), scope.id()).orElseThrow().instructions();
+        int bytes = instructions.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        assertTrue(bytes <= 16000, "Keep the existing Live instruction byte ceiling");
+        System.out.println("Hand baseline Live instruction characters=" + instructions.length() + ", bytes=" + bytes);
         try (var input = getClass().getResourceAsStream("/hand-interaction/legacy-agreement.json")) {
             proposal = JsonParser.parseReader(new java.io.InputStreamReader(Objects.requireNonNull(input),
                     java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
@@ -83,6 +84,43 @@ class CoordinationAgentIntegrationTest {
         assertEquals(before.stream().map(Event::getPayload).toList(), after.stream().map(Event::getPayload).toList());
         assertEquals(before.stream().map(Event::sourcePosition).toList(), after.stream().map(Event::sourcePosition).toList());
         System.out.println("HI-01 legacy scissors: persisted events=" + after.size() + ", actions=0");
+    }
+    @Test void namedSignPreparationAndFreshCuePersistWithoutReusingReadiness() throws Exception {
+        var scope = create(); var proposal = fixtures.behaviour.NamedHandSignFixture.agreement();
+        turn(scope, "PROPOSE", proposal.toString(), "Prepare a right-hand thumbs up, then acknowledge its next accepted cue once");
+        assertEquals("PREPARATION", CoordinationMemory.stage(memory(scope)));
+        java.util.function.BiConsumer<String,String> observe = (id, sign) -> demo.acknowledge(scope.code(), scope.id(),
+                new EventRequest(Event.TYPE_HAND_SIGNS, "camera", Event.KIND_OBSERVATION,
+                        fixtures.behaviour.NamedHandSignFixture.observation(id, sign, "right", Instant.now()).toString()), OutputProfile.FULL_PLAN).orElseThrow();
+        observe.accept("wrong", "peace"); assertEquals(0, CoordinationMemory.evidence(memory(scope)).size());
+        observe.accept("preparation", "thumbs_up"); assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        assertEquals(proposal, memory(scope).get(CoordinationMemory.DRAFT));
+        turn(scope, "START", "null", "Start now"); assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        long wait = java.time.Duration.between(Instant.now(), Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();
+        assertTrue(wait < 5000); if (wait >= 0) Thread.sleep(wait + 25);
+        observe.accept("preparation", "thumbs_up"); assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        when(gateway.infer(any())).thenReturn("{\"speech\":\"Acknowledged.\"}");
+        observe.accept("fresh-cue", "thumbs_up"); assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        observe.accept("fresh-cue", "thumbs_up"); assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(proposal, memory(scope).get(CoordinationMemory.AGREEMENT));
+        assertEquals(2, memory(scope).get(ch.zhaw.prometheus.model.hand.HandEvidence.CONSUMED).getAsJsonArray().size());
+    }
+    @Test void namedIngressRejectsMalformedAndUndeclaredInputBeforePersistingHistory() {
+        var scope = create(); int initial = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size();
+        assertThrows(IllegalArgumentException.class, () -> demo.acknowledge(scope.code(), scope.id(),
+                new EventRequest(Event.TYPE_HAND_SIGNS, "camera", Event.KIND_OBSERVATION, "{}"), OutputProfile.FULL_PLAN));
+        String valid = fixtures.behaviour.NamedHandSignFixture.observation("frame", "peace", "left", Instant.now()).toString();
+        new TransactionTemplate(transactions).executeWithoutResult(status -> {
+            var agent = agents.findById(scope.id()).orElseThrow();
+            var profile = JsonParser.parseString(agent.getInteractionProfile().toJson()).getAsJsonObject();
+            profile.getAsJsonArray("supportedObservations").remove(new JsonPrimitive(Event.TYPE_HAND_SIGNS));
+            agent.setInteractionProfile(ch.zhaw.prometheus.model.interaction.AgentInteractionProfile.fromJson(profile.toString()));
+            agents.saveAndFlush(agent);
+        });
+        assertThrows(IllegalArgumentException.class, () -> demo.acknowledge(scope.code(), scope.id(),
+                new EventRequest(Event.TYPE_HAND_SIGNS, "camera", Event.KIND_OBSERVATION, valid), OutputProfile.FULL_PLAN));
+        assertEquals(initial, agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size());
     }
     @Test void acceptedPersistedTaskWithdrawsQueuedProposalAndReconnectNeverReplaysIt() throws Exception {
         var scope = create(); var sessionId = UUID.randomUUID();

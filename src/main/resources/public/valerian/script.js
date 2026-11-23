@@ -116,6 +116,8 @@ const camera = {
   handLoadPromise: null,
   handInferencePending: false,
   handPoseEstimator: null,
+  namedSignTracker: null,
+  lastNamedSignEmitAt: 0,
   handPoseStableKey: null,
   handPoseStableFrames: 0,
   lastHandPoseEmitAt: 0,
@@ -250,6 +252,7 @@ const PROFILE_VISUAL_OBSERVATIONS = [
   "obs.social.grouping",
   "obs.social.context",
   "obs.hand.sign",
+  "obs.hand.signs",
   "obs.hand.pose",
 ];
 
@@ -261,7 +264,7 @@ const PROFILE_WEATHER_OBSERVATIONS = [
 const PROFILE_SENSOR_OBSERVATIONS = {
   emotion: ["obs.emotion.face"],
   social: ["obs.human.presence", "obs.social.grouping", "obs.social.context"],
-  hand: ["obs.hand.sign", "obs.hand.pose"],
+  hand: ["obs.hand.sign", "obs.hand.signs", "obs.hand.pose"],
 };
 
 const HAND_CONNECTIONS = [
@@ -1497,6 +1500,9 @@ function renderHistoricalSensingEvent(event) {
     renderSocialFromHistory(event.type, event.payload);
   } else if (event.type === "obs.hand.sign") {
     renderUserSignFromPayload(event.payload);
+  } else if (event.type === "obs.hand.signs") {
+    try { renderNamedHandReport(JSON.parse(event.payload)); setText("hand_named_status", "From history; not a new cue"); }
+    catch (_) { setText("hand_named_status", "Invalid stored observation"); }
   } else if (event.type === "obs.hand.pose") {
     try {
       renderHandPoseReport(JSON.parse(event.payload), "From history");
@@ -3611,6 +3617,7 @@ async function loadHandRecognizer() {
   camera.handRecognizer?.close?.();
   camera.handRecognizer = null;
   camera.handPoseEstimator = null;
+  camera.namedSignTracker = null;
   const revision = ++camera.handModelRevision;
   camera.handLoadPromise = createHandRecognizer("mediapipe", revision).finally(() => {
     camera.handLoadPromise = null;
@@ -3625,6 +3632,7 @@ async function createHandRecognizer(model, revision) {
   try {
     if (model !== "mediapipe") throw new Error(`Unknown hand detector: ${model}`);
     const poseEstimator = (await import("./hand/finger-pose.js")).estimateHandPoses;
+    const createNamedTracker = (await import("./hand/named-signs.js")).createNamedSignTracker;
     const visionTasks = await import(MEDIAPIPE_TASKS_URL);
     const vision = await visionTasks.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_ROOT);
     const recognizer = await visionTasks.GestureRecognizer.createFromOptions(vision, {
@@ -3635,6 +3643,7 @@ async function createHandRecognizer(model, revision) {
     if (revision !== camera.handModelRevision) { recognizer.close?.(); return; }
     camera.handRecognizer = recognizer;
     camera.handPoseEstimator = poseEstimator;
+    camera.namedSignTracker = createNamedTracker();
     camera.handModel = model;
     camera.lastGestureVideoTime = -1;
     camera.handDetectorReady = true;
@@ -3793,6 +3802,8 @@ async function detectHandSign() {
     setText("hand_report_detector", handRecognizerLabel(camera.handModel));
     setText("hand_report_inference", `${inferenceMs.toFixed(1)} ms`);
     const hands = camera.handPoseEstimator(result);
+    const named = camera.namedSignTracker?.observe(result, observed?.ts,
+      Number(document.getElementById("hand_confidence_threshold").value || .65));
     const key = hands.map(hand => hand.handedness).sort().join("|");
     camera.handPoseStableFrames = key === camera.handPoseStableKey ? camera.handPoseStableFrames + 1 : 1;
     camera.handPoseStableKey = key;
@@ -3803,6 +3814,9 @@ async function detectHandSign() {
     };
     renderHandPoseReport(pose, "Detected", { combined: true });
     await maybeEmitCameraSign(candidate, observed);
+    if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
+    if (named) renderNamedHandReport(named.observation, {legacyDetected: !!candidate, frames: named.frames});
+    if (named) await maybeEmitNamedHands(named, observed);
     if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
     await maybeEmitHandPose(pose, observed);
     if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
@@ -5050,13 +5064,52 @@ async function maybeEmitCameraSign(candidate, observed = captureObservationTime(
   }
 }
 
+function renderNamedHandReport(payload, {legacyDetected = false, frames = null} = {}) {
+  const panel = document.getElementById("hand_named_report");
+  if (!panel) return;
+  panel.hidden = false;
+  const hands = Array.isArray(payload?.hands) ? payload.hands.slice(0, 2) : [];
+  const recognized = hands.filter(h => h.sign);
+  if (recognized.length && (!legacyDetected || currentProfileSupportsObservation("obs.hand.signs"))) {
+    document.getElementById("hand_sign_report_details").hidden = true;
+    setHandSignStatus(frames === null ? "From history" : "Communication sign detected", "idle");
+    setText("hand_sign_value", recognized.map(h => h.sign.replaceAll("_", " ")).join(" · "));
+    setText("hand_report_source", "Camera"); setText("hand_report_mode", "Client camera");
+    setText("hand_report_canned", recognized.map(h => h.sign.replaceAll("_", " ")).join(" · "));
+    setText("hand_report_stability", frames === null ? "From history" : `${frames} frames`);
+  }
+  setText("hand_named_detection", hands.length ? hands.map(h =>
+    `${h.handedness === "unknown" ? "Unknown side" : h.handedness} hand: ${h.sign ? h.sign.replaceAll("_", " ") : "unrecognized"}`
+    + (Number.isFinite(h.confidence) ? ` (${Math.round(h.confidence * 100)}%)` : "")).join(" · ") : "No hands detected");
+}
+
+async function maybeEmitNamedHands(named, observed) {
+  const status = text => setText("hand_named_status", text);
+  if (!state.agentId) { status("Not sent: connect an agent"); return; }
+  if (!currentProfileSupportsObservation("obs.hand.signs")) {
+    status("Local detection only. Create a new Coordination instance to use communication signs."); return;
+  }
+  if (!document.getElementById("sensor_emit_enabled").checked) { status("Local detection only: observation delivery is off"); return; }
+  if (!observed || !window.PrometheusObservationTiming?.accepts(observed)) { status("Not sent: waiting for synchronized capture time"); return; }
+  if (!named.stable) { status(`Stabilizing (${named.frames} frames; minimum 300 ms)`); return; }
+  const interval = Math.max(200, Number(document.getElementById("emit_interval_ms").value || 2500));
+  if (Date.now() - camera.lastNamedSignEmitAt < interval) return;
+  const revision = camera.handEmissionRevision || 0, agentId = state.agentId;
+  camera.lastNamedSignEmitAt = Date.now();
+  status("Sending observation");
+  const data = await acknowledgeEvent({type: "obs.hand.signs", actor: "user", kind: "observation",
+    payload: JSON.stringify(named.observation)}, {renderResponse: true});
+  if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
+  status(data ? "Delivered to agent; task acceptance is shown in Activity" : "Observation delivery failed");
+}
+
 async function maybeEmitHandPose(payload, observed = captureObservationTime()) {
   if (!state.agentId) { setHandPoseStatus("Not sent: connect an agent", "idle"); return; }
   if (!document.getElementById("sensor_emit_enabled").checked) {
     setHandPoseStatus("Not sent: enable Emit camera observations", "idle"); return;
   }
   if (!currentProfileSupportsObservation("obs.hand.pose")) {
-    setHandPoseStatus("Not sent: this agent does not support hand poses; create a new multimodal instance", "idle"); return;
+    setHandPoseStatus("Local only: this agent does not support hand poses", "idle"); return;
   }
   if (!usableObservationTime(observed, "handPose")) return;
   if (camera.handPoseStableFrames < REQUIRED_STABLE_GESTURE_FRAMES) {
@@ -5840,6 +5893,9 @@ function resetCameraEmissionGate() {
   camera.lastHandPoseEmitAt = 0;
   camera.handPoseStableKey = null;
   camera.handPoseStableFrames = 0;
+  camera.lastNamedSignEmitAt = 0;
+  camera.namedSignTracker?.reset();
+  setText("hand_named_status", "Not sent: capture reset");
 }
 
 function resetDisabledSensorState() {
@@ -5949,6 +6005,9 @@ function renderHandSignReport(sign, options = {}) {
 }
 
 function resetHandSignReport(statusText = "No sign") {
+  const named = document.getElementById("hand_named_report");
+  if (named) named.hidden = true;
+  setText("hand_named_detection", "No hands detected");
   document.getElementById("hand_sign_report_details").hidden = false;
   document.getElementById("hand_pose_report").hidden = true;
   document.getElementById("hand_pose_hands").replaceChildren();

@@ -8,7 +8,7 @@ Historical GLF/TWC ledgers remain unchanged.
 
 ## HI-01 — Contracts and compatibility baseline
 
-Status: **COMPLETE** (2026-11-23), ready for the authorized commit/push.
+Status: **COMPLETE** (2026-11-23), committed and pushed to main as `111ed6f3`.
 
 Added a strict JSON Schema bundle and nine positive examples for per-hand signs,
 poses, conditions, sequences, scene targets, pointing, capabilities and scoped
@@ -67,8 +67,64 @@ physical robot/microphone checks or paid provider journey has been accepted.
 Live instruction headroom is only 79 characters in this measured baseline;
 future capability guidance must be compacted rather than silently truncated.
 
+## HI-02 — Six named signs as coordinated triggers
+
+Status: **COMPLETE** (2026-11-23). Commit recorded in the next milestone.
+
+New Coordination instances declare strict versioned `obs.hand.signs` input for
+fist, peace, open palm, thumbs up/down and index up. Shared typed conditions select
+any/left/right hand, preserve confidence and reject ambiguous sided evidence.
+Preparation and execution share persisted consumed-frame identities: readiness
+never spends an action; acceptance needs a fresh cue. Saved profiles retain their
+old declarations. Legacy RPS and numeric-pose consumers remain compatible.
+
+The camera retains per-hand classes, waits for three ordered frames spanning
+300 ms, and distinguishes local recognition, delivery and task acceptance. Input
+is bounded to two hands, 16 KiB and five new frames per second by server receipt
+time. Invalid or undeclared payloads cannot enter history. Named output belongs
+to HI-03 and is not advertised yet.
+
+Verification actually run:
+
+- Focused Java suites passed after fixing a nullable-field assumption in shared
+  social-contract validation. Final named-sign suite: 7 tests, covering all six
+  shapes, sides/ambiguity, confidence, stale/malformed evidence, preparation,
+  deduplication, admission rate and undeclared Generic input.
+- Disposable local-MySQL runs: 23 integration/query-budget cases in
+  `target/gptlive-acceptance-b98df7a660`; 25 named/integration cases in
+  `target/gptlive-acceptance-f6181ad6f9`; 16 boundary/capability cases in
+  `target/gptlive-acceptance-a73ee3c3d2`; 42 final compatibility cases in
+  `target/gptlive-acceptance-36585b01f3`. These overlap and are not a unique total.
+  Reload preserves consumed observations; malformed/undeclared ingress leaves
+  history unchanged. Saved-scissors Live instructions measure 15,832 UTF-8 bytes
+  against 16,000. Context query count remains 8.
+- Forty JavaScript hand/sensor tests and seven Python contract tests passed.
+- Four real-app Playwright cases passed in `f6181ad6f9`: named input through
+  agreement/preparation/acceptance/fresh cue, legacy finger/RPS, Text/Continuous,
+  and native Live playback. Named-input light/dark 1440 px and light 390 px
+  screenshots were visually reviewed. Providers and camera SDK results in these
+  browser journeys are synthetic; database, emitter, HTTP, SSE and task logic
+  are real. One fresh cue spends one action; retries spend none.
+- Real MediaPipe 0.10.35 CPU inference on hash-pinned public upstream fixtures:
+  nine cases / 63 frames pass at the explicitly configured **0.60** threshold,
+  with stable decisions at 300 ms. Cases include all six shapes, a mirrored
+  thumb, an off-frame crop and an empty scene. Script and provenance are in
+  `tests/hand-interaction`; results/images are under
+  `target/hand-interaction-detector/run-1795448708530`.
+- Maven packaging and `git diff --check` passed.
+
+Detector limits: the unchanged product default is **0.65**. At that threshold
+the initial corpus passed 8/9: its back-of-hand palm scored about 0.61 and was
+correctly withheld. Three exploratory alternative palm views also missed their
+positive expectations; these failures remain in ignored detector artifacts.
+The calibrated nine-case run is a reproducible smoke test, not general camera
+accuracy, demographic coverage or physical-robot acceptance. Recorded moving
+hands, broader lighting/occlusion and paid L-01 remain unverified. No provider
+calls or reservations were made. All disposable database users/schemas were
+removed; no remote application database was used.
+
 ## Subsequent milestones
 
-HI-02 through HI-12: NOT STARTED. Follow `PLAN_HAND_INTERACTION.md`; each completion
+HI-03 through HI-12: NOT STARTED. Follow `PLAN_HAND_INTERACTION.md`; each completion
 must record its actual checks, remaining limits and source revision here before
 committing and pushing.
