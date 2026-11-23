@@ -39,7 +39,7 @@ export function createNamedSignTracker(sessionId = crypto.randomUUID()) {
     frame(aspectRatio=frameAspect){if(frameAspect!==null&&aspectRatio!==frameAspect)frameRevision++;frameAspect=aspectRatio;return{id:`camera-${sessionId}`,revision:frameRevision,space:'camera_image',mirrored:false};},
     newFrame() {frameRevision++;this.reset();},
     reset() { lastKey = null; frames = 0; lastTime = -Infinity; poseKey=null;poseFrames=0;poseAnchor=[];previousRings.clear();pointKey=null;pointFrames=0; },
-    observe(result, ts, threshold, poses=false, relational=false, aspectRatio=1,pointing=false,dynamicTargets=false) {
+    observe(result, ts, threshold, poses=false, relational=false, aspectRatio=1,pointing=false,dynamicTargets=false,inputSequences=false) {
       const time=Date.parse(ts),gap=!Number.isFinite(time)||!Number.isFinite(lastTime)||time<=lastTime||time-lastTime>1000;
       const frame=this.frame(aspectRatio);
       if(gap)previousRings.clear();
@@ -56,6 +56,7 @@ export function createNamedSignTracker(sessionId = crypto.randomUUID()) {
       lastKey = key; lastTime = time; frames++;
       const observation={schemaVersion: 1, observationId: `${sessionId}:${++sequence}`, source: "valerian.hand.camera", ts,
           frame, hands};
+      if(inputSequences)observation.captureIndex=sequence;
       const estimate=pointing?estimatePointing(result,poseHands,aspectRatio):null;
       if(estimate&&dynamicTargets){const index=poseHands.findIndex(h=>h.id===estimate.handId),wrist=result.landmarks?.[index]?.[0];estimate.handOrigin=wrist&&Number.isFinite(wrist.x)&&Number.isFinite(wrist.y)&&wrist.x>=0&&wrist.x<=1&&wrist.y>=0&&wrist.y<=1?{x:wrist.x,y:wrist.y}:null;}
       const nextPointKey=estimate?JSON.stringify([frameRevision,estimate.handId,estimate.handedness,estimate.direction,estimate.validity]):null;

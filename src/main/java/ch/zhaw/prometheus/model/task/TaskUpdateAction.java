@@ -161,6 +161,7 @@ public class TaskUpdateAction extends Action {
                 throw new IllegalArgumentException("Unsupported hand geometry capability");
             if(task!=null&&!ch.zhaw.prometheus.model.hand.HandFeatures.pointing(storage)&&task.rules().stream().anyMatch(r->r.handPoint()!=null))
                 throw new IllegalArgumentException("Unsupported pointing capability");
+            if(task!=null)for(var rule:task.rules())if(rule.handSequence()!=null)rule.handSequence().requireSupported(storage,events,now);
             if (Set.of("KEEP", "STOP", "PAUSE", "RESUME").contains(operation) && task != null) throw new IllegalArgumentException();
             if (operation.equals("PAUSE") && !TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))) throw new IllegalArgumentException();
             if (operation.equals("RESUME")) {

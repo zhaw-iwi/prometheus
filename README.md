@@ -413,6 +413,41 @@ provide no robot-space location or depth. Model classes are estimates: retained
 corpus review found a milk carton and jar misclassified as bottles. Real-time
 accuracy on the user's device remains an operator check; see the evidence log.
 
+New Coordination instances declare `hand.sequences.input.v1`. Agree a finite
+ordered sequence of signs, explicit poses, pointing conditions or extended-finger
+counts (0..5 on one known hand; 0..10 on two distinct known sides). Every counted
+finger must be known straight or bent; neutral/unknown never means folded. Use
+`eventType:obs.hand.sequence` and `handSequence` on a check/rule; this is a logical
+condition, not a client observation. For example:
+
+```json
+{"schemaVersion":1,"steps":[
+ {"kind":"count","count":1,"hands":"right"},
+ {"kind":"count","count":2,"hands":"right"},
+ {"kind":"count","count":3,"hands":"right"}],
+ "dwellMs":300,"maximumGapMs":5000,"maximumDurationMs":30000}
+```
+
+Sign/pose/point steps use `{kind,condition}` with the corresponding existing typed
+condition. Maximum twelve steps, dwell 300..5000 ms, gap up to 30 seconds and total
+up to 120 seconds. Rules use `minConfidence:0`, `samples:1`, `firstAction:ON_CUE`.
+Preparation requires the whole sequence, then acceptance requires a new one.
+Each completion spends one action. Identical consecutive steps need a known
+different release; holding the final pose cannot repeat it. Wrong stable steps
+restart the attempt; unknown or dropped captures reset dwell without extending
+the original deadline. Camera, hand association or server-process changes require
+explicit restart: say **Restart preparation**, or **Resume** a paused task.
+Resume preserves the remaining action budget and starts at step one.
+
+The Hand sequences and counting panel shows current counts, progress and failures.
+During active sequence capture the browser sends each new capture at most five
+times/second (normal camera cadence is 350 ms), with shared positive `captureIndex`
+metadata on sign/pose/point representations. Missing ordinals cannot accumulate
+dwell. This opt-in metadata is rejected by saved profiles without sequence input.
+Progress persists in ordinary Storage; reload does not replay a completion.
+Sequence specs are bounded to 16 KiB and agreements to 32 KiB; existing nonsequence
+limits remain unchanged. Digital output sequences are a subsequent milestone.
+
 New Coordination instances also declare profile tag `hand.poses.v2` and accept
 versioned `obs.hand.pose` v2. The envelope shares the named observation's source,
 `observationId`, timestamp and frame; each of up to two hands has its own `id`,

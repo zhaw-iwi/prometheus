@@ -105,6 +105,12 @@ camera restarts revise the frame. HI-07 adds `hand.targets.v1`: scoped configure
 regions/virtual targets in Storage, revisioned affine registration, server ray
 selection and dispatch-time target grounding. Edits/deletion/expiry invalidate
 references. The reference rig aims the index ray at the visible virtual marker;
+HI-09 adds opt-in input sequences across signs, poses, pointing and counts 0..10.
+Bounded persisted progress uses capture ordinals/source dwell and independent
+preparation/execution epochs. Unknown/gapped readings reset dwell; source or
+process changes require explicit restart. Whole sequences spend one action;
+held final poses and preparation cannot replay as task contributions. Counts and
+progress appear in the cockpit. Real-room counting accuracy is not established.
 HI-08 adds `hand.targets.dynamic.v1`: bounded person/cup/bottle/book tracks from
 the existing COCO-SSD inference, projected source exclusion, explicit labels and
 registered virtual counterparts. Dynamic selection requires one projected source

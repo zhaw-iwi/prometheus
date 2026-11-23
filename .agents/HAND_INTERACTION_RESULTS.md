@@ -478,7 +478,7 @@ accounts were cleaned; the configured remote database was not used.
 ## HI-08 - Dynamic people and item targets
 
 Status: **COMPLETE** (2026-11-23), committed and pushed as `9f359195`;
-source-association follow-up described below.
+source-association follow-up pushed as `ceaa12ec`, described below.
 
 Reuses the existing single COCO-SSD inference and preserves social person
 tracking. A separate bounded tracker retains person/cup/bottle/book boxes;
@@ -560,3 +560,45 @@ with a known source. `target/gptlive-acceptance-a8c43f5104` passes the focused J
 set and both configured/dynamic browser journeys, with an explicit source person
 in the latter. This corrects the first implementation's boundary; it does not
 change the retained detector accuracy/timing limitations. Paid spend remains $0.
+
+
+## HI-09 - Ordered input sequences and counting
+
+Status: **COMPLETE** (2026-11-23), verified for commit/push.
+
+Added typed sign/pose/point/count sequences (1..12 steps) on checks and ON_CUE
+rules, with independent preparation/run epochs and bounded durable progress.
+Counts require all five/ten participating fingers to be known straight or bent;
+neutral/unknown cannot manufacture zero. Dwell uses distinct ordered source
+captures and shared ordinals; missing captures reset dwell. Stable wrong steps,
+release between identical steps, original deadlines, source/hand changes, process
+restart and explicit resume/re-preparation are enforced. One final capture can
+spend one contribution; preparation and held final poses cannot replay it.
+
+Added prompt/capability opt-ins, conditional bounded sequence agreement sizes,
+fast bounded capture delivery while sequences are active, and a count/progress
+panel that clears stale sensing and explains explicit restart. Saved profiles
+keep their existing contract. No new wire-level completion event is trusted.
+
+Verification actually run:
+
+- Focused Java package run `hi09-package-confirmed.log`: 33 tests pass, including
+  eleven counts, mixed sign/pose/point order, unknown/neutral, duplicates/gaps,
+  held/repeated steps, deadlines, camera/hand/process restart and Coordination
+  preparation/execution/control. Standard native instructions max 15,913 bytes;
+  existing optional-context bound also passes. Earlier failures were test fixture
+  mistakes (confidence and omitted pointing opt-in), retained in logs.
+- 36 JavaScript count/emitter tests pass; the broader earlier ordinal run had 62
+  passing hand/sensor cases. Eleven Python schema/runner tests pass. Malformed
+  capture ordinals reject; unimplemented paid selectors still fail closed.
+- Disposable MySQL `target/gptlive-acceptance-49202c9efb`: one real persistence
+  journey passes, reloading partial progress and exercising camera restart,
+  explicit re-preparation, acceptance, pause/resume, exactly one complete action,
+  held final pose, replacement, Stop and reset.
+- Actual scoped cockpit `target/gptlive-acceptance-73b5b5991b`: one browser journey
+  passes with controlled SDK landmarks and actual emitted frames/SSE/storage.
+  Wrong-step recovery, unknown hands, 1->2->3, camera pause/resume and no duplicate
+  final contribution verified. Reviewed one-of-three, paused-source-390 and
+  completed-390 screenshots: readable progress/count/status without clipping.
+- Maven package and diff whitespace checks pass. No physical, real-room counting,
+  or provider acceptance claimed. Paid spend/reservations remain **$0/$0**.

@@ -8,7 +8,7 @@ import ch.zhaw.prometheus.model.event.*;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import jakarta.persistence.Entity;
 
-/** Pure, local task routing: unmatched sensor frames and ticks never request inference. */
+/** Local task routing: sequence captures update bounded progress; partial cues never request inference. */
 @Entity
 public class TaskDecision extends Decision {
     @Override public String inspectionLabel() {
@@ -44,9 +44,11 @@ public class TaskDecision extends Decision {
         var reason = new String[]{"waiting_for_cue"};
         var result = spec.rules().stream().sorted(Comparator.comparing(TaskSpec.Rule::effect).reversed())
                 .filter(rule -> rule.effect() != TaskSpec.Effect.WAIT || !"WAITING".equals(TaskMemory.phase(storage)))
-                .filter(rule -> rule.eventType().equals(latest.getType()))
+                .filter(rule -> rule.handSequence()!=null||rule.eventType().equals(latest.getType()))
                 .filter(rule -> rule.handPoint()==null||rule.handPoint().current(storage,now))
-                .filter(rule -> stable(rule, events.subList(from, events.size()), after, now, reason)).findFirst();
+                .filter(rule -> rule.handSequence()!=null
+                        ? HandSequenceMemory.observe(storage,"run-"+spec.rules().indexOf(rule),TaskMemory.text(storage,ch.zhaw.prometheus.model.coordination.CoordinationMemory.RUN,"legacy"),rule.handSequence(),latest,after,now)
+                        : stable(rule, events.subList(from, events.size()), after, now, reason)).findFirst();
         ch.zhaw.prometheus.logging.ActivityTrace.cue(result.isPresent() ? "cue_matched" : reason[0], latest.getId(), latest.getType());
         return result;
     }

@@ -83,7 +83,7 @@ and regulation diagnostics remain future work.
   and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
   HI-02 named-sign triggers, HI-03 output, HI-04 composed poses and HI-05 geometry/OK
   ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
-  people/items are complete; HI-09 input sequences/counting is next. The owner authorized sequential implementation,
+  people/items and HI-09 input sequences/counting are complete; HI-10 output sequences is next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10287,3 +10287,18 @@ deployment remain deferred.
   projected source person; unknown/ambiguous association retains direction only,
   as required by the roadmap. Focused units and both target browser journeys pass
   in `a8c43f5104`; configured-region semantics remain unchanged.
+
+
+## HI-09 - Ordered input sequences and counting (2026-11-23)
+
+- Added bounded typed sequence checks/rules and durable progress, explicit count
+  convention, capture ordinals, dwell/release/gap/deadline enforcement and source
+  restart fences. Preparation cannot spend a task contribution. Resume starts
+  from step one with the remaining budget; old profiles are unchanged.
+- Added scoped emitter cadence and visible count/progress/restart explanations.
+  Pure rule/lifecycle tests, schema tests, disposable MySQL reload/pause/resume/
+  replacement/reset journey and actual cockpit sequence journey pass. Reviewed
+  preparation, paused and completed screenshots at narrow width.
+- Evidence: `.agents/HAND_INTERACTION_RESULTS.md`. Controlled sensor fixtures
+  establish control, not real-room counting accuracy. No paid provider requests.
+  Continue HI-10 after authorized commit/push.

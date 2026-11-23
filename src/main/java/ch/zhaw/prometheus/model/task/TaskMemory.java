@@ -45,7 +45,7 @@ public final class TaskMemory {
         return storage.containsKey(key) ? storage.get(key).getAsString() : fallback;
     }
     static void put(Storage storage, String key, String value) { storage.put(key, new JsonPrimitive(value)); }
-    public static void clear(Storage storage) { for (String key : KEYS) if (storage.containsKey(key)) storage.remove(key); }
+    public static void clear(Storage storage) { for (String key : KEYS) if (storage.containsKey(key)) storage.remove(key);HandSequenceMemory.clear(storage); }
     static void revise(Storage storage) {
         storage.put(REVISION, new JsonPrimitive(Integer.parseInt(text(storage, REVISION, "0")) + 1));
     }

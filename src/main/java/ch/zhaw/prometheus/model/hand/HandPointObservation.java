@@ -15,8 +15,9 @@ public record HandPointObservation(String observationId,String source,Instant ob
             if(payload==null||payload.getBytes(StandardCharsets.UTF_8).length>16384)throw new IllegalArgumentException();
             var o=JsonParser.parseString(payload).getAsJsonObject();
             var fields=new java.util.HashSet<>(Set.of("schemaVersion","observationId","source","ts","frame","handId","handedness","direction","validity","ray","resolution"));
-            for(String optional:Set.of("handOrigin","sourceAssociation"))if(o.has(optional))fields.add(optional);
+            for(String optional:Set.of("handOrigin","sourceAssociation","captureIndex"))if(o.has(optional))fields.add(optional);
             if(!fields.equals(o.keySet()))throw new IllegalArgumentException();
+            if(o.has("captureIndex"))integer(o.get("captureIndex"),1,Integer.MAX_VALUE);
             integer(o.get("schemaVersion"),1,1);String id=identifier(o.get("observationId")),source=identifier(o.get("source"));
             String ts=text(o.get("ts"));if(ts.length()>40)throw new IllegalArgumentException();
             var frame=SpatialFrame.parse(o.get("frame"));if(!frame.space().equals("camera_image"))throw new IllegalArgumentException();

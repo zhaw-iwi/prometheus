@@ -85,6 +85,29 @@ class CoordinationAgentIntegrationTest {
         assertEquals(before.stream().map(Event::sourcePosition).toList(), after.stream().map(Event::sourcePosition).toList());
         System.out.println("HI-01 legacy scissors: persisted events=" + after.size() + ", actions=0");
     }
+    @Test void inputSequenceProgressReloadsAndRestartRequiresANewWholeSequence() throws Exception {
+        var scope=create();var proposal=fixtures.behaviour.HandSequenceFixture.agreement(fixtures.behaviour.HandSequenceFixture.counts("right",1,2,3));
+        turn(scope,"PROPOSE",proposal.toString(),"Propose one acknowledgement after one then two then three");
+        sequenceFrame(scope,1,1,1);Thread.sleep(325);sequenceFrame(scope,1,2,1);
+        assertEquals(1,HandSequenceMemory.progress(memory(scope)).getAsJsonObject("prep-0").get("index").getAsInt());
+        sequenceFrame(scope,2,1,2);assertEquals("restart_required",HandSequenceMemory.progress(memory(scope)).getAsJsonObject("prep-0").get("status").getAsString());
+        turn(scope,"KEEP","null","Restart preparation");assertTrue(HandSequenceMemory.progress(memory(scope)).isEmpty());
+        for(int i=0;i<6;i++){Thread.sleep(325);sequenceFrame(scope,1+i/2,i+2,2);}
+        assertEquals("READY",CoordinationMemory.stage(memory(scope)));turn(scope,"START","null","Start now");assertEquals(0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        long delay=java.time.Duration.between(Instant.now(),Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();if(delay>=0)Thread.sleep(delay+25);
+        sequenceFrame(scope,1,8,2);Thread.sleep(325);sequenceFrame(scope,1,9,2);assertEquals(1,HandSequenceMemory.progress(memory(scope)).getAsJsonObject("run-0").get("index").getAsInt());
+        turn(scope,"PAUSE","null","Pause");turn(scope,"RESUME","null","Resume");assertTrue(HandSequenceMemory.progress(memory(scope)).isEmpty());
+        delay=java.time.Duration.between(Instant.now(),Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();if(delay>=0)Thread.sleep(delay+25);
+        when(gateway.infer(any())).thenReturn("{\"speech\":\"Sequence complete.\"}");clearInvocations(gateway);
+        for(int i=0;i<6;i++){Thread.sleep(325);sequenceFrame(scope,1+i/2,i+10,2);assertEquals(i==5?1:0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());}
+        Thread.sleep(325);sequenceFrame(scope,3,16,2);verify(gateway,times(1)).infer(any());assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());assertEquals(proposal,memory(scope).get(CoordinationMemory.AGREEMENT));
+        turn(scope,"PROPOSE",proposal.toString(),"Propose the same sequence again");assertTrue(HandSequenceMemory.progress(memory(scope)).keySet().stream().noneMatch(k->k.startsWith("prep-")));assertEquals("PREPARATION",CoordinationMemory.stage(memory(scope)));
+        turn(scope,"STOP","null","Stop");assertEquals("REFLECTION",CoordinationMemory.stage(memory(scope)));demo.reset(scope.code(),scope.id());assertTrue(HandSequenceMemory.progress(memory(scope)).isEmpty());
+    }
+    private void sequenceFrame(Scope scope,int count,int ordinal,int revision){
+        var p=fixtures.behaviour.HandSequenceFixture.pose("frame-"+revision+"-"+ordinal,count,false,Instant.now());p.addProperty("captureIndex",ordinal);p.getAsJsonObject("frame").addProperty("revision",revision);
+        demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_HAND_POSE,"camera",Event.KIND_OBSERVATION,p.toString()),OutputProfile.FULL_PLAN).orElseThrow();
+    }
     @Test void namedSignPreparationAndFreshCuePersistWithoutReusingReadiness() throws Exception {
         var scope = create(); var proposal = fixtures.behaviour.NamedHandSignFixture.agreement();
         proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action", "Show peace silently with both hands");

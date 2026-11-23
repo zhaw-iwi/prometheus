@@ -18,21 +18,27 @@ public final class HandObservationAdmission {
         if(Event.TYPE_HAND_POINTING.equals(input.getType())) {
             if(!HandFeatures.pointing(profile))throw new IllegalArgumentException("This instance does not declare pointing");
             var point=HandPointObservation.parse(input.getPayload());
+            captureCapability(input.getPayload(),profile);
             if(!HandFeatures.dynamicTargets(profile)&&(point.handOrigin()!=null||point.sourceAssociation()!=null))throw new IllegalArgumentException("Dynamic source geometry not declared");
             if(!HandFeatures.targets(profile)&&!"unresolved".equals(point.resolution().get("status").getAsString()))throw new IllegalArgumentException("Targets not declared");
             rate(point.identity(),history,receivedAt);
         } else if(Event.TYPE_HAND_SIGNS.equals(input.getType())) {
             var parsed=HandSignObservation.parse(input.getPayload());
+            captureCapability(input.getPayload(),profile);
             if(parsed.hands().stream().anyMatch(h -> h.sign()!=null&&!HandFeatures.signAllowed(h.sign(),HandFeatures.poses(profile),HandFeatures.geometry(profile))))
                 throw new IllegalArgumentException("This instance does not declare derived hand signs");
             rate(parsed.identity(),history,receivedAt);
         } else if(HandFeatures.poses(profile)||HandEvidence.modernPose(input.getPayload())) {
             if(!HandFeatures.poses(profile))throw new IllegalArgumentException("This instance does not declare v2 poses");
             var pose=HandPoseObservation.parse(input.getPayload());
+            captureCapability(input.getPayload(),profile);
             if(!HandFeatures.geometry(profile)&&pose.frame().hands().asList().stream().anyMatch(h->h.getAsJsonObject().has("geometry")))
                 throw new IllegalArgumentException("This instance does not declare hand geometry");
             rate(pose.frame().identity(),history,receivedAt);
         }
+    }
+    private static void captureCapability(String payload,AgentInteractionProfile profile){
+        if(!HandFeatures.inputSequences(profile)&&com.google.gson.JsonParser.parseString(payload).getAsJsonObject().has("captureIndex"))throw new IllegalArgumentException("Ordered capture metadata not declared");
     }
     private static void rate(String incoming,List<Event> history,Instant receivedAt) {
         var ids=new HashSet<String>(); Instant cutoff = receivedAt.minusSeconds(1);

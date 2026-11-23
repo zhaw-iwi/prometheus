@@ -63,7 +63,9 @@ public class CoordinationUpdateAction extends Action {
         String rejection = "inference_failed";
         try {
             String command = CoreTaskVoice.normalize(text);
-            if (explicitCueStart(text, invitation)) {
+            if(restartPreparationRequested(text)){
+                operation="RESTART";reply=BehaviourPlan.speechOnly("Restart preparation from the first step.");
+            }else if (explicitCueStart(text, invitation)) {
                 // Arming an unchanged ON_CUE proposal needs no generated contribution.
                 // Validation below still requires all terms and preparation to be ready.
                 operation = "START"; reply = BehaviourPlan.speechOnly("Start the saved proposal.");
@@ -94,6 +96,7 @@ public class CoordinationUpdateAction extends Action {
                                 ? "\nThis is an explicit request to accept the unchanged saved proposal now. Use START with agreement:null if preparation is ready; provide the first contribution only for dialogue/IMMEDIATE. Do not request a second confirmation." : "")
                         + TaskSpec.HAND_CONFIDENCE_GUIDANCE
                         + (ch.zhaw.prometheus.model.hand.HandFeatures.pointing(storage) ? ch.zhaw.prometheus.model.task.HandPointCondition.instructions() : "")
+                        + (ch.zhaw.prometheus.model.hand.HandFeatures.inputSequences(storage)?HandSequence.instructions():"")
                         + ch.zhaw.prometheus.model.hand.HandActions.guidance(runtime.promptMessageAssembler().capabilities())
                         + ch.zhaw.prometheus.model.hand.HandScene.guidance(storage)
                         + "\nPrevious accepted agreement (data): " + (storage.containsKey(CoordinationMemory.AGREEMENT) ? storage.get(CoordinationMemory.AGREEMENT) : "none")
@@ -147,6 +150,8 @@ public class CoordinationUpdateAction extends Action {
             if(proposed!=null) {
                 for(var check:proposed.checks())if(check.handPoint()!=null)check.handPoint().requireCurrentFrame(events,Instant.now(),storage);
                 if(proposed.reactions()!=null)for(var rule:proposed.reactions().rules())if(rule.handPoint()!=null)rule.handPoint().requireCurrentFrame(events,Instant.now(),storage);
+                for(var check:proposed.checks())if(check.handSequence()!=null)check.handSequence().requireSupported(storage,events,Instant.now());
+                if(proposed.reactions()!=null)for(var rule:proposed.reactions().rules())if(rule.handSequence()!=null)rule.handSequence().requireSupported(storage,events,Instant.now());
             }
             rejection = "speech_intent_length";
             if (runtime.externalSpeech() != null && reply.getSpeech() != null && reply.getSpeech().length() > 350)
@@ -261,7 +266,7 @@ public class CoordinationUpdateAction extends Action {
             case "PAUSE" -> { if (!TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))) throw new IllegalArgumentException(); }
             case "RESUME" -> { if (!"PAUSED".equals(TaskMemory.phase(storage)) || accepted == null || storage.containsKey(CoordinationMemory.DRAFT)) throw new IllegalArgumentException(); }
             case "DISCARD" -> { if (!storage.containsKey(CoordinationMemory.DRAFT)) throw new IllegalArgumentException(); }
-            case "RESTART" -> { if (accepted == null || storage.containsKey(CoordinationMemory.DRAFT)) throw new IllegalArgumentException("No accepted task to restart"); }
+            case "RESTART" -> { if (!restartPreparationRequested(text)&&(accepted == null || storage.containsKey(CoordinationMemory.DRAFT))) throw new IllegalArgumentException("No accepted task to restart"); }
             default -> { }
         }
     }
@@ -285,6 +290,9 @@ public class CoordinationUpdateAction extends Action {
             answer("No task is running. " + CoordinationMemory.controls(storage) + " The earlier outcome is preserved.", runtime); return;
         }
         if (operation.equals("RESTART")) {
+            if(storage.containsKey(CoordinationMemory.DRAFT)){
+                proposed=CoordinationMemory.agreement(storage,CoordinationMemory.DRAFT);operation="PROPOSE";
+            }else{
             CoordinationMemory.archive(storage);
             var restart = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
             storage.put(CoordinationMemory.PREVIOUS_PHASE, new JsonPrimitive(TaskMemory.phase(storage)));
@@ -292,6 +300,7 @@ public class CoordinationUpdateAction extends Action {
             CoordinationMemory.phase(storage, "CONFIGURATION");
             if (CoordinationMemory.ready(storage)) operation = "START";
             else { operation = "PROPOSE"; proposed = restart; }
+            }
         }
         boolean action = operation.equals("STEP"), gate = false;
         switch (operation) {
@@ -301,6 +310,7 @@ public class CoordinationUpdateAction extends Action {
                 CoordinationMemory.resetPreparation(storage, now);
             }
             case "START" -> {
+                HandSequenceMemory.clear(storage);
                 CoordinationMemory.archive(storage);
                 CoordinationMemory.remove(storage, CoordinationDelivery.KEY);
                 storage.put(CoordinationMemory.RUN, new JsonPrimitive(java.util.UUID.randomUUID().toString()));
@@ -318,7 +328,7 @@ public class CoordinationUpdateAction extends Action {
             }
             case "STEP" -> storage.put(TaskMemory.ACTIONS, new JsonPrimitive(Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0")) + 1));
             case "PAUSE" -> CoordinationMemory.phase(storage, "PAUSED");
-            case "RESUME" -> { CoordinationMemory.phase(storage, "RUNNING"); gate = storage.containsKey(TaskMemory.SPEC); CoordinationMemory.remove(storage, TaskMemory.PAUSE_REASON); }
+            case "RESUME" -> { HandSequenceMemory.restartRun(storage);CoordinationMemory.phase(storage, "RUNNING"); gate = storage.containsKey(TaskMemory.SPEC); CoordinationMemory.remove(storage, TaskMemory.PAUSE_REASON); }
             case "STOP", "COMPLETE" -> {
                 CoordinationMemory.phase(storage, "COMPLETED");
                 if (!storage.containsKey(CoordinationMemory.OUTCOME)) storage.put(CoordinationMemory.OUTCOME, new JsonPrimitive(operation.equals("STOP") ? "CANCELLED" : "USER_REPORTED_COMPLETION"));
@@ -398,7 +408,8 @@ public class CoordinationUpdateAction extends Action {
             case "STOP" -> "The task is stopped, not paused. No further task actions are authorized. The recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".";
             case "RETURN_TO_CONVERSATION" -> "We are now in Conversation. Previous history and recorded outcomes are preserved. No task action is authorized.";
             case "PAUSE" -> "The task is paused; agreement and budget are preserved. Explicit resume is required.";
-            case "RESUME" -> "The task is resumed with its existing agreement and remaining budget. No extra task action was performed.";
+            case "RESUME" -> "The task is resumed with its existing agreement and remaining budget. No extra task action was performed."
+                    +(getStorage().containsKey(TaskMemory.SPEC)&&TaskSpec.parse(getStorage().get(TaskMemory.SPEC)).rules().stream().anyMatch(r->r.handSequence()!=null)?" Restart the hand sequence from its first step.":"");
             case "DISCARD" -> "The draft was discarded. The previous agreement retains its recorded outcome; only an unfinished, paused task can resume.";
             default -> throw new IllegalStateException("Unsupported coordination continuation");
         };
@@ -433,6 +444,12 @@ public class CoordinationUpdateAction extends Action {
             response.addProperty("controlOnly", true); storage.put(CoreTaskVoice.RESPONSE, response);
         }
         if (action) CoordinationDelivery.attach(storage);
+    }
+    private boolean restartPreparationRequested(String text) {
+        var draft=CoordinationMemory.agreement(getStorage(),CoordinationMemory.DRAFT);
+        return ch.zhaw.prometheus.model.hand.HandFeatures.inputSequences(getStorage()) && draft!=null
+                && draft.checks().stream().anyMatch(check->check.handSequence()!=null)
+                && CoreTaskVoice.normalize(text).matches("(please )?restart (the )?preparation( from (the )?first step)?");
     }
     private static String intent(String speech) { return speech == null ? "No spoken task action was requested." : "Required contribution: " + speech.substring(0, Math.min(350, speech.length())); }
     private static String proposalNextStep(Storage storage) {

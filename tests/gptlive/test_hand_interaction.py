@@ -116,6 +116,14 @@ class HandInteractionContractTest(unittest.TestCase):
         sequence['action']['steps'] = [{'action': nested, 'holdMs': 500}]
         with self.assertRaises(ValidationError): self.validate('motion', sequence)
 
+    def test_capture_ordinals_are_positive_bounded_integers_on_each_representation(self):
+        for name in ('signObservation', 'poseObservation', 'pointObservation'):
+            self.validate(name, {**self.examples[name], 'captureIndex': 1})
+            for ordinal in (0, -1, 1.5, '1', True, 2147483648):
+                with self.subTest(name=name, ordinal=ordinal):
+                    with self.assertRaises(ValidationError):
+                        self.validate(name, {**self.examples[name], 'captureIndex': ordinal})
+
     def test_input_and_output_capabilities_are_separate_and_no_legacy_sign_is_renamed(self):
         capabilities = copy.deepcopy(self.examples['capabilities'])
         capabilities['output']['signs'] = []

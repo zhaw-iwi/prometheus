@@ -128,6 +128,7 @@ public class CoordinationAgent implements AgentDefinition {
         storage.put(ch.zhaw.prometheus.model.hand.HandFeatures.POINTING,new JsonPrimitive(true));
         storage.put(ch.zhaw.prometheus.model.hand.HandFeatures.TARGETS,new JsonPrimitive(true));
         storage.put(ch.zhaw.prometheus.model.hand.HandFeatures.DYNAMIC_TARGETS,new JsonPrimitive(true));
+        storage.put(ch.zhaw.prometheus.model.hand.HandFeatures.INPUT_SEQUENCES,new JsonPrimitive(true));
         storage.put(SensoryRemarks.ENABLED, new JsonPrimitive(true));
         if (presenceReception) storage.put(CoreReception.ENABLED, new JsonPrimitive(true));
         var states = new LinkedHashMap<String, TaskState>();
@@ -166,7 +167,7 @@ public class CoordinationAgent implements AgentDefinition {
         modalities.add(ch.zhaw.prometheus.model.hand.HandActions.MODALITY);
         agent.setInteractionProfile(AgentInteractionProfile.of(observations, modalities,
                 List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination", ch.zhaw.prometheus.model.hand.HandFeatures.POSES,
-                        ch.zhaw.prometheus.model.hand.HandFeatures.GEOMETRY, ch.zhaw.prometheus.model.hand.HandFeatures.POINTING, ch.zhaw.prometheus.model.hand.HandFeatures.TARGETS, ch.zhaw.prometheus.model.hand.HandFeatures.DYNAMIC_TARGETS)).withPresenceControlledLive(presenceReception));
+                        ch.zhaw.prometheus.model.hand.HandFeatures.GEOMETRY, ch.zhaw.prometheus.model.hand.HandFeatures.POINTING, ch.zhaw.prometheus.model.hand.HandFeatures.TARGETS, ch.zhaw.prometheus.model.hand.HandFeatures.DYNAMIC_TARGETS, ch.zhaw.prometheus.model.hand.HandFeatures.INPUT_SEQUENCES)).withPresenceControlledLive(presenceReception));
         return applyDefinitionMetadata(agent);
     }
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {

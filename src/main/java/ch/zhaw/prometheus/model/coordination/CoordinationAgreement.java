@@ -12,7 +12,8 @@ import ch.zhaw.prometheus.model.event.Event;
 public record CoordinationAgreement(String goal, String humanRole, String agentRole, String success,
         List<String> questions, List<Check> checks, int dialogueLimit, TaskSpec reactions) {
     private static final Gson JSON = new Gson();
-    public record Check(String eventType, String field, String operator, JsonPrimitive value, double minConfidence, HandSignCondition handSign, HandPoseCondition handPose, ch.zhaw.prometheus.model.task.HandPointCondition handPoint) {
+    public record Check(String eventType, String field, String operator, JsonPrimitive value, double minConfidence, HandSignCondition handSign, HandPoseCondition handPose, ch.zhaw.prometheus.model.task.HandPointCondition handPoint, ch.zhaw.prometheus.model.task.HandSequence handSequence) {
+        public Check(String eventType,String field,String operator,JsonPrimitive value,double minConfidence,HandSignCondition handSign,HandPoseCondition handPose,ch.zhaw.prometheus.model.task.HandPointCondition handPoint){this(eventType,field,operator,value,minConfidence,handSign,handPose,handPoint,null);}
         public Check(String eventType,String field,String operator,JsonPrimitive value,double minConfidence,HandSignCondition handSign,HandPoseCondition handPose) {
             this(eventType,field,operator,value,minConfidence,handSign,handPose,null);
         }
@@ -24,12 +25,12 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
         }
         public TaskSpec.Rule rule() {
             return new TaskSpec.Rule(eventType, field, operator, value, "Recognise the agreed observation",
-                    TaskSpec.Effect.ACT, minConfidence, 1, 3, handPose, handSign, handPoint);
+                    TaskSpec.Effect.ACT, minConfidence, 1, 3, handPose, handSign, handPoint,handSequence);
         }
-        public String description() { return handPoint!=null ? handPoint.description() : handPose != null ? handPose.description() : handSign == null ? value.getAsString() : handSign.description(); }
+        public String description() { return handSequence!=null?handSequence.description():handPoint!=null ? handPoint.description() : handPose != null ? handPose.description() : handSign == null ? value.getAsString() : handSign.description(); }
     }
     public static boolean supportedObservation(String type) {
-        return TaskSpec.FIELDS.containsKey(type) || Event.TYPE_HAND_SIGNS.equals(type) || Event.TYPE_HAND_POSE.equals(type) || Event.TYPE_HAND_POINTING.equals(type);
+        return TaskSpec.FIELDS.containsKey(type) || Event.TYPE_HAND_SIGNS.equals(type) || Event.TYPE_HAND_POSE.equals(type) || Event.TYPE_HAND_POINTING.equals(type)||ch.zhaw.prometheus.model.task.HandSequence.RULE_TYPE.equals(type);
     }
     public static CoordinationAgreement parse(JsonElement raw) {
         try {
@@ -47,18 +48,19 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
             for (var item : object.getAsJsonArray("checks")) {
                 var check = item.getAsJsonObject();
                 String type = text(check, "eventType", 80);
-                boolean named = Event.TYPE_HAND_SIGNS.equals(type), pose = Event.TYPE_HAND_POSE.equals(type), pointing=Event.TYPE_HAND_POINTING.equals(type);
-                exact(check, named || pose || pointing ? Set.of("eventType", named ? "handSign" : pose ? "handPose" : "handPoint", "minConfidence")
+                boolean named = Event.TYPE_HAND_SIGNS.equals(type), pose = Event.TYPE_HAND_POSE.equals(type), pointing=Event.TYPE_HAND_POINTING.equals(type),sequence=ch.zhaw.prometheus.model.task.HandSequence.RULE_TYPE.equals(type);
+                exact(check, named || pose || pointing || sequence ? Set.of("eventType", sequence?"handSequence":named ? "handSign" : pose ? "handPose" : "handPoint", "minConfidence")
                         : Set.of("eventType", "field", "operator", "value", "minConfidence"));
                 if (!check.get("minConfidence").getAsJsonPrimitive().isNumber()) throw new IllegalArgumentException();
-                var parsed = pointing ? new Check(type,null,null,null,check.get("minConfidence").getAsDouble(),null,null,ch.zhaw.prometheus.model.task.HandPointCondition.parse(check.get("handPoint")))
+                var parsed = sequence?new Check(type,null,null,null,check.get("minConfidence").getAsDouble(),null,null,null,ch.zhaw.prometheus.model.task.HandSequence.parse(check.get("handSequence")))
+                        : pointing ? new Check(type,null,null,null,check.get("minConfidence").getAsDouble(),null,null,ch.zhaw.prometheus.model.task.HandPointCondition.parse(check.get("handPoint")))
                         : named ? new Check(type, null, null, null, check.get("minConfidence").getAsDouble(), HandSignCondition.parse(check.get("handSign")))
                         : pose ? new Check(type,null,null,null,check.get("minConfidence").getAsDouble(),null,HandPoseCondition.parse(check.get("handPose")))
                         : new Check(type, text(check, "field", 80), text(check, "operator", 8),
                             check.getAsJsonPrimitive("value").deepCopy(), check.get("minConfidence").getAsDouble());
                 if (pose && !parsed.handPose().versioned()) throw new IllegalArgumentException("Coordination requires versioned pose conditions");
                 // Reuse the executable field/type/confidence contract, including observed-absence semantics.
-                TaskSpec.parse(new TaskSpec("Preparation", 1, List.of(parsed.rule())).json()).executable();
+                TaskSpec.parse(new TaskSpec("Preparation", 1, List.of(parsed.rule()),true,sequence?TaskSpec.FirstAction.ON_CUE:TaskSpec.FirstAction.IMMEDIATE).json()).executable();
                 if (!seen.add(parsed.rule().conditionKey()))
                     throw new IllegalArgumentException();
                 checks.add(parsed);
@@ -73,7 +75,8 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
                     || task.rules().stream().anyMatch(rule -> !supportedObservation(rule.eventType()) || rule.handPose() != null && !rule.handPose().versioned())))
                 throw new IllegalArgumentException();
             var agreement = new CoordinationAgreement(goal, human, agent, success, List.copyOf(questions), List.copyOf(checks), turns, task);
-            if (agreement.json().toString().getBytes(StandardCharsets.UTF_8).length > 3000) throw new IllegalArgumentException();
+            boolean sequenced=checks.stream().anyMatch(c->c.handSequence()!=null)||task!=null&&task.rules().stream().anyMatch(r->r.handSequence()!=null);
+            if (agreement.json().toString().getBytes(StandardCharsets.UTF_8).length > (sequenced?32768:3000)) throw new IllegalArgumentException();
             return agreement;
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid coordination agreement"); }
     }
@@ -94,6 +97,7 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
     public JsonObject json() {
         var value = JSON.toJsonTree(this).getAsJsonObject();
         for(int i=0;i<checks.size();i++)if(checks.get(i).handPoint()!=null)value.getAsJsonArray("checks").get(i).getAsJsonObject().add("handPoint",checks.get(i).handPoint().json());
+        for(int i=0;i<checks.size();i++)if(checks.get(i).handSequence()!=null)value.getAsJsonArray("checks").get(i).getAsJsonObject().add("handSequence",checks.get(i).handSequence().json());
         value.add("reactions", reactions == null ? JsonNull.INSTANCE : reactions.json());
         return value;
     }

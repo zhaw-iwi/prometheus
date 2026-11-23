@@ -12,7 +12,8 @@ public record HandFrame(String observationId, String source, Instant observed, J
     public static HandFrame parse(String payload, int version) {
         if (payload == null || payload.getBytes(StandardCharsets.UTF_8).length > 16384) throw new IllegalArgumentException("invalid_contract");
         var data = JsonParser.parseString(payload).getAsJsonObject();
-        exact(data,"schemaVersion","observationId","source","ts","frame","hands");
+        if(data.has("captureIndex")){exact(data,"schemaVersion","observationId","source","ts","frame","hands","captureIndex");integer(data.get("captureIndex"),1,Integer.MAX_VALUE);}
+        else exact(data,"schemaVersion","observationId","source","ts","frame","hands");
         integer(data.get("schemaVersion"),version,version);
         String id=identifier(data.get("observationId")),source=identifier(data.get("source")),ts=text(data.get("ts"));
         if(ts.length()>40)throw new IllegalArgumentException();

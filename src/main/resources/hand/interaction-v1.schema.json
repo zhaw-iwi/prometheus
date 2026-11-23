@@ -349,6 +349,11 @@
           },
           "minItems": 0,
           "maxItems": 2
+        },
+        "captureIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
         }
       },
       "required": [
@@ -386,6 +391,11 @@
           },
           "minItems": 0,
           "maxItems": 2
+        },
+        "captureIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
         }
       },
       "required": [
@@ -1488,6 +1498,11 @@
               "additionalProperties": false
             }
           ]
+        },
+        "captureIndex": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
         }
       },
       "required": [

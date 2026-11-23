@@ -341,6 +341,7 @@ def main():
                         specs.append('tests/playwright/valerian-pointing.spec.mjs')
                         specs.append('tests/playwright/valerian-scene-targets.spec.mjs')
                         specs.append('tests/playwright/valerian-detected-targets.spec.mjs')
+                        specs.append('tests/playwright/valerian-input-sequence.spec.mjs')
                         specs.append('tests/playwright/valerian-finger-pose.spec.mjs')
                         specs += ['tests/playwright/valerian-gptlive.spec.mjs']
                         if not args.live_only:

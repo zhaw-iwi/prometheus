@@ -57,6 +57,7 @@ public final class CoordinationMemory {
         return storage.containsKey(EVIDENCE) ? storage.get(EVIDENCE).getAsJsonObject().deepCopy() : new JsonObject();
     }
     public static void resetPreparation(Storage storage, Instant now) {
+        ch.zhaw.prometheus.model.task.HandSequenceMemory.clearPreparation(storage);
         storage.put(EVIDENCE, new JsonObject());
         storage.put(PREPARED_AFTER, new JsonPrimitive(now.toString()));
     }
@@ -71,7 +72,10 @@ public final class CoordinationMemory {
         for (int i = 0; i < draft.checks().size(); i++) {
             String key = Integer.toString(i);
             var point=draft.checks().get(i).handPoint();if(point!=null&&!point.current(storage,now))continue;
-            if (evidence.has(key) || !TaskDecision.matchesObservation(draft.checks().get(i).rule(), event, now)) continue;
+            var sequence=draft.checks().get(i).handSequence();
+            if (evidence.has(key) || !(sequence!=null
+                    ? ch.zhaw.prometheus.model.task.HandSequenceMemory.observe(storage,"prep-"+i,boundary.toString(),sequence,event,boundary,now)
+                    : TaskDecision.matchesObservation(draft.checks().get(i).rule(), event, now))) continue;
             var proof = new JsonObject(); proof.addProperty("observed", observed.toString());
             proof.addProperty("eventId", event.getId() == null ? event.getType() + ":" + observed : event.getId().toString());
             evidence.add(key, proof); changed = true;

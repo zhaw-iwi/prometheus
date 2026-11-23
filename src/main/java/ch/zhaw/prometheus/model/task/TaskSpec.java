@@ -26,7 +26,11 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
     public enum Effect { ACT, WAIT, COMPLETE }
     public record Rule(String eventType, String field, String operator, JsonPrimitive value,
             String action, Effect effect, double minConfidence, int samples, int cooldownSeconds,
-            HandPoseCondition handPose, HandSignCondition handSign, HandPointCondition handPoint) {
+            HandPoseCondition handPose, HandSignCondition handSign, HandPointCondition handPoint, HandSequence handSequence) {
+        public Rule(String eventType,String field,String operator,JsonPrimitive value,String action,Effect effect,double minConfidence,int samples,int cooldownSeconds,
+                HandPoseCondition handPose,HandSignCondition handSign,HandPointCondition handPoint){
+            this(eventType,field,operator,value,action,effect,minConfidence,samples,cooldownSeconds,handPose,handSign,handPoint,null);
+        }
         public Rule(String eventType, String field, String operator, JsonPrimitive value,
                 String action, Effect effect, double minConfidence, int samples, int cooldownSeconds,
                 HandPoseCondition handPose, HandSignCondition handSign) {
@@ -42,11 +46,13 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
         }
         public boolean complete() { return effect == Effect.COMPLETE; }
         public String conditionDescription() {
+            if(handSequence!=null)return handSequence.description();
             if(handPoint!=null)return eventType+" "+handPoint.description();
             if (handSign != null) return eventType + " " + handSign.description();
             return eventType + (handPose == null ? "." + field + " " + operator + " " + value : " " + handPose.description());
         }
         public String conditionKey() {
+            if(handSequence!=null)return eventType+"/"+handSequence.key();
             if(handPoint!=null)return eventType+"/"+handPoint.key();
             if (handSign != null) return eventType + "/" + handSign.sign() + "/" + handSign.handedness();
             return handPose == null ? conditionDescription()
@@ -73,7 +79,7 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
 
     public static TaskSpec parse(JsonElement raw) {
         try {
-            if (raw == null || !raw.isJsonObject() || JSON.toJson(raw).length() > 1800) throw new IllegalArgumentException();
+            if (raw == null || !raw.isJsonObject() || JSON.toJson(raw).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 16384) throw new IllegalArgumentException();
             var object = raw.getAsJsonObject();
             var fields = new HashSet<>(Set.of("goal", "maxActions", "rules"));
             if (object.has("sessionBound")) fields.add("sessionBound");
@@ -93,8 +99,10 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
                 var rule = item.getAsJsonObject();
                 boolean legacy = !rule.has("effect");
                 String type = string(rule, "eventType", 80), field = null, op = null;
-                JsonPrimitive value = null; HandPoseCondition handPose = null; HandSignCondition handSign = null; HandPointCondition handPoint = null;
-                if(type.equals(Event.TYPE_HAND_POINTING)) {
+                JsonPrimitive value = null; HandPoseCondition handPose = null; HandSignCondition handSign = null; HandPointCondition handPoint = null; HandSequence handSequence=null;
+                if(type.equals(HandSequence.RULE_TYPE)){
+                    exact(rule,Set.of("eventType","handSequence","action","effect","minConfidence","samples","cooldownSeconds"));handSequence=HandSequence.parse(rule.get("handSequence"));
+                }else if(type.equals(Event.TYPE_HAND_POINTING)) {
                     exact(rule,Set.of("eventType","handPoint","action","effect","minConfidence","samples","cooldownSeconds"));
                     handPoint=HandPointCondition.parse(rule.get("handPoint"));
                 } else if (type.equals(Event.TYPE_HAND_SIGNS)) {
@@ -120,24 +128,28 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
                 if (handSign != null && ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(handSign.sign()) && confidence != 0) throw new IllegalArgumentException("Derived shapes have no calibrated confidence");
                 if (handPoint != null && confidence != 0) throw new IllegalArgumentException("Pointing has no calibrated confidence");
                 if (handPose != null && confidence != 0) throw new IllegalArgumentException("Finger bend has no detection confidence");
+                if(handSequence!=null&&(confidence!=0||integer(rule,"samples",1,3)!=1))throw new IllegalArgumentException("Sequences use source-time dwell and no confidence score");
                 if (legacy && !rule.get("complete").getAsJsonPrimitive().isBoolean()) throw new IllegalArgumentException();
                 Effect effect = legacy ? (rule.get("complete").getAsBoolean() ? Effect.COMPLETE : Effect.ACT)
                         : Effect.valueOf(string(rule, "effect", 12));
                 rules.add(new Rule(type, field, op, value == null ? null : value.deepCopy(), string(rule, "action", 300), effect,
-                        confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60), handPose, handSign, handPoint));
+                        confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60), handPose, handSign, handPoint, handSequence));
             }
+            if(rules.stream().noneMatch(r->r.handSequence()!=null)&&JSON.toJson(raw).length()>1800)throw new IllegalArgumentException();
             return new TaskSpec(goal, max, List.copyOf(rules), sessionBound, firstAction);
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid task configuration; use supported observations and bounded rules"); }
     }
     public JsonObject json() {
         var result = JSON.toJsonTree(this).getAsJsonObject();
         for(int i=0;i<rules.size();i++)if(rules.get(i).handPoint()!=null)result.getAsJsonArray("rules").get(i).getAsJsonObject().add("handPoint",rules.get(i).handPoint().json());
+        for(int i=0;i<rules.size();i++)if(rules.get(i).handSequence()!=null)result.getAsJsonArray("rules").get(i).getAsJsonObject().add("handSequence",rules.get(i).handSequence().json());
         // Keep legacy/default serialization stable; only the additive timing needs a new field.
         if (firstAction == FirstAction.IMMEDIATE) result.remove("firstAction");
         return result;
     }
     /** Validate new agreements separately so legacy stored data remains inspectable. */
     public TaskSpec executable() {
+        if(rules.stream().anyMatch(r->r.handSequence()!=null)&&firstAction!=FirstAction.ON_CUE)throw new IllegalArgumentException("Sequence tasks start on a fresh completed sequence");
         var conditions = new HashSet<String>();
         for (var rule : rules) {
             if (!conditions.add(rule.conditionKey()))

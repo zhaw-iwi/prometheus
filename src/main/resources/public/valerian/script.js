@@ -292,7 +292,7 @@ window.addEventListener("load", init);
 window.addEventListener("beforeunload", cleanupAll);
 window.addEventListener("pagehide", cleanupAll);
 
-let handSceneUi=null,detectedTargetsUi=null;
+let handSceneUi=null,detectedTargetsUi=null,handSequenceUi=null;
 async function init() {
   globalThis.ValerianEmbodiment?.init();
   handSceneUi=(await import('./hand/scene.js')).mountScene(document.getElementById('hand_scene_setup'),async request=>{
@@ -308,6 +308,8 @@ async function init() {
     await loadStorage();return response.json();
   });
   window.addEventListener('pagehide',()=>detectedTargetsUi?.dispose(),{once:true});
+  handSequenceUi=(await import('./hand/sequence-view.js')).mountSequence(document.getElementById('hand_sequence_setup'));
+  window.addEventListener('pagehide',()=>handSequenceUi?.dispose(),{once:true});
   camera.video = document.getElementById("camera_video");
   document.getElementById("camera_mirror_preview").addEventListener("change",event=>{
     camera.previewMirrored=event.target.checked;camera.video.style.transform=camera.previewMirrored?"scaleX(-1)":"none";
@@ -1461,6 +1463,16 @@ function currentProfileSupportsHandPointing() {
 function currentProfileSupportsDynamicTargets(){
   return currentProfileSupportsObservation('obs.scene.targets')&&state.agentInfo?.interactionProfile?.profileTags?.includes('hand.targets.dynamic.v1')===true;
 }
+function currentProfileSupportsInputSequences(){
+  return currentProfileSupportsHandPoses()&&state.agentInfo?.interactionProfile?.profileTags?.includes('hand.sequences.input.v1')===true;
+}
+function sequenceCaptureActive(){
+  if(!currentProfileSupportsInputSequences())return false;
+  const entry=key=>{try{return JSON.parse(state.storage?.find(e=>e.key===key)?.value||'null');}catch(_){return null;}};
+  const phase=entry('task.phase'),draft=entry('coordination.draft'),evidence=entry('coordination.evidence')||{};
+  if(draft&&phase!=='PAUSED')return(draft.checks||[]).some((c,i)=>c.handSequence&&!Object.hasOwn(evidence,String(i)));
+  return ['RUNNING','WAITING'].includes(phase)&&(entry('task.spec')?.rules||[]).some(r=>r.handSequence);
+}
 
 function currentProfileSupportsHandGeometry() {
   return currentProfileSupportsHandPoses() && state.agentInfo?.interactionProfile?.profileTags?.includes("hand.geometry.v1") === true;
@@ -1777,6 +1789,7 @@ function setStorageEntries(entries) {
 function resetStorageList() {
   handSceneUi?.clear();
   detectedTargetsUi?.clear();
+  handSequenceUi?.clear();
   state.storage = [];
   state.taskStatus = null;
   globalThis.PrometheusActivity?.taskStatus(null);
@@ -1793,6 +1806,10 @@ function updateHandScene(){
   const entry=key=>{try{return JSON.parse(state.storage?.find(e=>e.key===key)?.value||'null');}catch(_){return null;}};
   detectedTargetsUi?.update({snapshot:entry('hand.scene.observed.v1')||{},configured:scene,bindings:entry('hand.scene.bindings.v1')||[],selected:entry('hand.scene.selected.v1'),enabled:currentProfileSupportsDynamicTargets()});
   detectedTargetsUi?.point(entry('hand.scene.pointing.v1'));
+  const draft=entry('coordination.draft'),phase=entry('task.phase'),items=[];
+  if(draft){(draft.checks||[]).forEach((c,i)=>{if(c.handSequence)items.push({slot:'prep-'+i,sequence:c.handSequence});});}
+  else (entry('task.spec')?.rules||[]).forEach((r,i)=>{if(r.handSequence)items.push({slot:'run-'+i,sequence:r.handSequence});});
+  handSequenceUi?.update({enabled:currentProfileSupportsInputSequences(),items,phase,progress:entry('hand.sequence.progress.v1')||{}});
 }
 
 function renderHandConfidencePolicy() {
@@ -3562,6 +3579,7 @@ async function startCamera() {
 }
 
 function stopCamera(options = {}) {
+  handSequenceUi?.pose(null);
   resetCameraEmissionGate();
   if (liveVoice.ui?.presenceArmed) void liveVoice.ui.stop("Camera stopped.");
   if (camera.loopTimer) {
@@ -3880,7 +3898,7 @@ async function detectHandSign() {
     const hands = camera.handPoseEstimator(result);
     const named = camera.namedSignTracker?.observe(result, observed?.ts,
       Number(document.getElementById("hand_confidence_threshold").value || .65), currentProfileSupportsHandPoses(),
-      currentProfileSupportsHandGeometry(), camera.video.videoWidth / camera.video.videoHeight || 1, currentProfileSupportsHandPointing(),currentProfileSupportsDynamicTargets());
+      currentProfileSupportsHandGeometry(), camera.video.videoWidth / camera.video.videoHeight || 1, currentProfileSupportsHandPointing(),currentProfileSupportsDynamicTargets(),currentProfileSupportsInputSequences());
     const key = hands.map(hand => hand.handedness).sort().join("|");
     camera.handPoseStableFrames = key === camera.handPoseStableKey ? camera.handPoseStableFrames + 1 : 1;
     camera.handPoseStableKey = key;
@@ -5174,8 +5192,9 @@ async function maybeEmitNamedHands(named, observed) {
   }
   if (!document.getElementById("sensor_emit_enabled").checked) { status("Local detection only: observation delivery is off"); return; }
   if (!observed || !window.PrometheusObservationTiming?.accepts(observed)) { status("Not sent: waiting for synchronized capture time"); return; }
-  if (!named.stable) { status(`Stabilizing (${named.frames} frames; minimum 300 ms)`); return; }
-  const interval = Math.max(200, Number(document.getElementById("emit_interval_ms").value || 2500));
+  const sequence=sequenceCaptureActive();
+  if (!named.stable&&!sequence) { status(`Stabilizing (${named.frames} frames; minimum 300 ms)`); return; }
+  const interval = sequence?200:Math.max(200, Number(document.getElementById("emit_interval_ms").value || 2500));
   if (Date.now() - camera.lastNamedSignEmitAt < interval) return;
   const revision = camera.handEmissionRevision || 0, agentId = state.agentId;
   camera.lastNamedSignEmitAt = Date.now();
@@ -5215,8 +5234,9 @@ async function maybeEmitPointing(named,observed) {
   if(!state.agentId||!currentProfileSupportsHandPointing()){status("Pointing delivery is unavailable for this instance");return;}
   if(!document.getElementById("sensor_emit_enabled").checked){status("Local estimate only: delivery is off");return;}
   if(!observed||!window.PrometheusObservationTiming?.accepts(observed)){status("Waiting for synchronized capture time");return;}
-  if(!named.pointStable){status(`Stabilizing direction (${named.pointFrames} frames; minimum 300 ms)`);return;}
-  const interval=Math.max(200,Number(document.getElementById("emit_interval_ms").value||2500));
+  const sequence=sequenceCaptureActive();
+  if(!named.pointStable&&!sequence){status(`Stabilizing direction (${named.pointFrames} frames; minimum 300 ms)`);return;}
+  const interval=sequence?200:Math.max(200,Number(document.getElementById("emit_interval_ms").value||2500));
   if(Date.now()-camera.lastPointEmitAt<interval)return;
   const revision=camera.handEmissionRevision||0,agentId=state.agentId;camera.lastPointEmitAt=Date.now();status("Sending observation");
   const data=await acknowledgeEvent({type:"obs.hand.pointing",actor:"camera",kind:"observation",payload:JSON.stringify(named.pointing)},{renderResponse:true});
@@ -5233,13 +5253,14 @@ async function maybeEmitHandPose(payload, observed = captureObservationTime(), s
     setHandPoseStatus("Local only: this agent does not support hand poses", "idle"); return;
   }
   if (!usableObservationTime(observed, "handPose")) return;
-  if (payload.schemaVersion === 2 && !stability?.stable) {
+  const sequence=sequenceCaptureActive();
+  if (payload.schemaVersion === 2 && !stability?.stable&&!sequence) {
     setHandPoseStatus(`Stabilizing pose (${stability?.frames || 0} frames; minimum 300 ms)`, "idle"); return;
   }
-  if (camera.handPoseStableFrames < REQUIRED_STABLE_GESTURE_FRAMES) {
+  if (camera.handPoseStableFrames < REQUIRED_STABLE_GESTURE_FRAMES&&!sequence) {
     setHandPoseStatus(`Stabilizing ${camera.handPoseStableFrames}/${REQUIRED_STABLE_GESTURE_FRAMES}`, "idle"); return;
   }
-  if (!passesSensorEmitInterval("handPose")) {
+  if (sequence?Date.now()-camera.lastHandPoseEmitAt<200:!passesSensorEmitInterval("handPose")) {
     setHandPoseStatus(`Emitted ${new Date(camera.lastHandPoseEmitAt).toLocaleTimeString()}`, "live"); return;
   }
   const revision = camera.handEmissionRevision || 0;
@@ -5255,6 +5276,7 @@ async function maybeEmitHandPose(payload, observed = captureObservationTime(), s
 }
 
 function renderHandPoseReport(payload, status = "Detected", { combined = false } = {}) {
+  if(currentProfileSupportsInputSequences())handSequenceUi?.pose(payload);
   const hands = Array.isArray(payload?.hands) ? payload.hands.slice(0, 2) : [];
   document.getElementById("hand_sign_report_details").hidden = !combined;
   document.getElementById("hand_pose_report").hidden = false;
@@ -6280,6 +6302,7 @@ function resetCockpitColumns() {
 }
 
 function resetSensingState() {
+  handSequenceUi?.pose(null);
   camera.backendRetry = null;
   resetEmotionReport();
   renderSocialMetrics(null, []);
