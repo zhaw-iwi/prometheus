@@ -20,8 +20,8 @@ def manifest():
         raise ValueError('Missing or reordered hand interaction journey')
     budget = data['budget']
     if (budget.get('authorization') != 'hand-interaction-2026-11-23-usd50'
-            or budget.get('maximumReservedUsd') != 50 or budget.get('maximumAttempts') != 12
-            or budget.get('reserveUsdPerAttempt') != 4):
+            or budget.get('maximumReservedUsd') != 50 or budget.get('maximumAttempts') != 21
+            or budget.get('reserveUsdPerAttempt') != 2):
         raise ValueError('Unreviewed hand interaction budget')
     if any(not case.get('milestones') or not case.get('expected') for case in data['journeys']):
         raise ValueError('Journey requires milestone and outcome evidence')
@@ -43,14 +43,25 @@ def validate_contracts():
 
 def configure(args):
     """Validate selection before config reads, database provisioning or paid calls."""
+    if getattr(args, 'hand_comparison', False) and (args.hand_interaction != 'L-09' or args.paid_core != 'hand-live'):
+        raise ValueError('Hand comparison requires L-09 with --paid-core hand-live')
+    if args.paid_core == 'hand-live' and args.hand_interaction not in JOURNEYS:
+        raise ValueError('Paid hand mode requires an explicit L-01..09 selection')
     if not args.hand_interaction:
         return False
-    if (args.paid_core or args.classroom_capacity or args.embodiment or args.commanding_retests
+    if (args.paid_core not in (None, 'hand-live') or args.classroom_capacity or args.embodiment or args.commanding_retests
             or args.commanding_hp3_retest or args.coordination_scenario != 'baseline'):
         raise ValueError('Hand interaction selection cannot borrow another acceptance or paid mode')
     manifest()
     if args.hand_interaction in JOURNEYS:
-        raise ValueError('Hand interaction Live journey is not implemented; no provider access is permitted')
+        if args.paid_core != 'hand-live':
+            raise ValueError('Hand Live journeys require --paid-core hand-live; no provider access is permitted')
+        if args.browser or args.browser_grep or args.browser_mode != 'both' or args.java_tests not in ('none','LiveCockpitSmokeIntegrationTest'):
+            raise ValueError('Paid hand selection cannot mix mocked browser or Java runs')
+        if not manifest()['budget']['pricingVerified'] or not next(c for c in manifest()['journeys'] if c['id']==args.hand_interaction)['providerReady']:
+            raise ValueError('Hand journey preflight is not ready; no provider access is permitted')
+        args.java_tests = 'none'
+        return False
     if args.hand_interaction == 'contracts':
         if (args.browser or args.java_tests != 'LiveCockpitSmokeIntegrationTest' or args.live_only
                 or args.browser_grep or args.browser_mode != 'both'):

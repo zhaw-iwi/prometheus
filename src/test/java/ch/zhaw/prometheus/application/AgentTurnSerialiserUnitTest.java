@@ -8,6 +8,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.*;
 
 class AgentTurnSerialiserUnitTest {
+    @Test void passiveReceiptCanReturnWhileTheDecisionTurnIsBusy() throws Exception {
+        var turns=new AgentTurnSerialiser();var id=UUID.randomUUID();
+        try(var pool=Executors.newSingleThreadExecutor()) {
+            turns.call(id,()->{
+                try { assertEquals("durable",pool.submit(()->turns.tryCall(id,()->fail("overlapping turn"),()->"durable")).get(1,TimeUnit.SECONDS)); }
+                catch(Exception failure) { throw new AssertionError(failure); }
+                assertEquals(1,turns.retainedAgents());return null;
+            });
+        }
+        assertEquals("applied",turns.tryCall(id,()->"applied",()->fail("unexpected busy turn")));
+        assertEquals(0,turns.retainedAgents());
+    }
     @Test void holdsThroughTransactionCompletionAndCleansUpReentrantReferences() {
         var turns = new AgentTurnSerialiser(); UUID id = UUID.randomUUID();
         TransactionSynchronizationManager.initSynchronization();

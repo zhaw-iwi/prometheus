@@ -51,6 +51,10 @@ class LiveTaskNarrationUnitTest {
             assertEquals(inFlight ? 1 : 0, sent.stream().filter(c -> old.equals(c.sourceId()) && c.type().equals("session.commentary.append")).count());
             assertEquals(1, sent.stream().filter(c -> next.equals(c.sourceId()) && c.type().equals("session.commentary.append")).count());
             assertEquals(1, sent.stream().filter(c -> c.content().contains("is withdrawn")).count());
+            var withdrawal = sent.stream().filter(c -> c.content().contains("is withdrawn")).findFirst().orElseThrow();
+            assertEquals("session.thinking.append", withdrawal.type());
+            assertTrue(withdrawal.content().contains("this update authorizes no speech or action"));
+            assertFalse(withdrawal.content().contains("briefly correct it once"));
             assertEquals(1, session.status().recent().stream().filter(t -> t.phase().equals("task_narration_withdrawn")).count());
             assertTrue(sent.stream().allMatch(c -> c.content().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= LiveContextDelivery.MAX_APPEND_BYTES));
             assertEquals(next, session.speechRequestId());

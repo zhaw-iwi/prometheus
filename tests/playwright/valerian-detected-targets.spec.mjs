@@ -5,6 +5,11 @@ import {pointingResult} from '../fixtures/hand-landmarks.mjs';
 test('detected cup selection prepares a cue and maps output while expired labels stay retired',async({page,context,request},info)=>{
   test.skip(!process.env.PROMETHEUS_ADMIN_TOKEN||process.env.PROMETHEUS_LIVE_EXPECT_ENABLED!=='true','Use the enabled disposable MySQL runner');
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const captures=[];page.on('response',async r=>{
+    if(r.ok()&&r.request().method()==='POST'&&r.url().includes('/acknowledge')&&r.request().postDataJSON()?.type==='obs.scene.targets'){
+      const body=await r.json();if(body.sceneCapture)captures.push(JSON.parse(body.sceneCapture));
+    }
+  });
   page.on('response',r=>{if(r.url().includes('/acknowledge')&&!r.ok())errors.push('Acknowledgement HTTP '+r.status());});
   const access=await(await request.post('/admin/access-codes',{headers:{'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN},data:{code:Math.random().toString(36).slice(2,7).toUpperCase(),enabled:true}})).json();
   await request.put(`/admin/access-codes/${access.id}/agent-types`,{headers:{'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN},data:{agentTypeKeys:['core.coordination']}});
@@ -37,7 +42,17 @@ test('detected cup selection prepares a cue and maps output while expired labels
     await page.locator('#detected_target_setup').screenshot({path:info.outputPath('selected-cup.png')});
     await request.post('/__live-fixture/direct-command',{data:{operation:'KEEP',agreement:null,reply:{},command:{intent:'ACTION',kind:'POINT',value:{kind:'point',effector:'left_hand',target:reference},silent:true}}});
     await page.getByRole('button',{name:'Robot',exact:true}).click();await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-ready','true');
-    await say('Point at my cup silently');await expect.poll(async()=>(await memory())['command.lastResult']?.status).toBe('ACCEPTED');const receipt=(await memory())['command.lastResult'];expect(receipt.handAction.action.resolved.position).toEqual({x:3,y:2,z:0});expect((await memory())['coordination.agreement']).toEqual(agreement);
+    const countBefore=(await(await request.get('/__live-fixture/inference')).json()).count;
+    await request.post('/__live-fixture/inference/hold');const pending=say('Point at my cup silently');
+    try {
+      await expect.poll(async()=>(await(await request.get('/__live-fixture/inference')).json()).count).toBeGreaterThan(countBefore);
+      const first=captures.length;await page.waitForTimeout(3800); // Cross the target TTL with the real source clock.
+      expect(captures.length-first).toBeGreaterThanOrEqual(4);
+      await expect(page.locator('#target_status')).toContainText('2 fresh projected targets');
+      await expect(page.locator('#target_saved')).not.toContainText('expired');
+      await page.locator('#detected_target_setup').screenshot({path:info.outputPath('fresh-during-inference.png')});
+    } finally {await request.post('/__live-fixture/inference/release');}
+    await pending;await expect.poll(async()=>(await memory())['command.lastResult']?.status).toBe('ACCEPTED');const receipt=(await memory())['command.lastResult'];expect(receipt.handAction.action.resolved.position).toEqual({x:3,y:2,z:0});expect((await memory())['coordination.agreement']).toEqual(agreement);
     await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-hand-phase','released');
     // Two aligned boxes remain ambiguous even when one has a label.
     await page.evaluate(()=>{window.__objects.push({class:'bottle',score:.93,bbox:[450,130,60,240]});});await expect(page.locator('#target_selection')).toContainText('Ambiguous projection');await page.locator('#detected_target_setup').screenshot({path:info.outputPath('ambiguous-items.png')});
@@ -46,5 +61,5 @@ test('detected cup selection prepares a cue and maps output while expired labels
     await page.setViewportSize({width:390,height:1000});await page.locator('#detected_target_setup').screenshot({path:info.outputPath('expired-label-390.png')});
     await page.reload();await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-hand-phase','preview');await expect(page.locator('#embodiment_summary')).toContainText('toward My cup');await page.locator('#embodiment_panel').screenshot({path:info.outputPath('point-at-cup-history-390.png')});
     writeFileSync(info.outputPath('dynamic-evidence.json'),JSON.stringify({reference,agreement,receipt},null,2));expect(errors).toEqual([]);
-  }finally{await page.close();await request.delete(path,{headers});await request.delete('/__live-fixture/coordination-proposal');await request.delete('/__live-fixture/direct-command');}
+  }finally{await request.post('/__live-fixture/inference/release');await page.close();await request.delete(path,{headers});await request.delete('/__live-fixture/coordination-proposal');await request.delete('/__live-fixture/direct-command');}
 });

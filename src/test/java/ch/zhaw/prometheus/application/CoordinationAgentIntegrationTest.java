@@ -40,6 +40,8 @@ class CoordinationAgentIntegrationTest {
     @Autowired LiveContextBridgeService liveBridge;
     @Autowired ScopedBehaviourSpeechService canonicalSpeech;
     @Autowired jakarta.persistence.EntityManagerFactory entityManagerFactory;
+    @Autowired ch.zhaw.prometheus.repositories.SceneTargetCaptureRepository sceneCaptures;
+    @Autowired SceneTargetCaptureService sceneCaptureService;
     @MockitoBean LanguageModelGateway gateway;
     @MockitoBean SpeechSynthesisGateway speech;
     static final String AGREEMENT = """
@@ -61,6 +63,62 @@ class CoordinationAgentIntegrationTest {
         var agent = agents.findById(scope.id()).orElseThrow();
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
+    }
+    @Test void liveSceneCapturesStayFreshDuringSlowInterpretation() throws Exception { slowPointing(false); }
+    @Test void disappearingTargetDuringInterpretationCannotProduceMotion() throws Exception { slowPointing(true); }
+    private void slowPointing(boolean disappear) throws Exception {
+        var scope=create();
+        var snapshot=fixtures.behaviour.ObservedTargetsFixture.cup(Instant.now());
+        demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_SCENE_TARGETS,"camera",Event.KIND_OBSERVATION,snapshot.toString()),OutputProfile.FULL_PLAN).orElseThrow();
+        var target=ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(memory(scope),Instant.now()).getFirst();
+        var scene=JsonParser.parseString(demo.configureHandScene(scope.code(),scope.id(),fixtures.behaviour.ObservedTargetsFixture.virtualRequest(0).toString()).orElseThrow()).getAsJsonObject();
+        demo.bindHandTarget(scope.code(),scope.id(),fixtures.behaviour.ObservedTargetsFixture.binding(target,scene.getAsJsonArray("targets").get(0).getAsJsonObject()).toString()).orElseThrow();
+        var reference=ch.zhaw.prometheus.model.hand.HandScene.ref(target);
+        var entered=new java.util.concurrent.CountDownLatch(1);var release=new java.util.concurrent.CountDownLatch(1);
+        when(gateway.infer(any())).thenAnswer(call->{
+            entered.countDown();assertTrue(release.await(10,java.util.concurrent.TimeUnit.SECONDS));
+            return "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"ACTION\",\"kind\":\"POINT\",\"value\":{\"kind\":\"point\",\"effector\":\"right_hand\",\"target\":"+reference.json()+"},\"silent\":true}}";
+        });
+        try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            java.util.function.Supplier<Optional<ch.zhaw.prometheus.controllers.views.ResponseView>> request=()->demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_USER_UTTERANCE,"user",Event.KIND_OBSERVATION,"Point at My cup silently"),OutputProfile.FULL_PLAN);
+            var command=pool.submit(()->disappear?request.get():new TransactionTemplate(transactions).execute(status->request.get()));
+            try {
+                assertTrue(entered.await(5,java.util.concurrent.TimeUnit.SECONDS));
+                // Captures must be acknowledged promptly while interpretation remains blocked.
+                // Keep the real source clock running beyond the three-second target TTL.
+                for(int i=0;i<8;i++) {
+                    Thread.sleep(420);var capture=disappear&&i==7?fixtures.behaviour.ObservedTargetsFixture.snapshot(Instant.now()):fixtures.behaviour.ObservedTargetsFixture.cup(Instant.now());
+                    var admitted=pool.submit(()->demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_SCENE_TARGETS,"camera",Event.KIND_OBSERVATION,capture.toString()),OutputProfile.FULL_PLAN));
+                    assertTrue(admitted.get(1,java.util.concurrent.TimeUnit.SECONDS).isPresent());
+                }
+            } finally { release.countDown(); }
+            assertTrue(command.get(5,java.util.concurrent.TimeUnit.SECONDS).isPresent());
+        }
+        var saved=memory(scope);
+        assertEquals(disappear?"CLARIFY":"ACCEPTED",saved.get("command.lastResult").getAsJsonObject().get("status").getAsString());
+        if(disappear)assertTrue(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(saved,Instant.now()).isEmpty());
+        else assertEquals(reference,ch.zhaw.prometheus.model.hand.HandScene.ref(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(saved,Instant.now()).getFirst()));
+        assertEquals(disappear?0:1,agents.findById(scope.id()).orElseThrow().getEventHistory().toList().stream()
+                .filter(e->Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType())&&e.getPayload().contains("handAction")).count());
+    }
+    @Test void sceneReceiptsPreserveScopeRetriesEpochAndDeletionBoundaries() {
+        var scope=create();var other=create();
+        var payload=fixtures.behaviour.ObservedTargetsFixture.cup(Instant.now()).toString();
+        var request=new EventRequest(Event.TYPE_SCENE_TARGETS,"camera",Event.KIND_OBSERVATION,payload);
+        assertTrue(demo.acknowledge(other.code(),scope.id(),request,OutputProfile.FULL_PLAN).isEmpty());
+        assertTrue(sceneCaptures.findById(scope.id()).isEmpty());
+        demo.acknowledge(scope.code(),scope.id(),request,OutputProfile.FULL_PLAN).orElseThrow();
+        var before=sceneCaptures.latest(scope.id()).orElseThrow().getSnapshot();
+        long events=agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size();
+        demo.acknowledge(scope.code(),scope.id(),request,OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals(before,sceneCaptures.latest(scope.id()).orElseThrow().getSnapshot());
+        assertEquals(events,agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size());
+        assertThrows(IllegalArgumentException.class,()->demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_SCENE_TARGETS,"camera",Event.KIND_RESPONSE,payload),OutputProfile.FULL_PLAN));
+        assertEquals(before,sceneCaptures.latest(scope.id()).orElseThrow().getSnapshot());
+        var priorEpoch=sceneCaptures.latest(scope.id()).orElseThrow().getEpoch();
+        demo.reset(scope.code(),scope.id()).orElseThrow();var reset=agents.findById(scope.id()).orElseThrow();
+        assertNotEquals(priorEpoch,reset.executionEpoch());assertFalse(sceneCaptureService.refresh(reset),"A receipt from the previous execution epoch cannot be assimilated");
+        assertTrue(demo.deleteAgent(scope.code(),scope.id()));assertTrue(sceneCaptures.findById(scope.id()).isEmpty());
     }
     @Test void boundedHandIngressPersistsLargePayloadsAndRetriesWithoutWritesOrInference() throws Exception {
         var scope=create();var stats=entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();

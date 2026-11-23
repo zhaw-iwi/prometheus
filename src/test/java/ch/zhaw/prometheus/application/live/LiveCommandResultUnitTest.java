@@ -55,6 +55,7 @@ class LiveCommandResultUnitTest {
         assertTrue(delivery.plan(current,List.of()).commands().isEmpty());
         var withdrawal = delivery.plan(initial,List.of());
         assertTrue(withdrawal.commands().stream().allMatch(c -> c.type().equals("session.thinking.append")));
-        assertTrue(withdrawal.commands().stream().anyMatch(c -> c.content().contains("no longer applies")));
+        assertTrue(withdrawal.commands().stream().anyMatch(c -> c.content().contains("Earlier completed commands and task agreements are unchanged")));
+        assertTrue(withdrawal.commands().stream().noneMatch(c -> c.content().contains("no longer applies")));
     }
 }

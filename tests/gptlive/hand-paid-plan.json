@@ -1,0 +1,54 @@
+{
+  "schema": "hand-paid-plan-v1",
+  "authorized": true,
+  "authorization": "hand-interaction-2026-11-23-usd50",
+  "dated": "2026-11-23",
+  "maximumAttempts": 21,
+  "maximumReservedUsd": 50,
+  "reserveUsdPerAttempt": 2,
+  "models": {
+    "backend": "gpt-5.6-luna",
+    "live": "gpt-live-1"
+  },
+  "limits": {
+    "backendRequests": 36,
+    "requestBytes": 80000,
+    "inputFramingTokenAllowance": 2048,
+    "completionTokensPerRequest": 2048,
+    "reportedTokens": 250000,
+    "sessions": 1,
+    "sessionSeconds": 360,
+    "journeySeconds": 390,
+    "visitorTurns": 12,
+    "nativeInputAudioSeconds": 360,
+    "nativeOutputAudioSeconds": 360,
+    "nativeTextBytes": 250000,
+    "stimulusCalls": 0,
+    "outputSpeechCalls": 0,
+    "gradingCalls": 0
+  },
+  "pricing": {
+    "backendInputUsdPerMillion": 0.2,
+    "backendOutputUsdPerMillion": 1.2,
+    "cacheWriteMultiplier": 2.5,
+    "liveUsdPerMinute": 0.05,
+    "liveBilling": "session_duration",
+    "liveCostedSeconds": 420
+  },
+  "pricingChecked": "2026-11-23",
+  "sources": [
+    "https://developers.openai.com/api/docs/pricing",
+    "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+    "https://developers.openai.com/api/docs/models/gpt-live-1"
+  ],
+  "latency": {
+    "turns": 3,
+    "medianAllowanceOverBaselineMs": 1000,
+    "maximumAllowanceOverBaselineMs": 2000
+  },
+  "stimulus": "Locally synthesized Windows speech, 24kHz mono PCM. Controlled sensor/scene observations; real provider interpretation, speech and capture. No provider synthesis or grading.",
+  "rubric": "Review complete captured replies and received native audio, plus synchronized visible output. Wrong sign, side, direction, target, order, roles, terms, count, renewed consent after activation, premature execution, false denial or completion claim fails. Missing evidence is INCONCLUSIVE. Native silence requires no received audio. Sensor fixtures do not prove camera accuracy; digital receipts do not prove physical actuation.",
+  "failurePolicy": "Keep every failed/crashed reservation and artifact. No refunds, ledger reset or automatic paid retries. Ten initial sessions cover L-01..08 and separate L-09 sessions. Further diagnostic attempts require explicit selection, within 21 total attempts and USD 48 reserved.",
+  "allocationRevision": 2,
+  "allocationReason": "Verified maximum USD 1.9153 per attempt. Preserve the first three USD 4 reservations exactly; at most eighteen future USD 2 reservations, total USD 48. No refund, reset or per-attempt provider bound increase."
+}

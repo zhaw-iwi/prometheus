@@ -35,6 +35,13 @@ class ProviderCaptureBudgetTest {
         gateway.create(null); assertThrows(IllegalStateException.class, () -> gateway.create(null));
         verify(real, times(1)).create(null);
     }
+    @Test void oversizedUtf8InputIsRejectedBeforeAnyProviderAccess() {
+        var recorder = ProviderCaptureApplication.Capture.recorder(directory.resolve("bytes.jsonl"), 36, 250000, 1, 0);
+        var real = mock(LanguageModelGateway.class);
+        var gateway = (LanguageModelGateway) recorder.postProcessAfterInitialization(real, "gateway");
+        assertThrows(IllegalStateException.class, () -> gateway.complete(List.of(ch.zhaw.prometheus.model.policy.PromptMessage.user("界".repeat(27000)))));
+        verifyNoInteractions(real);
+    }
     @Test void transcriptionAndLiveShareOneSessionBudget() {
         var recorder = ProviderCaptureApplication.Capture.recorder(directory.resolve("shared.jsonl"), 4, 100, 1);
         var real = mock(LiveTranscriptionSessionClient.class);

@@ -4882,22 +4882,18 @@ async function maybeEmitSocial(social, tracked, observed = captureObservationTim
   if (!urgent && !passesSensorEmitInterval("social")) {
     return;
   }
-  if (liveVoice.ui?.presenceArmed) {
-    if (camera.receptionSocialPending) return;
-    camera.receptionSocialPending = true;
-    void submitSocialPayloads(social, tracked, "visual.social", urgent, observed)
-      .finally(() => { camera.receptionSocialPending = false; });
-  } else await submitSocialPayloads(social, tracked, "visual.social", false, observed);
+  await emitCameraObservation("social", () => submitSocialPayloads(social, tracked, "visual.social", liveVoice.ui?.presenceArmed ? urgent : false, observed));
 }
 
 async function emitCameraObservation(kind, operation) {
   if (!sensorBackendReady()) return;
-  if (!liveVoice.ui?.presenceArmed) return operation();
+  if (!liveVoice.ui?.presenceArmed && !currentProfileSupportsDynamicTargets()) return operation();
   camera.pendingEmissions ||= new Set();
-  if (camera.pendingEmissions.has(kind)) return;
-  camera.pendingEmissions.add(kind);
+  const pending=camera.pendingEmissions;
+  if (pending.has(kind)) return;
+  pending.add(kind);
   void Promise.resolve().then(operation).catch(error => appendLog(kind, error.message))
-    .finally(() => camera.pendingEmissions.delete(kind));
+    .finally(() => pending.delete(kind));
 }
 
 function sensorBackendReady() {
@@ -5237,8 +5233,9 @@ function renderDetectedTargets(snapshot){
 async function maybeEmitSceneTargets(snapshot,observed,revision,agentId){
   if(!state.agentId||!currentProfileSupportsDynamicTargets()||!document.getElementById('sensor_emit_enabled').checked||!globalThis.PrometheusObservationTiming?.accepts(observed)||Date.now()-camera.lastSceneEmitAt<500)return;
   camera.lastSceneEmitAt=Date.now();
-  await acknowledgeEvent({type:'obs.scene.targets',actor:'camera',kind:'observation',payload:JSON.stringify(snapshot)},{renderResponse:true});
+  const receipt=await acknowledgeEvent({type:'obs.scene.targets',actor:'camera',kind:'observation',payload:JSON.stringify(snapshot)},{renderResponse:true});
   if(revision!==(camera.handEmissionRevision||0)||agentId!==state.agentId)return;
+  if(receipt?.sceneCapture)detectedTargetsUi?.capture(JSON.parse(receipt.sceneCapture));
 }
 
 async function maybeEmitPointing(named,observed) {

@@ -129,7 +129,9 @@ public record HandPoseCondition(String handedness, List<Comparison> all, Integer
                 + "Use 1..2 distinct hands and 1..5 distinct finger comparisons per hand. Partial input masks leave other fingers unconstrained. "
                 + "Stretched means straight; bend means bent. eq accepts a state or explicit numeric 0..1; lt/gt only numbers. "
                 + "All hands and fingers must match ONE frame; unknown is never neutral. minConfidence must be 0 (bend is not a confidence score). "
-                + "Other rule fields are action, effect, samples and cooldownSeconds. Checks have exactly eventType, handPose, minConfidence. "
+                + "Each pose rule has exactly eventType, handPose, action, effect, minConfidence, samples, cooldownSeconds. "
+                + "Put the versioned condition directly in handPose; OMIT scalar field, operator and value from the rule. "
+                + "Checks have exactly eventType, handPose, minConfidence. "
                 + "Use named obs.hand.signs for shaka, horns and middle_finger with minConfidence 0. Their geometric extension/opposed-thumb "
                 + "classification differs from mean joint bend; do not translate those names into numeric pose masks. Geometry has no calibrated score.\n";
     }

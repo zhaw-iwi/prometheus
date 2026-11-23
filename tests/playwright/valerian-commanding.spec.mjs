@@ -1,5 +1,6 @@
 import {hardware} from './fixtures/native-hardware.mjs';
 import {test, expect} from './fixtures/offline-ui-assets.mjs';
+import {openValerianSession} from './fixtures/valerian-session.mjs';
 
 for (const type of ['core.coordination', 'core.live_multimodal']) test(`direct commands render once through Text and persisted SSE (${type})`, async ({page, request}, info) => {
   test.skip(process.env.PROMETHEUS_LIVE_EXPECT_ENABLED !== 'true' || !process.env.PROMETHEUS_ADMIN_TOKEN,
@@ -27,8 +28,7 @@ for (const type of ['core.coordination', 'core.live_multimodal']) test(`direct c
     await page.getByTestId('send-text').click();
   };
   try {
-    await page.goto(`/valerian/?agentId=${agent.id}`);
-    await page.getByTestId('access-code-input').fill(code); await page.getByTestId('submit-access-code').click();
+    await openValerianSession(page,`/valerian/?agentId=${agent.id}`,code);
     await expect(page.getByTestId('send-text')).toBeEnabled();
     await page.getByRole('button', {name:'Robot', exact:true}).click();
     await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-ready','true');

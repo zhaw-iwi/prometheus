@@ -84,7 +84,9 @@ and regulation diagnostics remain future work.
   HI-02 named-sign triggers, HI-03 output, HI-04 composed poses and HI-05 geometry/OK
   ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
   people/items, HI-09 input sequences, HI-10 output sequences/counting and HI-11
-  integrated acceptance are complete; HI-12 real-provider acceptance is next. The owner authorized sequential implementation,
+  integrated acceptance are complete and pushed; HI-12 real-provider acceptance is
+  in progress. Nine attempts reserve $24; native silence failures remain unaccepted,
+  and the playback-policy decision is pending before further paid retries. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10339,3 +10341,21 @@ deployment remain deferred.
   initial failures: `.agents/HAND_INTERACTION_RESULTS.md`.
 - No paid calls, deployment, remote migration or physical acceptance. Known real
   detector accuracy/performance limitations remain. Continue HI-12 after commit/push.
+
+
+## HI-12 checkpoint - Provider acceptance and current scene captures (2026-11-23)
+
+- INCOMPLETE: nine real-provider attempts reserve $24, with no complete journey
+  accepted. Native unsolicited speech violates the silent-action rubric. A choice
+  between application playback control and zero provider audio is pending; no
+  automatic paid retry or relaxed criterion. All failed evidence is retained.
+- Added bounded paid hand runner, local speech stimuli, complete received-audio
+  capture/review, exact contract guidance and quiet context-delivery fixes.
+- Fixed dynamic-target freshness during blocked interpretation with one durable
+  latest capture per agent, source-time/generation/epoch fences, fresh grounding,
+  nonblocking bounded camera emissions and canonical target-selector receipts.
+  Added table migration is documented, not executed against a remote database.
+- Verified 143 final units, 43 Python and four Node/browser capture tests; 41 local
+  DB checks plus three final targeted repeats; five distinct real-app browser
+  journeys, reviewed images and package. Full provider/physical acceptance is
+  outstanding. Exact artifacts and limits: .agents/HAND_INTERACTION_RESULTS.md.

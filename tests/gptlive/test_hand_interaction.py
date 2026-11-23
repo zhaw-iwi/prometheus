@@ -149,7 +149,7 @@ class HandInteractionContractTest(unittest.TestCase):
         for args in ([ '--hand-interaction', name] for name in JOURNEYS):
             result = subprocess.run([sys.executable, '-B', str(runner), *args], capture_output=True, text=True, timeout=15)
             self.assertNotEqual(0, result.returncode)
-            self.assertIn('not implemented; no provider access', result.stdout + result.stderr)
+            self.assertIn('require --paid-core hand-live; no provider access', result.stdout + result.stderr)
             self.assertNotIn('Disposable schema:', result.stdout)
         result = subprocess.run([sys.executable, '-B', str(runner), '--hand-interaction', 'baseline',
             '--paid-core', 'commanding-hp1'], capture_output=True, text=True, timeout=15)

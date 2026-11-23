@@ -61,6 +61,10 @@ public class AgentApplicationService {
     private BehaviourSpeculationService speculation;
     private ExternalSpeechOwnership speechOwnership;
     private AgentPersistenceContext persistenceContext;
+    private SceneTargetCaptureService sceneCaptures;
+    @org.springframework.beans.factory.annotation.Autowired
+    void configureSceneCaptures(SceneTargetCaptureService captures) { this.sceneCaptures=captures; }
+    private boolean refreshScene(Agent agent) { return sceneCaptures!=null&&sceneCaptures.refresh(agent); }
     @org.springframework.beans.factory.annotation.Autowired
     void configurePersistenceContext(AgentPersistenceContext context) { this.persistenceContext = context; }
     private <T> T persistenceTurn(java.util.function.Supplier<T> work) {
@@ -115,6 +119,7 @@ public class AgentApplicationService {
                 && !ch.zhaw.prometheus.model.task.TaskMemory.text(task.storage(), ch.zhaw.prometheus.model.task.TaskMemory.SESSION, "").isEmpty())
             ch.zhaw.prometheus.model.task.TaskMemory.pauseForSession(task.storage(), "live_session_ended");
         var runtime = runtime(profile).withExternalSpeech(owner);
+        if(sceneCaptures!=null)runtime=runtime.withGateway(sceneCaptures.gateway(agent,runtime.languageModelGateway()));
         return owner == null ? runtime : runtime.withTaskContinuation(() -> speechOwnership.taskWorkAllowed(agent.getId(), owner));
     }
 
@@ -143,6 +148,7 @@ public class AgentApplicationService {
     }
 
     private <T> T actionTurn(Agent agent, PolicyRuntime runtime, java.util.function.Function<PolicyRuntime, T> work) {
+        refreshScene(agent);
         if (backgroundActions == null) return work.apply(runtime);
         UUID id = agent.getId(), epoch = agent.executionEpoch();
         try (var turn = new BackgroundActionTurn(id, backgroundActions,
@@ -286,9 +292,13 @@ public class AgentApplicationService {
         if(body!=null&&body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>1024)throw new IllegalArgumentException("Receipt exceeds 1 KiB");
         return serialized(agentID,()->persistenceTurn(()->{
             var found=findAgent(agentID);if(found.isEmpty())return Optional.empty();var agent=found.get();
+            boolean sceneChanged=refreshScene(agent);
             String before=java.util.Objects.toString(agent.getStorage().get(ch.zhaw.prometheus.model.hand.HandExecution.KEY));
             var result=agent.handExecution(body==null?null:com.google.gson.JsonParser.parseString(body).getAsJsonObject(),speechOwnership==null?null:speechOwnership.current(agent),java.time.Instant.now());
-            if(before.equals(java.util.Objects.toString(agent.getStorage().get(ch.zhaw.prometheus.model.hand.HandExecution.KEY))))return Optional.of(result.toString());
+            if(before.equals(java.util.Objects.toString(agent.getStorage().get(ch.zhaw.prometheus.model.hand.HandExecution.KEY)))){
+                if(sceneChanged)persistAndPublishMonitor(agent);
+                return Optional.of(result.toString());
+            }
             var response=agent.acknowledge(Event.systemTick(),runtimeFor(agent,OutputProfile.FULL_PLAN));
             var saved=persistAndPublishMonitor(agent);if(response!=null)publishBehaviour(saved,response);return Optional.of(result.toString());
         }));
@@ -303,6 +313,7 @@ public class AgentApplicationService {
     }
     public Optional<String> bindHandTarget(UUID agentID,String body){return serialized(agentID,()->persistenceTurn(()->{
         var found=findAgent(agentID);if(found.isEmpty())return Optional.empty();var agent=found.get();
+        refreshScene(agent);
         var binding=agent.bindHandTarget(ch.zhaw.prometheus.model.hand.HandScene.parseRequest(body),java.time.Instant.now());
         persistAndPublishMonitor(agent);return Optional.of(binding.toString());
     }));}
@@ -345,9 +356,12 @@ public class AgentApplicationService {
                 return BehaviourGenerationOutcome.AGENT_NOT_FOUND;
             }
             Agent agent = agentMaybe.get().agent();
+            refreshScene(agent);
             PolicyRuntime generationRuntime = agentMaybe.get().runtime();
-            if (speculation != null && generationRuntime.externalSpeech() == null) generationRuntime = generationRuntime.withGateway(speculation.forGeneration(
-                    agentID, agent.executionEpoch(), lastEventId(agent), languageModelGateway));
+            if (speculation != null && generationRuntime.externalSpeech() == null) {
+                var gateway=speculation.forGeneration(agentID,agent.executionEpoch(),lastEventId(agent),languageModelGateway);
+                generationRuntime=generationRuntime.withGateway(sceneCaptures==null?gateway:sceneCaptures.gateway(agent,gateway));
+            }
             PolicyRuntime preparedRuntime = generationRuntime;
             Event response;
             try { response = LatencyTrace.measure("generate", () -> agent.generate(preparedRuntime)); }
@@ -371,6 +385,7 @@ public class AgentApplicationService {
     }
 
     public Optional<ResponseView> acknowledge(UUID agentID, EventRequest request, OutputProfile outputProfile) {
+        if(sceneCaptures!=null&&Event.TYPE_SCENE_TARGETS.equals(request.getType()))return acknowledgeSceneCapture(agentID,request);
         return activity(agentID, "acknowledge", Event.TYPE_USER_UTTERANCE.equals(request.getType()), () -> {
         return serialized(agentID, () -> persistenceTurn(() -> {
             OutputProfile resolvedProfile = outputProfile == null ? OutputProfile.FULL_PLAN : outputProfile;
@@ -379,6 +394,7 @@ public class AgentApplicationService {
                 return Optional.empty();
             }
             Agent agent = agentMaybe.get().agent();
+            refreshScene(agent);
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
             boolean modernHand = Event.TYPE_HAND_SIGNS.equals(event.getType()) || Event.TYPE_HAND_POINTING.equals(event.getType())
                     || Event.TYPE_SCENE_TARGETS.equals(event.getType()) || Event.TYPE_HAND_POSE.equals(event.getType())
@@ -414,6 +430,20 @@ public class AgentApplicationService {
                 return result;
             }
         }));
+        });
+    }
+
+    private Optional<ResponseView> acknowledgeSceneCapture(UUID agentId,EventRequest request) {
+        return activity(agentId,"scene_capture",false,()->{
+            var admitted=sceneCaptures.admit(agentId,request);if(admitted.isEmpty())return Optional.empty();
+            // Capture durability does not wait for inference. A busy turn assimilates
+            // the latest validated snapshot before grounding its result; intermediate
+            // passive scene frames coalesce, while tracking continuity is checked on every receipt.
+            return turns.tryCall(agentId,()->persistenceTurn(()->{
+                var found=findAgent(agentId);if(found.isEmpty())return Optional.empty();var agent=found.get();
+                if(refreshScene(agent))persistAndPublishMonitor(agent);
+                return Optional.of(new ResponseView(null,agent.isActive(),admitted.get().snapshot()));
+            }),()->Optional.of(new ResponseView(null,admitted.get().active(),admitted.get().snapshot())));
         });
     }
 

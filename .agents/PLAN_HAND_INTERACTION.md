@@ -1,7 +1,7 @@
 # Coordination hand interaction: signs, finger poses and pointing
 
 Prepared: 2026-11-23. Baseline: main `025697df`.
-Status: **HI-01 through HI-11 COMPLETE; HI-12 NOT STARTED**.
+Status: **HI-01 through HI-11 COMPLETE; HI-12 IN PROGRESS**.
 Development branch: `main`; deployment branch: `agents`.
 
 The owner authorized sequential implementation on 2026-11-23: complete and verify
@@ -521,7 +521,12 @@ these new journeys until the runner is extended and its selection is tested.
 The execution plan must specify a current authorized money cap, maximum attempts,
 per-attempt reservation and conservative costs for all billable routes before
 provider access. The subsequent owner instruction authorizes at most $50 total;
-HI-01 allocates twelve $4 reservations and a separate persistent ledger.
+HI-01 originally allocated twelve $4 reservations and a separate persistent ledger.
+HI-12 allocation revision 2 retains the first three $4 reservations unchanged and
+uses at most eighteen further $2 reservations: 21 attempts and $48 reserved total.
+Official verified prices and unchanged per-attempt bounds yield a conservative
+$1.9153 ceiling. This changes only future allocations; no failed reservation is
+refunded, reset or reused, and no per-attempt provider limit is raised.
 Plan one initial attempt per journey; L-09 needs separate Coordination
 and comparison-agent sessions. Diagnostic repeats count as attempts. Preserve all
 failed reservations and artifacts, including on crash. Current `paid_budget.py`
@@ -630,3 +635,14 @@ unresolved windows must produce no actionable match. Record misses, false matche
 and timing explicitly. A small passing corpus establishes that corpus only,
 not general real-room accuracy; unexpected failures cannot be hidden by relabelling
 the examples after a run. UI tests may replay the same clips deterministically.
+
+
+## HI-12 acceptance decision (2026-11-23)
+
+Nine attempts reserve $24. Complete received-audio review still fails native
+silence for otherwise correct named/custom hand actions. The owner has been asked
+whether to enforce silence at application playback, retaining upstream audio for
+audit and measuring added latency, or keep the zero-provider-audio criterion.
+No answer or rubric change is assumed; paid retries are paused. Independent local
+capture-freshness repairs and their regression checks are complete. HI-12 remains
+incomplete; see HAND_INTERACTION_RESULTS.md for every retained attempt and check.

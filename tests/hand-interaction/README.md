@@ -230,6 +230,22 @@ Bindings/reconfiguration pause active tasks and reset preparation; accepted term
 remain intact. Selected refs and labels never survive a generation change as
 valid bindings. Dispatch rechecks both target and counterpart after inference.
 
+Scene capture acknowledgements now include optional `sceneCapture`, a JSON string
+containing the validated canonical snapshot. It confirms a durable capture, not
+a task transition. One latest snapshot per agent is stored in
+`scene_target_capture`, fenced by execution epoch and deleted with its agent.
+The agent assimilates the latest fresh snapshot during its next available turn
+and after blocking interpretation, before target grounding. Intermediate passive
+scene frames coalesce while a turn is busy; all received snapshots still undergo
+the same identity, geometry, rate and source-time checks. No timestamp or expiry
+is extended. Accepted scene data alone never authorizes motion.
+
+The camera keeps detection running while other sensor acknowledgements wait,
+with at most one in-flight emission per other sensor kind. The target selector
+uses canonical capture receipts and does not replace a newer capture with an older
+monitor update. This supports tracking continuity during model latency, not slow
+detector inference; the existing 1.8-second detector cutoff remains.
+
 Run `node tests/hand-interaction/scene-detector-smoke.mjs` for hash-pinned public
 images and the real pinned model (local ignored artifacts). `scene-corpus.json`
 retains class-output expectations and **separate visual semantic findings**:
@@ -239,3 +255,46 @@ acceptance. The client withholds inference taking >=1.8 seconds and explains it.
 No nearest-target/depth heuristic or automatic label transfer compensates for
 missing detections. Tests with controlled SDK output cover the scoped UI flow;
 they are not recognition accuracy or paid provider evidence.
+
+## HI-12 provider acceptance (in progress)
+
+Use `tests/gptlive/run_acceptance.py --database-properties <loopback-properties>
+--hand-interaction L-01 --paid-core hand-live` with `OPENAI_MODEL=gpt-5.6-luna`.
+Selections L-01 through L-09 are explicit individual attempts; the L-09 comparison
+session uses `--hand-comparison` first. Run the existing local-database and browser
+preflight before spending a reservation. Do not mix paid selections with mocked
+browser/Java selections. Keep the existing developer model configuration unchanged.
+
+The enforced plan is `tests/gptlive/hand-paid-plan.json`. Its separate persistent
+ledger is `target/hand-interaction-budget.json`; never reset it or refund a failed
+attempt. Current allowance is 21 attempts/$48 reserved within the owner's $50 cap,
+retaining the first three $4 reservations and using $2 for later attempts.
+Each attempt permits at most one six-minute native session, 36 backend requests,
+80,000 UTF-8 request bytes, 2,048 completion tokens per call and twelve visitor
+turns. The overall watchdog is 390 seconds. Paid synthesis and grading are disabled.
+Generate the labelled visitor audio with `python tests/gptlive/prepare_hand_audio.py`;
+this uses local Windows SAPI, not a provider. Controlled sensor fixtures do not
+establish camera accuracy. Every paid run records source hashes and complete
+received native audio, including audio suppressed by browser playback.
+
+Optional independent audio transcription stays local:
+
+```powershell
+python -m pip install --no-user --target target/hand-audio-tools faster-whisper==1.2.1
+python -B tests/gptlive/review_hand_audio.py --download-model target/gptlive-acceptance-<id>
+```
+
+Omit `--download-model` after the public base.en weights are cached. The report
+retains package versions, model/audio hashes and all transcript segments. It is
+supporting evidence, not an automatic semantic verdict or a physical listening
+test. Review full captions, independent transcription, raw silence measurements,
+ordered renderer images, durable terms/actions and scoped completion evidence.
+Failed attempts remain failed after a later successful retest. HI-12 is incomplete
+until its required matrix passes; see the project results for current failures.
+
+Physical operator checklist (all NOT RUN): ten named signs on each hand; custom
+one/two-hand patterns and occlusion; mirrored preview and all pointing directions;
+configured targets; ambiguous, moving and disappearing people/items; ordered input
+and output counting; Stop during playback; actual microphone/speaker operation;
+and the selected physical robot adapter, if any. Record device, lighting, distance,
+view, errors and latency. Digital renderer receipts establish no physical actuation.

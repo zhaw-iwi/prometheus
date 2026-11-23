@@ -13,6 +13,23 @@ import ch.zhaw.prometheus.model.hand.*;
 import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationNamedSignUnitTest {
+    @Test void finalSilentNativeHandActionDoesNotScheduleACompletionAnnouncement() {
+        var f = new CoordinationAgentUnitTest(); var proposal = agreement();
+        proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action", "Show peace silently with both hands");
+        f.propose(proposal, f.live); f.agent.acknowledge(event("prep", "thumbs_up", "right", Instant.now()), f.live); f.start(f.live);
+        var response = f.storage().get(TaskResponse.KEY).getAsJsonObject();
+        var started = Instant.parse(response.get("created").getAsString()).plusNanos(1);
+        var speech = f.hear("The task is armed, waiting for a fresh right thumbs up.", true, started);
+        var claim = TaskResponse.claim(f.storage(), f.owner, speech, started, started.plusMillis(1)).orElseThrow();
+        assertTrue(TaskResponse.finish(f.storage(), f.owner, claim, true, started.plusMillis(2))); f.openCueWindow();
+        var motion = new JsonObject(); motion.add("handAction", HandActions.named("peace", "both_hands"));
+        var output = new JsonObject(); output.add("motion", motion); when(f.gateway.infer(any())).thenReturn(output.toString());
+        var result = f.agent.acknowledge(event("cue", "thumbs_up", "right", Instant.now()), f.live);
+        assertNull(ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(result.getPayload()).getSpeech());
+        assertEquals("COMPLETED", TaskMemory.phase(f.storage())); assertEquals(1, f.storage().get(TaskMemory.ACTIONS).getAsInt());
+        assertNull(f.policy().liveActivityContext().continuation()); assertFalse(f.storage().containsKey(TaskResponse.KEY));
+        assertEquals(proposal, f.storage().get(CoordinationMemory.AGREEMENT));
+    }
     @Test void acceptedFreshThumbsUpProducesOneSilentPeacePlan() {
         var f = new CoordinationAgentUnitTest(); var proposal = agreement();
         proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action", "Show peace silently with both hands");

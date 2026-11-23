@@ -8,6 +8,18 @@ import ch.zhaw.prometheus.model.policy.LiveActivityContext;
 import ch.zhaw.prometheus.model.policy.LiveActivityContext.*;
 
 class LiveActivityContextUnitTest {
+    @Test void eachMultibyteContextChunkIsQuietAndBoundedWithoutLosingItsFacts() {
+        String text = "Finger context " + "界".repeat(600);
+        var commands = LiveContextDelivery.contextReply(text, null, "revision");
+        assertTrue(commands.size() > 1);
+        String rebuilt = commands.stream().map(command -> {
+            assertEquals("session.thinking.append", command.type());
+            assertTrue(command.content().startsWith("Silent context only; do not speak or act on this update.\n"));
+            assertTrue(command.content().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= LiveContextDelivery.MAX_APPEND_BYTES);
+            return command.content().substring(command.content().indexOf(":\n") + 2);
+        }).collect(java.util.stream.Collectors.joining());
+        assertEquals(text, rebuilt);
+    }
     private static final UUID AGENT = UUID.randomUUID(), EPOCH = UUID.randomUUID();
     private static LiveContextSnapshot snapshot(String state, LiveActivityContext activity) {
         return new LiveContextSnapshot(AGENT, EPOCH, state, Instant.EPOCH, List.of(state), "Guide",

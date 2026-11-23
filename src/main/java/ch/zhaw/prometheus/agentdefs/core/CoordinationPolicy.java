@@ -214,7 +214,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         var sensory = !TaskMemory.active(storage) && !java.util.Set.of("PAUSED", "FINISHING", "UNCERTAIN").contains(TaskMemory.phase(storage)) ? SensoryRemarks.context(storage, now) : null;
         if (sensory != null && CoreTaskVoice.bytes(facts + "\n" + sensory.facts()) <= 4000)
             return new LiveActivityContext(facts + "\n" + sensory.facts(), sensory.continuation(), sensory.refreshAt());
-        return new LiveActivityContext(facts + "\nNo new task action is authorized. Answer direct questions; do not repeat earlier actions.", null);
+        return new LiveActivityContext(facts + "\nNo speech or task action is authorized by this update. Wait silently for a user turn or a confirmed speaking occasion.", null);
     }
     @Override public void reset() { super.reset(); CoordinationMemory.clear(storage()); CoordinationMemory.remove(storage(), CoordinationDelivery.KEY); }
 }

@@ -21,6 +21,7 @@ import pymysql
 from paid_budget import reserve
 import commanding_preflight
 import hand_interaction
+import hand_paid
 from process_guard import run_owned
 
 
@@ -39,6 +40,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--hand-interaction', choices=hand_interaction.SELECTIONS,
                         help='Dedicated hand contracts/baseline; staged Live journeys fail closed until implemented')
+    parser.add_argument('--hand-comparison', action='store_true', help='Run the separate L-09 comparison-agent session')
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--embodiment', action='store_true', help='Robot browser regression or real-provider persisted-plan rendering smoke')
@@ -48,7 +50,7 @@ def main():
     parser.add_argument('--classroom-capacity', action='store_true', help='Dedicated offline six-client minute with MySQL Questions measurement')
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
-    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text', 'repair-baseline', 'repair-live', 'repair-continuous', 'repair-text', *commanding_preflight.MODES], help='Explicitly paid real OpenAI core journey; local disposable database only')
+    parser.add_argument('--paid-core', choices=['hand-live', 'live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text', 'repair-baseline', 'repair-live', 'repair-continuous', 'repair-text', *commanding_preflight.MODES], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     commanding_authorization = parser.add_mutually_exclusive_group()
     commanding_authorization.add_argument('--commanding-retests', action='store_true', help='Use the separately authorized two-attempt/$10 envelope for HP-02 and HP-03')
@@ -61,6 +63,8 @@ def main():
         parser.error(str(invalid))
     repair = bool(args.paid_core and args.paid_core.startswith('repair-'))
     commanding = args.paid_core in commanding_preflight.MODES
+    hand = args.paid_core == 'hand-live'
+    hand_mode = 'L-09-comparison' if args.hand_comparison else args.hand_interaction
     if args.commanding_retests and args.paid_core not in ('commanding-hp2','commanding-hp3'):
         parser.error('--commanding-retests only authorizes commanding-hp2 or commanding-hp3')
     if args.commanding_hp3_retest and args.paid_core != 'commanding-hp3':
@@ -104,6 +108,19 @@ def main():
             raise SystemExit('Paid core acceptance requires an API key and configured openai.model (or OPENAI_MODEL).')
         if repair and model != 'gpt-5.6-luna':
             raise SystemExit('Paid repair plan only prices gpt-5.6-luna; revise the budget before billing another model.')
+        if hand:
+            plan=json.loads(hand_paid.PLAN.read_text(encoding='utf-8'))
+            hand_paid.validate(plan,model)
+            hand_paid.validate_audio(root)
+            hand_paid.available_budget(hand_mode)
+            if hand_mode == 'L-09':
+                pointer = root/'target/hand-native-baseline.json'
+                if not pointer.exists():
+                    raise SystemExit('Run L-09 --hand-comparison before the Coordination latency comparison.')
+                baseline = json.loads((Path(json.loads(pointer.read_text(encoding='utf-8'))['artifact'])/'journey.json').read_text(encoding='utf-8'))
+                if baseline.get('mode') != 'L-09-comparison' or not baseline.get('automatedPassed'):
+                    raise SystemExit('The hand conversation baseline is not passing; no provider access permitted.')
+            hand_paid.available_models(key,plan)
         if commanding:
             plan=json.loads((root/commanding_plan).read_text(encoding='utf-8'))
             commanding_preflight.validate(plan,model)
@@ -131,7 +148,7 @@ def main():
     if args.hand_interaction:
         selection = {'schema': 'hand-interaction-run-v1', 'selection': args.hand_interaction,
                      'sourceRevision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
-                     'java': args.java_tests, 'browserGrep': args.browser_grep, 'realProviderRequests': 0,
+                     'java': args.java_tests, 'browserGrep': args.browser_grep, 'realProviderRequests': 'recorded in provider.jsonl' if hand else 0,
                      'plan': hand_interaction.manifest()}
         (artifacts / 'hand-interaction.json').write_text(json.dumps(selection, indent=2), encoding='utf-8')
     if args.embodiment:
@@ -148,11 +165,11 @@ def main():
                     'limits': {'dbPool': 10, 'scheduledTicks': False,
                                'providerCalls': 24 if args.paid_core else 0, 'providerTokens': 200000 if args.paid_core else 0}}
         (artifacts/'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
-    if repair or commanding:
+    if repair or commanding or hand:
         sources = [p for directory in ('src/main/java', 'src/main/resources/public', 'src/test/java', 'tests/gptlive', 'tests/playwright')
                    for p in (root/directory).rglob('*')
                    if p.is_file() and p.suffix in ('.java', '.js', '.mjs', '.json', '.html', '.css', '.py')]
-        manifest = {'schema': 'commanding-source-v1' if commanding else 'gptlivefix-source-v1',
+        manifest = {'schema': 'hand-source-v1' if hand else 'commanding-source-v1' if commanding else 'gptlivefix-source-v1',
                     'sourceRevision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
                     'mode': args.paid_core,
                     'files': {str(p.relative_to(root)).replace('\\', '/'): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}}
@@ -180,7 +197,7 @@ def main():
 
     def run(command, name):
         with (artifacts / (name + '.log')).open('w', encoding='utf-8') as log:
-            code = run_owned(command, env, log, (390 if commanding else 420) if name == 'paid-journey' else 1800)
+            code = run_owned(command, env, log, (390 if commanding or hand else 420) if name == 'paid-journey' else 1800)
         print(f'{name}: exit {code}', flush=True)
         if code:
             raise SystemExit(code)
@@ -255,6 +272,16 @@ def main():
                     env['OPENAI_ROUTES_' + purpose + '_MODEL'] = model
                     env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
                     env['OPENAI_ROUTES_' + purpose + '_TIMEOUT_MS'] = '30000'
+            if hand:
+                env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='36', PROMETHEUS_PROVIDER_MAX_TOKENS='250000',
+                    PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
+                    PROMETHEUS_PROVIDER_MAX_SPEECH_CALLS='0', OPENAI_MAX_COMPLETION_TOKENS='2048',
+                    OPENAI_REQUEST_TIMEOUT_MS='30000', PROMETHEUS_LIVE_MODEL='gpt-live-1')
+                for purpose in ('BEHAVIOUR', 'NONVERBAL', 'DECISION', 'EXTRACTION', 'SUMMARY'):
+                    env['OPENAI_ROUTES_' + purpose + '_MODEL'] = model
+                    env['OPENAI_ROUTES_' + purpose + '_URL'] = 'https://api.openai.com/v1/chat/completions'
+                    env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
+                    env['OPENAI_ROUTES_' + purpose + '_TIMEOUT_MS'] = '30000'
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
             fixture_root = artifacts / 'provider-classes'
@@ -272,6 +299,12 @@ def main():
                 env['PROMETHEUS_COMMANDING_BUDGET_LEDGER' if commanding else 'PROMETHEUS_REPAIR_BUDGET_LEDGER'] = str(ledger)
                 if commanding: env['PROMETHEUS_COMMANDING_PAID_PLAN'] = str(artifacts/'paid-plan.json')
                 print('Paid '+('commanding' if commanding else 'repair')+' cumulative reserved ceiling: $' + str(reservation['reservedUsd']), flush=True)
+            if hand:
+                reservation = hand_paid.reserve(hand_mode, artifacts)
+                (artifacts/'paid-plan.json').write_text(json.dumps(plan, indent=2), encoding='utf-8')
+                env.update(PROMETHEUS_HAND_BUDGET_LEDGER=str(hand_paid.LEDGER),
+                    PROMETHEUS_HAND_PAID_PLAN=str(artifacts/'paid-plan.json'), PROMETHEUS_HAND_MODE=hand_mode)
+                print('Paid hand cumulative reserved ceiling: $' + str(reservation['reservedUsd']), flush=True)
             with socket.socket() as port_socket:
                 port_socket.bind(('127.0.0.1', 0))
                 port = port_socket.getsockname()[1]
@@ -295,6 +328,8 @@ def main():
                     journey = 'gptlivefix_journey.mjs'
                 if commanding:
                     journey = 'commanding_journey.mjs'
+                if hand:
+                    journey = 'hand_journey.mjs'
                 if args.embodiment:
                     env['PROMETHEUS_EMBODIMENT_SMOKE'] = 'true'
                 run(['node', 'tests/gptlive/' + journey, '--allow-paid-provider', str(artifacts / 'journey.json'),
@@ -358,11 +393,11 @@ def main():
                     stop()
     finally:
         stop()
-        if args.embodiment or commanding:
+        if args.embodiment or commanding or hand:
             final_hashes = {str(p.relative_to(root)).replace('\\','/'): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources if p.exists()}
             manifest['filesAtEnd'] = final_hashes
             manifest['sourceChangedDuringRun'] = [name for name, value in manifest['files'].items() if final_hashes.get(name) != value]
-            (artifacts/('source.json' if commanding else 'manifest.json')).write_text(json.dumps(manifest, indent=2), encoding='utf-8')
+            (artifacts/('source.json' if commanding or hand else 'manifest.json')).write_text(json.dumps(manifest, indent=2), encoding='utf-8')
         capacity_report = root / 'target/classroom-capacity-report.json'
         if args.classroom_capacity and capacity_report.exists():
             try:

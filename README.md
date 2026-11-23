@@ -466,11 +466,31 @@ migration process (the local acceptance runner creates disposable schemas):
 ```sql
 ALTER TABLE `event` MODIFY COLUMN `payload` TEXT;
 ALTER TABLE `storage_entry` MODIFY COLUMN `entry_value` TEXT;
+CREATE TABLE `scene_target_capture` (
+  `agent_id` BINARY(16) NOT NULL PRIMARY KEY,
+  `epoch` BINARY(16), `generation` INT NOT NULL,
+  `snapshot` TEXT, `version` BIGINT NOT NULL,
+  CONSTRAINT `fk_scene_capture_agent` FOREIGN KEY (`agent_id`)
+    REFERENCES `agent` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB;
 ```
 
 This work does not run a migration against a remote database. Renderer receipts
 remain digital evidence; target accuracy, physical hardware and production load
 need separate acceptance.
+
+The capture table holds one latest validated scene snapshot per agent. Camera
+receipts commit independently of model calls; the serialized decision turn reads
+the latest capture again before grounding its result. This preserves the existing
+three-second expiry while interpretation runs. Intermediate passive scene frames
+may coalesce; they cannot trigger a task or spend its action budget. Applied
+snapshots remain visible in ordinary Storage and event history. Other observation
+types retain their existing acknowledgement contract.
+
+HI-12 real OpenAI acceptance is still incomplete. Native Live has produced
+unsolicited speech after otherwise correct silent hand actions. Empty backend
+speech is not a guarantee of silence from Live. The current results and pending
+playback decision are recorded in [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
 New Coordination instances also declare `hand.sequences.output.v1`. An immediate
 request such as **Count one to five silently** produces one finite output command;

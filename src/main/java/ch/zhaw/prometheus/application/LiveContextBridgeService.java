@@ -281,9 +281,9 @@ public class LiveContextBridgeService {
             lastCurrentCommand = null; // Withdraw each sent occasion once, including a change during its ACK wait.
             trace("task_narration_withdrawn", previous, replacementSources(previous.sourceId()));
             transmit(new Command("session.thinking.append", "Speaking occasion " + previous.sourceId()
-                    + " is withdrawn. Do not finish or repeat its pending invitation or state announcement. "
-                    + "Use the latest CURRENT state facts. If already-spoken wording conflicts with them, briefly correct it once; "
-                    + "otherwise say nothing. Do not ask for an obsolete decision or perform another task action.",
+                    + " is withdrawn. Silent control metadata, not a user request: stop its pending wording without any announcement. "
+                    + "Do not explain cancellation, mention a decision moment, apologize, or correct earlier speech. "
+                    + "Use latest CURRENT facts silently. Await a user turn or a new confirmed speaking occasion; this update authorizes no speech or action.",
                     null, previous.sourceId(), previous.revision()));
         }
         private List<UUID> replacementSources(UUID previous) {

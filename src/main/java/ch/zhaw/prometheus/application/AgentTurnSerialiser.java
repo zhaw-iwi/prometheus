@@ -16,6 +16,12 @@ final class AgentTurnSerialiser {
     private final ConcurrentHashMap<UUID, Entry> entries = new ConcurrentHashMap<>();
 
     <T> T call(UUID id, Supplier<T> work) {
+        return execute(id,work,null);
+    }
+    <T> T tryCall(UUID id,Supplier<T> work,Supplier<T> busy) {
+        return execute(id,work,java.util.Objects.requireNonNull(busy));
+    }
+    private <T> T execute(UUID id,Supplier<T> work,Supplier<T> busy) {
         java.util.Objects.requireNonNull(id, "agent id");
         Entry entry = entries.compute(id, (key, old) -> { Entry next = old == null ? new Entry() : old; next.users++; return next; });
         boolean locked = false, deferred = false;
@@ -26,10 +32,13 @@ final class AgentTurnSerialiser {
         };
         try {
             locked = LatencyTrace.measure("agent_queue", () -> {
-                try { return entry.lock.tryLock(60, TimeUnit.SECONDS); }
+                try { return busy==null?entry.lock.tryLock(60, TimeUnit.SECONDS):entry.lock.tryLock(); }
                 catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IllegalStateException("Agent turn interrupted"); }
             });
-            if (!locked) throw new IllegalStateException("Agent turn queue deadline exceeded");
+            if (!locked) {
+                if(busy!=null)return busy.get();
+                throw new IllegalStateException("Agent turn queue deadline exceeded");
+            }
             if (TransactionSynchronizationManager.isSynchronizationActive()) {
                 TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                     @Override public void afterCompletion(int status) { release.run(); }

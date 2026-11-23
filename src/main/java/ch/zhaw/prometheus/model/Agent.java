@@ -190,6 +190,20 @@ public class Agent {
         if(!ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile())||!getInteractionProfile().supportsObservation(Event.TYPE_SCENE_TARGETS)||!Event.KIND_OBSERVATION.equals(event.getKind()))throw new IllegalArgumentException("Detected targets not declared");
         return ch.zhaw.prometheus.model.hand.ObservedTargets.admit(storage,getId(),event,now);
     }
+    /** Assimilates already validated passive scene data, without re-entering an action in progress. */
+    public boolean recordSceneCapture(com.google.gson.JsonObject snapshot,int generation,Instant now) {
+        if(!ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile()))return false;
+        String key=ch.zhaw.prometheus.model.hand.ObservedTargets.KEY,counter=ch.zhaw.prometheus.model.hand.ObservedTargets.COUNTER;
+        Instant at=Instant.parse(snapshot.get("ts").getAsString());
+        if(!ch.zhaw.prometheus.model.event.ObservationEvidence.fresh(at,now,3,1))return false;
+        if(storage.containsKey(key)&&!at.isAfter(Instant.parse(storage.get(key).getAsJsonObject().get("ts").getAsString())))return false;
+        var combined=new java.util.HashMap<>(storage.toMap());combined.put(key,snapshot.deepCopy());combined.put(counter,new com.google.gson.JsonPrimitive(generation));
+        ch.zhaw.prometheus.model.hand.HandStateBudget.require(combined);
+        storage.put(key,snapshot.deepCopy());storage.put(counter,new com.google.gson.JsonPrimitive(generation));
+        var wire=snapshot.deepCopy();wire.remove("digest");
+        recordEvent(Event.observation(Event.TYPE_SCENE_TARGETS,"scene_capture",wire.toString()));
+        return true;
+    }
     public com.google.gson.JsonObject configureHandScene(com.google.gson.JsonObject request,java.time.Instant now) {
         if(!ch.zhaw.prometheus.model.hand.HandFeatures.targets(getInteractionProfile()))throw new IllegalArgumentException("Create a target-capable instance");
         var result=ch.zhaw.prometheus.model.hand.HandScene.configure(storage,getId(),request,getEventHistory(),now);

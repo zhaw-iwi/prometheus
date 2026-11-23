@@ -110,6 +110,14 @@ persistence, enforces a 64 KiB active hand-state budget and widens event payload
 and Storage-entry columns to TEXT for the declared hand/sequence limits. Large agreements use an
 explicit bounded voice projection; full terms remain authoritative in Storage.
 README documents the database widening and saved-instance adoption.
+HI-12 real-provider acceptance is in progress, not complete. Nine paid-attempt
+reservations total $24; no Live journey has yet passed its complete rubric.
+Correct named/custom actions exposed unsolicited native speech during requested
+silence. A playback-policy choice is pending; paid retries are paused. The local
+target fix adds one durable latest scene capture per agent, independent of blocking
+interpretation, with epoch fencing, unchanged expiry and fresh dispatch reads.
+Applied captures remain passive data in Storage/history. README documents the new
+capture table; no remote migration or physical test has been performed.
 HI-10 adds opt-in finite output sequences/counting through the same canonical
 handAction and direct/task routes. Ordered scoped renderer receipts own one
 bounded playback lease; target grounding is rechecked per step. Cancellation,

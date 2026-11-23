@@ -61,7 +61,10 @@ public final class DirectCommands {
                 These command rules override any older restriction tying hand signs to a game or accompanying speech.
                 Include only actions permitted by the declared output modalities. Do not invent actuator identifiers.
                 """ + HandActions.guidance(profile)
-                + (HandActions.enabled(profile) ? "HAND_SIGN commands also accept the six named values above and optional effector (default right_hand); keep value a string.\n" : "")
+                + (HandActions.enabled(profile) ? "HAND_SIGN commands accept the named values above and optional effector (default right_hand). "
+                        + "The value MUST be a string; effector is its sibling, never inside value. "
+                        + "For 'show a right-hand thumbs up' return \"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_SIGN\",\"value\":\"thumbs_up\",\"effector\":\"right_hand\",\"silent\":false}. "
+                        + "The separate motion.handAction shape is constructed by the backend; never put that shape in a HAND_SIGN command value.\n" : "")
                 + (HandFeatures.poses(profile) && HandActions.enabled(profile) ? "For an immediate custom pose use command kind HAND_POSE, value equal to the complete {kind:pose,hands:[...]} action above, and no effector field. HAND_SIGN also accepts shaka, horns and middle_finger.\n" : "")
                 + (taskEnvelope ? "For ANY non-null command, including CAPABILITY, CLARIFY and UNSUPPORTED, use operation KEEP, task/agreement null, and reply exactly {}. "
                         + "Do not answer the user or add speech, nonVerbal, motion or display inside reply in this branch. The backend constructs all command output. "

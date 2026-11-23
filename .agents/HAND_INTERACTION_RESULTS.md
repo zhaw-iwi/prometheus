@@ -3,7 +3,8 @@
 Started 2026-11-23 from main `025697df`. The owner authorized sequential
 implementation, commit/push after each verified milestone, then continuation.
 Provider allowance: at most $50 cumulative across all new successful/failed
-requests and modalities. Current spend/reservations: **$0 / $0**. No deployment.
+requests and modalities. Current provider billing: **in progress; invoice total not available**.
+Cumulative reservations: **$24** (HI-12 allocation revision 2). No deployment.
 Historical GLF/TWC ledgers remain unchanged.
 
 ## HI-01 — Contracts and compatibility baseline
@@ -655,7 +656,7 @@ remote MySQL and historical paid ledgers were untouched.
 
 ## HI-11 - Integrated modes, UI and resource acceptance
 
-Status: **COMPLETE** (2026-11-23), verified for commit/push.
+Status: **COMPLETE** (2026-11-23), committed and pushed as `47a3de28`.
 
 Closed boundary gaps exposed by integration: modern hand representations reject
 stale captures or changed reuse of an identity and ignore identical retries before
@@ -718,3 +719,118 @@ No paid/provider or physical trial in this milestone. Spend/reservations remain
 HI-05/08 remain visible; this does not establish general real-room accuracy.
 All runner-owned schemas/accounts/apps are cleaned on exit; the owned loopback
 MySQL remains available for HI-12. Remote MySQL and old paid ledgers are untouched.
+
+## HI-12 - Real provider acceptance (in progress)
+
+Status: **INCOMPLETE; playback-policy decision pending**. No complete Live journey
+has passed its rubric. Paid retries are paused; the failed runs remain evidence.
+The owner is choosing between application-controlled silence (retaining upstream
+audio and measuring added latency) and the stricter zero-provider-audio rule.
+No rubric has been relaxed. OpenAI documents that thinking appends cannot prevent
+independent model speech: [official suppression guidance](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run).
+
+The hand runner uses the real scoped cockpit, native Live, backend inference and
+disposable loopback MySQL. Sensor inputs are controlled fixtures, not camera
+accuracy evidence. Visitor audio is local Windows SAPI. Every attempt retains
+source hashes, complete captions and received audio, provider usage, terms,
+command/action identities, receipts and synchronized rendered images. Complete
+received audio has also been transcribed locally for review; this is not physical
+listening or provider-based grading. No physical microphone/speaker/adapter trial.
+
+| Journey | Current result |
+| --- | --- |
+| L-01 named signs | FAIL; correct actions but unsolicited native speech. |
+| L-02 custom poses | FAIL; correct ten-finger task output but unsolicited native speech. Immediate custom request not reached. |
+| L-03 ring/geometry | NOT RUN |
+| L-04 direction | NOT RUN |
+| L-05 registered target | NOT RUN |
+| L-06 person/item | NOT RUN |
+| L-07 input sequence | NOT RUN |
+| L-08 output sequence | NOT RUN |
+| L-09 conversation/latency and separate comparison | NOT RUN |
+
+All attempt directories below are under ignored `target/gptlive-acceptance-<id>`.
+
+| Attempt | Journey | Result | Artifact / finding |
+| --- | --- | --- | --- |
+| 1 | L-01 | INCONCLUSIVE | `f9a4ec68cc`: automated checks passed, but complete review showed test-turn overlap and an unobserved pending final announcement. Correct thumbs-up image reviewed; not accepted. |
+| 2 | L-01 | INCONCLUSIVE | `9cadb18321`: unused detector CDN script blocked startup; no native session/inference. Reservation retained. |
+| 3 | L-01 | FAIL | `5e84ef459e`: model returned an object for HAND_SIGN instead of its required string; safely rejected, no motion. |
+| 4 | L-01 | FAIL | `677242b6fd`: correct signs/action, but cancellation narration and post-action reflection; duplicate fixture also exceeded freshness before resubmission. |
+| 5 | L-01 | INCONCLUSIVE | `4f5711a196`: correct direct thumbs up; harness incorrectly required optional speech. Task not reached. |
+| 6 | L-01 | FAIL | `f2629c37ea`: preserved terms and one peace action; false cancellation wording and unsolicited reflection in complete received audio. |
+| 7 | L-02 | INCONCLUSIVE | `b7183252c0`: login clicked before asynchronous initialization; no native session/inference. Reservation retained. |
+| 8 | L-02 | FAIL | `42da9a7a9b`: all ten constraints retained but scalar rule fields used instead of handPose; safely rejected before proposal/action. |
+| 9 | L-02 | FAIL | `ce594e8b5b`: corrected rule format, preparation/acceptance and one correct custom action; unsolicited reflection violates silence. Synchronized image reviewed: left index/right thumb stretched, other eight bent. |
+
+Budget: **nine reservations/$24**, not an invoice total. Models are explicitly
+`gpt-5.6-luna` and `gpt-live-1`; developer default `gpt-5.2` is unchanged. Verified
+2026-11-23 prices and unchanged bounds give a conservative $1.9153 per-attempt
+ceiling. Allocation revision 2 retains the first three $4 reservations and permits
+at most eighteen later $2 reservations: 21 attempts/$48 within the owner's $50.
+No failed, crashed or zero-request attempt is refunded. Historical GLF/TWC ledgers
+are untouched. The retained ledger is `target/hand-interaction-budget.json`.
+Observed usage across these artifacts: 29 backend requests, 225,150 prompt tokens,
+6,428 completion tokens, and 864 seconds of recorded RTC lifetime. RTC lifetime
+omits provider setup/closure and is not a billing measurement. No paid synthesis
+or grading. Twelve further reservations remain, subject to the unchanged bounds.
+
+Corrections implemented and locally verified:
+
+- Clarify the HAND_SIGN string/sibling-effector shape and the versioned handPose
+  rule, explicitly omitting scalar field/operator/value.
+- Suppress an extra completion speaking occasion for a hand-only final action;
+  preserve legacy nonverbal completion. Withdraw obsolete occasions silently;
+  retain full context with an explicit quiet prefix on each nonsensory thinking
+  chunk. Command-result resets preserve prior agreements. These improve guidance
+  but have not guaranteed provider silence.
+- Wait for native preparation review and arming; allow an absent optional visual
+  acknowledgement; retain eight seconds after completion; replay duplicates before
+  expiry. Wait for cockpit initialization and avoid unused detector downloads.
+- Keep complete received audio even when playback is muted. The committed local
+  transcription helper records package versions, weight/audio hashes and every
+  segment; it does not assign a verdict. It was run on attempt 9 successfully.
+- Independent scene captures now commit promptly during inference. One bounded
+  latest capture per agent preserves source time and generations; a fresh scalar
+  read bypasses the turn's ORM cache before output grounding. Epoch/scope fences,
+  retry checks, disappearance, deletion and the 64 KiB active-state gate remain.
+  Only the owning decision thread may assimilate data; speculative/background
+  workers cannot mutate its aggregate. Passive scene data never spends an action.
+- Camera detection continues while other sensor deliveries wait (one in flight per
+  kind). Canonical capture receipts keep the target selector fresh. Intermediate
+  scene frames coalesce; applied captures remain in ordinary Storage/history.
+  README documents the added capture table. No remote migration was performed.
+
+Verification actually run:
+
+- 143 final focused Java units and provider-budget tests pass; package succeeds.
+  Commands and output: `target/hand-interaction-mysql/hi12-final-units.log` and
+  `hi12-final-package.log`. Earlier 57 task/narration and 69 context checks are
+  retained; the final selection includes their relevant coverage.
+- 43 Python preflight/contract/budget tests and four Node/browser capture tests
+  pass (`python -B -m unittest discover -s tests/gptlive -p 'test_*.py'` and
+  `node --test tests/gptlive/test_hand_capture.mjs tests/gptlive/test_hand_media.mjs`).
+- `0dce408ced`: 41 Java checks pass, selecting AgentTurnSerialiserUnitTest,
+  CoordinationAgentIntegrationTest and LiveQueryBudgetIntegrationTest. Includes
+  target continuity across a blocked transaction, disappearance, scope, retries,
+  epoch/reset and cascading capture deletion. Matched legacy/new hand ingress is
+  38/47 ms maximum and 16/16 statements in the fixed five-sample fixture.
+- `7aadbc4658`: all three affected capture integrations pass again after the final
+  gateway/receipt changes. Three browser cases pass: camera/target selection with
+  3.8 seconds blocked inference and still-fresh labels; independent native audio
+  across Continuous switches; Stop while inference remains blocked. The new
+  fresh-target screenshot was visually reviewed. `0dce408ced` also passed both
+  Coordination/comparison-agent Text direct-command cases and the original target
+  journey. Five distinct browser journeys pass across the runs.
+- Retained failures: `7c68996c96` proves original capture queue blockage;
+  `51a1bd4622` and `6d4ca59da9` expose the stale ORM read after capture decoupling.
+  A scalar latest-capture projection fixes that; both continuance and disappearance
+  passed in `d403814ce9` and the later regression runs. No TTL was increased.
+- `git diff --check` passes. All runner-owned applications/schemas/accounts were
+  cleaned. The owned loopback MySQL remains for continuation; remote MySQL and the
+  pre-existing local service are untouched.
+
+Remaining acceptance: all L-01..09 against final integrated behavior after the
+silence decision, including L-09 latency limits; full semantic/audio/visual review;
+operator trials listed in `tests/hand-interaction/README.md` (all NOT RUN).
+The real-detector failures and software-WebGL limits from HI-08 remain known.

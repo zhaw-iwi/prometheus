@@ -133,9 +133,11 @@ public class CoreTaskUpdateAction extends TaskUpdateAction {
         };
         if ("ACT".equals(op) && !verbalAction) {
             if (storage.containsKey(TaskResponse.KEY)) storage.remove(TaskResponse.KEY);
-            if (!"COMPLETED".equals(TaskMemory.phase(storage))) {
+            boolean handOnly = plan.getMotion() != null && plan.getMotion().isJsonObject()
+                    && plan.getMotion().getAsJsonObject().has("handAction");
+            if (handOnly || !"COMPLETED".equals(TaskMemory.phase(storage))) {
                 if (storage.containsKey(CoreTaskVoice.RESPONSE)) storage.remove(CoreTaskVoice.RESPONSE);
-                return; // A silent agreed action never waits for nonexistent speech capture.
+                return; // A hand-only contribution has no extra spoken completion announcement.
             }
             facts = "The final nonverbal action was requested and the task is complete. Briefly confirm completion without claiming physical execution.";
         } else if ("ACT".equals(op) && "COMPLETED".equals(TaskMemory.phase(storage))) facts += " This was the final permitted action; the task is now finished.";
