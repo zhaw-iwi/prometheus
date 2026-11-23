@@ -10282,3 +10282,8 @@ deployment remain deferred.
   remain explicit; no general accuracy, real-time device, physical or paid Live
   acceptance is claimed. Paid spend/reservations remain $0/$0. Disposable apps,
   DBs/accounts cleaned; remote MySQL untouched. Continue HI-09 after commit/push.
+
+- HI-08 boundary follow-up: dynamic target resolution now requires a unique
+  projected source person; unknown/ambiguous association retains direction only,
+  as required by the roadmap. Focused units and both target browser journeys pass
+  in `a8c43f5104`; configured-region semantics remain unchanged.

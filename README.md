@@ -404,8 +404,10 @@ binding pauses active work so changed destinations cannot silently redirect it.
 
 Tracks expire after three seconds. Ambiguous crossings, disappearance or camera
 changes retire references; labels never transfer to replacement tracks. A
-uniquely overlapping person box can be excluded as the projected source, but
-this establishes no identity. Two aligned targets remain ambiguous. Slow/stale
+uniquely overlapping person box must establish the projected source before
+dynamic target selection, and that box is excluded from candidates. An unresolved
+source retains direction only; this establishes no identity. Two aligned targets
+remain ambiguous. Slow/stale
 captures are withheld; output rechecks expiry after inference. Camera boxes alone
 provide no robot-space location or depth. Model classes are estimates: retained
 corpus review found a milk carton and jar misclassified as bottles. Real-time

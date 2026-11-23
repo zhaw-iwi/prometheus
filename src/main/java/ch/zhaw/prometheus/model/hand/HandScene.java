@@ -80,7 +80,9 @@ public final class HandScene {
         var scene=get(storage);
         var candidates=new JsonArray();
         var targets=new ArrayList<JsonObject>();if(scene.has("targets"))for(var raw:scene.getAsJsonArray("targets"))targets.add(raw.getAsJsonObject());
-        targets.addAll(ObservedTargets.near(storage,observation,now));var source=ObservedTargets.source(storage,observation,now);
+        var detected=ObservedTargets.near(storage,observation,now);var source=ObservedTargets.source(storage,observation,now);
+        // Dynamic selection needs one associated source; direction alone remains useful when it is unknown.
+        if(source.has("person"))targets.addAll(detected);
         for(var t:targets){
             if("virtual".equals(text(t.get("type")))||!alive(t,now)||!observation.frame().equals(SpatialFrame.parse(t.get("frame"))))continue;
             if(source.has("person")&&ref(t).equals(TargetRef.parse(source.get("person"))))continue;
@@ -88,6 +90,7 @@ public final class HandScene {
         }
         if(candidates.size()==1){result.addProperty("status","resolved");result.add("target",candidates.get(0));}
         else if(candidates.size()>1){while(candidates.size()>4)candidates.remove(candidates.size()-1);result.addProperty("status","ambiguous");result.add("candidates",candidates);}
+        else if(!detected.isEmpty()&&!source.has("person"))result.addProperty("reason","source_unknown");
         return result;
     }
     static boolean intersects(JsonObject ray,JsonObject center,JsonObject extent) {

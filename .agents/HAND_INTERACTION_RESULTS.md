@@ -477,7 +477,8 @@ accounts were cleaned; the configured remote database was not used.
 
 ## HI-08 - Dynamic people and item targets
 
-Status: **COMPLETE** (2026-11-23); commit/push follows verification.
+Status: **COMPLETE** (2026-11-23), committed and pushed as `9f359195`;
+source-association follow-up described below.
 
 Reuses the existing single COCO-SSD inference and preserves social person
 tracking. A separate bounded tracker retains person/cup/bottle/book boxes;
@@ -547,3 +548,15 @@ Actual verification:
 No provider, room-depth, physical actuator or general object-recognition acceptance
 is claimed. Paid spend/reservations remain **$0/$0**. All owned disposable apps,
 schemas and accounts are cleaned by the runner; remote MySQL was not used.
+
+
+HI-08 source-boundary follow-up: review against the roadmap caught an overly
+permissive path when source association was unresolved. Dynamic person/item
+selection now requires exactly one projected source person; otherwise it returns
+`unresolved/source_unknown` and keeps only direction. Registered-region behavior
+is unchanged. The backend prompt no longer incorrectly says person/item targets
+are unsupported. Unit tests cover unknown/multiple sources and aligned candidates
+with a known source. `target/gptlive-acceptance-a8c43f5104` passes the focused Java
+set and both configured/dynamic browser journeys, with an explicit source person
+in the latter. This corrects the first implementation's boundary; it does not
+change the retained detector accuracy/timing limitations. Paid spend remains $0.

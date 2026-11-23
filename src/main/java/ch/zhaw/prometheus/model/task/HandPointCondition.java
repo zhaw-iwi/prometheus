@@ -41,6 +41,6 @@ public record HandPointCondition(String direction,SpatialFrame frame,String hand
                 + "Coordinates are unmirrored image-right/image-down. For a person facing the camera, their left maps to image-right and vice versa: disclose and agree this facing-camera convention; do not infer their body orientation. "
                 + "Preview mirroring never changes stored directions. Up/down are image up/down. Index-up may mean attention or upward pointing: use the user's agreed interpretation, never infer intent. "
                 + "Only one unambiguous pointing hand is admitted. Unknown, foreshortened, boundary or multiple-pointing-hand readings cannot match. A changed camera frame needs a revised agreement. "
-                + "No person/item target, forward/back direction or depth is supported yet.\n";
+                + "Never guess person/item targets: they require a supported scoped registry and unambiguous source association. Forward/back direction and room depth remain unsupported.\n";
     }
 }

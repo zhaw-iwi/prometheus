@@ -42,15 +42,15 @@ class ObservedTargetsUnitTest {
     }
     @Test void sourceExclusionRequiresOneFreshOverlappingPersonAndNeverEstablishesIdentity(){
         var person=ObservedTargetsFixture.target("person-1","person",.5,.5,.4,.8,now);var cup=ObservedTargetsFixture.target("cup-1","cup",.9,.5,.1,.2,now);admit(ObservedTargetsFixture.snapshot(now,person,cup),now);
-        assertEquals("ambiguous",HandScene.resolve(storage,point(now,false),now).get("status").getAsString());
+        assertEquals("unresolved",HandScene.resolve(storage,point(now,false),now).get("status").getAsString());assertEquals("source_unknown",HandScene.resolve(storage,point(now,false),now).get("reason").getAsString());
         assertEquals("projected",ObservedTargets.source(storage,point(now,true),now).get("status").getAsString());var result=HandScene.resolve(storage,point(now,true),now);assertEquals("resolved",result.get("status").getAsString());assertTrue(result.getAsJsonObject("target").get("id").getAsString().endsWith(":cup-1"));
         assertEquals("unresolved",ObservedTargets.source(storage,point(now.plusMillis(1501),true),now.plusMillis(1501)).get("status").getAsString());assertEquals("unresolved",HandScene.resolve(storage,point(now.plusMillis(1501),true),now.plusMillis(1501)).get("status").getAsString());
-        var later=now.plusMillis(500);var two=ObservedTargetsFixture.snapshot(later,ObservedTargetsFixture.target("p1","person",.5,.5,.4,.8,later),ObservedTargetsFixture.target("p2","person",.5,.5,.4,.8,later));admit(two,later);assertEquals("unresolved",ObservedTargets.source(storage,point(later,true),later).get("status").getAsString());assertEquals("ambiguous",HandScene.resolve(storage,point(later,true),later).get("status").getAsString());
+        var later=now.plusMillis(500);var two=ObservedTargetsFixture.snapshot(later,ObservedTargetsFixture.target("p1","person",.5,.5,.4,.8,later),ObservedTargetsFixture.target("p2","person",.5,.5,.4,.8,later));admit(two,later);assertEquals("unresolved",ObservedTargets.source(storage,point(later,true),later).get("status").getAsString());assertEquals("unresolved",HandScene.resolve(storage,point(later,true),later).get("status").getAsString());
     }
     @Test void pairingRejectsFutureAndChangedFramesAndAlignedObjectsRemainAmbiguous(){
         admit(ObservedTargetsFixture.cup(now),now);assertTrue(ObservedTargets.near(storage,point(now.minusMillis(1),false),now).isEmpty());
         var p=PointingFixture.observation("changed","right",now);p.getAsJsonObject("frame").addProperty("revision",2);assertTrue(ObservedTargets.near(storage,HandPointObservation.parse(p.toString()),now).isEmpty());
-        var later=now.plusMillis(500);admit(ObservedTargetsFixture.snapshot(later,ObservedTargetsFixture.target("c1","cup",.7,.5,.1,.1,later),ObservedTargetsFixture.target("c2","cup",.9,.5,.1,.1,later)),later);assertEquals("ambiguous",HandScene.resolve(storage,point(later,false),later).get("status").getAsString());
+        var later=now.plusMillis(500);admit(ObservedTargetsFixture.snapshot(later,ObservedTargetsFixture.target("source","person",.4,.5,.2,.8,later),ObservedTargetsFixture.target("c1","cup",.7,.5,.1,.1,later),ObservedTargetsFixture.target("c2","cup",.9,.5,.1,.1,later)),later);assertEquals("ambiguous",HandScene.resolve(storage,point(later,true),later).get("status").getAsString());
     }
     @Test void dispatchRechecksExpiryAndExplicitCounterpartWithoutTrustingOldCoordinates(){
         admit(ObservedTargetsFixture.cup(now),now);var cup=target(now);var plan=plan(cup);var history=new EventHistory();assertThrows(IllegalArgumentException.class,()->HandScene.ground(plan,storage,history,now));

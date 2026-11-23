@@ -214,7 +214,9 @@ assignments/crossings also create fresh IDs. Pointing pairs only with an earlier
 same-frame snapshot no older than 1.5 seconds. Optional `handOrigin` is the
 estimated wrist in image coordinates. The backend replaces `sourceAssociation`
 and `resolution`; exactly one overlapping person box is a projected source to
-exclude, otherwise the source is unresolved. This is not identity or depth.
+exclude. Without one unambiguous projected source, dynamic target resolution
+stays unresolved (`source_unknown`); direction remains available. Configured-region
+selection retains HI-07 semantics. This is not identity or depth.
 
 POST `/demo/agents/{id}/hand-scene/binding` with the normal scoped header and
 `{target:{id,revision,frame},label,destination:null|{id,revision,frame}}` selects one
