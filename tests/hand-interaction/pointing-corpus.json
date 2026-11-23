@@ -1,0 +1,181 @@
+{
+  "schema": "hand-detector-corpus-v1",
+  "provenance": "Public MediaPipe upstream test assets, referenced by google-ai-edge/mediapipe testdata BUILD (Apache-2.0 repository); downloaded files stay in ignored target, no private captures. HaGRID public overview by Kapitanov et al. (README license: variant CC BY-SA 4.0; license/en_us.pdf); local cropped/mirrored images retained only in ignored artifacts.",
+  "upstream": "https://github.com/google-ai-edge/mediapipe/blob/master/mediapipe/tasks/testdata/vision/BUILD",
+  "sdkVersion": "0.10.35",
+  "sources": [
+    {
+      "file": "fist.jpg",
+      "url": "https://storage.googleapis.com/mediapipe-assets/fist.jpg",
+      "sha256": "43fa1cabf3f90d574accc9a56986e2ee48638ce59fc65af1846487f73bb2ef24"
+    },
+    {
+      "file": "thumb_up.jpg",
+      "url": "https://storage.googleapis.com/mediapipe-assets/thumb_up.jpg",
+      "sha256": "5d673c081ab13b8a1812269ff57047066f9c33c07db5f4178089e8cb3fdc0291"
+    },
+    {
+      "file": "pointing_up.jpg",
+      "url": "https://storage.googleapis.com/mediapipe-assets/pointing_up.jpg",
+      "sha256": "ecf8ca2611d08fa25948a4fc10710af9120e88243a54da6356bacea17ff3e36e"
+    },
+    {
+      "file": "victory.jpg",
+      "url": "https://storage.googleapis.com/mediapipe-assets/victory.jpg",
+      "sha256": "84cb8853e3df614e0cb5c93a25e3e2f38ea5e4f92fd428ee7d867ed3479d5764"
+    },
+    {
+      "file": "right_hands.jpg",
+      "url": "https://storage.googleapis.com/mediapipe-assets/right_hands.jpg",
+      "sha256": "4b5134daa4cb60465535239535f9f74c2842aba3aa5fd30bf04ef5678f93d87f"
+    },
+    {
+      "file": "left_hands.jpg",
+      "url": "https://storage.googleapis.com/mediapipe-assets/left_hands.jpg",
+      "sha256": "240c082e80128ff1ca8a83ce645e2ba4d8bc30f0967b7991cf5fa375bab489e1"
+    },
+    {
+      "file": "vision_bundle.mjs",
+      "url": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/vision_bundle.mjs",
+      "sha256": "55d7ab624fbb70dcc5adc4ae6d7ea9cfcb569139d3dbfbf2b1deafcb966bc0fe"
+    },
+    {
+      "file": "vision_wasm_internal.js",
+      "url": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm/vision_wasm_internal.js",
+      "sha256": "e7fd9858e8e8f221d9b96eddc11f8e077f263e0b7bbd79d3cbe882b134274f8c"
+    },
+    {
+      "file": "vision_wasm_internal.wasm",
+      "url": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm/vision_wasm_internal.wasm",
+      "sha256": "6a5c64584c2ab61c763b6e204afbdbc7ce1caf7f5216187322bca8df94f646bc"
+    },
+    {
+      "file": "gesture_recognizer.task",
+      "url": "https://storage.googleapis.com/mediapipe-tasks/gesture_recognizer/gesture_recognizer.task",
+      "sha256": "a966b1d4e774e0423c19c8aa71f070e5a72fe7a03c2663dd2f3cb0b0095ee3e1"
+    },
+    {
+      "file": "hagrid-gestures.png",
+      "url": "https://raw.githubusercontent.com/hukenovs/hagrid/master/images/gestures.png",
+      "sha256": "df9b8d15e352127f780f0e9f1de7a0f951c2a72192c14411a35603353dd2fed3"
+    }
+  ],
+  "threshold": 0.6,
+  "frames": 7,
+  "frameIntervalMs": 150,
+  "stableDeadlineMs": 1000,
+  "cases": [
+    {
+      "id": "point-up",
+      "image": "pointing_up.jpg",
+      "rotate": 0,
+      "expectedPointing": "up"
+    },
+    {
+      "id": "point-up_right",
+      "image": "pointing_up.jpg",
+      "rotate": 45,
+      "expectedPointing": "up_right"
+    },
+    {
+      "id": "point-right",
+      "image": "pointing_up.jpg",
+      "rotate": 90,
+      "expectedPointing": "right"
+    },
+    {
+      "id": "point-down_right",
+      "image": "pointing_up.jpg",
+      "rotate": 135,
+      "expectedPointing": "down_right"
+    },
+    {
+      "id": "point-down",
+      "image": "pointing_up.jpg",
+      "rotate": 180,
+      "expectedPointing": "down"
+    },
+    {
+      "id": "point-down_left",
+      "image": "pointing_up.jpg",
+      "rotate": 225,
+      "expectedPointing": "down_left"
+    },
+    {
+      "id": "point-left",
+      "image": "pointing_up.jpg",
+      "rotate": 270,
+      "expectedPointing": "left"
+    },
+    {
+      "id": "point-up_left",
+      "image": "pointing_up.jpg",
+      "rotate": 315,
+      "expectedPointing": "up_left"
+    },
+    {
+      "id": "palm-not-pointing",
+      "image": "right_hands.jpg",
+      "expectedPointing": null
+    },
+    {
+      "id": "no-hand-direction",
+      "expectedPointing": null
+    },
+    {
+      "id": "point-up-moving",
+      "image": "pointing_up.jpg",
+      "expectedPointing": "up",
+      "frameTransforms": [
+        {
+          "x": 0,
+          "y": 0,
+          "rotate": 0
+        },
+        {
+          "x": 2,
+          "y": 1,
+          "rotate": 1
+        },
+        {
+          "x": -2,
+          "y": -1,
+          "rotate": -1
+        },
+        {
+          "x": 4,
+          "y": 2,
+          "rotate": 2
+        },
+        {
+          "x": -4,
+          "y": -2,
+          "rotate": -2
+        },
+        {
+          "x": 2,
+          "y": 1,
+          "rotate": 1
+        },
+        {
+          "x": 0,
+          "y": 0,
+          "rotate": 0
+        }
+      ]
+    }
+  ],
+  "configuration": "Explicit operator confidence 0.60; product default remains 0.65. Initial default-threshold open-palm miss and exploratory view misses are retained in HAND_INTERACTION_RESULTS.md.",
+  "poses": true,
+  "admissionOnly": true,
+  "acceptance": "Each expected stable direction by 1000ms; no stable wrong direction. The moving case uses declared pixel translations/rotations of one public image, not a recorded user.",
+  "attribution": {
+    "dataset": "HaGRIDv2",
+    "authors": "Anton Nuzhdin, Alexander Nagaev, Alexander Sautin, Alexander Kapitanov, Karina Kvanchiani",
+    "source": "https://github.com/hukenovs/hagrid",
+    "license": "https://github.com/hukenovs/hagrid/blob/master/license/en_us.pdf",
+    "changes": "Crops and horizontal reflections of the public gestures overview; transformed files stay in ignored local artifacts."
+  },
+  "geometry": true,
+  "pointing": true
+}

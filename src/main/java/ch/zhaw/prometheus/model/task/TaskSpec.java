@@ -26,7 +26,12 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
     public enum Effect { ACT, WAIT, COMPLETE }
     public record Rule(String eventType, String field, String operator, JsonPrimitive value,
             String action, Effect effect, double minConfidence, int samples, int cooldownSeconds,
-            HandPoseCondition handPose, HandSignCondition handSign) {
+            HandPoseCondition handPose, HandSignCondition handSign, HandPointCondition handPoint) {
+        public Rule(String eventType, String field, String operator, JsonPrimitive value,
+                String action, Effect effect, double minConfidence, int samples, int cooldownSeconds,
+                HandPoseCondition handPose, HandSignCondition handSign) {
+            this(eventType,field,operator,value,action,effect,minConfidence,samples,cooldownSeconds,handPose,handSign,null);
+        }
         public Rule(String eventType, String field, String operator, JsonPrimitive value,
                 String action, Effect effect, double minConfidence, int samples, int cooldownSeconds, HandPoseCondition handPose) {
             this(eventType, field, operator, value, action, effect, minConfidence, samples, cooldownSeconds, handPose, null);
@@ -37,10 +42,12 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
         }
         public boolean complete() { return effect == Effect.COMPLETE; }
         public String conditionDescription() {
+            if(handPoint!=null)return eventType+" "+handPoint.description();
             if (handSign != null) return eventType + " " + handSign.description();
             return eventType + (handPose == null ? "." + field + " " + operator + " " + value : " " + handPose.description());
         }
         public String conditionKey() {
+            if(handPoint!=null)return eventType+"/"+handPoint.key();
             if (handSign != null) return eventType + "/" + handSign.sign() + "/" + handSign.handedness();
             return handPose == null ? conditionDescription()
                     : eventType + "/" + handPose.key();
@@ -86,8 +93,11 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
                 var rule = item.getAsJsonObject();
                 boolean legacy = !rule.has("effect");
                 String type = string(rule, "eventType", 80), field = null, op = null;
-                JsonPrimitive value = null; HandPoseCondition handPose = null; HandSignCondition handSign = null;
-                if (type.equals(Event.TYPE_HAND_SIGNS)) {
+                JsonPrimitive value = null; HandPoseCondition handPose = null; HandSignCondition handSign = null; HandPointCondition handPoint = null;
+                if(type.equals(Event.TYPE_HAND_POINTING)) {
+                    exact(rule,Set.of("eventType","handPoint","action","effect","minConfidence","samples","cooldownSeconds"));
+                    handPoint=HandPointCondition.parse(rule.get("handPoint"));
+                } else if (type.equals(Event.TYPE_HAND_SIGNS)) {
                     exact(rule, Set.of("eventType", "handSign", "action", "effect", "minConfidence", "samples", "cooldownSeconds"));
                     handSign = HandSignCondition.parse(rule.get("handSign"));
                 } else if (type.equals(Event.TYPE_HAND_POSE)) {
@@ -108,12 +118,13 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
                 double confidence = rule.get("minConfidence").getAsDouble();
                 if (!Double.isFinite(confidence) || confidence < 0 || confidence > 1) throw new IllegalArgumentException();
                 if (handSign != null && ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(handSign.sign()) && confidence != 0) throw new IllegalArgumentException("Derived shapes have no calibrated confidence");
+                if (handPoint != null && confidence != 0) throw new IllegalArgumentException("Pointing has no calibrated confidence");
                 if (handPose != null && confidence != 0) throw new IllegalArgumentException("Finger bend has no detection confidence");
                 if (legacy && !rule.get("complete").getAsJsonPrimitive().isBoolean()) throw new IllegalArgumentException();
                 Effect effect = legacy ? (rule.get("complete").getAsBoolean() ? Effect.COMPLETE : Effect.ACT)
                         : Effect.valueOf(string(rule, "effect", 12));
                 rules.add(new Rule(type, field, op, value == null ? null : value.deepCopy(), string(rule, "action", 300), effect,
-                        confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60), handPose, handSign));
+                        confidence, integer(rule, "samples", 1, 3), integer(rule, "cooldownSeconds", 3, 60), handPose, handSign, handPoint));
             }
             return new TaskSpec(goal, max, List.copyOf(rules), sessionBound, firstAction);
         } catch (RuntimeException invalid) { throw new IllegalArgumentException("Invalid task configuration; use supported observations and bounded rules"); }

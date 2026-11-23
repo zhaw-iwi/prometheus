@@ -174,6 +174,36 @@ class CoordinationAgentIntegrationTest {
                 .filter(p->p.getMotion()!=null).toList();
         assertEquals(2,plans.size());for(var plan:plans){assertEquals(motion,plan.getMotion());assertNull(plan.getSpeech());}
     }
+    @Test void pointingFrameBindingReloadAndDirectOutputPreserveTheAgreement() throws Exception {
+        var scope=create();var proposal=fixtures.behaviour.PointingFixture.agreement();
+        java.util.function.Consumer<JsonObject> observe=data->demo.acknowledge(scope.code(),scope.id(),
+                new EventRequest(Event.TYPE_HAND_POINTING,"camera",Event.KIND_OBSERVATION,data.toString()),OutputProfile.FULL_PLAN).orElseThrow();
+        observe.accept(fixtures.behaviour.PointingFixture.observation("frame","left",Instant.now()));
+        turn(scope,"PROPOSE",proposal.toString(),"Facing the camera, prepare my image-right point then point to your right once");
+        assertEquals(proposal,memory(scope).get(CoordinationMemory.DRAFT));
+        observe.accept(fixtures.behaviour.PointingFixture.observation("wrong","left",Instant.now()));
+        assertEquals("PREPARATION",CoordinationMemory.stage(memory(scope)));
+        observe.accept(fixtures.behaviour.PointingFixture.observation("prepare","right",Instant.now()));
+        assertEquals("READY",CoordinationMemory.stage(memory(scope)));turn(scope,"START","null","Start now");
+        long wait=java.time.Duration.between(Instant.now(),Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();
+        assertTrue(wait<5000);if(wait>=0)Thread.sleep(wait+25);
+        var changed=fixtures.behaviour.PointingFixture.observation("changed","right",Instant.now());changed.getAsJsonObject("frame").addProperty("revision",2);
+        observe.accept(changed);assertEquals(0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        observe.accept(fixtures.behaviour.PointingFixture.observation("prepare","right",Instant.now()));assertEquals(0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        var motion=new JsonObject();motion.add("handAction",ch.zhaw.prometheus.model.hand.HandActions.pose(fixtures.behaviour.PointingFixture.action("right")));
+        var output=new JsonObject();output.add("motion",motion);when(gateway.infer(any())).thenReturn(output.toString());
+        observe.accept(fixtures.behaviour.PointingFixture.observation("fresh","right",Instant.now()));
+        assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        var direct=new JsonObject();direct.addProperty("operation","KEEP");direct.add("agreement",com.google.gson.JsonNull.INSTANCE);direct.add("reply",new JsonObject());
+        var command=new JsonObject();command.addProperty("intent","ACTION");command.addProperty("kind","POINT");command.addProperty("silent",true);command.add("value",fixtures.behaviour.PointingFixture.action("left"));direct.add("command",command);
+        when(gateway.infer(any())).thenReturn(direct.toString());
+        demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_USER_UTTERANCE,"user",Event.KIND_OBSERVATION,"Point to your left silently"),OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals(proposal,memory(scope).get(CoordinationMemory.AGREEMENT));assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals("POINT",memory(scope).get("command.lastResult").getAsJsonObject().get("kind").getAsString());
+        var plans=agents.findById(scope.id()).orElseThrow().getEventHistory().toList().stream().filter(e->Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType()))
+                .map(e->ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(e.getPayload())).filter(plan->plan.getMotion()!=null).toList();
+        assertEquals(2,plans.size());assertTrue(plans.stream().allMatch(plan->plan.getSpeech()==null));
+    }
     @Test void namedIngressRejectsMalformedAndUndeclaredInputBeforePersistingHistory() {
         var scope = create(); int initial = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size();
         assertThrows(IllegalArgumentException.class, () -> demo.acknowledge(scope.code(), scope.id(),

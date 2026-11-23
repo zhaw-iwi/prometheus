@@ -1,11 +1,13 @@
 // Executable subset of hand/interaction-v1.schema.json. Legacy RPS is separate.
 import {fingerPatterns} from './patterns.js';
 import {validateRelations} from './relations.js';
+import {validatePointAction} from './pointing.js';
 export const namedSigns = Object.keys(fingerPatterns);
 export function handAction(value) {
   const exact=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
   if(!exact(value,['schemaVersion','action'])||value.schemaVersion!==1)throw new Error('Invalid hand action version or fields');
   const a=value.action;
+  if(a?.kind==='point'){validatePointAction(a);return structuredClone(a);}
   if(a?.kind==='pose') {
     if(!exact(a,['kind','hands'])||!Array.isArray(a.hands)||a.hands.length<1||a.hands.length>2)throw new Error('Invalid finger pose');
     const sides=new Set();

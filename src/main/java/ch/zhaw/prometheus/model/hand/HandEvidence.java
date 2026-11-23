@@ -12,6 +12,7 @@ public final class HandEvidence {
         return storage.containsKey(ENABLED) && new JsonPrimitive(true).equals(storage.get(ENABLED));
     }
     public static String identity(Event event) {
+        if (Event.TYPE_HAND_POINTING.equals(event.getType())) return HandPointObservation.parse(event.getPayload()).identity();
         if (Event.TYPE_HAND_SIGNS.equals(event.getType())) return HandSignObservation.parse(event.getPayload()).identity();
         if (Event.TYPE_HAND_POSE.equals(event.getType()) && modernPose(event.getPayload())) return HandPoseObservation.parse(event.getPayload()).frame().identity();
         return null;
@@ -27,6 +28,7 @@ public final class HandEvidence {
             String id = identity(event);
             if (id == null) return false;
             if (!enabled(storage)) return true;
+            if(Event.TYPE_HAND_POINTING.equals(event.getType())&&!HandFeatures.pointing(storage))return true;
             if (Event.TYPE_HAND_POSE.equals(event.getType()) && !HandFeatures.poses(storage)) return true;
             if(Event.TYPE_HAND_POSE.equals(event.getType())&&!HandFeatures.geometry(storage)
                     &&HandPoseObservation.parse(event.getPayload()).frame().hands().asList().stream().anyMatch(h->h.getAsJsonObject().has("geometry")))return true;

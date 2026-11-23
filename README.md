@@ -342,8 +342,8 @@ New Coordination instances accept per-hand communication signs through
 `obs.hand.signs` v1: `fist`, `peace`, `open_palm` (halt), `thumbs_up`, `thumbs_down`
 and `index_up` (attention), plus geometric `shaka` (hang loose), `horns` and
 `middle_finger` and `ok_ring` (diver's OK). They declare `motion.handAction` for
-immediate and agreed task output of all ten signs and explicit finger poses. Pointing is staged
-in the [roadmap](.agents/PLAN_HAND_INTERACTION.md). Legacy RPS input/output keeps
+immediate and agreed task output of all ten signs, explicit finger poses and planar
+pointing. Target pointing and sequences follow the [roadmap](.agents/PLAN_HAND_INTERACTION.md). Legacy RPS input/output keeps
 `rock`/`scissor`/`paper`.
 
 For example, **"show thumbs up silently"** publishes one action without creating
@@ -448,6 +448,33 @@ bounds or bends reject rather than disappear. The named `ok_ring` output chooses
 the ring preset with the other three fingers extended. The sensing panel's
 **Spatial estimates** disclosure exposes the measurements and unknown readings.
 Earlier saved instances do not silently gain geometry; create a new instance.
+
+New Coordination profiles declare `hand.pointing.v1` and `obs.hand.pointing`.
+A single unambiguous pointing hand (straight index, other long fingers bent)
+provides one of eight image-plane directions, a projected ray, capture identity,
+frame revision and validity after three frames/300 ms. Near-sector boundaries,
+foreshortening and two pointing hands remain unresolved. Direction carries no
+confidence score, target selection, attention or consent claim. It shares its
+capture identity with sign/pose evidence and can spend only one contribution.
+
+The **Pointing direction** report labels unmirrored camera x-right/y-down.
+**Mirror preview** changes display only. The explicit facing-camera convention
+maps your left to image-right; without that convention, agree image directions.
+A `handPoint` condition contains `direction`, `handedness` (`any`/`left`/`right`)
+and the exact observed `frame`. Proposal needs a current sample; restarting the
+camera or changing its aspect ratio changes the frame revision and requires
+revising the agreement. Older-frame cues cannot match.
+
+**"Point left silently"** uses the robot's own left, appearing view-right in the
+front view, with its index extended and arm aligned. A direct `POINT` command's
+value is the action below; it has no separate top-level effector. Eight directions
+and either single hand are supported; forward/back and person/item targets await
+calibration/target milestones. Task and direct output share validation and remain
+silent when requested. Saved profiles require a new instance to gain pointing.
+
+```json
+{"motion":{"handAction":{"schemaVersion":1,"action":{"kind":"point","effector":"left_hand","direction":"left","frame":{"id":"valerian.robot","revision":1,"space":"robot_local","mirrored":false}}}}}
+```
 
 For **"extend your left index and little finger, keep the others bent"**,
 the direct-command interpreter publishes a complete pose, independently of tasks:

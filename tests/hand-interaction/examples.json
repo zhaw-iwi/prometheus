@@ -194,6 +194,19 @@
           "mirrored": false
         }
       }
+    },
+    "handedness": "right",
+    "validity": "valid",
+    "ray": {
+      "origin": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "vector": {
+        "x": 1,
+        "y": 0
+      },
+      "aspectRatio": 1.3333333333333333
     }
   },
   "capabilities": {

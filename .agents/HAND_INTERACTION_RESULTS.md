@@ -281,13 +281,13 @@ cleaned by the runner; the configured remote application database was not used.
 
 ## Subsequent milestones
 
-HI-05 through HI-12: NOT STARTED. Follow `PLAN_HAND_INTERACTION.md`; each completion
+See the per-milestone sections below for current status. Follow `PLAN_HAND_INTERACTION.md`; each completion
 must record actual checks, remaining limits and source revision before committing
 and pushing.
 
 ## HI-05 - Relational geometry and OK ring
 
-Status: **COMPLETE** (2026-11-23), prepared for the authorized commit/push.
+Status: **COMPLETE** (2026-11-23), committed and pushed as `d03af037`.
 
 New Coordination profiles opt in to `hand.geometry.v1` independently of saved
 instances. Pose v2 optionally carries strict normalized geometry; unknown fingers
@@ -359,3 +359,57 @@ Remaining limits: real-provider interpretation/native speech is deferred to
 HI-12; physical hardware, moving/occluded-user accuracy, general anatomical IK,
 metric depth and target pointing are not accepted here. Output geometry is the
 explicit supported subset above. Paid spend/reservations remain **$0/$0**.
+
+## HI-06 - Directional pointing in a declared frame
+
+Status: **COMPLETE** (2026-11-23), ready for the authorized commit/push.
+
+The first pointing-v1 emitter completes the initial schema with source side,
+validity and aspect-corrected ray evidence. A single pointing hand stabilizes over
+three frames/300 ms; sector deadbands, foreshortening, two hands and missing
+geometry withhold direction. Fresh proposal evidence binds the exact camera frame.
+Restart/aspect changes invalidate its revision. Sign/pose/point share capture
+consumption and ingress limits. Preview mirroring affects display only.
+
+New Coordination profiles opt into pointing independently of pose/geometry tags.
+Eight robot-own directions align the arm and index in direct and task output,
+with the existing bounded hold/release and static history preview. An explicit
+facing-camera convention grounds user-left; no target or depth is fabricated.
+Older saved profiles retain their contract. Geometry output's view directions
+remain distinct and documented. Native guidance retains silence/authority while
+compacting duplicate wording; ten reachable instruction states max 15976 bytes.
+
+Actual verification:
+
+- 175 focused Java cases pass in `hi06-units-final-fixed.log` (HI-05 regression
+  set plus DirectionalPointing). The initial broader run found absent pointing
+  storage flags throwing during old Generic activation; optional flags now
+  return false, including missing geometry flags on pose-only saved instances.
+  Earlier focused failures exposed old baseline expectations, fixture mismatches,
+  a 16081-byte prompt and a same-clock-instant test cue; all retained logs explain
+  the corrections. The timing test waits past its actual freshness fence.
+- `target/gptlive-acceptance-f6bfd7282d` passes 21 Java cases (20 unit and one
+  MySQL journey), compilation and two Playwright cases. The app/schema/account
+  were removed. Preparation, reload, acceptance, stale-frame/reused-capture
+  rejection, one fresh contribution and task-neutral silent direct output pass.
+- 81 JavaScript cases and eight Python schema/runner cases pass in the HI-06
+  final logs. Coverage includes all eight directions on both articulated hands,
+  missing/ambiguous/foreshortened input, frame revision, release, history, and
+  actual script emitter capture sharing, display mirroring and reset fencing.
+  Maven package and `git diff --check` pass.
+- Browser evidence uses real local HTTP/MySQL/SSE with controlled detector and
+  inference fixtures. Reviewed sixteen front/side pointing views, mirrored and
+  unmirrored camera evidence, narrow-screen direction labels and left/right
+  output. The scene fits the extended arm and labels robot-own directions.
+- Actual MediaPipe: 11 direction cases/77 frames pass in
+  `target/hand-interaction-detector/run-1795453946034`; the eight directions,
+  palm/empty negatives and a seven-frame translated/rotated photo stabilize at
+  300 ms. Geometry regression: 20 cases/140 frames pass in `run-1795453955097`.
+  A rotated index pose revealed contradictory canned thumbs-down classification;
+  known geometric index extension now suppresses that label for opted-in profiles.
+  These are hash-pinned static photos and artificial pixel motion, not recorded
+  moving users or proof of general robustness.
+
+Remaining limits: targets/calibration, metric depth, real-provider/native speech,
+recorded moving/occluded-user acceptance and physical execution remain unverified.
+Paid OpenAI spend/reservations remain **$0/$0**. No configured remote database use.

@@ -15,7 +15,10 @@ public final class HandObservationAdmission {
     public static void validate(Event input, AgentInteractionProfile profile, List<Event> history, Instant receivedAt) {
         if (!Event.KIND_OBSERVATION.equals(input.getKind()) || !profile.supportsObservation(input.getType()))
             throw new IllegalArgumentException("This instance does not declare this hand input");
-        if(Event.TYPE_HAND_SIGNS.equals(input.getType())) {
+        if(Event.TYPE_HAND_POINTING.equals(input.getType())) {
+            if(!HandFeatures.pointing(profile))throw new IllegalArgumentException("This instance does not declare pointing");
+            rate(HandPointObservation.parse(input.getPayload()).identity(),history,receivedAt);
+        } else if(Event.TYPE_HAND_SIGNS.equals(input.getType())) {
             var parsed=HandSignObservation.parse(input.getPayload());
             if(parsed.hands().stream().anyMatch(h -> h.sign()!=null&&!HandFeatures.signAllowed(h.sign(),HandFeatures.poses(profile),HandFeatures.geometry(profile))))
                 throw new IllegalArgumentException("This instance does not declare derived hand signs");
@@ -32,7 +35,7 @@ public final class HandObservationAdmission {
         var ids=new HashSet<String>(); Instant cutoff = receivedAt.minusSeconds(1);
         for (int i = history.size() - 1; i >= 0; i--) {
             var event = history.get(i);
-            if (!Event.TYPE_HAND_SIGNS.equals(event.getType()) && !Event.TYPE_HAND_POSE.equals(event.getType())) continue;
+            if (!Event.TYPE_HAND_SIGNS.equals(event.getType()) && !Event.TYPE_HAND_POSE.equals(event.getType()) && !Event.TYPE_HAND_POINTING.equals(event.getType())) continue;
             if (event.getCreatedDate() == null) continue;
             if (!event.getCreatedDate().isAfter(cutoff)) break;
             try {String id=HandEvidence.identity(event);if(id!=null)ids.add(id);}

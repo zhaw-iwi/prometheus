@@ -92,7 +92,7 @@ public final class DirectCommands {
         var flag = object.get("silent");
         if (!flag.isJsonPrimitive() || !flag.getAsJsonPrimitive().isBoolean()) throw new IllegalArgumentException("Invalid command silence flag");
         String kind = object.get("kind").isJsonNull() ? null : string(object.get("kind"));
-        String action = object.get("value").isJsonNull() || "HAND_POSE".equals(kind) ? null : string(object.get("value"));
+        String action = object.get("value").isJsonNull() || "HAND_POSE".equals(kind) || "POINT".equals(kind) ? null : string(object.get("value"));
         JsonObject handAction = null;
         String effector = object.has("effector") ? string(object.get("effector")) : "right_hand";
         if (!HandActions.EFFECTORS.contains(effector) || object.has("effector") && (intent != Intent.ACTION || !"HAND_SIGN".equals(kind)))
@@ -104,9 +104,9 @@ public final class DirectCommands {
                 if (action.equals("scissors")) action = "scissor";
                 if (!SIGNS.contains(action) && !HandSignObservation.SIGNS.contains(action)) throw new IllegalArgumentException("Unsupported hand sign");
                 if (SIGNS.contains(action) && object.has("effector")) throw new IllegalArgumentException("Use the named sign for sided output");
-            } else if ("HAND_POSE".equals(kind)) {
+            } else if ("HAND_POSE".equals(kind)||"POINT".equals(kind)) {
                 handAction=HandActions.pose(object.getAsJsonObject("value"));
-                if(!"pose".equals(handAction.getAsJsonObject("action").get("kind").getAsString()))throw new IllegalArgumentException("Expected a pose action");
+                if(!("POINT".equals(kind)?"point":"pose").equals(handAction.getAsJsonObject("action").get("kind").getAsString()))throw new IllegalArgumentException("Expected a pose action");
             } else if ("GESTURE".equals(kind)) {
                 action = action == null ? "" : action.strip().toUpperCase(Locale.ROOT).replace(' ', '_');
                 if (!GESTURES.contains(action)) throw new IllegalArgumentException("Unsupported gesture");
@@ -137,7 +137,7 @@ public final class DirectCommands {
                 if (HandSignObservation.SIGNS.contains(request.value())) motion.add("handAction", HandActions.named(request.value(), request.effector()));
                 else motion.addProperty("handSign", request.value());
                 plan.add("motion", motion);
-            } else if ("HAND_POSE".equals(request.kind())) {
+            } else if ("HAND_POSE".equals(request.kind())||"POINT".equals(request.kind())) {
                 var motion=new JsonObject();motion.add("handAction",request.handAction().deepCopy());plan.add("motion",motion);
             }
             storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
@@ -169,6 +169,7 @@ public final class DirectCommands {
         String named = HandActions.enabled(profile) ? "show fist, peace, halt, thumbs up/down and index up" : "";
         if(!named.isEmpty()&&HandFeatures.poses(profile))named+=", shaka, horns, middle finger and custom finger poses";
         if(!named.isEmpty()&&HandFeatures.geometry(profile))named+=", including the diver's OK ring and supported hand geometry";
+        if(!named.isEmpty()&&HandFeatures.pointing(profile))named+=", and point in eight planar directions";
         boolean hands = signs || !named.isEmpty();
         return "I can " + (!named.isEmpty() ? named : signs ? "show rock, paper and scissors" : "") + (hands && gestures ? ", and " : "")
                 + (gestures ? "make question, explanation, uncertainty, acknowledgement and polite gestures" : "")
@@ -176,6 +177,7 @@ public final class DirectCommands {
     }
     private static boolean allows(AgentInteractionProfile profile, Request request) {
         if(("ok_ring".equals(request.value())||request.handAction()!=null&&HandActions.requiresGeometry(request.handAction().getAsJsonObject("action")))&&!HandFeatures.geometry(profile))return false;
+        if("POINT".equals(request.kind()))return request.intent()==Intent.ACTION&&HandActions.enabled(profile)&&HandFeatures.pointing(profile);
         if("HAND_POSE".equals(request.kind()))return request.intent()==Intent.ACTION&&HandActions.enabled(profile)&&HandFeatures.poses(profile);
         if("HAND_SIGN".equals(request.kind())&&HandFeatures.DERIVED_SIGNS.contains(request.value())&&!HandFeatures.poses(profile))return false;
         return request.intent() == Intent.ACTION && profile.getSupportedBehaviourModalities().contains(
@@ -186,6 +188,7 @@ public final class DirectCommands {
                 || Set.of("PENDING", "CHECKING", "REJECTED").contains(TaskResponse.status(storage));
     }
     private static String label(Request request) {
+        if("POINT".equals(request.kind()))return "a point "+request.handAction().getAsJsonObject("action").get("direction").getAsString().replace('_',' ')+" from my perspective";
         if("HAND_POSE".equals(request.kind()))return "the requested finger pose";
         if ("HAND_SIGN".equals(request.kind())) return "a " + (request.value().equals("scissor") ? "scissors" : request.value().replace('_', ' ')) + " sign";
         return switch (request.value()) {

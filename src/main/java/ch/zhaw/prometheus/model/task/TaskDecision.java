@@ -133,6 +133,10 @@ public class TaskDecision extends Decision {
     }
     private static boolean matches(TaskSpec.Rule rule, Event event, String[] reason) {
         try {
+            if(rule.handPoint()!=null) {
+                boolean match=rule.handPoint().matches(ch.zhaw.prometheus.model.hand.HandPointObservation.parse(event.getPayload()));
+                if(!match)reason[0]="direction_or_frame_not_met";return match;
+            }
             if (rule.handSign() != null) {
                 boolean match = rule.handSign().matches(ch.zhaw.prometheus.model.hand.HandSignObservation.parse(event.getPayload()), rule.minConfidence());
                 if (!match) reason[0] = "condition_not_met";

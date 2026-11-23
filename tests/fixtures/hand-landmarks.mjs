@@ -42,3 +42,9 @@ export function ringResult(gap=.1,side='Right',aspectRatio=1) {
   p[4]={...p[8],x:p[8].x+gap*scale/aspectRatio};
   return result;
 }
+
+export function pointingResult(angle=0,side='Right',aspectRatio=1) {
+  const result=namedHandResult({thumb:1,index:0,middle:1,ring:1,little:1},side),r=(angle-90)*Math.PI/180;
+  result.worldLandmarks[0]=result.worldLandmarks[0].map(p=>({x:p.x*Math.cos(r)-p.y*Math.sin(r),y:p.x*Math.sin(r)+p.y*Math.cos(r),z:p.z}));
+  result.landmarks[0]=result.worldLandmarks[0].map(p=>({x:.5+p.x/aspectRatio,y:.5+p.y,z:p.z}));return result;
+}

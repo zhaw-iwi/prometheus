@@ -23,7 +23,7 @@ for (const source of manifest.sources) {
 const server=createServer((req,res)=>{
   const file=basename(new URL(req.url,'http://localhost').pathname);
   if(!file){res.setHeader('Content-Type','text/html');res.end('<!doctype html><canvas></canvas>');return;}
-  const local=new Set(['named-signs.js','finger-pose.js','patterns.js','geometry.js']);
+  const local=new Set(['named-signs.js','finger-pose.js','patterns.js','geometry.js','pointing.js']);
   const allowed=new Set([...manifest.sources.map(s=>s.file),...local]);
   if(!allowed.has(file)){res.writeHead(404);res.end();return;}
   const path=local.has(file)?'src/main/resources/public/valerian/hand/'+file:resolve(root,file);
@@ -43,35 +43,37 @@ try {
       const recognizer=await GestureRecognizer.createFromOptions({wasmLoaderPath:'/vision_wasm_internal.js',wasmBinaryPath:'/vision_wasm_internal.wasm'},
         {baseOptions:{modelAssetPath:'/gesture_recognizer.task'},runningMode:'VIDEO',numHands:2});
       const canvas=document.querySelector('canvas');canvas.width=640;canvas.height=480;
-      const ctx=canvas.getContext('2d');ctx.fillStyle='#dddddd';ctx.fillRect(0,0,640,480);
-      if(scenario.image){
-        const image=new Image();image.src='/'+scenario.image;await image.decode();
+      const ctx=canvas.getContext('2d');let image=null;
+      if(scenario.image){image=new Image();image.src='/'+scenario.image;await image.decode();}
+      const draw=index=>{
+        ctx.fillStyle='#dddddd';ctx.fillRect(0,0,640,480);if(!image)return;
+        const transform=scenario.frameTransforms?.[index]||{};
         const [x,y,w,h]=scenario.crop??[0,0,1,1];
-        const scale=Math.min(640/(w*image.width),480/(h*image.height));
-        const dw=w*image.width*scale,dh=h*image.height*scale;
-        ctx.save();ctx.translate(320,240);ctx.rotate((scenario.rotate??0)*Math.PI/180);if(scenario.mirror)ctx.scale(-1,1);
+        const scale=Math.min(640/(w*image.width),480/(h*image.height)),dw=w*image.width*scale,dh=h*image.height*scale;
+        ctx.save();ctx.translate(320+(transform.x||0),240+(transform.y||0));ctx.rotate(((scenario.rotate||0)+(transform.rotate||0))*Math.PI/180);if(scenario.mirror)ctx.scale(-1,1);
         ctx.drawImage(image,x*image.width,y*image.height,w*image.width,h*image.height,-dw/2,-dh/2,dw,dh);ctx.restore();
-      }
+      };
       const tracker=createNamedSignTracker(scenario.id),frames=[];let stableAt=null;
       for(let i=0;i<manifest.frames;i++){
         const at=i*manifest.frameIntervalMs,started=performance.now();
-        const result=recognizer.recognizeForVideo(canvas,at+1);
-        const classified=tracker.observe(result,new Date(100000+at).toISOString(),manifest.threshold,manifest.poses===true,manifest.geometry===true,canvas.width/canvas.height);
+        draw(i);const result=recognizer.recognizeForVideo(canvas,at+1);
+        const classified=tracker.observe(result,new Date(100000+at).toISOString(),manifest.threshold,manifest.poses===true,manifest.geometry===true,canvas.width/canvas.height,manifest.pointing===true);
         const signs=classified.observation.hands.filter(h=>h.sign).map(h=>h.sign).sort();
         const poseMatch = (wanted, hands, used = new Set(), position = 0) => position === wanted.length || hands.some((hand, index) =>
           !used.has(index) && (wanted[position].side === 'any' || wanted[position].side === hand.handedness)
           && Object.entries(wanted[position].states).every(([finger,state]) => hand.fingerStates[finger] === state)
           && poseMatch(wanted,hands,new Set([...used,index]),position+1));
-        const match=scenario.expectedPose ? poseMatch(scenario.expectedPose,classified.pose.hands)
+        const match=Object.hasOwn(scenario,'expectedPointing') ? classified.pointing.direction===scenario.expectedPointing
+          : scenario.expectedPose ? poseMatch(scenario.expectedPose,classified.pose.hands)
           : JSON.stringify(signs)===JSON.stringify([...scenario.expected].sort());
-        const stable=scenario.expectedPose?classified.poseStable:classified.stable;
+        const stable=Object.hasOwn(scenario,'expectedPointing')?classified.pointStable:scenario.expectedPose?classified.poseStable:classified.stable;
         if(stable&&match&&stableAt===null)stableAt=at;
-        frames.push({at,ms:performance.now()-started,stable,match,hands:classified.observation.hands,pose:classified.pose,classes:result.gestures,
+        frames.push({at,ms:performance.now()-started,stable,match,hands:classified.observation.hands,pose:classified.pose,pointing:classified.pointing,classes:result.gestures,
           ...(manifest.diagnostics ? {landmarks:result.landmarks,worldLandmarks:result.worldLandmarks} : {})});
       }
       recognizer.close();
       const passed=stableAt!==null&&stableAt<=manifest.stableDeadlineMs&&frames.every(f=>f.match||manifest.admissionOnly===true&&!f.stable);
-      output.push({id:scenario.id,expected:scenario.expected??scenario.expectedPose,stableAt,passed,frames,image:canvas.toDataURL('image/png')});
+      output.push({id:scenario.id,expected:Object.hasOwn(scenario,'expectedPointing')?scenario.expectedPointing:scenario.expected??scenario.expectedPose,stableAt,passed,frames,image:canvas.toDataURL('image/png')});
     }
     return output;
   },manifest);

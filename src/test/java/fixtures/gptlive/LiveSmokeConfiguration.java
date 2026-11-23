@@ -86,6 +86,12 @@ public class LiveSmokeConfiguration {
                     return """
                         {"motion":{"handAction":{"schemaVersion":1,"action":{"kind":"sign","sign":"ok_ring","effector":"both_hands"}}}}
                         """;
+                if (provider.coordinationProposal != null && request.purpose() == InferencePurpose.BEHAVIOUR
+                        && prompt.contains("Accepted coordination roles and constraints") && prompt.contains("Point to your right silently"))
+                    return """
+                        {"motion":{"handAction":{"schemaVersion":1,"action":{"kind":"point","effector":"right_hand","direction":"right",
+                          "frame":{"id":"valerian.robot","revision":1,"space":"robot_local","mirrored":false}}}}}
+                        """;
                 if (prompt.contains("Produce the current embodiment")) return """
                         {"nonVerbal":{"gesture":"ACKNOWLEDGE","facialExpression":{"type":"attentive","intensity":0.4},
                         "gaze":{"direction":"toward_user","focus":"person"},"motion":{"stillness":0.8,"energy":0.2}},

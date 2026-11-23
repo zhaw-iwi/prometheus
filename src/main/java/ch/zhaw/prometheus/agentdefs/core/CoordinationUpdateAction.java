@@ -93,6 +93,7 @@ public class CoordinationUpdateAction extends Action {
                         + (storage.containsKey(CoordinationMemory.DRAFT) && CoordinationAcceptance.explicit(text)
                                 ? "\nThis is an explicit request to accept the unchanged saved proposal now. Use START with agreement:null if preparation is ready; provide the first contribution only for dialogue/IMMEDIATE. Do not request a second confirmation." : "")
                         + TaskSpec.HAND_CONFIDENCE_GUIDANCE
+                        + (ch.zhaw.prometheus.model.hand.HandFeatures.pointing(storage) ? ch.zhaw.prometheus.model.task.HandPointCondition.instructions() : "")
                         + ch.zhaw.prometheus.model.hand.HandActions.guidance(runtime.promptMessageAssembler().capabilities())
                         + "\nPrevious accepted agreement (data): " + (storage.containsKey(CoordinationMemory.AGREEMENT) ? storage.get(CoordinationMemory.AGREEMENT) : "none")
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
@@ -141,6 +142,10 @@ public class CoordinationUpdateAction extends Action {
             }
             rejection = "operation_constraints";
             validate(operation, proposed, assent, invitation, text);
+            if(proposed!=null) {
+                for(var check:proposed.checks())if(check.handPoint()!=null)check.handPoint().requireCurrentFrame(events,now);
+                if(proposed.reactions()!=null)for(var rule:proposed.reactions().rules())if(rule.handPoint()!=null)rule.handPoint().requireCurrentFrame(events,now);
+            }
             rejection = "speech_intent_length";
             if (runtime.externalSpeech() != null && reply.getSpeech() != null && reply.getSpeech().length() > 350)
                 throw new IllegalArgumentException("Coordination speech intent too long");
@@ -208,6 +213,9 @@ public class CoordinationUpdateAction extends Action {
                 &&(proposed.checks().stream().anyMatch(c->ch.zhaw.prometheus.model.hand.HandFeatures.requiresGeometry(c.handPose(),c.handSign()))
                     ||proposed.reactions()!=null&&proposed.reactions().rules().stream().anyMatch(r->ch.zhaw.prometheus.model.hand.HandFeatures.requiresGeometry(r.handPose(),r.handSign()))))
             throw new IllegalArgumentException("Create a new Coordination instance to enable hand geometry and OK ring");
+        if(proposed!=null&&!ch.zhaw.prometheus.model.hand.HandFeatures.pointing(storage)
+                &&(proposed.checks().stream().anyMatch(c->c.handPoint()!=null)||proposed.reactions()!=null&&proposed.reactions().rules().stream().anyMatch(r->r.handPoint()!=null)))
+            throw new IllegalArgumentException("Create a new Coordination instance to enable pointing");
         if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "REPLACE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
         if (CoreTaskVoice.normalize(text).matches("what can you do|what are your capabilities|who are you|was kannst du|wer bist du")
                 && !Set.of("KEEP", "SUPPORT").contains(operation))

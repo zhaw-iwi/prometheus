@@ -354,7 +354,7 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get().agent();
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
-            if (Event.TYPE_HAND_SIGNS.equals(event.getType()) || Event.TYPE_HAND_POSE.equals(event.getType())) {
+            if (Event.TYPE_HAND_SIGNS.equals(event.getType()) || Event.TYPE_HAND_POSE.equals(event.getType()) || Event.TYPE_HAND_POINTING.equals(event.getType())) {
                 ch.zhaw.prometheus.model.hand.HandObservationAdmission.validate(event, agent.getInteractionProfile(), agent.getEventHistory().toList(), java.time.Instant.now());
             }
             PolicyRuntime acknowledgementRuntime = agentMaybe.get().runtime();

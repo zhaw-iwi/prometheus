@@ -16,6 +16,7 @@ function caption() {
     .map(([finger,bend])=>`${finger} ${bend<.4?'stretched':bend>.55?'bent':'neutral'}`).join(', ')
     +(h.relations?.length?'; '+h.relations.map(r=>r.kind==='orientation'?`${r.axis.replaceAll('_',' ')} ${r.direction.replaceAll('_',' ')}`
       :`${r.fingers.join('/')} ${r.kind.replaceAll('_',' ')} ${r.operator==='lt'?'below':'above'} ${r.value}`).join('; '):'')).join(' / ');
+  if(p?.action?.kind==='point')summary.textContent=`${p.hand.replaceAll('_',' ')}: pointing ${p.action.direction.replaceAll('_',' ')} from the robot's perspective` ;
   display.replaceChildren();display.hidden=p?.display==null;
   if(p?.display!=null) {
     const label=document.createElement('div');label.className='embodiment-display-label';label.textContent='Robot display';

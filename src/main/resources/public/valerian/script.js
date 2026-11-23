@@ -116,6 +116,8 @@ const camera = {
   handLoadPromise: null,
   handInferencePending: false,
   handPoseEstimator: null,
+  lastPointEmitAt: 0,
+  previewMirrored: true,
   namedSignTracker: null,
   lastNamedSignEmitAt: 0,
   handPoseStableKey: null,
@@ -254,6 +256,7 @@ const PROFILE_VISUAL_OBSERVATIONS = [
   "obs.hand.sign",
   "obs.hand.signs",
   "obs.hand.pose",
+  "obs.hand.pointing",
 ];
 
 const PROFILE_WEATHER_OBSERVATIONS = [
@@ -264,7 +267,7 @@ const PROFILE_WEATHER_OBSERVATIONS = [
 const PROFILE_SENSOR_OBSERVATIONS = {
   emotion: ["obs.emotion.face"],
   social: ["obs.human.presence", "obs.social.grouping", "obs.social.context"],
-  hand: ["obs.hand.sign", "obs.hand.signs", "obs.hand.pose"],
+  hand: ["obs.hand.sign", "obs.hand.signs", "obs.hand.pose", "obs.hand.pointing"],
 };
 
 const HAND_CONNECTIONS = [
@@ -289,6 +292,10 @@ window.addEventListener("pagehide", cleanupAll);
 async function init() {
   globalThis.ValerianEmbodiment?.init();
   camera.video = document.getElementById("camera_video");
+  document.getElementById("camera_mirror_preview").addEventListener("change",event=>{
+    camera.previewMirrored=event.target.checked;camera.video.style.transform=camera.previewMirrored?"scaleX(-1)":"none";
+    clearOverlay();
+  });
   camera.canvas = document.getElementById("overlay_canvas");
   camera.ctx = camera.canvas.getContext("2d");
   applyStoredTheme();
@@ -1430,6 +1437,10 @@ function currentProfileSupportsHandPoses() {
   return state.agentInfo?.interactionProfile?.profileTags?.includes("hand.poses.v2") === true;
 }
 
+function currentProfileSupportsHandPointing() {
+  return currentProfileSupportsObservation("obs.hand.pointing") && state.agentInfo?.interactionProfile?.profileTags?.includes("hand.pointing.v1") === true;
+}
+
 function currentProfileSupportsHandGeometry() {
   return currentProfileSupportsHandPoses() && state.agentInfo?.interactionProfile?.profileTags?.includes("hand.geometry.v1") === true;
 }
@@ -1511,6 +1522,9 @@ function renderHistoricalSensingEvent(event) {
   } else if (event.type === "obs.hand.signs") {
     try { renderNamedHandReport(JSON.parse(event.payload)); setText("hand_named_status", "From history; not a new cue"); }
     catch (_) { setText("hand_named_status", "Invalid stored observation"); }
+  } else if (event.type === "obs.hand.pointing") {
+    try {renderPointingReport(JSON.parse(event.payload));setText("hand_point_status","From history; not a new cue");}
+    catch(_){setText("hand_point_status","Invalid stored pointing");}
   } else if (event.type === "obs.hand.pose") {
     try {
       renderHandPoseReport(JSON.parse(event.payload), "From history");
@@ -2719,7 +2733,7 @@ function renderMotion(motion, options = {}) {
   setBehaviourChannelActive("motion", true);
   if (motion.handAction) {
     const action=motion.handAction.action;
-    setText("motion_value", action?.kind==='sign' ? `${asText(action.sign).replaceAll('_',' ')} / ${asText(action.effector).replaceAll('_',' ')}` : action?.kind==='pose' ? `Custom finger pose: ${action.hands.map(h=>h.side).join(' / ')}` : 'Unsupported hand action');
+    setText("motion_value", action?.kind==='sign' ? `${asText(action.sign).replaceAll('_',' ')} / ${asText(action.effector).replaceAll('_',' ')}` : action?.kind==='pose' ? `Custom finger pose: ${action.hands.map(h=>h.side).join(' / ')}` : action?.kind==='point' ? `Point ${action.direction.replaceAll('_',' ')} from the robot's perspective` : 'Unsupported hand action');
     return;
   }
   const sign = normalizeSign(motion.handSign);
@@ -3496,6 +3510,7 @@ async function startCamera() {
     });
     camera.video.srcObject = camera.stream;
     await camera.video.play();
+    camera.namedSignTracker?.newFrame();
     state.cameraRunning = true;
     document.getElementById("start_camera").disabled = true;
     document.getElementById("stop_camera").disabled = false;
@@ -3818,7 +3833,7 @@ async function detectHandSign() {
     const hands = camera.handPoseEstimator(result);
     const named = camera.namedSignTracker?.observe(result, observed?.ts,
       Number(document.getElementById("hand_confidence_threshold").value || .65), currentProfileSupportsHandPoses(),
-      currentProfileSupportsHandGeometry(), camera.video.videoWidth / camera.video.videoHeight || 1);
+      currentProfileSupportsHandGeometry(), camera.video.videoWidth / camera.video.videoHeight || 1, currentProfileSupportsHandPointing());
     const key = hands.map(hand => hand.handedness).sort().join("|");
     camera.handPoseStableFrames = key === camera.handPoseStableKey ? camera.handPoseStableFrames + 1 : 1;
     camera.handPoseStableKey = key;
@@ -3836,6 +3851,11 @@ async function detectHandSign() {
     if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
     await maybeEmitHandPose(modernPose ? named.pose : pose, observed, modernPose ? {stable:named.poseStable,frames:named.poseFrames} : null);
     if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
+    if(named?.pointing) {
+      renderPointingReport(named.pointing);
+      await maybeEmitPointing(named,observed);
+      if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
+    }
     camera.lastGestureVideoTime = frameTime;
   } catch (error) {
     if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
@@ -5119,6 +5139,27 @@ async function maybeEmitNamedHands(named, observed) {
   status(data ? "Delivered to agent; task acceptance is shown in Activity" : "Observation delivery failed");
 }
 
+function renderPointingReport(payload) {
+  const panel=document.getElementById("hand_point_report");if(!panel)return;panel.hidden=false;
+  panel.dataset.frameId=payload.frame.id;panel.dataset.frameRevision=String(payload.frame.revision);
+  setText("hand_point_detection",payload.validity==='valid'?`${payload.handedness} hand: ${payload.direction.replaceAll('_',' ')} in the camera plane`:`Direction unavailable: ${payload.validity}`);
+  setText("hand_point_frame",`Unmirrored camera: x right, y down. Frame revision ${payload.frame.revision}. Preview ${camera.previewMirrored!==false?'mirrored':'unmirrored'}.`);
+}
+
+async function maybeEmitPointing(named,observed) {
+  const status=text=>setText("hand_point_status",text);
+  if(!state.agentId||!currentProfileSupportsHandPointing()){status("Pointing delivery is unavailable for this instance");return;}
+  if(!document.getElementById("sensor_emit_enabled").checked){status("Local estimate only: delivery is off");return;}
+  if(!observed||!window.PrometheusObservationTiming?.accepts(observed)){status("Waiting for synchronized capture time");return;}
+  if(!named.pointStable){status(`Stabilizing direction (${named.pointFrames} frames; minimum 300 ms)`);return;}
+  const interval=Math.max(200,Number(document.getElementById("emit_interval_ms").value||2500));
+  if(Date.now()-camera.lastPointEmitAt<interval)return;
+  const revision=camera.handEmissionRevision||0,agentId=state.agentId;camera.lastPointEmitAt=Date.now();status("Sending observation");
+  const data=await acknowledgeEvent({type:"obs.hand.pointing",actor:"camera",kind:"observation",payload:JSON.stringify(named.pointing)},{renderResponse:true});
+  if(revision!==(camera.handEmissionRevision||0)||agentId!==state.agentId)return;
+  status(data?"Delivered; direction is not intent or target identity":"Pointing delivery failed");
+}
+
 async function maybeEmitHandPose(payload, observed = captureObservationTime(), stability = null) {
   if (!state.agentId) { setHandPoseStatus("Not sent: connect an agent", "idle"); return; }
   if (!document.getElementById("sensor_emit_enabled").checked) {
@@ -5856,14 +5897,14 @@ function drawGestureOverlay(candidate) {
       continue;
     }
     camera.ctx.beginPath();
-    camera.ctx.moveTo((1 - pa.x) * width, pa.y * height);
-    camera.ctx.lineTo((1 - pb.x) * width, pb.y * height);
+    camera.ctx.moveTo((camera.previewMirrored!==false?1-pa.x:pa.x) * width, pa.y * height);
+    camera.ctx.lineTo((camera.previewMirrored!==false?1-pb.x:pb.x) * width, pb.y * height);
     camera.ctx.stroke();
   }
   for (const p of landmarks) {
     if (!drawable(p)) continue;
     camera.ctx.beginPath();
-    camera.ctx.arc((1 - p.x) * width, p.y * height, 3, 0, Math.PI * 2);
+    camera.ctx.arc((camera.previewMirrored!==false?1-p.x:p.x) * width, p.y * height, 3, 0, Math.PI * 2);
     camera.ctx.fill();
   }
 }
@@ -5883,7 +5924,7 @@ function overlayScale() {
 function mirroredOverlayBox(x, y, width, height, scale) {
   const boxWidth = width * scale.scaleX;
   return {
-    x: camera.canvas.width - ((x + width) * scale.scaleX),
+    x: camera.previewMirrored!==false ? camera.canvas.width - ((x + width) * scale.scaleX) : x*scale.scaleX,
     y: y * scale.scaleY,
     width: boxWidth,
     height: height * scale.scaleY,
@@ -5937,6 +5978,8 @@ function resetCameraEmissionGate() {
   camera.handPoseStableKey = null;
   camera.handPoseStableFrames = 0;
   camera.lastNamedSignEmitAt = 0;
+  camera.lastPointEmitAt = 0;
+  setText("hand_point_status","Not sent: capture reset");
   camera.namedSignTracker?.reset();
   setText("hand_named_status", "Not sent: capture reset");
 }
@@ -6048,6 +6091,7 @@ function renderHandSignReport(sign, options = {}) {
 }
 
 function resetHandSignReport(statusText = "No sign") {
+  const pointing = document.getElementById("hand_point_report");if(pointing)pointing.hidden=true;
   const named = document.getElementById("hand_named_report");
   if (named) named.hidden = true;
   setText("hand_named_detection", "No hands detected");

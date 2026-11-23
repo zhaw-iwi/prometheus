@@ -41,7 +41,8 @@ public final class HandActions {
             var version = envelope.getAsJsonPrimitive("schemaVersion");
             if (!version.isNumber() || version.getAsDouble() != 1) throw new IllegalArgumentException();
             var action = envelope.getAsJsonObject("action");
-            if ("pose".equals(text(action,"kind"))) {
+            if("point".equals(text(action,"kind"))) { PointingAction.validate(action);
+            } else if ("pose".equals(text(action,"kind"))) {
                 if(!action.keySet().equals(Set.of("kind","hands")))throw new IllegalArgumentException();
                 var hands=action.getAsJsonArray("hands");if(hands.isEmpty()||hands.size()>2)throw new IllegalArgumentException();
                 var sides=new HashSet<String>();
@@ -61,13 +62,17 @@ public final class HandActions {
         if (plan.getMotion() == null || !plan.getMotion().isJsonObject() || !plan.getMotion().getAsJsonObject().has("handAction")) return;
         if(!enabled(profile))throw new IllegalArgumentException("Named hand output is not declared for this instance");
         var action=plan.getMotion().getAsJsonObject().getAsJsonObject("handAction").getAsJsonObject("action");
+        if("point".equals(text(action,"kind"))) {
+            if(!HandFeatures.pointing(profile))throw new IllegalArgumentException("Pointing output is not declared");
+            return;
+        }
         if("pose".equals(text(action,"kind")) ? !HandFeatures.poses(profile) : !HandFeatures.signAllowed(text(action,"sign"),HandFeatures.poses(profile),HandFeatures.geometry(profile)))
             throw new IllegalArgumentException("This instance does not declare pose/derived output");
         if(requiresGeometry(action)&&!HandFeatures.geometry(profile))throw new IllegalArgumentException("This instance does not declare relational output");
     }
     public static boolean requiresGeometry(JsonObject action) {
         return "sign".equals(text(action,"kind"))?"ok_ring".equals(text(action,"sign"))
-                :action.getAsJsonArray("hands").asList().stream().anyMatch(h->h.getAsJsonObject().has("relations")&&!h.getAsJsonObject().getAsJsonArray("relations").isEmpty());
+                :"pose".equals(text(action,"kind"))&&action.getAsJsonArray("hands").asList().stream().anyMatch(h->h.getAsJsonObject().has("relations")&&!h.getAsJsonObject().getAsJsonArray("relations").isEmpty());
     }
     private static String text(JsonObject object, String name) {
         var value = object.getAsJsonPrimitive(name);
@@ -77,7 +82,7 @@ public final class HandActions {
     public static String guidance(AgentInteractionProfile profile) {
         String input = HandFeatures.geometry(profile) && profile.getSupportedObservations().contains("obs.hand.pose") ? geometryInputGuidance() : "";
         if (!enabled(profile)) return input;
-        return input + "\nNamed hand output overrides legacy-only motion guidance: motion is exactly {\"handAction\":{\"schemaVersion\":1,"
+        return input + (HandFeatures.pointing(profile)?PointingAction.guidance():"") + "\nNamed hand output overrides legacy-only motion guidance: motion is exactly {\"handAction\":{\"schemaVersion\":1,"
                 + "\"action\":{\"kind\":\"sign\",\"sign\":\"fist|peace|open_palm|thumbs_up|thumbs_down|index_up\","
                 + "\"effector\":\"left_hand|right_hand|both_hands\"}}}. Default right_hand. Hold 500 ms then release. "
                 + "Halt means open_palm; attention means index_up. Clarify ambiguous OK (thumbs up or diver ring). "

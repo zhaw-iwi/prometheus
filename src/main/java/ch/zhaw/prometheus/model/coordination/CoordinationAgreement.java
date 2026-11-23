@@ -12,7 +12,10 @@ import ch.zhaw.prometheus.model.event.Event;
 public record CoordinationAgreement(String goal, String humanRole, String agentRole, String success,
         List<String> questions, List<Check> checks, int dialogueLimit, TaskSpec reactions) {
     private static final Gson JSON = new Gson();
-    public record Check(String eventType, String field, String operator, JsonPrimitive value, double minConfidence, HandSignCondition handSign, HandPoseCondition handPose) {
+    public record Check(String eventType, String field, String operator, JsonPrimitive value, double minConfidence, HandSignCondition handSign, HandPoseCondition handPose, ch.zhaw.prometheus.model.task.HandPointCondition handPoint) {
+        public Check(String eventType,String field,String operator,JsonPrimitive value,double minConfidence,HandSignCondition handSign,HandPoseCondition handPose) {
+            this(eventType,field,operator,value,minConfidence,handSign,handPose,null);
+        }
         public Check(String eventType, String field, String operator, JsonPrimitive value, double minConfidence, HandSignCondition handSign) {
             this(eventType,field,operator,value,minConfidence,handSign,null);
         }
@@ -21,12 +24,12 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
         }
         public TaskSpec.Rule rule() {
             return new TaskSpec.Rule(eventType, field, operator, value, "Recognise the agreed observation",
-                    TaskSpec.Effect.ACT, minConfidence, 1, 3, handPose, handSign);
+                    TaskSpec.Effect.ACT, minConfidence, 1, 3, handPose, handSign, handPoint);
         }
-        public String description() { return handPose != null ? handPose.description() : handSign == null ? value.getAsString() : handSign.description(); }
+        public String description() { return handPoint!=null ? handPoint.description() : handPose != null ? handPose.description() : handSign == null ? value.getAsString() : handSign.description(); }
     }
     public static boolean supportedObservation(String type) {
-        return TaskSpec.FIELDS.containsKey(type) || Event.TYPE_HAND_SIGNS.equals(type) || Event.TYPE_HAND_POSE.equals(type);
+        return TaskSpec.FIELDS.containsKey(type) || Event.TYPE_HAND_SIGNS.equals(type) || Event.TYPE_HAND_POSE.equals(type) || Event.TYPE_HAND_POINTING.equals(type);
     }
     public static CoordinationAgreement parse(JsonElement raw) {
         try {
@@ -44,11 +47,12 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
             for (var item : object.getAsJsonArray("checks")) {
                 var check = item.getAsJsonObject();
                 String type = text(check, "eventType", 80);
-                boolean named = Event.TYPE_HAND_SIGNS.equals(type), pose = Event.TYPE_HAND_POSE.equals(type);
-                exact(check, named || pose ? Set.of("eventType", named ? "handSign" : "handPose", "minConfidence")
+                boolean named = Event.TYPE_HAND_SIGNS.equals(type), pose = Event.TYPE_HAND_POSE.equals(type), pointing=Event.TYPE_HAND_POINTING.equals(type);
+                exact(check, named || pose || pointing ? Set.of("eventType", named ? "handSign" : pose ? "handPose" : "handPoint", "minConfidence")
                         : Set.of("eventType", "field", "operator", "value", "minConfidence"));
                 if (!check.get("minConfidence").getAsJsonPrimitive().isNumber()) throw new IllegalArgumentException();
-                var parsed = named ? new Check(type, null, null, null, check.get("minConfidence").getAsDouble(), HandSignCondition.parse(check.get("handSign")))
+                var parsed = pointing ? new Check(type,null,null,null,check.get("minConfidence").getAsDouble(),null,null,ch.zhaw.prometheus.model.task.HandPointCondition.parse(check.get("handPoint")))
+                        : named ? new Check(type, null, null, null, check.get("minConfidence").getAsDouble(), HandSignCondition.parse(check.get("handSign")))
                         : pose ? new Check(type,null,null,null,check.get("minConfidence").getAsDouble(),null,HandPoseCondition.parse(check.get("handPose")))
                         : new Check(type, text(check, "field", 80), text(check, "operator", 8),
                             check.getAsJsonPrimitive("value").deepCopy(), check.get("minConfidence").getAsDouble());

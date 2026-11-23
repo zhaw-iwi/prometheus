@@ -1,6 +1,7 @@
 import * as T from './vendor/three.module.js';
 import {fingerPatterns} from '../hand/patterns.js';
 import {outputRelations,directionAngles} from '../hand/relations.js';
+import {robotDirection} from '../hand/pointing.js';
 
 // Width, opening and corner lift share a gently friendly resting shape.
 // Expression intensity interpolates from this baseline, including surprise.
@@ -153,11 +154,15 @@ export function createRobot() {
     for(const a of arms) {
       a.shoulder.rotation.set(-0.08,0,a.side*0.12);a.elbow.rotation.set(-0.18,0,0);a.wrist.rotation.set(0,0,0);
       const sign=p?.sign && (p.hand==='both_hands'||p.hand===(a.side===-1?'right_hand':'left_hand'))?p.sign:'';
-      const bends=sign&&p.action ? p.action.kind==='pose' ? p.action.hands.find(h=>h.side===(a.side===-1?'right':'left'))?.fingers : fingerPatterns[sign] : null;
+      const bends=sign&&p.action ? p.action.kind==='pose' ? p.action.hands.find(h=>h.side===(a.side===-1?'right':'left'))?.fingers : fingerPatterns[sign==='point'?'index_up':sign] : null;
       const relation=outputRelations(p?.action?.kind==='pose'?p.action.hands.find(h=>h.side===(a.side===-1?'right':'left'))?.relations:[]);
       if(sign==='ok_ring')relation.ring=true;
       if(sign) {
         const t=sample.transition??1;
+        if(p.action?.kind==='point') {
+          const d=robotDirection(p.action.direction),target=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,-1,0),new T.Vector3(d.x,d.y,d.z));
+          a.shoulder.quaternion.slerp(target,t);a.elbow.rotation.x=-.18*(1-t);a.wrist.rotation.set(0,0,0);
+        } else {
         a.shoulder.rotation.set(-0.08-0.07*t,0,a.side*(0.12+0.73*t));a.elbow.rotation.x=-0.18-1.92*t;
         a.wrist.rotation.set(-1.05*t,Math.PI*t,-a.side*0.85*t);
         if(p.action) {
@@ -171,6 +176,7 @@ export function createRobot() {
           if(relation.ring)target.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),a.side*2*Math.PI/3));
           const local=a.elbow.getWorldQuaternion(new T.Quaternion()).invert().multiply(target);
           a.wrist.quaternion.slerp(local,t);
+        }
         }
       } else if(p) {
         const gesture=p.gesture;
@@ -235,7 +241,11 @@ export class RobotScene {
     Object.assign(this.camera,{left:-halfWidth,right:halfWidth,top:halfHeight,bottom:-halfHeight});
     this.camera.updateProjectionMatrix();
   }
-  draw(sample,time) {this.robot.apply(sample,time);this.renderer.render(this.scene,this.camera);}
+  draw(sample,time) {
+    const zoom=sample.pose?.action?.kind==='point'?.56:1;
+    if(this.camera.zoom!==zoom){this.camera.zoom=zoom;this.camera.updateProjectionMatrix();}
+    this.robot.apply(sample,time);this.renderer.render(this.scene,this.camera);
+  }
   dispose() {
     const geometries=new Set(),materials=new Set();
     this.scene.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)materials.add(o.material);});

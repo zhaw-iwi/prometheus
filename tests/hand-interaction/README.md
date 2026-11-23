@@ -49,15 +49,16 @@ language "OK" needs shape clarification where context does not settle it.
   per contribution, also across equivalent event representations. Preparation
   cannot spend an action; acceptance requires a new, fresh execution cue.
 - `camera_image`: normalized, unmirrored camera view, x right/y down; no claimed
-  metric depth. `robot_local` and `virtual_scene`: meters, x right/y up/z toward
-  the viewer in the declared robot/scene frame. Frame ID/revision must match the
+  metric depth. `robot_local`: robot-own right/up (front-view right is negative
+  renderer x); HI-06 supports plane directions only. `virtual_scene`: declared
+  scene x-right/y-up/z-toward-viewer units. Frame ID/revision must match the
   registered transform. Preview mirroring affects display only. "My left" requires
   an explicit subject-frame mapping; screen-left alone cannot establish it.
 - Directions are eight plane sectors; forward/back need a later calibrated
   extension. Targets bind ID/revision/frame, not free-text names. Extents are
   nonnegative. Runtime rejects expired or mismatched registry entries and never
   turns ambiguous/unresolved evidence into a selected person or object.
-- Relations: normalized tip distance (hand scale, 0–2), spread (0–1) and axis
+- Relations: normalized tip distance (hand scale, 0–4), spread (0–1) and axis
   orientation (5–45 degree tolerance). Proximity does not establish contact.
   HI-05 specifies the supported geometric combinations and output adapter.
 - Input sequences: 1–12 steps, default dwell 300 ms, default gap 5 s, total at
@@ -146,3 +147,11 @@ to the 18 existing cases. Its declared photographed near misses are thumbs up,
 open palm, index up and I-love-you. Controlled geometric tests cover opened-ring
 thresholds and unknown landmarks. These remain static-image model trials; no
 moving-user or physical execution accuracy is implied.
+
+HI-06 completes the previously unimplemented pointing-v1 envelope with required
+handedness, validity and aspect-corrected ray evidence. The initial emitter only
+publishes unresolved target selection. New instances explicitly opt in to
+`hand.pointing.v1`; frame revision binds proposals and cues. Run the pinned actual
+model direction corpus with `node tests/hand-interaction/detector-smoke.mjs
+--manifest=tests/hand-interaction/pointing-corpus.json`. Its translated/rotated
+photo case exercises pixel motion, not recorded-user tracking accuracy.

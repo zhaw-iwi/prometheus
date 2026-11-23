@@ -98,7 +98,10 @@ use thumb opposition/extension, not a numeric-mask substitution. Saved profiles
 stay unchanged. HI-05 adds opt-in `hand.geometry.v1`: projected proximity,
 spread and orientation predicates, bounded matching digital output, and the OK
 ring as a distinct tenth sign. The renderer exposes its loop and input details
-show unknown geometry without implying contact/depth. Pointing remains pending.
+show unknown geometry without implying contact/depth. HI-06 adds opt-in
+`hand.pointing.v1`: stable eight-sector camera directions, exact frame-bound cues,
+and robot-relative arm/index output. Preview mirroring changes display only;
+camera restarts revise the frame. Region/person/item resolution remains pending.
 Actual progress, calibrated
 detector limits and verification:
 `.agents/HAND_INTERACTION_RESULTS.md`.

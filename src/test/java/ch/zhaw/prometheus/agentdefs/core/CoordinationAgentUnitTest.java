@@ -91,7 +91,7 @@ class CoordinationAgentUnitTest {
         var original = new GenericMultimodalBehaviourAtSocialSpace().createAgent().getInteractionProfile();
         assertEquals(original.getSupportedObservations(),
                 agent.getInteractionProfile().getSupportedObservations().stream()
-                    .filter(type -> !Event.TYPE_HAND_SIGNS.equals(type)).toList());
+                    .filter(type -> !Event.TYPE_HAND_SIGNS.equals(type) && !Event.TYPE_HAND_POINTING.equals(type)).toList());
         assertTrue(agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_SIGNS));
         assertEquals(original.getSupportedBehaviourModalities(), agent.getInteractionProfile().getSupportedBehaviourModalities().stream()
                 .filter(m -> !ch.zhaw.prometheus.model.hand.HandActions.MODALITY.equals(m)).toList());
@@ -270,6 +270,8 @@ class CoordinationAgentUnitTest {
         var event = hear("The task is armed and waiting for your rock sign", true, receivedAt);
         var check = TaskResponse.claim(storage(), owner, event, receivedAt, Instant.now()).orElseThrow();
         assertTrue(TaskResponse.finish(storage(), owner, check, true, Instant.now()));
+        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(1)).until(() ->
+                Instant.now().isAfter(Instant.parse(storage().get(TaskMemory.AFTER).getAsString())));
         when(gateway.infer(any())).thenReturn("{\"motion\":{\"handSign\":\"paper\"}}");
         assertNotNull(sign("rock", 1, Instant.now(), live)); assertEquals(1, storage().get(TaskMemory.ACTIONS).getAsInt());
         assertFalse(storage().containsKey(TaskResponse.KEY)); assertNull(policy().liveActivityContext().continuation());

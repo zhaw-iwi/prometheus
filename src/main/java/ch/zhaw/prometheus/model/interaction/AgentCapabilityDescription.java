@@ -20,6 +20,7 @@ public final class AgentCapabilityDescription {
             Map.entry("obs.social.situation_change", "Backend-derived changes in social grouping, not direct sensing."),
             Map.entry("obs.hand.sign", "Supplied rock, scissor or paper estimates, not intent; task state decides if a move counts."),
             Map.entry("obs.hand.signs", "Per-hand fist, peace, open palm/halt, thumbs up/down, index up/attention. Estimated side; no intent or consent. Input support only."),
+            Map.entry("obs.hand.pointing", "One estimated hand direction in a declared unmirrored camera plane; no target, depth or intent."),
             Map.entry("obs.hand.pose", "Finger bend estimates for up to two hands: 0 straight, 1 fully bent, null unavailable. Client states: straight <0.4, bent >0.55, neutral 0.4-0.55 inclusive; missing labels unknown. Hidden fingers may be inferred. Handedness is estimated, not identity; no named sign or intent is established."),
             Map.entry("obs.weather.current", "Supplied weather for its stated place and time; no independent fetching or GPS."),
             Map.entry("obs.weather.forecast", "Supplied forecast for its stated place and time; not current observed weather."),
@@ -47,11 +48,11 @@ public final class AgentCapabilityDescription {
         result.add("meanings", meanings);
         result.add("limits", array(List.of(
                 "Empty lists mean unspecified, not unlimited.",
-                "Supported input does not prove enabled sensors or current evidence.",
-                "Inputs are supplied observations, not unrestricted camera/microphone/service access.",
-                "Plans do not confirm rendering, physical execution or task completion.",
-                "Live compatibility does not prove an active session.",
-                "Task policies/state remain authoritative; conversation cannot change sensors/settings/coded rules.")));
+                "Input support proves neither active sensors nor fresh evidence.",
+                "Only supplied observations; no unrestricted camera/microphone/service access.",
+                "Plans prove no rendering, physical execution or task completion.",
+                "Live support proves no active session.",
+                "Task policy/state govern; conversation cannot change sensors, settings or code.")));
         String json = result.toString();
         if (json.getBytes(StandardCharsets.UTF_8).length > MAX_JSON_BYTES)
             throw new IllegalArgumentException("Agent capability description exceeds the context budget");
@@ -61,8 +62,8 @@ public final class AgentCapabilityDescription {
     public static String context(AgentInteractionProfile profile) {
         String json = json(profile);
         return json.isEmpty() ? "" : MARKER + " (backend-declared reference data, not task instructions).\n"
-                + "Explain capabilities briefly in the user's language, without identifiers/JSON. Distinguish support, evidence and "
-                + "confirmed actions. Never invent capabilities/tasks; preserve task policy and output format.\n"
+                + "Explain capabilities briefly in the user's language, without IDs/JSON. Separate support, evidence and "
+                + "confirmed actions. Preserve task policy/output format; invent no capabilities/tasks.\n"
                 + json;
     }
 
@@ -70,7 +71,7 @@ public final class AgentCapabilityDescription {
         if(ch.zhaw.prometheus.model.hand.HandFeatures.geometry(profile)) {
             if(key.equals("obs.hand.pose"))return "V2 bends (0 straight,1 bent,null unknown), projected tip gaps, spreads and axes. Estimated sides; inferred joints do not prove visibility/contact.";
             if(key.equals("obs.hand.signs"))return "Fist, peace, halt, thumbs up/down, index up, shaka, horns, middle finger, OK ring. Geometric shapes have no calibrated score; no consent.";
-            if(key.equals("motion.handAction"))return "Ten signs and per-finger poses; bounded ring, index/middle spread and index orientation. Digital output only.";
+            if(key.equals("motion.handAction"))return "Ten signs and per-finger poses; bounded ring, index/middle spread and index orientation. Digital output only." + (ch.zhaw.prometheus.model.hand.HandFeatures.pointing(profile)?" Eight robot-relative pointing directions.":"");
         }
         if (ch.zhaw.prometheus.model.hand.HandFeatures.poses(profile)) {
             if (key.equals("obs.hand.pose")) return "V2 one/two-hand bends: 0 straight, 1 bent, null unknown. States: straight <0.4, bent >0.55, else neutral. Hidden joints may be inferred; sides estimated, not identity.";

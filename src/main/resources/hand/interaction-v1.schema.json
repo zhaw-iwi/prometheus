@@ -1321,6 +1321,85 @@
         },
         "resolution": {
           "$ref": "#/$defs/resolution"
+        },
+        "handedness": {
+          "enum": [
+            "left",
+            "right",
+            "unknown"
+          ]
+        },
+        "validity": {
+          "enum": [
+            "valid",
+            "unavailable",
+            "ambiguous",
+            "boundary",
+            "foreshortened"
+          ]
+        },
+        "ray": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "origin": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "y": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y"
+                  ],
+                  "additionalProperties": false
+                },
+                "vector": {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    },
+                    "y": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y"
+                  ],
+                  "additionalProperties": false
+                },
+                "aspectRatio": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 10
+                }
+              },
+              "required": [
+                "origin",
+                "vector",
+                "aspectRatio"
+              ],
+              "additionalProperties": false
+            }
+          ]
         }
       },
       "required": [
@@ -1331,7 +1410,10 @@
         "frame",
         "handId",
         "direction",
-        "resolution"
+        "resolution",
+        "handedness",
+        "validity",
+        "ray"
       ],
       "additionalProperties": false
     },

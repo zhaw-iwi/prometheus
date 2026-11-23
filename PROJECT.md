@@ -82,7 +82,7 @@ and regulation diagnostics remain future work.
   The plan defines unit/contract, isolated local-MySQL, reviewed Playwright visual
   and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
   HI-02 named-sign triggers, HI-03 output, HI-04 composed poses and HI-05 geometry/OK
-  ring are complete; HI-06 directional pointing is next. The owner authorized sequential implementation,
+  ring and HI-06 directional pointing are complete; HI-07 configured targets is next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10221,3 +10221,21 @@ deployment remain deferred.
   are retained in HAND_INTERACTION_RESULTS. No paid calls or deployment;
   moving-user, provider interpretation and physical execution remain unverified.
   Continue HI-06 after the authorized commit/push.
+
+## HI-06 - Directional pointing (2026-11-23)
+
+- Added explicit pointing capability, strict source/ray/frame evidence, typed
+  frame-bound preparation/rules, and silent direct/task robot-relative output.
+  Mirrored preview leaves inference coordinates unchanged. Camera restarts and
+  aspect changes revise the frame. All eight directions align arm and index.
+- Verified 175 focused Java unit cases, one isolated MySQL lifecycle journey,
+  81 JavaScript and eight Python cases, two reviewed Playwright cases, 11 actual
+  directional model cases/77 frames and the 20-case/140-frame geometry regression.
+  Maven package and diff checks pass. Full evidence and retained initial failures:
+  `.agents/HAND_INTERACTION_RESULTS.md`.
+- Fixed a regression found in Generic task checks: absent opt-in storage flags
+  are false, not missing-key exceptions. Kept native instructions within 16000
+  bytes (maximum 15976 across ten states); no truncation/limit change.
+- No depth/target/person association, recorded moving-user accuracy, physical
+  actuation or real-provider acceptance is claimed. Paid spend remains $0.
+  Continue HI-07 after the authorized commit/push.
