@@ -26,7 +26,7 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 import ch.zhaw.prometheus.spi.SpeechSynthesisGateway;
 
 /** Run only with the disposable local MySQL runner documented in README. */
-@SpringBootTest(properties = {"prometheus.runtime.tick.enabled=false"})
+@SpringBootTest(properties = {"prometheus.runtime.tick.enabled=false", "spring.jpa.properties.hibernate.generate_statistics=true"})
 class CoordinationAgentIntegrationTest {
     @Autowired AgentDefinitionRegistry registry;
     @Autowired AgentRepository agents;
@@ -39,6 +39,7 @@ class CoordinationAgentIntegrationTest {
     @Autowired LiveAgentContextService liveContexts;
     @Autowired LiveContextBridgeService liveBridge;
     @Autowired ScopedBehaviourSpeechService canonicalSpeech;
+    @Autowired jakarta.persistence.EntityManagerFactory entityManagerFactory;
     @MockitoBean LanguageModelGateway gateway;
     @MockitoBean SpeechSynthesisGateway speech;
     static final String AGREEMENT = """
@@ -60,6 +61,61 @@ class CoordinationAgentIntegrationTest {
         var agent = agents.findById(scope.id()).orElseThrow();
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
+    }
+    @Test void boundedHandIngressPersistsLargePayloadsAndRetriesWithoutWritesOrInference() throws Exception {
+        var scope=create();var stats=entityManagerFactory.unwrap(org.hibernate.SessionFactory.class).getStatistics();
+        var pose=fixtures.behaviour.HandSequenceFixture.pose("large",0,true,Instant.now());
+        for(var hand:pose.getAsJsonArray("hands"))for(String finger:List.of("thumb","index","middle","ring","little"))
+            hand.getAsJsonObject().getAsJsonObject("fingers").addProperty(finger,new java.math.BigDecimal("0.9"+"1".repeat(900)));
+        String payload=pose.toString();assertTrue(payload.length()>4096&&payload.length()<16384);
+        var request=new EventRequest(Event.TYPE_HAND_POSE,"camera",Event.KIND_OBSERVATION,payload);
+        clearInvocations(gateway);demo.acknowledge(scope.code(),scope.id(),request,OutputProfile.FULL_PLAN).orElseThrow();
+        var events=agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
+        assertEquals(payload,events.stream().filter(e->Event.TYPE_HAND_POSE.equals(e.getType())).findFirst().orElseThrow().getPayload());
+        stats.clear();demo.acknowledge(scope.code(),scope.id(),request,OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals(0,stats.getEntityInsertCount());assertEquals(0,stats.getEntityUpdateCount());assertEquals(0,stats.getCollectionUpdateCount());
+        assertEquals(events.size(),agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size());
+        verifyNoInteractions(gateway);
+        // Fixed five-sample comparison; ceiling declared before the first measurement.
+        long[] latency=new long[2],queries=new long[2];
+        for(int kind=0;kind<2;kind++)for(int i=0;i<5;i++){
+            Thread.sleep(220);
+            String type=kind==0?Event.TYPE_HAND_SIGN:Event.TYPE_HAND_POSE;
+            String data=kind==0?"{\"sign\":\"rock\",\"confidence\":0.9,\"ts\":\""+Instant.now()+"\"}":fixtures.behaviour.HandSequenceFixture.pose("stable"+i,0,false,Instant.now()).toString();
+            stats.clear();long start=System.nanoTime();demo.acknowledge(scope.code(),scope.id(),new EventRequest(type,"camera",Event.KIND_OBSERVATION,data),OutputProfile.FULL_PLAN).orElseThrow();
+            latency[kind]=Math.max(latency[kind],(System.nanoTime()-start)/1000000);queries[kind]=Math.max(queries[kind],stats.getPrepareStatementCount());
+        }
+        System.out.println("HI11 fixed ingress: legacy/new max ms="+Arrays.toString(latency)+", statements="+Arrays.toString(queries)+", state bytes="+ch.zhaw.prometheus.model.hand.HandStateBudget.bytes(memory(scope).toMap()));
+        assertTrue(latency[1]<=1000,"Local hand ingress ceiling 1000 ms");
+        assertTrue(queries[1]<=queries[0]+12,"Hand ingress adds at most 12 statements to matched legacy ingress");
+        verifyNoInteractions(gateway);
+        assertEquals(events.size()+10,agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size());
+    }
+    @Test void overBudgetSceneUpdateDoesNotCommitPartialHandState() {
+        var scope=create();
+        demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_HAND_POINTING,"camera",Event.KIND_OBSERVATION,
+                fixtures.behaviour.PointingFixture.observation("budget-frame","right",Instant.now()).toString()),OutputProfile.FULL_PLAN).orElseThrow();
+        var saved=agents.findById(scope.id()).orElseThrow();
+        var storage=((TaskPolicy)saved.getCurrentState().ownPolicy()).storage();
+        storage.put("hand.budget-fixture",new JsonPrimitive(""));
+        storage.put("hand.budget-fixture",new JsonPrimitive("x".repeat(65500-ch.zhaw.prometheus.model.hand.HandStateBudget.bytes(storage.toMap()))));
+        assertTrue(ch.zhaw.prometheus.model.hand.HandStateBudget.bytes(storage.toMap())<=65536);
+        agents.saveAndFlush(saved);var before=memory(scope).toMap();
+        var request=fixtures.behaviour.HandSceneFixture.request(0);
+        var error=assertThrows(IllegalArgumentException.class,()->demo.configureHandScene(scope.code(),scope.id(),request.toString()));
+        assertTrue(error.getMessage().contains("64 KiB"));
+        assertEquals(before,memory(scope).toMap(),"Rejected update cannot leave a scene revision or changed task state");
+    }
+    @Test void largeAgreementRoundTripsThroughMysqlWithoutChangingItsConditions() {
+        var scope=create();var proposal=fixtures.behaviour.HandSequenceFixture.largeAgreement();
+        assertTrue(proposal.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>32000);
+        turn(scope,"PROPOSE",proposal.toString(),"Prepare this complete ordered hand contract");
+        assertEquals(proposal,memory(scope).get(CoordinationMemory.DRAFT));
+        var loaded=agents.findById(scope.id()).orElseThrow();
+        var policy=(CoordinationPolicy)loaded.getCurrentState().ownPolicy();
+        assertTrue(policy.liveActivityContext().facts().getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=4000);
+        assertTrue(liveContexts.snapshot(scope.code(),scope.id()).orElseThrow().instructions().getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=16000);
+        assertEquals(proposal,memory(scope).get(CoordinationMemory.DRAFT));
     }
     @Test void legacyScissorsAgreementAndHistorySurviveReloadUnchanged() throws Exception {
         var scope = create(); JsonObject proposal;
@@ -139,9 +195,10 @@ class CoordinationAgentIntegrationTest {
         proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action", "Show peace silently with both hands");
         turn(scope, "PROPOSE", proposal.toString(), "Prepare a right-hand thumbs up, then acknowledge its next accepted cue once");
         assertEquals("PREPARATION", CoordinationMemory.stage(memory(scope)));
+        var captures = new HashMap<String,String>();
         java.util.function.BiConsumer<String,String> observe = (id, sign) -> demo.acknowledge(scope.code(), scope.id(),
                 new EventRequest(Event.TYPE_HAND_SIGNS, "camera", Event.KIND_OBSERVATION,
-                        fixtures.behaviour.NamedHandSignFixture.observation(id, sign, "right", Instant.now()).toString()), OutputProfile.FULL_PLAN).orElseThrow();
+                        captures.computeIfAbsent(id,key->fixtures.behaviour.NamedHandSignFixture.observation(id, sign, "right", Instant.now()).toString())), OutputProfile.FULL_PLAN).orElseThrow();
         observe.accept("wrong", "peace"); assertEquals(0, CoordinationMemory.evidence(memory(scope)).size());
         observe.accept("preparation", "thumbs_up"); assertEquals("READY", CoordinationMemory.stage(memory(scope)));
         assertEquals(proposal, memory(scope).get(CoordinationMemory.DRAFT));
@@ -167,9 +224,10 @@ class CoordinationAgentIntegrationTest {
         turn(scope,"PROPOSE",proposal.toString(),"Prepare a custom two-hand pattern, then show its response once");
         var left=fixtures.behaviour.ComposedHandFixture.hand("left","left",0,0,.5,1,0);
         var right=fixtures.behaviour.ComposedHandFixture.hand("right","right",1,1,1,.5,1);
+        var captures=new HashMap<String,String>();
         java.util.function.BiConsumer<String,JsonObject[]> observe=(id,hands)->demo.acknowledge(scope.code(),scope.id(),
                 new EventRequest(Event.TYPE_HAND_POSE,"camera",Event.KIND_OBSERVATION,
-                        fixtures.behaviour.ComposedHandFixture.observation(id,Instant.now(),hands).toString()),OutputProfile.FULL_PLAN).orElseThrow();
+                        captures.computeIfAbsent(id,key->fixtures.behaviour.ComposedHandFixture.observation(id,Instant.now(),hands).toString())),OutputProfile.FULL_PLAN).orElseThrow();
         observe.accept("missing",new JsonObject[]{left});assertEquals("PREPARATION",CoordinationMemory.stage(memory(scope)));
         observe.accept("ready",new JsonObject[]{right,left});assertEquals("READY",CoordinationMemory.stage(memory(scope)));
         assertEquals(proposal,memory(scope).get(CoordinationMemory.DRAFT));
@@ -197,9 +255,10 @@ class CoordinationAgentIntegrationTest {
         turn(scope,"PROPOSE",proposal.toString(),"Prepare a custom two-hand pattern, then show its response once");
         var left=fixtures.behaviour.ComposedHandFixture.hand("left","left",0,0,.5,1,0);
         var right=fixtures.behaviour.ComposedHandFixture.hand("right","right",1,1,1,.5,1);
+        var captures=new HashMap<String,String>();
         java.util.function.BiConsumer<String,JsonObject[]> observe=(id,hands)->demo.acknowledge(scope.code(),scope.id(),
                 new EventRequest(Event.TYPE_HAND_POSE,"camera",Event.KIND_OBSERVATION,
-                        fixtures.behaviour.ComposedHandFixture.observation(id,Instant.now(),hands).toString()),OutputProfile.FULL_PLAN).orElseThrow();
+                        captures.computeIfAbsent(id,key->fixtures.behaviour.ComposedHandFixture.observation(id,Instant.now(),hands).toString())),OutputProfile.FULL_PLAN).orElseThrow();
         left.add("geometry",fixtures.behaviour.RelationalHandFixture.geometry());
         observe.accept("missing",new JsonObject[]{left});assertEquals("PREPARATION",CoordinationMemory.stage(memory(scope)));
         observe.accept("ready",new JsonObject[]{right,left});assertEquals("READY",CoordinationMemory.stage(memory(scope)));
@@ -232,13 +291,13 @@ class CoordinationAgentIntegrationTest {
         assertEquals(proposal,memory(scope).get(CoordinationMemory.DRAFT));
         observe.accept(fixtures.behaviour.PointingFixture.observation("wrong","left",Instant.now()));
         assertEquals("PREPARATION",CoordinationMemory.stage(memory(scope)));
-        observe.accept(fixtures.behaviour.PointingFixture.observation("prepare","right",Instant.now()));
+        var prepared=fixtures.behaviour.PointingFixture.observation("prepare","right",Instant.now());observe.accept(prepared);
         assertEquals("READY",CoordinationMemory.stage(memory(scope)));turn(scope,"START","null","Start now");
         long wait=java.time.Duration.between(Instant.now(),Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();
         assertTrue(wait<5000);if(wait>=0)Thread.sleep(wait+25);
         var changed=fixtures.behaviour.PointingFixture.observation("changed","right",Instant.now());changed.getAsJsonObject("frame").addProperty("revision",2);
         observe.accept(changed);assertEquals(0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
-        observe.accept(fixtures.behaviour.PointingFixture.observation("prepare","right",Instant.now()));assertEquals(0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        observe.accept(prepared);assertEquals(0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
         var motion=new JsonObject();motion.add("handAction",ch.zhaw.prometheus.model.hand.HandActions.pose(fixtures.behaviour.PointingFixture.action("right")));
         var output=new JsonObject();output.add("motion",motion);when(gateway.infer(any())).thenReturn(output.toString());
         observe.accept(fixtures.behaviour.PointingFixture.observation("fresh","right",Instant.now()));

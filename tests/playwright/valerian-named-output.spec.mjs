@@ -42,7 +42,7 @@ test('named output renders ten signs, releases fresh actions and previews histor
     await request.post('/__live-fixture/coordination-proposal',{data:{operation:'PROPOSE',agreement,reply:{speech:'Prepare a thumbs up; then accept.'}}});
     await say('When I show thumbs up, show peace silently with both hands once, after preparation and acceptance');
     await expect.poll(async()=>(await memory())['coordination.draft']).toEqual(agreement);
-    const observe=async id=>{const ts=new Date().toISOString();return request.post(path+'/acknowledge',{headers,data:{type:'obs.hand.signs',actor:'camera',kind:'observation',payload:JSON.stringify({schemaVersion:1,observationId:id,source:'browser-test',ts,frame:{id:'camera',revision:1,space:'camera_image',mirrored:false},hands:[{id:'one',handedness:'right',sign:'thumbs_up',confidence:.9}]})}});};
+    const captureTimes=new Map();const observe=async id=>{if(!captureTimes.has(id))captureTimes.set(id,new Date().toISOString());const ts=captureTimes.get(id);return request.post(path+'/acknowledge',{headers,data:{type:'obs.hand.signs',actor:'camera',kind:'observation',payload:JSON.stringify({schemaVersion:1,observationId:id,source:'browser-test',ts,frame:{id:'camera',revision:1,space:'camera_image',mirrored:false},hands:[{id:'one',handedness:'right',sign:'thumbs_up',confidence:.9}]})}});};
     expect((await observe('prep')).ok()).toBe(true);await expect.poll(async()=>Object.keys((await memory())['coordination.evidence']||{}).length).toBe(1);
     await request.post('/__live-fixture/coordination-proposal',{data:{operation:'START',agreement:null,reply:{}}});await say('Start now');
     await expect.poll(async()=>(await memory())['task.actions']).toBe(0);

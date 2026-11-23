@@ -344,6 +344,7 @@ def main():
                         specs.append('tests/playwright/valerian-input-sequence.spec.mjs')
                         specs.append('tests/playwright/valerian-output-sequence.spec.mjs')
                         specs.append('tests/playwright/valerian-finger-pose.spec.mjs')
+                        specs += ['tests/playwright/valerian-hand-report.spec.mjs', 'tests/playwright/valerian-embodiment.spec.mjs']
                         specs += ['tests/playwright/valerian-gptlive.spec.mjs']
                         if not args.live_only:
                             specs += ['tests/playwright/valerian-lifecycle.spec.mjs', 'tests/playwright/valerian-transcription.spec.mjs',

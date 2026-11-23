@@ -377,7 +377,9 @@ for an additional minimum; the camera confidence control remains authoritative.
 The browser requires three ordered frames over at least 300 ms, respects the
 configured emission interval, and keeps capture times through delayed requests.
 Ingress validates the bounded envelope before persistence (16 KiB, two hands,
-five new hand frames per second). Source/frame identities and a bounded persisted
+five new hand captures per second; at most one sign, pose and point representation
+per capture). Exact retries are ignored before persistence; changed reuse of a
+capture identity is rejected. Captures older than 15 seconds are rejected. Source/frame identities and a bounded persisted
 consumption record prevent preparation evidence or a retried cue from spending an
 action again. Acceptance is still explicit. Holding a sign can produce another
 fresh cue after the existing cooldown; it is not a release-and-repeat detector.
@@ -448,6 +450,28 @@ Progress persists in ordinary Storage; reload does not replay a completion.
 Sequence specs are bounded to 16 KiB and agreements to 32 KiB; existing nonsequence
 limits remain unchanged. Digital output sequences use the separate capability below.
 
+Active hand Storage is capped at 64 KiB in UTF-8, counting `hand.*`, the current
+draft/accepted agreement, task spec and last command result. An over-budget update
+is rejected before persistence; simplify the scene or agreement. Retained general
+event history and archived task outcomes are separate. Large agreements keep their
+full executable terms in Storage and cockpit details; native Live uses an explicitly
+labelled navigation summary within its existing 4000-byte facts limit. Ask about
+a particular condition for detail; this projection cannot change task rules.
+
+The declared hand payload and agreement limits require `event.payload` and
+`storage_entry.entry_value` to be MySQL `TEXT`. Before
+upgrading an existing database, apply the following widening through your normal
+migration process (the local acceptance runner creates disposable schemas):
+
+```sql
+ALTER TABLE `event` MODIFY COLUMN `payload` TEXT;
+ALTER TABLE `storage_entry` MODIFY COLUMN `entry_value` TEXT;
+```
+
+This work does not run a migration against a remote database. Renderer receipts
+remain digital evidence; target accuracy, physical hardware and production load
+need separate acceptance.
+
 New Coordination instances also declare `hand.sequences.output.v1`. An immediate
 request such as **Count one to five silently** produces one finite output command;
 a negotiated cue may produce the same sequence as one task contribution. The
@@ -460,8 +484,8 @@ pose or point action>,holdMs:500}]}`. Direct interpretations use `HAND_SEQUENCE`
 with that action as `value`. There are 1..12 steps, hold 100..5000 ms per step,
 350 ms entry and release per step, and at most 60 seconds including transitions.
 No nesting or indefinite repeat. The envelope is at most 3500 UTF-8 bytes and the
-complete task plan at most 4000 bytes, retaining the existing 4096-character event
-column. Each step must be supported; unsupported combinations reject the whole
+complete task plan at most 4000 bytes. Ordinary event ingress retains its
+4096-character limit; modern hand inputs have their explicit 16 KiB limit. Each step must be supported; unsupported combinations reject the whole
 plan. Target freshness/mapping is checked before publication and before each
 pointing step.
 
@@ -2933,17 +2957,19 @@ enables the existing presence-controlled Live lifecycle for **new instances**,
 including fresh encounter dialogue and departure grace; the default is false.
 Knowledge of a channel does not establish active input or rendered output.
 
-The agreement JSON is bounded to 3,000 UTF-8 bytes and reuses `TaskSpec` for its
+The agreement JSON is bounded to 3,000 UTF-8 bytes (32 KiB with bounded hand
+sequences) and reuses `TaskSpec` for its
 optional `reactions` object; state lives in ordinary `coordination.*` / `task.*`
 Storage. New entity discriminators and nullable
 `decision.coordination_condition varchar(255)` require the current application
 and an additive schema update before creation (`ddl-auto=update` handles this
 locally). No saved instance is rewritten. Monitor `task.phase` has additional
 coordination labels; existing task phases retain their meaning.
-Refinement also widens `storage_entry.entry_value` from varchar(2048) to
-varchar(8192), so the existing 3,000-byte agreement contract and response evidence
-fit durably. Apply this additive widening before using the refinement; the
-disposable local integration suite verifies large-agreement persistence/reload.
+The current hand-interaction schema widens `storage_entry.entry_value` to `TEXT`,
+superseding the earlier refinement's varchar(8192), so bounded sequence agreements
+and response evidence fit durably. Apply the widening documented in the hand
+interaction section before upgrading; the disposable local integration suite
+verifies a 32,342-byte agreement through persistence/reload.
 
 This first version does not generate arbitrary workflows, supply a scored game
 engine, identify participants, fetch weather, control devices or verify physical

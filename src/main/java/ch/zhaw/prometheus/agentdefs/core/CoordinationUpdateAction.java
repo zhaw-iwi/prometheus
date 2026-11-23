@@ -422,9 +422,11 @@ public class CoordinationUpdateAction extends Action {
                 + "Please demonstrate " + CoordinationSupport.remainingPreparation(storage)
                 + " for recognition; we will review the terms before acceptance.";
         if (action && Set.of("COMPLETED", "FINISHING").contains(TaskMemory.phase(storage))) facts += " The action budget is exhausted; do not claim that this proves success.";
+        if (live && Set.of("PROPOSE", "REPLACE", "START").contains(operation) && !action && CoreTaskVoice.bytes(facts) > 2900)
+            facts = CoordinationMemory.voiceNavigation(storage);
         String associationFacts = "CURRENT requested response: " + facts;
         if (!(operation.equals("START") && !action)) associationFacts +=
-                "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage);
+                "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.voiceNavigation(storage);
         CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime, associationFacts);
         if (live && Set.of("PROPOSE", "REPLACE").contains(operation)) {
             var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();

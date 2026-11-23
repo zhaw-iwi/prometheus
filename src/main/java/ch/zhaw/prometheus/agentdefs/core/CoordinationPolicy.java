@@ -167,17 +167,23 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         // Pending-response facts below retain the exact current purpose; omit redundant agreement
         // background while explaining difficulty so help cannot overflow the Live context budget.
         boolean pendingHelp = storage.containsKey(ch.zhaw.prometheus.model.coordination.CoordinationSupport.LIVE_HELP);
-        String facts = controlOnly || contributionOnly || supportOnly || pendingHelp ? CoordinationMemory.controls(storage) : CoordinationMemory.facts(storage);
+        String facts = controlOnly || contributionOnly || supportOnly || pendingHelp ? CoordinationMemory.controls(storage) : CoordinationMemory.voiceFacts(storage);
         if (current) {
             Instant expires = Instant.parse(response.get("expires").getAsString());
             String responseFacts = response.get("facts").getAsString();
             // Support may be paraphrased, but its control facts must remain intact.
             if (supportOnly) responseFacts = "Convey these confirmed facts once, preserving their meaning: " + new com.google.gson.JsonPrimitive(responseFacts);
             String review = "";
+            boolean navigationReview = false;
             if (response.has("proposalReview") && response.get("proposalReview").getAsBoolean()
                     && CoordinationMemory.ready(storage) && !ch.zhaw.prometheus.model.coordination.CoordinationSupport.blockedDraft(storage)) {
                 var proposal = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
                 review = ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.liveProposalReview(proposal);
+                if (CoreTaskVoice.bytes(review + "\n" + CoordinationMemory.controls(storage)) > 3900) {
+                    navigationReview = true;
+                    review = "The proposal is saved and preparation is complete. Review the full roles, success terms and conditions in the cockpit task details before accepting. "
+                            + CoordinationMemory.voiceNavigation(storage) + " This proposal is not active. Shall we start?";
+                }
                 if (!review.isBlank() && (proposal.reactions() == null
                         || CoreTaskVoice.bytes(review) > LiveActivityContext.Continuation.MAX_FACTS_BYTES)) facts = CoordinationMemory.controls(storage);
             }
@@ -185,7 +191,9 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 boolean longReview = CoreTaskVoice.bytes(review) > LiveActivityContext.Continuation.MAX_FACTS_BYTES;
                 return new LiveActivityContext(longReview ? review + "\n" + facts : facts,
                         new LiveActivityContext.Continuation(UUID.fromString(response.get("id").getAsString()),
-                                LiveActivityContext.Occasion.USER_REQUEST, longReview ? "Summarize the proposal in at most 55 words, combining duplicated facts. Include every distinct term, preparation status and acceptance question." : review,
+                                LiveActivityContext.Occasion.USER_REQUEST, navigationReview
+                                    ? "Explain the saved proposal status; ask the person to review its full terms in the cockpit before accepting. Do not invent omitted details."
+                                    : longReview ? "Summarize the proposal in at most 55 words, combining duplicated facts. Include every distinct term, preparation status and acceptance question." : review,
                                 expires, false, !longReview && CoreTaskVoice.bytes(review) <= LiveActivityContext.Continuation.MAX_SELF_CONTAINED_BYTES), expires);
             }
             // A short support reply is a current response, not background task state.
@@ -197,6 +205,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                                 response.get("proactive").getAsBoolean() ? LiveActivityContext.Occasion.PROACTIVE : LiveActivityContext.Occasion.USER_REQUEST,
                                 responseFacts, expires, false, true), expires);
             // Long replies retain bounded quiet facts followed by one speaking instruction.
+            if (CoreTaskVoice.bytes(responseFacts + "\n" + facts) > 4000) facts = CoordinationMemory.controls(storage);
             return new LiveActivityContext(responseFacts + "\n" + facts,
                     new LiveActivityContext.Continuation(UUID.fromString(response.get("id").getAsString()),
                             response.get("proactive").getAsBoolean() ? LiveActivityContext.Occasion.PROACTIVE : LiveActivityContext.Occasion.USER_REQUEST,

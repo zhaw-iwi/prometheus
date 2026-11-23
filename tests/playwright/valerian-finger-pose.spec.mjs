@@ -9,7 +9,7 @@ left.landmarks[0][16] = null;
 const twoHands = Object.fromEntries(Object.keys(right).map(key => [key, [...right[key], ...left[key]]]));
 twoHands.gestures = [[{ categoryName: "Open_Palm", score: .8 }], [{ categoryName: "Closed_Fist", score: .95 }]];
 
-async function setup(page, context, { supportsPose = true, supportsSign = true, history = [] } = {}) {
+async function setup(page, context, { supportsPose = true, supportsSign = true, history = [], modelUnavailable = false } = {}) {
   const errors = [], requests = [];
   page.on("pageerror", error => errors.push(error.message));
   await context.route("**/runtime/clock", route => route.fulfill({
@@ -49,6 +49,7 @@ async function setup(page, context, { supportsPose = true, supportsSign = true, 
     contentType: "application/javascript", headers: { "Access-Control-Allow-Origin": "*" }, body: `
       export const FilesetResolver = { forVisionTasks: async () => ({}) };
       export const GestureRecognizer = { createFromOptions: async (_, options) => {
+        if (${modelUnavailable}) throw new Error('Test model unavailable');
         window.__handOptions = options;
         window.__handCreates = (window.__handCreates || 0) + 1;
         return { recognizeForVideo: () => { window.__handInferences = (window.__handInferences || 0) + 1;
@@ -86,6 +87,26 @@ async function start(page, result = twoHands) {
   await openSection(page, "sensed_signals");
   await expect(page.getByTestId("hand-pose-report")).toBeVisible();
 }
+
+for (const failure of ['camera denied','model unavailable']) test(`hand sensing explains ${failure} without emitting evidence`, async ({page,context},info)=>{
+  const {errors,requests}=await setup(page,context,{modelUnavailable:failure==='model unavailable'});
+  await openSection(page,'sensor_toggles');
+  await page.getByTestId('sensor-emit-enabled').check();
+  await page.getByTestId('sensor-hand-enabled').check();
+  if(failure==='camera denied'){
+    await page.evaluate(()=>{navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('Camera permission denied','NotAllowedError');};});
+    await page.locator('#start_camera').focus();await page.keyboard.press('Enter');
+    await expect(page.locator('#camera_status')).toHaveText('Camera Error');
+    await expect(page.locator('#camera_device_status')).toContainText('Camera permission denied');
+  }else {
+    await openSection(page,'sensed_signals');
+    await expect(page.getByTestId('hand-sign-status')).toContainText('Model load failed');
+    await page.getByTestId('hand-sign-status').scrollIntoViewIfNeeded();
+    await expect(page.getByTestId('hand-sign-status')).toBeVisible();
+  }
+  await page.screenshot({path:info.outputPath(failure.replace(' ','-')+'.png')});
+  expect(requests).toHaveLength(0);expect(errors).toEqual([]);
+});
 
 test("MediaPipe starts automatically and shows RPS and both hands with both scoped observations", async ({ page, context }, info) => {
   const { errors, requests } = await setup(page, context);

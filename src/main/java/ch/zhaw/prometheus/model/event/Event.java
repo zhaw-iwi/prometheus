@@ -64,7 +64,7 @@ public class Event {
     private String type;
     private String actor;
     private String kind;
-    @Column(length = 4096)
+    @Column(columnDefinition = "TEXT")
     private String payload;
 
     @CreationTimestamp

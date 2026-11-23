@@ -22,11 +22,11 @@
     "handSamplesPerSecond": 5,
     "handObservationBytes": 16384,
     "handStateBytes": 65536,
-    "liveInstructionsCharacters": 16000,
     "contextQueries": 25,
     "scopedReceiptQueries": 4,
     "receiptStatements": 1,
-    "pooledConnections": 10
+    "pooledConnections": 10,
+    "liveInstructionsBytes": 16000
   },
   "journeys": [
     {
@@ -138,5 +138,14 @@
       "expected": "Native speech remains independent, correct capabilities, no extra TTS, no false completion claim; compare browser audio onset with the declared baseline and retain evidence.",
       "providerReady": false
     }
-  ]
+  ],
+  "integratedIngressCeilings": {
+    "declaredBeforeMeasurement": true,
+    "samplesPerMode": 5,
+    "modernMaxMillis": 1000,
+    "modernStatementIncreaseOverLegacy": 12,
+    "retryEntityWrites": 0,
+    "inferencesWithoutTask": 0,
+    "eventsPerRepresentation": 1
+  }
 }

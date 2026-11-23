@@ -380,9 +380,17 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get().agent();
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
+            boolean modernHand = Event.TYPE_HAND_SIGNS.equals(event.getType()) || Event.TYPE_HAND_POINTING.equals(event.getType())
+                    || Event.TYPE_SCENE_TARGETS.equals(event.getType()) || Event.TYPE_HAND_POSE.equals(event.getType())
+                        && ch.zhaw.prometheus.model.hand.HandFeatures.poses(agent.getInteractionProfile());
+            if (!modernHand && request.getPayload() != null && request.getPayload().length() > 4096)
+                throw new IllegalArgumentException("Event payload exceeds 4096 characters");
             if(Event.TYPE_SCENE_TARGETS.equals(event.getType())&&!agent.admitSceneTargets(event,java.time.Instant.now()))return Optional.of(new ResponseView(null,agent.isActive()));
             if (Event.TYPE_HAND_SIGNS.equals(event.getType()) || Event.TYPE_HAND_POSE.equals(event.getType()) || Event.TYPE_HAND_POINTING.equals(event.getType())) {
                 ch.zhaw.prometheus.model.hand.HandObservationAdmission.validate(event, agent.getInteractionProfile(), agent.getEventHistory().toList(), java.time.Instant.now());
+                if (modernHand && !ch.zhaw.prometheus.model.hand.HandObservationAdmission.freshRepresentation(
+                        event, agent.getEventHistory().toList(), java.time.Instant.now()))
+                    return Optional.of(new ResponseView(null, agent.isActive()));
                 agent.resolveHandPointing(event,java.time.Instant.now());
             }
             PolicyRuntime acknowledgementRuntime = agentMaybe.get().runtime();
@@ -513,6 +521,8 @@ public class AgentApplicationService {
     }
 
     private Agent persistAndPublishMonitor(Agent agent) {
+        if (ch.zhaw.prometheus.model.hand.HandFeatures.poses(agent.getInteractionProfile()))
+            ch.zhaw.prometheus.model.hand.HandStateBudget.require(agent.getStorage());
         Agent saved = LatencyTrace.measure("persist", () -> this.repository.save(agent));
         LatencyTrace.measure("monitor_publish", () -> { safePublishMonitor(saved); return null; });
         committed(saved);

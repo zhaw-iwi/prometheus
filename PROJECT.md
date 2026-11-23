@@ -83,7 +83,8 @@ and regulation diagnostics remain future work.
   and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
   HI-02 named-sign triggers, HI-03 output, HI-04 composed poses and HI-05 geometry/OK
   ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
-  people/items, HI-09 input sequences and HI-10 output sequences/counting are complete; HI-11 integrated acceptance is next. The owner authorized sequential implementation,
+  people/items, HI-09 input sequences, HI-10 output sequences/counting and HI-11
+  integrated acceptance are complete; HI-12 real-provider acceptance is next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10320,3 +10321,21 @@ deployment remain deferred.
   sometimes captured an older frame and are not used as step accuracy proof.
 - See `.agents/HAND_INTERACTION_RESULTS.md` for actual checks and retained failures.
   No provider or physical trial. Continue HI-11 after authorized commit/push.
+
+
+## HI-11 - Integrated hand acceptance and storage boundaries (2026-11-23)
+
+- Exact hand retries no longer write duplicate events; changed capture reuse and
+  stale evidence are rejected. Active hand state is bounded to 64 KiB. Event and
+  Storage-entry columns widen to TEXT for the previously declared payload and
+  agreement limits; README documents the required existing-database migration.
+- A 32,342-byte agreement survives local persistence; full terms remain in backend
+  storage while native Live uses explicit bounded navigation for oversized terms.
+  Added cockpit adoption/usage guidance and visible camera/model failure coverage.
+- Selected Java units and local-MySQL integrations pass after correcting retry
+  fixtures; 95 JS, 12 Python and 23 distinct browser cases pass. Five-sample legacy/
+  new ingress maxima 53/51 ms, 14/14 statements; exact retry zero writes/inference.
+  Existing native query and instruction ceilings hold. Evidence and retained
+  initial failures: `.agents/HAND_INTERACTION_RESULTS.md`.
+- No paid calls, deployment, remote migration or physical acceptance. Known real
+  detector accuracy/performance limitations remain. Continue HI-12 after commit/push.

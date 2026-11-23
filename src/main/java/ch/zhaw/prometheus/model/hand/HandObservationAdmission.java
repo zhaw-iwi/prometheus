@@ -9,6 +9,30 @@ import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 /** Bound new hand ingress before persistence; legacy event contracts are unchanged. */
 public final class HandObservationAdmission {
     private HandObservationAdmission() {}
+    /** Retries of one representation are idempotent; conflicting reuse is invalid. */
+    public static boolean freshRepresentation(Event input, List<Event> history, Instant now) {
+        if (!ch.zhaw.prometheus.model.task.TaskMemory.fresh(input, now))
+            throw new IllegalArgumentException("Hand capture is stale or has an invalid source time");
+        String identity = HandEvidence.identity(input);
+        if (identity == null) return true;
+        for (int i = history.size() - 1; i >= 0; i--) {
+            var previous = history.get(i);
+            if (previous.getCreatedDate() != null && previous.getCreatedDate().isBefore(now.minusSeconds(17))) break;
+            if (!input.getType().equals(previous.getType())) continue;
+            String old;
+            try { old = HandEvidence.identity(previous); } catch (RuntimeException legacy) { continue; }
+            if (!identity.equals(old)) continue;
+            if (!content(input).equals(content(previous)))
+                throw new IllegalArgumentException("Hand capture identity reused with changed data");
+            return false;
+        }
+        return true;
+    }
+    private static com.google.gson.JsonObject content(Event event) {
+        var value = com.google.gson.JsonParser.parseString(event.getPayload()).getAsJsonObject();
+        if (Event.TYPE_HAND_POINTING.equals(event.getType())) { value.remove("resolution"); value.remove("sourceAssociation"); }
+        return value;
+    }
     public static void validate(String payload, List<Event> history, Instant receivedAt) {
         rate(HandSignObservation.parse(payload).identity(),history,receivedAt);
     }

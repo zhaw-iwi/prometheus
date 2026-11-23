@@ -157,5 +157,22 @@ public final class CoordinationMemory {
         return prefix + cue + (key.equals(DRAFT) ? "PROPOSAL, NOT ACTIVE. Recognised preparation checks: " + evidence(storage).keySet()
                 + ". " : "Accepted agreement: ") + agreement.json();
     }
+    /** Voice navigation is a projection; executable terms remain in facts()/Storage in full. */
+    public static String voiceFacts(Storage storage) {
+        String full = facts(storage);
+        return full.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 2600 ? full : voiceNavigation(storage);
+    }
+    public static String voiceNavigation(Storage storage) {
+        var agreement = agreement(storage, storage.containsKey(DRAFT) ? DRAFT : AGREEMENT);
+        String terms = agreement == null ? "No saved agreement." : "Saved agreement: "
+                + agreement.checks().size() + " preparation checks; recognised " + evidence(storage).keySet()
+                + "; limit " + (agreement.reactions() == null ? agreement.dialogueLimit() + " contributions"
+                    : agreement.reactions().maxActions() + " actions; " + agreement.reactions().rules().size()
+                        + " rules; first action " + agreement.reactions().firstAction()) + ".";
+        return controls(storage) + " " + terms + " Actions spent: " + TaskMemory.text(storage, TaskMemory.ACTIONS, "0")
+                + ". The full saved roles, success terms and ordered conditions are in the cockpit task details."
+                + " This voice summary omits those details for size. Do not invent or change them; refer to the saved details when reviewing or demonstrating."
+                + " Output requests do not prove physical execution.";
+    }
     public static void clear(Storage storage) { remove(storage, DRAFT, AGREEMENT, PREPARED_AFTER, EVIDENCE, ACCEPTED_EVIDENCE, PREVIOUS_PHASE, OUTCOME, LOG, LOG_DROPPED, REVIEW, LAST_CUE, RUN, OUTCOMES, CoordinationRecovery.KEY, CoordinationSupport.LIVE_HELP); }
 }

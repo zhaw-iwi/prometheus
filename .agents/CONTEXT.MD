@@ -105,6 +105,11 @@ camera restarts revise the frame. HI-07 adds `hand.targets.v1`: scoped configure
 regions/virtual targets in Storage, revisioned affine registration, server ray
 selection and dispatch-time target grounding. Edits/deletion/expiry invalidate
 references. The reference rig aims the index ray at the visible virtual marker;
+HI-11 integration rejects changed capture reuse, ignores exact retries before
+persistence, enforces a 64 KiB active hand-state budget and widens event payload
+and Storage-entry columns to TEXT for the declared hand/sequence limits. Large agreements use an
+explicit bounded voice projection; full terms remain authoritative in Storage.
+README documents the database widening and saved-instance adoption.
 HI-10 adds opt-in finite output sequences/counting through the same canonical
 handAction and direct/task routes. Ordered scoped renderer receipts own one
 bounded playback lease; target grounding is rechecked per step. Cancellation,

@@ -103,7 +103,7 @@ public record HandSequence(List<Step> steps, int dwellMs, int maximumGapMs, int 
         if(value.isJsonObject()){var sorted=new JsonObject();value.getAsJsonObject().keySet().stream().sorted().forEach(k->sorted.add(k,canonical(value.getAsJsonObject().get(k))));return sorted;}
         if(value.isJsonArray()){var array=new JsonArray();value.getAsJsonArray().forEach(v->array.add(canonical(v)));return array;}return value;
     }
-    public String description(){return steps.stream().map(Step::description).collect(java.util.stream.Collectors.joining(" then "));}
+    public String description(){String full=steps.stream().map(Step::description).collect(java.util.stream.Collectors.joining(" then "));return full.getBytes(StandardCharsets.UTF_8).length<=600?full:"the agreed "+steps.size()+"-step hand sequence (full conditions in task details)";}
     public static String instructions(){return """
             
             Ordered input extension: a rule/check uses eventType:obs.hand.sequence and handSequence

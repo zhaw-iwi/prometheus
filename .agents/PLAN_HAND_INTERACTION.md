@@ -1,7 +1,7 @@
 # Coordination hand interaction: signs, finger poses and pointing
 
 Prepared: 2026-11-23. Baseline: main `025697df`.
-Status: **HI-01 through HI-10 COMPLETE; HI-11 through HI-12 NOT STARTED**.
+Status: **HI-01 through HI-11 COMPLETE; HI-12 NOT STARTED**.
 Development branch: `main`; deployment branch: `agents`.
 
 The owner authorized sequential implementation on 2026-11-23: complete and verify

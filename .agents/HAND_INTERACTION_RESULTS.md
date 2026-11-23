@@ -606,7 +606,7 @@ Verification actually run:
 
 ## HI-10 - Finite output sequences and robot counting
 
-Status: **COMPLETE** (2026-11-23), verified for commit/push.
+Status: **COMPLETE** (2026-11-23), committed and pushed as `124593a8`.
 
 Added a capability-gated sequence of 1..12 supported sign/pose/point actions to
 handAction and HAND_SEQUENCE direct interpretations. One sequence is one command
@@ -651,3 +651,70 @@ Verification actually run:
 No paid/provider, physical actuation or real-room accuracy claim. Spend/reservations
 remain **$0/$0**. All runner-owned app/schema/account resources were cleaned;
 remote MySQL and historical paid ledgers were untouched.
+
+
+## HI-11 - Integrated modes, UI and resource acceptance
+
+Status: **COMPLETE** (2026-11-23), verified for commit/push.
+
+Closed boundary gaps exposed by integration: modern hand representations reject
+stale captures or changed reuse of an identity and ignore identical retries before
+persistence. The five-capture/second limit permits one sign, pose and point
+representation per capture. Active `hand.*` state plus current draft/agreement,
+task spec and last command result has a 64 KiB UTF-8 ceiling. Rejected updates do
+not commit partial scene/task changes. General retained event history is separate.
+
+`event.payload` and `storage_entry.entry_value` are now TEXT to support the already
+declared 16 KiB ingress and 32 KiB agreement contracts. README provides explicit
+widening SQL for an existing installation; no remote migration was performed.
+A 32,342-byte agreement (12-step/two-hand/all-finger conditions, three preparation
+checks and maximal UTF-8 role fields) round-trips through local MySQL. Full terms
+stay in Storage/backend inference. Live uses an explicit navigation projection
+when those details cannot fit; it refers the person to cockpit task details rather
+than inventing omitted terms. Normal spoken reviews retain their terms. Facts stay
+within 4,000 bytes and the existing 16,000-byte native instruction limit remains.
+The cockpit now explains saved-instance adoption, direct output versus triggers,
+preparation, target mapping and the boundary between digital and physical evidence.
+
+Verification actually run:
+
+- `target/gptlive-acceptance-6f447e6284`: 318 selected Java cases, initially four
+  errors in old retry fixtures that changed source timestamps on the same capture
+  ID. The other 314 passed, including all 268 selected units, 17 native delivery
+  integrations and four query-budget integrations. Corrected fixtures reuse the
+  exact capture. `9118af9aa5` reruns all 29 Coordination integrations successfully.
+- `6941b7b083`: five focused checks pass, including the large-agreement database
+  round trip and rejection/rollback of a scene edit at the 64 KiB state boundary.
+  The initial `d2d7647f62` boundary attempt exposed the 8,192-character Storage
+  column; that failure is retained. Initial oversized/incorrect sequence test
+  fixtures are also retained in `target/hand-interaction-mysql/hi11-*.log`.
+- Final large-context/voice/admission regression: 26 units pass. Another 24
+  RPS/registry/profile tests pass. 95 JavaScript hand/rig/sequence tests and 12
+  Python schema/preflight tests pass. Package and diff-whitespace checks pass.
+- Fixed five-sample legacy/new hand-ingress comparison: maximum elapsed 53/51 ms,
+  14/14 ORM statements, one stored event per representation, no inference outside
+  an active task and zero entity/collection writes on an identical retry. Limits
+  declared before measurement were <=1,000 ms and <=12 additional statements.
+  Existing Live context stays at 8 queries for both 5 and 205 history events
+  (ceiling 25); native receipt remains one SQL statement, zero loaded entities
+  and zero ORM statements (scoped ceiling 4). Pool ceiling remains 10. These small
+  local fixtures are not a production-capacity or tail-latency claim.
+- `9118af9aa5`: 20 of 21 browser cases pass, covering Text/Continuous, native audio
+  independent of blocked backend work, final playback/uncertainty, Stop/reconnect,
+  queued/in-flight withdrawal, geometry, composed poses, direction, both sequence
+  directions, reduced motion, WebGL fallback, light/dark/narrow/keyboard and
+  camera/model failures. Its named-output retry fixture also recreated the source
+  timestamp; the original failure is retained and the fixture is corrected.
+- `f425f5eb33`: both configured and dynamic target journeys pass. `1b2873e1cb`:
+  model-failure visibility and screenshot rerun passes. `274eb4afc1`: corrected
+  ten-sign direct/task/output retry journey passes, completing all 23 selected
+  distinct browser cases across these runs. Reviewed successful dark
+  and narrow finger reports, expanded dark camera/report, visible model/camera
+  errors, selected-cup explanation, narrow configured scene and synchronized
+  count-three rendering. Previous milestones retain all ten-sign and pose views.
+
+No paid/provider or physical trial in this milestone. Spend/reservations remain
+**$0/$0**. Real-detector misses/false positives and slow software-WebGL limits from
+HI-05/08 remain visible; this does not establish general real-room accuracy.
+All runner-owned schemas/accounts/apps are cleaned on exit; the owned loopback
+MySQL remains available for HI-12. Remote MySQL and old paid ledgers are untouched.

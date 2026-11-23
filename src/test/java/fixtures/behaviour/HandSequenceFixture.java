@@ -25,4 +25,24 @@ public final class HandSequenceFixture {
         var check=a.getAsJsonArray("checks").get(0).getAsJsonObject();check.remove("handSign");check.addProperty("minConfidence",0);check.addProperty("eventType","obs.hand.sequence");check.add("handSequence",sequence.deepCopy());
         var rule=a.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject();rule.remove("handSign");rule.addProperty("minConfidence",0);rule.addProperty("eventType","obs.hand.sequence");rule.add("handSequence",sequence.deepCopy());rule.addProperty("action","Acknowledge the completed sequence once");return a;
     }
+    /** Near-capacity contract: 12 steps, both hands, all fingers, three checks and maximal UTF-8 terms. */
+    public static JsonObject largeAgreement(){
+        var sequence=counts("both",0,1,2,3,4,5,6,7,8,9,10,0);
+        var steps=new JsonArray();
+        for(int i=0;i<12;i++) {var step=new JsonObject();step.addProperty("kind","pose");
+            var pose=ComposedHandFixture.condition();
+            for(var hand:pose.getAsJsonArray("hands")){var all=new JsonArray();
+                for(String finger:java.util.List.of("thumb","index","middle","ring","little")){var p=new JsonObject();p.addProperty("finger",finger);p.addProperty("operator","eq");p.addProperty("value",i%2==0?"straight":"bent");all.add(p);}
+                hand.getAsJsonObject().add("all",all);
+            }step.add("condition",pose);steps.add(step);
+        }
+        sequence.add("steps",steps);
+        var proposal=agreement(sequence);
+        for(String field:java.util.List.of("goal","humanRole","agentRole","success"))proposal.addProperty(field,"界".repeat(300));
+        proposal.getAsJsonObject("reactions").add("goal",proposal.get("goal"));
+        var check=proposal.getAsJsonArray("checks").get(0).getAsJsonObject();
+        for(int i=1;i<3;i++){var next=check.deepCopy();next.getAsJsonObject("handSequence").addProperty("dwellMs",300+i);if(i==2)while(next.getAsJsonObject("handSequence").getAsJsonArray("steps").size()>6)next.getAsJsonObject("handSequence").getAsJsonArray("steps").remove(6);proposal.getAsJsonArray("checks").add(next);}
+        return proposal;
+    }
+
 }
