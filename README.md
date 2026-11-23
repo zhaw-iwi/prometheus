@@ -2355,6 +2355,17 @@ classification: `COMPLETE`/`countdown_acknowledgement` or
 `IGNORED`/`empty_transcript` preserves playback evidence. Complete whitespace-only
 user transcripts create no user event. Incomplete, late, mixed or unconfirmed input
 cannot authorize playback completion. Default cues interrupt immediately on input.
+Ingress records `countdown_acknowledgement` only when the cue seen before admission
+keeps its ID and deadline afterwards and the same speech owner remains current.
+Besides the exact `liveNonMutatingAcknowledgement(String)` fast path, a policy may
+opt into `liveContextualAcknowledgements()`: after the ordinary acknowledgement
+turn has classified the admitted input, `liveNonMutatingAcknowledgement(Event,
+ExternalSpeech)` checks that recorded evidence locally under the turn lock, without
+inference or I/O. Both defaults are false; no main-catalog policy currently enables
+acknowledgement cues.
+Each new unreconciled user caption records one content-free `input_boundary`
+browser diagnostic: `playback_evidence_retained` while an acknowledgement-capable
+cue awaits classification, otherwise `playback_evidence_reset`.
 
 The shared Live client begins observing the received track on attachment,
 without rerouting or recording audio. It retains at most 65 seconds of content-free
