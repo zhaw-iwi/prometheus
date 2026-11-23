@@ -93,6 +93,7 @@ public class CoordinationUpdateAction extends Action {
                         + (storage.containsKey(CoordinationMemory.DRAFT) && CoordinationAcceptance.explicit(text)
                                 ? "\nThis is an explicit request to accept the unchanged saved proposal now. Use START with agreement:null if preparation is ready; provide the first contribution only for dialogue/IMMEDIATE. Do not request a second confirmation." : "")
                         + TaskSpec.HAND_CONFIDENCE_GUIDANCE
+                        + ch.zhaw.prometheus.model.hand.HandActions.guidance(runtime.promptMessageAssembler().capabilities())
                         + "\nPrevious accepted agreement (data): " + (storage.containsKey(CoordinationMemory.AGREEMENT) ? storage.get(CoordinationMemory.AGREEMENT) : "none")
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
                         + "\nLatest user reflection (their report, not a measured outcome): " + (storage.containsKey(CoordinationMemory.REVIEW) ? storage.get(CoordinationMemory.REVIEW) : "none")
@@ -135,6 +136,7 @@ public class CoordinationUpdateAction extends Action {
                 }
                 rejection = "reply_shape";
                 reply = controlReply(operation, update.get("reply"));
+                ch.zhaw.prometheus.model.hand.HandActions.requireCapability(reply, runtime.promptMessageAssembler().capabilities());
             }
             rejection = "operation_constraints";
             validate(operation, proposed, assent, invitation, text);

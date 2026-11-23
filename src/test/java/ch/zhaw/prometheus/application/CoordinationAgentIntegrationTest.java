@@ -87,6 +87,7 @@ class CoordinationAgentIntegrationTest {
     }
     @Test void namedSignPreparationAndFreshCuePersistWithoutReusingReadiness() throws Exception {
         var scope = create(); var proposal = fixtures.behaviour.NamedHandSignFixture.agreement();
+        proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action", "Show peace silently with both hands");
         turn(scope, "PROPOSE", proposal.toString(), "Prepare a right-hand thumbs up, then acknowledge its next accepted cue once");
         assertEquals("PREPARATION", CoordinationMemory.stage(memory(scope)));
         java.util.function.BiConsumer<String,String> observe = (id, sign) -> demo.acknowledge(scope.code(), scope.id(),
@@ -99,9 +100,15 @@ class CoordinationAgentIntegrationTest {
         long wait = java.time.Duration.between(Instant.now(), Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();
         assertTrue(wait < 5000); if (wait >= 0) Thread.sleep(wait + 25);
         observe.accept("preparation", "thumbs_up"); assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
-        when(gateway.infer(any())).thenReturn("{\"speech\":\"Acknowledged.\"}");
+        var motion = new JsonObject(); motion.add("handAction", ch.zhaw.prometheus.model.hand.HandActions.named("peace", "both_hands"));
+        var output = new JsonObject(); output.add("motion", motion); when(gateway.infer(any())).thenReturn(output.toString());
         observe.accept("fresh-cue", "thumbs_up"); assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
         observe.accept("fresh-cue", "thumbs_up"); assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        var plans = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().stream()
+                .filter(e -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType()))
+                .map(e -> ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(e.getPayload()))
+                .filter(p -> p.getMotion() != null).toList();
+        assertEquals(1, plans.size()); assertEquals(motion, plans.getFirst().getMotion()); assertNull(plans.getFirst().getSpeech());
         assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
         assertEquals(proposal, memory(scope).get(CoordinationMemory.AGREEMENT));
         assertEquals(2, memory(scope).get(ch.zhaw.prometheus.model.hand.HandEvidence.CONSUMED).getAsJsonArray().size());

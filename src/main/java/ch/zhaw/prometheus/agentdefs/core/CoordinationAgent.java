@@ -156,7 +156,9 @@ public class CoordinationAgent implements AgentDefinition {
         var observations = new ArrayList<>(base.getSupportedObservations());
         observations.remove(AgentInteractionProfile.OBS_HAND_POSE);
         observations.add(AgentInteractionProfile.OBS_HAND_SIGNS);
-        agent.setInteractionProfile(AgentInteractionProfile.of(observations, base.getSupportedBehaviourModalities(),
+        var modalities = new ArrayList<>(base.getSupportedBehaviourModalities());
+        modalities.add(ch.zhaw.prometheus.model.hand.HandActions.MODALITY);
+        agent.setInteractionProfile(AgentInteractionProfile.of(observations, modalities,
                 List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination")).withPresenceControlledLive(presenceReception));
         return applyDefinitionMetadata(agent);
     }

@@ -28,6 +28,7 @@ public final class AgentCapabilityDescription {
             Map.entry("nonVerbal.facialExpression", "A facial-expression plan, not a claim of experienced emotion."),
             Map.entry("nonVerbal.gaze", "A gaze-intent plan, not eye tracking or proof of seeing an object."),
             Map.entry("nonVerbal.motion", "Expressive stillness and energy, not locomotion or physical contact."),
+            Map.entry("motion.handAction", "Digital hand output: fist, peace, open palm, thumbs up/down, index up; left/right/both. No physical receipt."),
             Map.entry("motion.handSign", "Can show rock, scissors and paper through the digital embodiment; a plan is not a physical receipt."),
             Map.entry("display", "Structured display content for clients that render it."));
 

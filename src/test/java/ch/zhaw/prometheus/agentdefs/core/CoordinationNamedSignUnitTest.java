@@ -13,6 +13,21 @@ import ch.zhaw.prometheus.model.hand.*;
 import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationNamedSignUnitTest {
+    @Test void acceptedFreshThumbsUpProducesOneSilentPeacePlan() {
+        var f = new CoordinationAgentUnitTest(); var proposal = agreement();
+        proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action", "Show peace silently with both hands");
+        f.propose(proposal, f.text);
+        f.agent.acknowledge(event("prep", "thumbs_up", "right", Instant.now()), f.text);
+        f.turn("START", null, "Start now", f.text);
+        assertEquals(0, f.storage().get(TaskMemory.ACTIONS).getAsInt());
+        f.storage().put(TaskMemory.AFTER,new JsonPrimitive(Instant.now().minusSeconds(1).toString()));
+        var motion=new JsonObject();motion.add("handAction",HandActions.named("peace","both_hands"));
+        var output=new JsonObject();output.add("motion",motion);when(f.gateway.infer(any())).thenReturn(output.toString());
+        var response=f.agent.acknowledge(event("fresh", "thumbs_up", "right", Instant.now()), f.text);
+        assertNotNull(response);var plan=ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(response.getPayload());
+        assertEquals(motion,plan.getMotion());assertNull(plan.getSpeech());assertEquals(1,f.storage().get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals(proposal,f.storage().get(CoordinationMemory.AGREEMENT));
+    }
     @Test void everyShapeAndSideUsesOneHandAndStrictEvidence() {
         for (String sign : HandSignObservation.SIGNS) for (String side : java.util.List.of("left", "right", "unknown")) {
             var input = observation("frame", sign, side, Instant.now());

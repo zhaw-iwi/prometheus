@@ -79,7 +79,8 @@ public class TaskUpdateAction extends Action {
                     : "Perform exactly this agreed action now: " + rule.action();
             String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage) + "\n" + instruction
                     + inferenceGuidance(runtime)
-                    + "\nReturn only the canonical JSON behaviour plan (speech, nonVerbal, optional motion.handSign). No task configuration fields."
+                    + ch.zhaw.prometheus.model.hand.HandActions.guidance(runtime.promptMessageAssembler().capabilities())
+                    + "\nReturn only the canonical JSON behaviour plan (speech, nonVerbal, declared motion). No task configuration fields."
                     + CompactBehaviourPlan.instructions(false);
             ch.zhaw.prometheus.model.behaviour.BehaviourPlan plan;
             boolean generated = false;
@@ -88,7 +89,7 @@ public class TaskUpdateAction extends Action {
                         TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT));
                 if (cancelled(storage, runtime)) return;
                 generated = true;
-                plan = TaskMemory.plan(JsonParser.parseString(raw));
+                plan = TaskMemory.plan(JsonParser.parseString(raw), runtime.promptMessageAssembler().capabilities());
             } catch (RuntimeException failure) {
                 if (cancelled(storage, runtime)) return;
                 ch.zhaw.prometheus.logging.ActivityTrace.failed(generated ? "task_behaviour_invalid" : "task_provider_failed");
@@ -113,6 +114,7 @@ public class TaskUpdateAction extends Action {
         String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage)
                 + TaskSpec.HAND_CONFIDENCE_GUIDANCE
                 + inferenceGuidance(runtime)
+                + ch.zhaw.prometheus.model.hand.HandActions.guidance(runtime.promptMessageAssembler().capabilities())
                 + TaskSpec.triggerInstructions() + CompactBehaviourPlan.instructions(true)
                 + (DecorativeGestures.enabled(storage) ? DecorativeGestures.guidance(storage, now) : "")
                 + userRequestGuidance(runtime);
@@ -156,13 +158,13 @@ public class TaskUpdateAction extends Action {
                 TaskSpec.parse(storage.get(TaskMemory.SPEC)).executable();
             }
             validationStage = "reply";
-            reply = TaskMemory.plan(update.get("reply"));
+            reply = TaskMemory.plan(update.get("reply"), runtime.promptMessageAssembler().capabilities());
             validationStage = "application_constraints";
             validateTaskUpdate(operation, task);
             if (operation.equals("ACTIVATE") && task.firstAction() == TaskSpec.FirstAction.ON_CUE)
                 reply = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.speechOnly(
                         "The task is active and waiting for a fresh matching cue. No action has been performed yet.");
-            reply = TaskMemory.plan(prepareTaskReply(operation, task, reply).toJsonObject());
+            reply = TaskMemory.plan(prepareTaskReply(operation, task, reply).toJsonObject(), runtime.promptMessageAssembler().capabilities());
         } catch (RuntimeException invalid) {
             ch.zhaw.prometheus.logging.ActivityTrace.failed("task_configuration_invalid");
             // Do not publish an activation claim or corrupt the previous agreement on malformed output.

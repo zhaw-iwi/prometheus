@@ -94,7 +94,9 @@ class CoordinationAgentUnitTest {
                 agent.getInteractionProfile().getSupportedObservations().stream()
                     .filter(type -> !Event.TYPE_HAND_SIGNS.equals(type)).toList());
         assertTrue(agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_SIGNS));
-        assertEquals(original.getSupportedBehaviourModalities(), agent.getInteractionProfile().getSupportedBehaviourModalities());
+        assertEquals(original.getSupportedBehaviourModalities(), agent.getInteractionProfile().getSupportedBehaviourModalities().stream()
+                .filter(m -> !ch.zhaw.prometheus.model.hand.HandActions.MODALITY.equals(m)).toList());
+        assertTrue(ch.zhaw.prometheus.model.hand.HandActions.enabled(agent.getInteractionProfile()));
         var adapter = new LiveVoicePolicyAdapter(); assertTrue(adapter.supports(agent));
         for (var state : agent.reachableStates()) {
             org.springframework.test.util.ReflectionTestUtils.setField(agent, "currentState", state);

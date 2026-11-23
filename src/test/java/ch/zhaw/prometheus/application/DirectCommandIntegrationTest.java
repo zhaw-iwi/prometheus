@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import java.util.*;
 import com.google.gson.*;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,8 +24,8 @@ class DirectCommandIntegrationTest {
     @Autowired AgentRepository agents;
     @MockitoBean LanguageModelGateway gateway;
 
-    @ParameterizedTest @ValueSource(strings = {"core.coordination", "core.generic_multimodal_behaviour", "core.generic_multimodal_behaviour_at_social_space", "core.live_multimodal"})
-    void declaredSavedInstancesPublishScopedCommandsAcrossReloadAndReset(String type) {
+    @ParameterizedTest @CsvSource({"core.coordination,rock", "core.coordination,thumbs_up", "core.generic_multimodal_behaviour,rock", "core.generic_multimodal_behaviour_at_social_space,rock", "core.live_multimodal,rock"})
+    void declaredSavedInstancesPublishScopedCommandsAcrossReloadAndReset(String type, String sign) {
         String code = UUID.randomUUID().toString().substring(0, 5);
         var scope = access.createAccessCode(code, true); access.replaceAllowedAgentTypes(scope.getId(), List.of(type));
         var agentId = demo.createAgent(code, type).getID();
@@ -41,11 +41,12 @@ class DirectCommandIntegrationTest {
             root.addProperty("operation", "KEEP"); root.add(type.equals("core.coordination") ? "agreement" : "task", JsonNull.INSTANCE);
             root.add("reply", new JsonObject());
         }
+        root.getAsJsonObject("command").addProperty("value", sign);
         when(gateway.infer(any())).thenAnswer(c -> ((InferenceRequest)c.getArgument(0)).purpose() == InferencePurpose.DECISION ? "false" : root.toString());
         try {
             for (int i = 0; i < 2; i++) {
                 var acknowledged = demo.acknowledge(code, agentId, new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION,
-                        "Make a rock sign without speaking"), OutputProfile.FULL_PLAN).orElseThrow();
+                        "Show " + sign + " without speaking"), OutputProfile.FULL_PLAN).orElseThrow();
                 if (acknowledged.getResponseEvent() == null) assertEquals(BehaviourGenerationOutcome.GENERATED,
                         demo.generate(code, agentId, List.of(), OutputProfile.FULL_PLAN));
                 var loaded = agents.findById(agentId).orElseThrow();
@@ -61,8 +62,15 @@ class DirectCommandIntegrationTest {
                 assertEquals(i + 1, loaded.getStorage().get(DirectCommands.HISTORY).getAsJsonArray().size());
                 long plans = loaded.getEventHistory().toList().stream().filter(e -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType()))
                         .map(e -> BehaviourPlan.fromJson(e.getPayload())).filter(p -> p.getMotion() != null
-                                && p.getMotion().getAsJsonObject().has("handSign")).count();
+                                && p.getMotion().getAsJsonObject().has(sign.equals("rock") ? "handSign" : "handAction")).count();
                 assertEquals(i + 1, plans);
+                // Re-generating this admitted command after reload cannot publish a second action.
+                if (sign.equals("thumbs_up")) {
+                    demo.generate(code, agentId, List.of(), OutputProfile.FULL_PLAN);
+                    assertEquals(i + 1, agents.findById(agentId).orElseThrow().getEventHistory().toList().stream()
+                            .filter(e -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType()))
+                            .map(e -> BehaviourPlan.fromJson(e.getPayload())).filter(p -> p.getMotion() != null).count());
+                }
                 assertFalse(loaded.getStorage().containsKey("task.spec")); assertFalse(loaded.getStorage().containsKey("coordination.agreement"));
                 assertTrue(demo.acknowledge(otherScope.getCode(), agentId,
                         new EventRequest(Event.TYPE_USER_UTTERANCE, "user", Event.KIND_OBSERVATION, "Make paper"), OutputProfile.FULL_PLAN).isEmpty());

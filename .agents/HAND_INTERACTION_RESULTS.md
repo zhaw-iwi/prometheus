@@ -69,7 +69,7 @@ future capability guidance must be compacted rather than silently truncated.
 
 ## HI-02 — Six named signs as coordinated triggers
 
-Status: **COMPLETE** (2026-11-23). Commit recorded in the next milestone.
+Status: **COMPLETE** (2026-11-23), committed and pushed to main as `31b053ff`.
 
 New Coordination instances declare strict versioned `obs.hand.signs` input for
 fist, peace, open palm, thumbs up/down and index up. Shared typed conditions select
@@ -123,8 +123,69 @@ hands, broader lighting/occlusion and paid L-01 remain unverified. No provider
 calls or reservations were made. All disposable database users/schemas were
 removed; no remote application database was used.
 
+## HI-03 ? Six named signs as immediate and task output
+
+Status: **COMPLETE** (2026-11-23). Commit recorded in the next milestone.
+
+New Coordination profiles declare `motion.handAction`. The shared command handler
+and task validator accept the six implemented named signs with left/right/both
+hands. Existing RPS commands keep their old payload. Named aliases include halt
+and attention; ambiguous OK is clarified by interpretation guidance. Unsupported
+profiles and malformed/future actions cannot emit named output. Silent commands
+create no task and do not spend its budget; pending task output blocks a separate
+command. Persisted turn identity fences retries while a new repeat remains valid.
+
+The production browser rig articulates the correct fingers on either hand and
+uses explicit wrist orientation for thumbs up/down and index up. Fresh actions
+enter for 350 ms, hold 500 ms and release for 350 ms; redraws stop after release.
+History/hidden/reduced-motion views are static previews. Details and Robot views
+show the named pose; rendering is never presented as physical execution evidence.
+An accepted fresh thumbs-up cue can produce one silent two-hand peace action.
+
+Verification actually run:
+
+- **153 Java unit cases** pass in `target/hand-interaction-mysql/hi03-unit-final.log`:
+  shared direct commands and all four agent variants, six signs/three effectors,
+  aliases, malformed/future actions, capability and pending-task rejection,
+  silence/budget preservation, interpreted negations/quoted requests, fresh
+  preparation/cue behavior, compact plans and legacy numeric-pose/task behavior.
+  Interpretation tests inject provider decisions; they do not prove natural
+  language accuracy with a real model.
+- **29 unique integration cases** pass across the isolated MySQL runs:
+  CoordinationAgentIntegration 20 and LiveQueryBudgetIntegration 4 in
+  `target/gptlive-acceptance-aa72732df1`; DirectCommandIntegration 5 in
+  `target/gptlive-acceptance-a381f5b463`. The first run's extra retry assertion
+  incorrectly targeted a Live Multimodal generate call with no current user turn;
+  its correct rejection was retained, and the assertion was scoped to the new
+  Coordination path. All five command cases then pass. Named commands survive
+  reload, re-generation does not republish, and a distinct repeated user turn
+  publishes once more. The saved-scissors recheck also passes. Live instructions
+  measure **15,955 UTF-8 bytes** against 16,000; context queries remain 8.
+- **63 JavaScript tests** pass (embodiment, named/legacy hands and camera sensors).
+  Geometric checks verify finger articulation, world-space thumb/index direction,
+  capability rejection, 500 ms hold, release and non-executing history previews.
+  Seven Python contract tests pass.
+- **Four final Playwright cases** pass in
+  `target/gptlive-acceptance-536ae05cd2`: existing Coordination/Live Multimodal
+  native mode parity; six actual command/UI/DB outputs, history deduplication,
+  one accepted cue output and unsupported Live-profile rejection; production rig
+  contact sheet. Twelve front/side views and light/dark/narrow layouts were
+  reviewed. The corrected contact-sheet labels and final light view were checked
+  again. Initial passing browser evidence is in `a381f5b463`.
+  The named journey records six direct commands, seven total named plans (one
+  task output), eight user turns, three hand observations and one task action.
+- Maven packaging and `git diff --check` pass. All source files touched are valid
+  UTF-8; a test-only contact-sheet encoding error was corrected and re-rendered.
+
+Remaining limits: provider interpretation is synthetic in these tests. Real L-01
+is deferred to HI-12, and no physical actuation or execution receipt is claimed.
+Custom poses, extra three derived signs, ring and pointing remain unavailable.
+Instruction headroom is 45 bytes in the measured case; later capability additions
+must compact guidance, not truncate it. HI-02 detector limitations still apply.
+All disposable schemas/accounts were removed. Paid spend/reservations: **$0/$0**.
+
 ## Subsequent milestones
 
-HI-03 through HI-12: NOT STARTED. Follow `PLAN_HAND_INTERACTION.md`; each completion
+HI-04 through HI-12: NOT STARTED. Follow `PLAN_HAND_INTERACTION.md`; each completion
 must record its actual checks, remaining limits and source revision here before
 committing and pushing.

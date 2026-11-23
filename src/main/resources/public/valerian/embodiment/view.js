@@ -10,7 +10,7 @@ function visible() {return mode==='robot'&&!failed&&!document.hidden&&stage?.get
 function caption() {
   const p=state.pose;
   summary.textContent=p ? [p.gesture!=='NONE'?p.gesture.toLowerCase().replaceAll('_',' '):'',p.faceLabel,
-    p.gazeLabel?`gaze ${p.gazeLabel.replaceAll('_',' ')}`:'',p.sign?`${p.hand.replaceAll('_',' ')}: ${p.sign}`:'',
+    p.gazeLabel?`gaze ${p.gazeLabel.replaceAll('_',' ')}`:'',p.sign?`${p.hand.replaceAll('_',' ')}: ${p.sign.replaceAll('_',' ')}`:'',
     ...p.warnings].filter(Boolean).join(' · ')||'No nonverbal action in this plan.' : 'Connect an agent to see its behaviour.';
   display.replaceChildren();display.hidden=p?.display==null;
   if(p?.display!=null) {
@@ -36,11 +36,14 @@ function draw(now=performance.now()) {
   renderer.draw(sample,now);
   // Expose the normalized pose actually submitted to WebGL, alongside animation state.
   stage.dataset.handSign=sample.pose?.sign||'';
+  stage.dataset.handPhase=sample.handPhase||'';
+  status.textContent=sample.handPhase ? ({preview:'Static hand pose preview',entering:'Moving into hand pose',holding:'Holding hand pose',releasing:'Releasing hand pose',released:'Hand pose released'})[sample.handPhase] : '';
   stage.dataset.gesture=sample.pose?.gesture||'NONE';
 }
 function stop() {cancelAnimationFrame(frame);frame=null;}
 function loop(now) {
   frame=null;if(!visible()||!state.pose||reduced.matches)return;
+  if(state.pose.action&&!state.sample(now).active){draw(now);return;}
   // Cap redraws to 30fps; no work for hidden or Details views.
   if(!loop.last||now-loop.last>=32) {draw(now);loop.last=now;}
   frame=requestAnimationFrame(loop);

@@ -21,7 +21,9 @@ The roadmap and evidence are in `.agents/PLAN_HAND_INTERACTION.md` and
 | Scoped execution evidence | `executionReceipt` v1 | Bound to canonical event, command, owner and epoch |
 
 HI-02 implements `obs.hand.signs` and its `handSign` condition for new Coordination
-instances. Other new boundaries remain specifications until their milestone. Do
+instances. HI-03 implements the six-sign subset of `motion.handAction` for new
+Coordination profiles, direct commands and task output. Other new boundaries
+remain specifications until their milestone. Do
 not send new envelopes to old agents. Later adoption must explicitly check the
 persisted profile and offer recreation/upgrade without silently widening an
 accepted agreement or deleting history. Legacy `rock`, `scissor`, `paper` remain

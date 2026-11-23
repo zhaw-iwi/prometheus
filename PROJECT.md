@@ -81,7 +81,7 @@ and regulation diagnostics remain future work.
   as Coordination triggers and robot output, plus bounded input/output sequences.
   The plan defines unit/contract, isolated local-MySQL, reviewed Playwright visual
   and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
-  HI-02 named-sign triggers are complete; HI-03 output is next. The owner authorized sequential implementation,
+  HI-02 named-sign triggers and HI-03 output are complete; HI-04 custom poses are next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10165,3 +10165,19 @@ deployment remain deferred.
   fixture smoke evidence, not broad camera accuracy or physical acceptance.
 - Paid provider spend/reservations remain $0/$0. No deployment. Continue HI-03
   after the authorized commit/push.
+
+## Hand interaction HI-03 (2026-11-23): shared named-sign output
+
+- New Coordination profiles support six signs through versioned
+  `motion.handAction`, selecting left/right/both hands. Direct and agreed cue
+  output share validation; saved profiles, RPS, task budgets, silence and
+  persisted command deduplication retain their contracts.
+- The articulated browser rig shows the correct fingers/wrist direction, holds
+  for 500 ms and releases. History/hidden/reduced-motion views preview statically.
+- Passed 153 Java unit, 29 unique local-MySQL integration, 63 JS, seven contract
+  and four final browser cases; packaging passed. Front/side contact sheet and
+  light/dark/narrow views reviewed. Exact commands/artifacts and initial test
+  corrections are in `.agents/HAND_INTERACTION_RESULTS.md`.
+- Live instructions measure 15,955/16,000 bytes. Paid provider spend remains $0;
+  real interpretation and physical execution are unverified. No deployment.
+  Continue HI-04 after the authorized commit/push.

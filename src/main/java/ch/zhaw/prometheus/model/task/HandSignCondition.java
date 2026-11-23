@@ -29,7 +29,7 @@ public record HandSignCondition(String sign, String handedness) {
                 Preparation checks have exactly eventType, handSign, minConfidence. No scalar field/operator/value.
                 Default minConfidence 0, samples 1, cooldownSeconds 3; a requested side is the human's handedness.
                 Keep old obs.hand.sign rock/scissor/paper tasks unchanged. A sign is neither consent nor intent.
-                Distinguish input support from output: new named-sign output is not yet supported.
+                Input support alone does not authorize output; follow the declared output capabilities.
                 OK ring, custom poses, counting and pointing are not available yet; explain that limit.
                 """;
     }

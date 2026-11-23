@@ -1,4 +1,5 @@
-// Pure, bounded interpretation of the existing public BehaviourPlan contract.
+import {handAction,handTiming} from '../hand/actions.js';
+// Pure, bounded interpretation of the public BehaviourPlan contract.
 const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 const token = value => typeof value === 'string' ? value.trim().replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase().replace(/[ -]+/g, '_') : '';
 const lookup = (map, key) => Object.hasOwn(map, key) ? map[key] : undefined;
@@ -46,14 +47,24 @@ export function normalizePlan(plan, modalities = null) {
   const expressive = allowed('nonVerbal.motion') ? object(nv.motion) : {};
   const energy = unit(motion.energy ?? expressive.energy, 0.35);
   const stillness = unit(motion.stillness ?? expressive.stillness, 0.75);
-  const effector = token(motion.effector) || 'right_hand';
+  let action=null;
+  const rawMotion=object(plan.motion);
+  if(Object.hasOwn(rawMotion,'handAction')) {
+    sign='';
+    if(!allowed('motion.handAction'))warnings.push('Named hand output is unavailable for this instance');
+    else try {
+      if(Object.keys(rawMotion).length!==1)throw new Error('Conflicting hand motion');
+      action=handAction(rawMotion.handAction);sign=action.sign;
+    } catch(error) {warnings.push(error.message);}
+  }
+  const effector = action?.effector || token(motion.effector) || 'right_hand';
   const hand = ['left_hand', 'right_hand', 'both_hands'].includes(effector) ? effector : '';
   if (sign && !hand) warnings.push('Unmapped effector: ' + effector);
   return {
     gesture, face: lookup(faces, faceLabel) || 'neutral', faceLabel,
     intensity: faceLabel ? unit(object(face).intensity, 0.55) : 0,
     gaze: lookup(gazes, gazeLabel) || [0, 0], gazeLabel, focus: typeof gaze?.focus === 'string' ? gaze.focus : '',
-    energy, stillness, sign: hand ? sign : '', hand, display, warnings,
+    energy, stillness, sign: hand ? sign : '', hand, action, display, warnings,
   };
 }
 
@@ -76,6 +87,13 @@ export class EmbodimentState {
     if (!this.pose) return { pose: null, gesture: 0, ambient: 0, active: false };
     const duration = 2800 - this.pose.energy * 900;
     const elapsed = this.started === null ? null : Math.max(0, now - this.started);
+    if(this.pose.action) {
+      const {enter,hold,release}=handTiming, end=enter+hold+release;
+      const active=elapsed!==null&&elapsed<end&&this.visible&&!this.reduced;
+      const handBlend=elapsed===null?1:elapsed<enter?elapsed/enter:elapsed<enter+hold?1:Math.max(0,1-(elapsed-enter-hold)/release);
+      const phase=elapsed===null?'preview':elapsed<enter?'entering':elapsed<enter+hold?'holding':elapsed<end?'releasing':'released';
+      return {pose:this.pose,gesture:0,ambient:0,active,transition:handBlend,handBlend,handPhase:phase};
+    }
     const active = elapsed !== null && elapsed < duration && this.visible && !this.reduced;
     // Static previews show a representative pose; completed gestures return home.
     const gesture = elapsed === null ? 1 : active ? Math.sin(Math.PI * elapsed / duration) : 0;

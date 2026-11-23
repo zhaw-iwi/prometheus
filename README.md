@@ -340,9 +340,28 @@ interval or add between-frame transition rules or hand tracking.
 
 New Coordination instances accept per-hand communication signs through
 `obs.hand.signs` v1: `fist`, `peace`, `open_palm` (halt), `thumbs_up`, `thumbs_down`
-and `index_up` (attention). This is **input support**; immediate named-sign output,
-custom poses and pointing are staged in the [roadmap](.agents/PLAN_HAND_INTERACTION.md).
-The existing output and RPS input vocabulary remains `rock`/`scissor`/`paper`.
+and `index_up` (attention). They also declare `motion.handAction` for immediate
+and agreed task output of the same six signs. Custom poses and pointing are staged
+in the [roadmap](.agents/PLAN_HAND_INTERACTION.md). Legacy RPS input/output keeps
+`rock`/`scissor`/`paper`.
+
+For example, **"show thumbs up silently"** publishes one action without creating
+a task or spending its budget. **"When I show thumbs up, show peace"** follows
+proposal, preparation if requested, explicit acceptance and a fresh cue. Named
+actions select `left_hand`, `right_hand` (default) or `both_hands`, relative to the
+robot. The canonical plan is:
+
+```json
+{"motion":{"handAction":{"schemaVersion":1,"action":{"kind":"sign","sign":"thumbs_up","effector":"right_hand"}}}}
+```
+
+The browser moves into the pose for 350 ms, holds it for 500 ms, then releases
+over 350 ms. History, hidden views and reduced-motion views show a static preview;
+they do not replay the action. A new intentional repeat is a new command; retrying
+the same admitted turn cannot republish it. Pending task output blocks unrelated
+demonstrations. Silence suppresses speech, independently of native Live ownership.
+"OK" needs clarification because the diver's ring is still unavailable. A plan
+or browser rendering is not a physical robot execution receipt.
 
 A new named-sign task rule replaces scalar `field`/`operator`/`value` with
 `"handSign":{"sign":"thumbs_up","handedness":"right"}` and uses

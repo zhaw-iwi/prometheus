@@ -2708,6 +2708,11 @@ function renderMotion(motion, options = {}) {
     return;
   }
   setBehaviourChannelActive("motion", true);
+  if (motion.handAction) {
+    const action=motion.handAction.action;
+    setText("motion_value", action?.kind==='sign' ? `${asText(action.sign).replaceAll('_',' ')} ? ${asText(action.effector).replaceAll('_',' ')}` : 'Unsupported hand action');
+    return;
+  }
   const sign = normalizeSign(motion.handSign);
   if (sign) {
     renderAgentSign(sign);

@@ -75,7 +75,8 @@ class DirectCommandAgentsUnitTest {
         assertNull(turn(agent, Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Make rock"), runtime));
         assertTrue(agent.getEventHistory().toList().stream().noneMatch(e -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType())));
     }
-    @ParameterizedTest @ValueSource(strings = {"Don't make a rock sign", "What does 'make a rock sign' mean?", "If I asked for a question gesture, what would happen?"})
+    @ParameterizedTest @ValueSource(strings = {"Don't make a rock sign", "What does 'make a rock sign' mean?", "If I asked for a question gesture, what would happen?",
+            "Don't show thumbs up", "What does 'show peace' mean?"})
     void nonCommandInterpretationPreservesReadyProposalAndDoesNotProduceTheMentionedAction(String text) {
         var fixture = new CoordinationAgentUnitTest(); fixture.propose(fixture.sensor(false), fixture.text);
         var draft = fixture.storage().get("coordination.draft").deepCopy();

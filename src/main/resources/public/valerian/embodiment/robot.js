@@ -101,7 +101,7 @@ export function createRobot() {
     const elbow=new T.Group();elbow.position.y=-0.6;shoulder.add(elbow);
     sphere(elbow,joint,[0,0,0],[0.14,0.14,0.14]);
     rounded(elbow,0.25,0.38,0.27,0.09,shell,[0,-0.25,0]);
-    const wrist=new T.Group();wrist.position.y=-0.49;elbow.add(wrist);
+    const wrist=new T.Group();wrist.name=name+'.wrist';wrist.position.y=-0.49;elbow.add(wrist);
     sphere(wrist,joint,[0,0,0],[0.095,0.09,0.095]);
     const hand=new T.Group();hand.position.y=-0.14;hand.scale.setScalar(1.3);wrist.add(hand);
     rounded(hand,0.24,0.24,0.12,0.055,shell);
@@ -119,10 +119,10 @@ export function createRobot() {
       }
       fingers.push({finger,joints});
     }
-    const thumb=new T.Group();thumb.position.set(-side*0.14,0.02,0);thumb.rotation.z=-side*0.65;hand.add(thumb);
+    const thumb=new T.Group();thumb.name=name+'.thumb';thumb.position.set(-side*0.14,0.02,0);thumb.rotation.z=-side*0.65;hand.add(thumb);
     const thumbJoints=[];let parent=thumb;
     for(let j=0;j<2;j++) {
-      const k=new T.Group();if(j)k.position.y=-0.085;parent.add(k);
+      const k=new T.Group();k.name=name+'.thumb.'+j;if(j)k.position.y=-0.085;parent.add(k);
       sphere(k,joint,[0,0,0],[0.035,0.035,0.035]);sphere(k,shell,[0,-0.05,0],[0.038,0.058,0.04]);
       thumbJoints.push(k);parent=k;
     }
@@ -153,6 +153,15 @@ export function createRobot() {
         const t=sample.transition??1;
         a.shoulder.rotation.set(-0.08-0.07*t,0,a.side*(0.12+0.73*t));a.elbow.rotation.x=-0.18-1.92*t;
         a.wrist.rotation.set(-1.05*t,Math.PI*t,-a.side*0.85*t);
+        if(p.action) {
+          // Cancel the arm orientation so the named pose has a defined robot-local
+          // wrist direction. Robot right is viewer left; mirroring is explicit.
+          a.wrist.rotation.set(0,0,0);root.updateMatrixWorld(true);
+          const angle=sign==='thumbs_up'?-a.side*Math.PI/2:sign==='thumbs_down'?a.side*Math.PI/2:Math.PI;
+          const target=root.getWorldQuaternion(new T.Quaternion()).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,0,1),angle));
+          const local=a.elbow.getWorldQuaternion(new T.Quaternion()).invert().multiply(target);
+          a.wrist.quaternion.slerp(local,t);
+        }
       } else if(p) {
         const gesture=p.gesture;
         if(gesture==='OPEN_QUESTION'||gesture==='UNCERTAIN') {
@@ -168,12 +177,19 @@ export function createRobot() {
         const folded=sign==='rock'||sign==='scissor'&&i>1;
         // Index is nearest the thumb, which is mirrored with the hand.
         const index=a.side===-1?3-i:i;
-        const curl=sign==='scissor'?(index<2?0:1.5):folded?1.5:sign==='paper'?0:0.2;
-        finger.rotation.z=sign==='scissor'&&index<2?(index===0?-a.side*0.13:a.side*0.13):0;
+        const namedFold=p?.action&&(sign==='fist'||sign==='thumbs_up'||sign==='thumbs_down'||sign==='peace'&&index>=2||sign==='index_up'&&index!==0);
+        const desired=p?.action&&sign?(namedFold?1.5:0):sign==='scissor'?(index<2?0:1.5):folded?1.5:sign==='paper'?0:0.2;
+        const blend=p?.action?(sample.handBlend??1):1;
+        const curl=0.2+(desired-0.2)*blend;
+        finger.rotation.z=(sign==='scissor'||sign==='peace')&&index<2?(index===0?-a.side*0.13:a.side*0.13)*blend:0;
         joints.forEach((j,n)=>j.rotation.x=curl*(n===0?0.9:1));
       });
-      a.thumb.rotation.z=-a.side*(sign==='paper'?0.95:sign?0.3:0.65);
-      a.thumbJoints.forEach(j=>j.rotation.x=sign&&sign!=='paper'?1.0:0.1);
+      const blend=p?.action?(sample.handBlend??1):1;
+      const thumbExtended=sign==='thumbs_up'||sign==='thumbs_down';
+      const thumbAngle=thumbExtended?1.55:sign==='paper'||sign==='open_palm'?0.95:sign?0.3:0.65;
+      a.thumb.rotation.z=-a.side*(0.65+(thumbAngle-0.65)*blend);
+      const thumbCurl=thumbExtended?0:sign&&sign!=='paper'&&sign!=='open_palm'?1.0:0.1;
+      a.thumbJoints.forEach(j=>j.rotation.x=0.1+(thumbCurl-0.1)*blend);
     }
   }
   apply({pose:null,gesture:0,ambient:0});

@@ -92,12 +92,18 @@ public final class TaskMemory {
         }
         if (object.has("motion") && !object.get("motion").isJsonNull()) {
             var motion = object.getAsJsonObject("motion");
-            if (!motion.keySet().equals(Set.of("handSign")) || !Set.of("rock", "scissor", "paper").contains(motion.get("handSign").getAsString()))
+            if (motion.keySet().equals(Set.of("handAction"))) ch.zhaw.prometheus.model.hand.HandActions.validate(motion.get("handAction"));
+            else if (!motion.keySet().equals(Set.of("handSign")) || !Set.of("rock", "scissor", "paper").contains(motion.get("handSign").getAsString()))
                 throw new IllegalArgumentException("Unsupported task motion");
         }
         if (normalizedGesture) org.slf4j.LoggerFactory.getLogger(TaskMemory.class).warn(
                 "Generic task output normalized field=nonVerbal.gesture reason=unsupported_label");
         return BehaviourPlan.fromJson(object.toString());
+    }
+    public static BehaviourPlan plan(JsonElement raw, ch.zhaw.prometheus.model.interaction.AgentInteractionProfile profile) {
+        var plan = plan(raw);
+        ch.zhaw.prometheus.model.hand.HandActions.requireCapability(plan, profile);
+        return plan;
     }
     private static void unit(JsonElement value) {
         if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber() || !Double.isFinite(value.getAsDouble())
