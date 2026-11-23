@@ -13,11 +13,15 @@ import jakarta.persistence.*;
 /** Core opt-in: retain validated control/actions, and delegate task wording to Live. */
 @Entity
 public class CoreTaskUpdateAction extends TaskUpdateAction {
-    @Transient private boolean live, contextualAssent, verbalAction, deferFirst;
+    @Transient private boolean live, contextualAssent, verbalAction, deferFirst, directRequest;
     @Transient private String operation, proposalPrompt;
     protected CoreTaskUpdateAction() {}
     public CoreTaskUpdateAction(Storage storage, String instructions, boolean cue) { super(storage, instructions, cue); }
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
+        directRequest = false;
+        if (!isTaskCue() && DirectCommands.enabled(runtime.promptMessageAssembler().capabilities()) && DirectCommands.handled(getStorage(), events)) {
+            getStorage().put(TaskMemory.REPLY, new com.google.gson.JsonObject()); return;
+        }
         if (!CoreTaskVoice.enabled(getStorage())) { live = false; contextualAssent = false; super.execute(events, runtime); return; }
         live = runtime.externalSpeech() != null; operation = null; proposalPrompt = null; contextualAssent = false; verbalAction = false;
         var storage = getStorage();
@@ -43,6 +47,7 @@ public class CoreTaskUpdateAction extends TaskUpdateAction {
             }
         }
         super.execute(events, runtime);
+        if (directRequest) return;
         if (!runtime.taskContinuation().getAsBoolean()) return;
         if (!live || !storage.containsKey(TaskMemory.REPLY)) return;
         var plan = TaskMemory.plan(storage.get(TaskMemory.REPLY)); plan.setSpeech(null);
@@ -67,6 +72,14 @@ public class CoreTaskUpdateAction extends TaskUpdateAction {
                         + "Only if that utterance unambiguously offers or asks to activate the current saved proposal NOW and the reply accepts it, return ACTIVATE with task null (the unchanged draft). "
                         + "For an unrelated question, a question about changing the plan, conditional future activation, or any uncertainty, return KEEP with task null. Never reinterpret such an answer as task acceptance. "
                         + "No other operation or replacement task is permitted for this short reply." : "");
+    }
+    @Override protected String userRequestGuidance(PolicyRuntime runtime) {
+        return isTaskCue() ? "" : DirectCommands.guidance(runtime.promptMessageAssembler().capabilities(), true);
+    }
+    @Override protected boolean handleUserRequest(com.google.gson.JsonObject update, EventHistory events, PolicyRuntime runtime) {
+        directRequest = DirectCommands.taskEnvelope(update, "task", runtime.promptMessageAssembler().capabilities(),
+                getStorage(), events, runtime.externalSpeech() != null);
+        return directRequest;
     }
     protected String liveSpeechGuidance() {
         return "\nLive owns all spoken wording. Produce appropriate nonverbal/motion channels. Only when performing an agreed spoken task action, put a brief description of its required verbal content in speech (not a finished utterance). Otherwise omit speech, including configuration acknowledgments. Backend still owns task operations and executable actions.";

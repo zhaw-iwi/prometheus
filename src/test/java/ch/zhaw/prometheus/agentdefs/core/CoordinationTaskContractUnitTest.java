@@ -29,11 +29,10 @@ class CoordinationTaskContractUnitTest {
         assertTrue(prompt.contains("ALL its defining clues"));
         assertEquals(response, f.storage().get(TaskResponse.KEY));
 
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new JsonPrimitive(true));
-        response.remove("played"); f.storage().put(TaskResponse.KEY, response);
+        response.addProperty("segment", "unheard"); f.storage().put(TaskResponse.KEY, response);
         assertFalse(CoordinationTaskContract.currentTurn(f.storage(), "My answer is a piano", f.agent.getEventHistory(), f.owner)
                 .contains("previousHeardContribution"));
-        response.addProperty("played", true); response.addProperty("revision", -1); f.storage().put(TaskResponse.KEY, response);
+        response.addProperty("segment", "question"); response.addProperty("revision", -1); f.storage().put(TaskResponse.KEY, response);
         assertFalse(CoordinationTaskContract.currentTurn(f.storage(), "My answer is a piano", f.agent.getEventHistory(), f.owner)
                 .contains("previousHeardContribution"));
     }

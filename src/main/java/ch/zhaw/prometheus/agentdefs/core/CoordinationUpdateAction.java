@@ -27,6 +27,9 @@ public class CoordinationUpdateAction extends Action {
     @Override public void execute(EventHistory events, PolicyRuntime runtime) {
         var storage = getStorage();
         if (events.isEmpty() || !runtime.taskContinuation().getAsBoolean()) return;
+        if (DirectCommands.enabled(runtime.promptMessageAssembler().capabilities()) && DirectCommands.handled(storage, events)) {
+            storage.put(TaskMemory.REPLY, new JsonObject()); return;
+        }
         var event = events.toList().getLast(); String text = event.getPayload(); Instant now = Instant.now();
         String revision = TaskMemory.text(storage, TaskMemory.REVISION, "0");
         CoordinationMemory.remove(storage, CoordinationSupport.LIVE_HELP);
@@ -94,15 +97,14 @@ public class CoordinationUpdateAction extends Action {
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
                         + "\nLatest user reflection (their report, not a measured outcome): " + (storage.containsKey(CoordinationMemory.REVIEW) ? storage.get(CoordinationMemory.REVIEW) : "none")
                         + "\nSupported sensor fields: " + TaskSpec.FIELDS
-                        + (runtime.externalSpeech() == null ? "" : storage.containsKey(LiveCommittedSpeech.ENABLED)
-                                && storage.get(LiveCommittedSpeech.ENABLED).getAsBoolean()
-                            ? "\nThe application synthesizes reply.speech verbatim. Supply complete actual words to speak, at most 350 characters, never directions or a description of a future utterance. Use supported nonverbal/motion normally."
-                            : "\nLive owns spoken wording. In reply.speech describe the required contribution in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
+                        + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. For ordinary KEEP or REFLECT replies, omit reply.speech and supply only supported nonverbal behaviour. For a confirmed task contribution, describe the required contribution in reply.speech in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
                         + (assent ? "\nInterpret this short reply ONLY against the completed utterance: " + new JsonPrimitive(invitation)
                                 + ". It is not automatically consent. Only KEEP or START of the unchanged saved proposal is permitted. A question about future activation or changing a proposal does not authorize starting now." : "")
                         + DecorativeGestures.guidance(storage, now)
                         + CoordinationSocialContract.interpretationGuidance(text);
                 var messages = TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now);
+                if (!selectedStart && DirectCommands.enabled(runtime.promptMessageAssembler().capabilities()))
+                    messages.add(PromptMessage.system(DirectCommands.guidance(runtime.promptMessageAssembler().capabilities(), true)));
                 messages.add(PromptMessage.system(CoordinationTaskContract.currentTurn(storage, text, events, runtime.externalSpeech())));
                 if (selectedStart) messages.add(PromptMessage.system("The backend has selected START of the unchanged ready proposal from explicit acceptance. "
                         + "Supply its first agreed contribution in reply.speech; for a riddle, ask the question without its solution. "
@@ -113,6 +115,8 @@ public class CoordinationUpdateAction extends Action {
                 inferred = true;
                 rejection = "update_shape";
                 var update = JsonParser.parseString(raw).getAsJsonObject();
+                if (!selectedStart && DirectCommands.taskEnvelope(update, "agreement", runtime.promptMessageAssembler().capabilities(),
+                        storage, events, runtime.externalSpeech() != null)) return;
                 CoordinationAgreement.exact(update, Set.of("operation", "agreement", "reply"));
                 operation = update.get("operation").getAsString();
                 rejection = "agreement_shape";
@@ -224,7 +228,7 @@ public class CoordinationUpdateAction extends Action {
                     throw new PendingResponse();
                 if (!TaskMemory.active(storage) || accepted == null || accepted.reactions() != null || storage.containsKey(CoordinationMemory.DRAFT))
                     throw new IllegalArgumentException("No active dialogue task");
-                if (storage.containsKey(TaskResponse.KEY) && (!"CAPTURED".equals(TaskResponse.status(storage)) || TaskResponse.playbackPending(storage)))
+                if (storage.containsKey(TaskResponse.KEY) && (!"CAPTURED".equals(TaskResponse.status(storage))))
                     throw new PendingResponse();
             }
             case "COMPLETE" -> { if (!TaskMemory.active(storage)) throw new IllegalArgumentException(); }
@@ -352,10 +356,6 @@ public class CoordinationUpdateAction extends Action {
         if (action || DecorativeGestures.requested(singleEvent(event))) storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
         if (operation.equals("KEEP") || operation.equals("REFLECT")) {
             CoreTaskVoice.clearAnswered(storage);
-            if (live && CoordinationSpeechApproval.enabled(storage) && speech != null && !speech.isBlank()) {
-                CoreTaskVoice.response(storage, "Answer the current user turn: " + speech + " No task change or contribution is authorized.", false, false, runtime);
-                CoordinationSpeechApproval.words(storage, speech);
-            }
             return;
         }
         String facts = switch (operation) {
@@ -387,25 +387,12 @@ public class CoordinationUpdateAction extends Action {
         if (!(operation.equals("START") && !action)) associationFacts +=
                 "\nAgreement background (future actions are not requested unless authorized above): " + CoordinationMemory.facts(storage);
         CoreTaskVoice.response(storage, facts, false, gate || action && speech != null && !speech.isBlank(), runtime, associationFacts);
-        if (live) {
-            String words = switch (operation) {
-                case "PROPOSE", "REPLACE" -> preparationRequest ? facts : CoordinationMemory.ready(storage)
-                        && !CoordinationSupport.blockedDraft(storage)
-                        ? (operation.equals("REPLACE") ? "This replaces the earlier task. " : "")
-                            + CoordinationTaskContract.spokenProposalReview(CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT))
-                        : CoordinationMemory.proposalPrompt(storage);
-                case "START" -> action ? speech : "The task is accepted and armed. I am waiting for a fresh matching cue.";
-                case "STEP" -> speech;
-                default -> facts;
-            };
-            CoordinationSpeechApproval.words(storage, words);
-        }
         if (live && Set.of("PROPOSE", "REPLACE").contains(operation)) {
             var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
             response.addProperty(preparationRequest ? "supportOnly" : "proposalReview", true); storage.put(CoreTaskVoice.RESPONSE, response);
         }
         if (live && operation.equals("RETURN_TO_CONVERSATION")) {
-            // A leftover Reflection draft cannot spend the new transition's approval attempt.
+            // A support acknowledgement cannot become a proposal invitation.
             var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
             response.addProperty("supportOnly", true); storage.put(CoreTaskVoice.RESPONSE, response);
         }
@@ -447,7 +434,6 @@ public class CoordinationUpdateAction extends Action {
         getStorage().put(TaskMemory.REPLY, runtime.externalSpeech() == null ? BehaviourPlan.speechOnly(text).toJsonObject() : new JsonObject());
         if (runtime.externalSpeech() != null) {
             CoreTaskVoice.response(getStorage(), text, false, false, runtime, CoordinationMemory.facts(getStorage()));
-            CoordinationSpeechApproval.words(getStorage(), text);
         }
     }
     private void answerSupport(String text, PolicyRuntime runtime) {

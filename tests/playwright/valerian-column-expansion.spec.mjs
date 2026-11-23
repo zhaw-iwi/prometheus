@@ -734,10 +734,11 @@ async function verifySocialContextPayloadContract(page) {
     if (typeof window.socialContextPayload !== "function") {
       throw new Error("socialContextPayload is not available on the Valerian page.");
     }
-    return window.socialContextPayload(social, people, "visual.social");
+    return window.socialContextPayload(social, people, "visual.social", {ts:"2026-11-15T12:00:00Z"});
   }, { social: SAMPLE_SOCIAL, people: SAMPLE_TRACKED_PEOPLE });
   expect(payload.schemaVersion).toBe(1);
   expect(payload.source).toBe("visual.social");
+  expect(payload.ts).toBe("2026-11-15T12:00:00Z");
   expect(payload.humanCount).toBe(3);
   expect(payload.groups[0]).toEqual({ memberIds: [1, 2], size: 2 });
   expect(payload.people[0].detectionConfidence).toBe(0.92);

@@ -274,8 +274,9 @@ for (const delivery of ["before", "after"]) {
   });
 }
 
-for (const restart of [false, true]) {
-  test(`stopped resume lookup cannot speak or reopen input${restart ? " after a new start" : ""}`, async ({ page }) => {
+for (const action of ["stop", "restart", "text"]) {
+  const restart = action === "restart";
+  test(`stopped resume lookup cannot speak or reopen input${restart ? " after a new start" : action === "text" ? " after switching to Text" : ""}`, async ({ page }) => {
     let release;
     const held = new Promise(resolve => { release = resolve; });
     let lookups = 0;
@@ -294,7 +295,8 @@ for (const restart of [false, true]) {
     const lookup = page.waitForRequest(`**/behaviours/latest/speech`);
     await page.getByTestId("toggle-transcription").click();
     await lookup;
-    await page.getByTestId("toggle-transcription").click();
+    if (action === "text") await page.getByTestId("text-interaction-tab").click();
+    else await page.getByTestId("toggle-transcription").click();
     await expect(page.getByTestId("transcription-transport-status")).toHaveText("Transcription Idle");
     if (restart) {
       await page.getByTestId("toggle-transcription").click();

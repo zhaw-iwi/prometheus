@@ -70,11 +70,6 @@ public class LiveTranscriptCaptureService {
         var capture = captures.get(owner.sessionId());
         return capture != null && capture.owner.equals(owner) && capture.busy();
     }
-    /** In-memory sequencing hint only; approval and playback still require complete receipt-bound audio. */
-    public boolean assistantBusy(ExternalSpeech owner) {
-        var capture = captures.get(owner.sessionId());
-        return capture != null && capture.owner.equals(owner) && capture.assistantBusy();
-    }
     @PreDestroy public void shutdown() { captures.values().forEach(Capture::close); workers.shutdownNow(); captures.clear(); }
 
     public final class Capture {
@@ -93,8 +88,6 @@ public class LiveTranscriptCaptureService {
         private long sequence;
         private long timedOutputChunks, untimedOutputChunks;
         private long lastVoiceAt = -1;
-        private long lastAssistantVoiceAt = -1;
-        private final long assistantSilenceMs;
         private final java.util.ArrayDeque<Trace> traces = new java.util.ArrayDeque<>();
         private long dropped;
         private int queueHighWater;
@@ -103,12 +96,8 @@ public class LiveTranscriptCaptureService {
             this.agent = agent; this.owner = owner; this.state = state; this.failure = failure;
             this.segmenter = new LiveTranscriptSegmenter(owner.sessionId(), userSilenceMs, assistantSilenceMs);
             this.inputActivity = filterIsolatedInputActivity ? new LivePcmActivity.OnsetFilter() : null;
-            this.assistantSilenceMs = assistantSilenceMs;
         }
         public synchronized void receive(JsonObject event) {
-            receive(event, null);
-        }
-        public synchronized void receive(JsonObject event, String inputRejection) {
             if (closed || failed) return;
             try {
                 String type = event.get("type").getAsString(); long now = clock.millis();
@@ -122,7 +111,6 @@ public class LiveTranscriptCaptureService {
                     var pcm = Base64.getDecoder().decode(event.get(speaker == Speaker.USER ? "audio" : "delta").getAsString());
                     var activity = LivePcmActivity.measure(pcm);
                     if (activity.voiced()) lastVoiceAt = now;
-                    if (speaker == Speaker.ASSISTANT && activity.voiced()) lastAssistantVoiceAt = now;
                     if (speaker == Speaker.USER && inputActivity != null) activity = inputActivity.measure(pcm, now);
                     if (speaker == Speaker.USER && activity.voiced()) completed(segmenter.userActivity(now));
                     if (speaker == Speaker.ASSISTANT && (event.has("start_ms") || event.has("end_ms"))) {
@@ -139,13 +127,12 @@ public class LiveTranscriptCaptureService {
                     String id = identified ? event.get("event_id").getAsString() : "local-missing-id-" + sequence;
                     if (seen.contains(id)) return;
                     lastVoiceAt = now;
-                    if (speaker == Speaker.ASSISTANT) lastAssistantVoiceAt = now;
                     // Preserve an established acoustic boundary before a new fragment resets it.
                     completed(ready(now));
                     if (seen.size() >= LiveTranscriptSegmenter.MAX_RECEIPTS) throw new IllegalStateException("Receipt capacity reached");
                     Fragment fragment = new Fragment(id, speaker, number(event, "start_ms"), number(event, "end_ms"), now,
                             ++sequence, event.get("delta").getAsString());
-                    List<Segment> ready = segmenter.fragment(fragment, speaker != Speaker.USER || !muted && inputRejection == null);
+                    List<Segment> ready = segmenter.fragment(fragment, speaker != Speaker.USER || !muted);
                     seen.add(id); fragmentStates.put(id, List.copyOf(state.get()));
                     trace("receipt_queued", id, null, null, fragment.startMs(), fragment.endMs());
                     enqueue(() -> {
@@ -155,8 +142,6 @@ public class LiveTranscriptCaptureService {
                     if (!identified) segmenter.uncertain(speaker, "missing_provider_identity");
                     if (speaker == Speaker.USER && muted) segmenter.uncertain(speaker, "input_muted");
                     completed(ready);
-                    if (speaker == Speaker.USER && inputRejection != null)
-                        completed(segmenter.interrupt(Speaker.USER, inputRejection));
                 }
             } catch (RuntimeException invalid) { fail("capture_input_invalid_or_full"); }
         }
@@ -233,10 +218,6 @@ public class LiveTranscriptCaptureService {
         private synchronized boolean busy() {
             return closed || failed || draining.get() || !work.isEmpty() || segmenter.hasOpenSegment()
                     || lastVoiceAt >= 0 && clock.millis() - lastVoiceAt < 2000;
-        }
-        private synchronized boolean assistantBusy() {
-            return closed || failed || segmenter.hasOpenSegment(Speaker.ASSISTANT)
-                    || lastAssistantVoiceAt >= 0 && clock.millis() - lastAssistantVoiceAt < assistantSilenceMs;
         }
         private Long number(JsonObject event, String key) {
             if (!event.has(key) || event.get(key).isJsonNull()) return null;

@@ -31,8 +31,6 @@ public class CoordinationPreparationAction extends Action {
                     true, false, runtime, CoordinationMemory.facts(storage));
             var response = storage.get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
             response.addProperty("proposalReview", true); storage.put(CoreTaskVoice.RESPONSE, response);
-            CoordinationSpeechApproval.words(storage, ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.spokenProposalReview(
-                    CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT)));
         }
     }
 }

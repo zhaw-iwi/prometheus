@@ -34,8 +34,17 @@ public class LiveContextProjection {
     }
     public boolean supports(Agent agent) { return policies.supports(agent); }
     public LiveContextSnapshot project(Agent agent) {
+        return project(agent, "");
+    }
+    public LiveContextSnapshot project(Agent agent, String commandResult) {
         var guidance = policies.sections(agent);
         String instructions = String.join("\n", guidance.values());
+        // Current command facts are a quiet delta, not startup instructions or a new speaking occasion.
+        if (commandResult != null && !commandResult.isBlank()) {
+            if (commandResult.getBytes(StandardCharsets.UTF_8).length > 380)
+                throw new IllegalArgumentException("Command result exceeds its context budget");
+            guidance.put("commandResult", commandResult);
+        }
         var leaf = LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
         Instant now = clock.instant();
         // selectList retains source identity/time; EventHistory.select intentionally creates working copies.
@@ -108,7 +117,7 @@ public class LiveContextProjection {
                 .startupInput().toString().getBytes(StandardCharsets.UTF_8).length > 7000)) {
             candidates.removeFirst(); omitted++;
         }
-        StringBuilder basis = new StringBuilder(instructions).append(leaf.getEventSelectorSpec() == null
+        StringBuilder basis = new StringBuilder(instructions).append(guidance.getOrDefault("commandResult", "")).append(leaf.getEventSelectorSpec() == null
                 ? leaf.getName() : leaf.getEventSelectorSpec().toJson());
         for (Item item : candidates) basis.append(item.key()).append(item.type()).append(item.role())
                 .append(item.sourceIds()).append(item.observedAt()).append(item.expiresAt()).append(item.freshness()).append(item.text());
@@ -132,9 +141,7 @@ public class LiveContextProjection {
                 leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveFilterIsolatedInputActivity(),
                 !(leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external) || external.livePendingAcknowledgements(),
                 leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external
-                        ? external.liveAssistantSilenceMs() : LiveTranscriptSegmenter.SILENCE_MS,
-                leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveSpeechApprovalRequired(),
-                leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external && external.liveCommittedSpeechOutput());
+                        ? external.liveAssistantSilenceMs() : LiveTranscriptSegmenter.SILENCE_MS);
     }
     private static Instant observedAt(Event event) {
         if (ch.zhaw.prometheus.model.event.ObservationEvidence.supported(event.getType()))

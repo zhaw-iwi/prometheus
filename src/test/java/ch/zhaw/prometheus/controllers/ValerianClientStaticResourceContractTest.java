@@ -710,7 +710,8 @@ class ValerianClientStaticResourceContractTest {
         assertTrue(script.contains("const text = eventPayloadText(event && event.payload);"));
         assertTrue(script.contains("appendMessage(\"user\", text, event.id);"));
         assertTrue(script.contains("options.renderTranscript !== false"));
-        assertTrue(script.contains("appendMessage(\"assistant\", plan.speech.trim(), event.id || options.eventId);"));
+        assertTrue(script.contains("appendMessage(\"assistant\", plan.speech.trim(), event.id || options.eventId,"));
+        assertTrue(script.contains("event.provenance?.complete === false ? \"Incomplete capture\" : \"\""));
         assertTrue(script.contains("!options.fromHistory && recentBehaviourPayloadSeen(event.payload)"));
     }
 

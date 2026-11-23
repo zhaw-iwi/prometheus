@@ -36,6 +36,9 @@ class CoordinationAgentIntegrationTest {
     @Autowired PlatformTransactionManager transactions;
     @Autowired LiveTranscriptIngressService ingress;
     @Autowired ExternalSpeechOwnership ownership;
+    @Autowired LiveAgentContextService liveContexts;
+    @Autowired LiveContextBridgeService liveBridge;
+    @Autowired ScopedBehaviourSpeechService canonicalSpeech;
     @MockitoBean LanguageModelGateway gateway;
     @MockitoBean SpeechSynthesisGateway speech;
     static final String AGREEMENT = """
@@ -57,6 +60,114 @@ class CoordinationAgentIntegrationTest {
         var agent = agents.findById(scope.id()).orElseThrow();
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
+    }
+    @Test void acceptedPersistedTaskWithdrawsQueuedProposalAndReconnectNeverReplaysIt() throws Exception {
+        var scope = create(); var sessionId = UUID.randomUUID();
+        var initial = liveContexts.claim(scope.code(), scope.id(), sessionId).orElseThrow();
+        var owner = new ch.zhaw.prometheus.model.policy.ExternalSpeech(sessionId, initial.epoch());
+        var entered = new java.util.concurrent.CountDownLatch(1); var release = new java.util.concurrent.CountDownLatch(1);
+        var sent = new java.util.concurrent.CopyOnWriteArrayList<ch.zhaw.prometheus.application.live.LiveContextDelivery.Command>();
+        var bridge = liveBridge.open(initial, owner, command -> {
+            sent.add(command);
+            if (command.currentOnly() && entered.getCount() > 0) {
+                entered.countDown();
+                try { assertTrue(release.await(10, java.util.concurrent.TimeUnit.SECONDS)); }
+                catch (InterruptedException e) { throw new IllegalStateException(e); }
+            }
+        }, ignored -> {}, reason -> fail(reason));
+        try {
+            bridge.ready();
+            var proposal = JsonParser.parseString(AGREEMENT).getAsJsonObject();
+            proposal.add("reactions", JsonParser.parseString("""
+                {"goal":"Draft an invitation","maxActions":1,"sessionBound":true,"firstAction":"ON_CUE",
+                 "rules":[{"eventType":"obs.hand.sign","field":"sign","operator":"eq","value":"rock",
+                 "action":"Offer one invitation idea","effect":"ACT","minConfidence":0,"samples":1,"cooldownSeconds":3}]}
+                """));
+            turn(scope, "PROPOSE", proposal.toString(), "Propose one invitation idea on rock, without starting");
+            assertTrue(entered.await(5, java.util.concurrent.TimeUnit.SECONDS));
+            UUID old = UUID.fromString(memory(scope).get("core.task.response").getAsJsonObject().get("id").getAsString());
+            turn(scope, "START", "null", "Start now");
+            var reloaded = memory(scope);
+            assertEquals("EXECUTION", CoordinationMemory.stage(reloaded));
+            assertEquals("0", TaskMemory.text(reloaded, TaskMemory.ACTIONS, "0"));
+            assertEquals(proposal, reloaded.get(CoordinationMemory.AGREEMENT));
+            UUID current = UUID.fromString(reloaded.get("core.task.response").getAsJsonObject().get("id").getAsString());
+            release.countDown();
+            org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(5)).until(() -> sent.stream()
+                    .anyMatch(c -> current.equals(c.sourceId()) && c.type().equals("session.commentary.append")));
+            assertTrue(sent.stream().noneMatch(c -> old.equals(c.sourceId()) && c.type().equals("session.commentary.append")));
+            assertEquals(1, sent.stream().filter(c -> c.content().contains("is withdrawn")).count());
+            turn(scope, "STOP", "null", "Stop the task");
+            assertEquals("REFLECTION", CoordinationMemory.stage(memory(scope)));
+            bridge.close(); ownership.release(scope.id(), sessionId);
+            UUID secondId = UUID.randomUUID();
+            var reconnect = liveContexts.claim(scope.code(), scope.id(), secondId).orElseThrow();
+            var secondOwner = new ch.zhaw.prometheus.model.policy.ExternalSpeech(secondId, reconnect.epoch());
+            var delivery = new ch.zhaw.prometheus.application.live.LiveContextDelivery(reconnect); delivery.ready();
+            assertTrue(delivery.plan(reconnect, List.of()).commands().isEmpty());
+            ownership.release(scope.id(), secondId);
+        } finally { release.countDown(); bridge.close(); ownership.release(scope.id(), sessionId); }
+    }
+    @Test void freshLiveClaimClearsSavedOutputFlagsBeforeProjectingNativeInstructions() {
+        var scope = create();
+        new TransactionTemplate(transactions).executeWithoutResult(status -> {
+            var agent = agents.findById(scope.id()).orElseThrow();
+            var storage = ((CoordinationPolicy) agent.getCurrentState().ownPolicy()).storage();
+            storage.put("live.speechApproval", new JsonPrimitive(true));
+            storage.put("live.committedSpeech", new JsonPrimitive(true));
+            agents.saveAndFlush(agent);
+        });
+        var session = UUID.randomUUID();
+        try {
+            var context = liveContexts.claim(scope.code(), scope.id(), session).orElseThrow();
+            assertFalse(context.instructions().contains("Remain silent. Do not generate replies"));
+            var saved = memory(scope);
+            assertFalse(saved.containsKey("live.speechApproval"));
+            assertFalse(saved.containsKey("live.committedSpeech"));
+            turn(scope, "KEEP", "null", "What can you do?");
+            assertFalse(memory(scope).containsKey("core.task.response"), "An ordinary reply cannot create a competing narration");
+            var events = agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
+            assertTrue(events.stream().filter(e -> e.speechProvenance() != null).allMatch(e ->
+                    ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(e.getPayload()).getSpeech() == null));
+        } finally { ownership.release(scope.id(), session); }
+    }
+    @Test void savedLiveSpeechFlagsDoNotOwnCanonicalOutputAfterSessionRelease() {
+        var scope = create();
+        var owner = new TransactionTemplate(transactions).execute(status -> {
+            var agent = agents.findById(scope.id()).orElseThrow();
+            // Reproduce an agent saved by the November committed-output implementation.
+            var storage = ((CoordinationPolicy) agent.getCurrentState().ownPolicy()).storage();
+            storage.put("live.speechApproval", new JsonPrimitive(true));
+            storage.put("live.committedSpeech", new JsonPrimitive(true));
+            var external = new ch.zhaw.prometheus.model.policy.ExternalSpeech(UUID.randomUUID(), agent.executionEpoch());
+            agents.saveAndFlush(agent); return external;
+        });
+        ownership.acquire(scope.id(), owner);
+        ownership.release(scope.id(), owner.sessionId());
+        // Both November output-selection flags survive reload. Neither is a live ownership grant.
+        var saved = memory(scope);
+        assertTrue(saved.get("live.speechApproval").getAsBoolean());
+        assertTrue(saved.get("live.committedSpeech").getAsBoolean());
+        assertFalse(ownership.hasOwner(scope.id()));
+        clearInvocations(gateway);
+        turn(scope, "PROPOSE", AGREEMENT, "Propose our invitation task");
+        turn(scope, "START", "null", "Start the saved proposal now");
+        var prompts = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+        verify(gateway, times(2)).infer(prompts.capture());
+        assertTrue(prompts.getAllValues().stream().flatMap(request -> request.messages().stream())
+                .noneMatch(message -> message.getContent().contains("Remain silent. Do not generate replies")),
+                "Live output muting must never instruct canonical backend generation to remain silent");
+        assertEquals("EXECUTION", CoordinationMemory.stage(memory(scope)));
+        assertEquals(1, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        var event = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().getLast();
+        assertNull(event.speechProvenance());
+        String words = ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()).getSpeech();
+        assertEquals("Shall we start now?", words);
+        when(speech.synthesize(words, "cedar", 1.2, ch.zhaw.prometheus.spi.SpeechAudioFormat.PCM))
+                .thenReturn(new ch.zhaw.prometheus.spi.SpeechAudio(new byte[] {0, 0}, "audio/pcm"));
+        assertTrue(canonicalSpeech.synthesize(scope.code(), scope.id(), event.getId(),
+                new SpeechSynthesisSettings("cedar", "1.2", "pcm")).isPresent());
+        verify(speech).synthesize(words, "cedar", 1.2, ch.zhaw.prometheus.spi.SpeechAudioFormat.PCM);
     }
     @Test void deniedCombinedStartRemainsUnacceptedAfterReload() {
         var scope = create();

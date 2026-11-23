@@ -1,0 +1,41 @@
+{
+  "schema": "gptlivefix-scenarios-v1",
+  "sensor": {
+    "proposalInput": "Propose one welcome when I show scissors. Check recognition before I accept.",
+    "acceptanceInput": "Start the saved proposal now",
+    "proposal": {
+      "operation": "PROPOSE",
+      "agreement": {
+        "goal": "Offer one welcome on scissors",
+        "humanRole": "Show scissors and judge the welcome",
+        "agentRole": "Offer one welcome after the agreed sign",
+        "success": "The visitor judges the welcome useful",
+        "questions": [],
+        "checks": [{"eventType": "obs.hand.sign", "field": "sign", "operator": "eq", "value": "scissor", "minConfidence": 0}],
+        "dialogueLimit": 1,
+        "reactions": {
+          "goal": "Offer one welcome on scissors", "maxActions": 1, "sessionBound": true, "firstAction": "ON_CUE",
+          "rules": [{"eventType": "obs.hand.sign", "field": "sign", "operator": "eq", "value": "scissor",
+            "action": "Offer one welcome", "effect": "ACT", "minConfidence": 0, "samples": 1, "cooldownSeconds": 3}]
+        }
+      },
+      "reply": {"speech": "Please demonstrate scissors before accepting."}
+    }
+  },
+  "meaningExamples": [
+    {"id": "sign-paraphrase", "confirmed": "Show scissors.", "spoken": "Make a scissor sign.", "verdict": "EQUIVALENT", "reason": "Same sign and human action."},
+    {"id": "wrong-sign", "confirmed": "Show scissors.", "spoken": "Show rock.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Changes the agreed sign."},
+    {"id": "wrong-role", "confirmed": "You show scissors; I offer one welcome.", "spoken": "I show scissors; you offer the welcome.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Reverses roles."},
+    {"id": "wrong-count", "confirmed": "One welcome, then stop.", "spoken": "Two welcomes, then stop.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Changes the finite budget."},
+    {"id": "negated-condition", "confirmed": "Only after a fresh scissors cue.", "spoken": "Without another scissors cue.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Removes the fresh-cue condition."},
+    {"id": "invented-preparation", "confirmed": "Recognition still needs a demonstration.", "spoken": "Recognition is already verified.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Invents verified preparation."},
+    {"id": "premature-success", "confirmed": "One contribution was generated; delivery is uncertain.", "spoken": "The task succeeded and you heard the whole response.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Invents delivery and success."},
+    {"id": "riddle-paraphrase", "confirmed": "It has keys and a space bar but opens no locks.", "spoken": "There are keys and a space bar, yet none unlock a door.", "verdict": "EQUIVALENT", "reason": "Preserves all defining clues."},
+    {"id": "riddle-clue-loss", "confirmed": "It has keys and a space bar but opens no locks.", "spoken": "It has keys but opens no locks.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Drops the space-bar clue; piano is now a plausible answer."}
+  ],
+  "laterJourneys": [
+    {"id": "dialogue", "steps": ["propose one riddle plus feedback (two contributions)", "accept", "question without solution", "answer", "feedback preserves every defining clue", "reflection"], "invariants": ["help spends no contribution", "no extra question after feedback", "budget exhaustion is not success"]},
+    {"id": "revision", "steps": ["complete sensor journey", "replace only welcome wording", "review preserved sign, roles, condition and count", "repeat required preparation", "accept new run", "fresh cue"], "invariants": ["old cue cannot act", "revision needs acceptance", "old response cannot finish new run"]},
+    {"id": "uncertain-delivery", "steps": ["accept sensor task", "fresh cue", "interrupt final speech", "stop and reconnect"], "invariants": ["one contribution remains spent", "no automatic replay", "captured prefix remains inspectable", "no false playback or success"]}
+  ]
+}

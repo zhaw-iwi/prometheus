@@ -121,7 +121,8 @@ class LiveSpeechPersistenceIntegrationTest {
             assertEquals(SpeechProvenance.Association.AMBIGUOUS, events.getLast().speechProvenance().association());
             assertFalse(events.getLast().speechProvenance().complete());
             var messages = new PromptMessageAssembler().compose(reloaded.getCurrentState().getEventHistory(), "context");
-            assertEquals(3, messages.size()); assertEquals("Realized result", messages.get(1).getContent());
+            assertEquals(2, messages.size()); assertEquals("Realized result", messages.get(1).getContent());
+            assertEquals("Possibly related words", BehaviourPlan.fromJson(ConversationProjection.view(events.getLast()).payload()).getSpeech());
             assertEquals("talk", reloaded.getCurrentState().getName());
         });
         verify(gateway, times(1)).infer(any());

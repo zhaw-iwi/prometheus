@@ -75,6 +75,104 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Towards commanding (2026-11-19): TWC-01 prevents queued obsolete Coordination
+  state announcements from surviving a later committed occasion and withdraws
+  already-sent obsolete instructions once. Valid task contributions retain their
+  delivery contract; ordinary native speech remains independent. Verified with
+  332 affected unit cases, a 102-case local-MySQL Java run, seven browser cases
+  and two strengthened native-ingress reruns. Screenshots inspected; real-provider
+  and physical acceptance remain pending. TWC-02 was pushed as `aac0cce7`: shared
+  direct-command validation across four scoped variants, persisted turn identity,
+  silent outcomes and owner-loss publication fencing. Verified with 508 affected
+  units, 47 focused service/command cases (overlap), four persisted variants and
+  two real-app Text journeys; screenshots inspected. TWC-03 adds positive native
+  output guidance and quiet session/turn-bound results. Verified with 218 affected
+  units, 175 JavaScript cases, seven local-DB cases and two mode-switch browser
+  journeys plus existing audio-independence cases. Visual poses inspected.
+  TWC-04 adds stable unique instance-ID suffixes, readable long-name options and
+  full-label details; five unit cases, local-DB three-instance lifecycle and
+  light/dark/narrow browser checks pass. TWC-05 is complete under
+  `.agents/PLAN_TOWARDSCOMMANDING.md`; commit/push each milestone. The owner
+  authorized an additional $40/eight paid attempts, failures included; all are
+  now reserved. Coordination demonstrations, repetition and native silence passed.
+  The separately authorized $10/two retests are also fully reserved. Coordination
+  task acceptance passed: current waiting state, one confirmed joke, no replay,
+  return and standalone gesture. A final authorized $5 HP-03 follow-up passed
+  scissors/question, correct silence flags and unsupported walking rejection,
+  confirming the interpretation fix. Malformed metadata propagation is contained
+  and locally covered. Matched ordinary timing and complete-face provider images
+  passed. All eleven/$55 reservations are consumed; no further paid attempt is
+  authorized. Physical audio remains NOT RUN; repeated short spoken prefixes remain
+  a fluency limitation. Results: `.agents/TOWARDSCOMMANDING_RESULTS.md`.
+  No new deployment authorized.
+
+- GPT-Live repair (2026-11-18/19): GLF-01 committed/pushed as `f7c1033c` protects
+  Text/Continuous canonical Speech, preparation, acceptance, fresh cues and budgets.
+  GLF-02 restores immediate native Coordination audio and nonverbal backend replies;
+  new Live claims clear old output flags without migrating saved graphs/history.
+  The deterministic barrier/mode-switch checks and their retained failures are in
+  `.agents/GPTLIVEFIX_RESULTS.md`. GLF-03 verifies native task meaning/authority and separates help from consent.
+  GLF-04 preserves interrupted captures, prevents external-speech TTS replay and
+  removes browser approval-player coupling. GLF-05 removes the retired services,
+  endpoints, players and paid harness, fixes observed capture boundaries and
+  passes 484 Java, 160 JS, 16 Python and seven browser checks. Text/Continuous/
+  native Live provider happy paths pass; the cumulative test envelope is $49.50.
+  The per-mode matrix, retained failures and latency are in
+  `.agents/GPTLIVEFIX_RESULTS.md`; physical checks remain NOT RUN in the linked
+  operator checklist. On 2026-11-19 the authorized agents merge `dfc1211a` deployed
+  as Heroku valerian v170 (06:19 CET). Health, changed/retired assets and read-only
+  cockpit rendering were verified; deployment-specific catalog/personas remain
+  preserved. No additional provider calls or experiment promotion.
+
+- Robot mouth calibration (2026-11-17; deployed 2026-11-18): a subtly upturned
+  resting mouth replaces the straight line. All supported facial expressions blend their
+  mouth shape from that baseline according to plan intensity, including surprise;
+  neutral/fallback/reset agree. Fifteen embodiment unit checks and all five
+  existing WebGL browser checks passed. Before/after expressions and light/dark/
+  narrow cockpit screenshots were reviewed. Main `45248f8` merged into agents as
+  `aba0184`; all 15 unit and five browser checks also passed on the merged tree.
+  Heroku **valerian v169** is deployed: health UP, all nine served asset hashes
+  match, and the neutral mouth rendered correctly in a read-only WebGL check.
+  No backend/provider changes; release evidence and preview are recorded in
+  `.agents/EMBODIMENT_RESULTS.md`.
+
+- Embodiment Studio CORS (2026-11-17): the production allowlist now includes
+  exactly `http://localhost:5173`, preserving both existing port-5010 origins.
+  README distinguishes the Studio page origin from the backend URL and from a
+  Raspberry Pi LAN address. All four `PrometheusCorsConfigurationWebMvcTest`
+  cases passed on both main and merged agents using isolated build directories
+  (`target/cors-main-20261117` and `target/cors-agents-20261117`); whitespace checks
+  passed. Main commit `d504410` merged into agents as `5405a7c`. Authorized
+  [deployment run 44095371476](https://github.com/zhaw-iwi/prometheus/actions/runs/44095371476)
+  succeeded, releasing Heroku **valerian v168** at 14:50 CET. Eleven live checks
+  passed: health UP, ordinary/server requests, both previous origins, session and
+  SSE preflights, missing-access-code rejection and three unlisted-origin
+  rejections. Local evidence: `target/cors-heroku-verification-20261117.json`.
+  No production agent mutation or provider call was made. The colleague's full
+  Studio/agent journey remains unverified; Pi LAN URLs and `127.0.0.1:5173` are
+  separate origins and remain outside this exact-origin addition.
+
+- EV promotion (2026-11-17): selectively ported the three visualization commits
+  to `main`, without the HRI study runtime. The generic acceptance runner now
+  supports isolated embodiment builds independently of study code. Main port:
+  231 JS, 12 runner, 21 Java/local-MySQL and all 52 browser checks passed.
+  Merged into `agents` as `8baa1b70`, preserving catalog/persona and deployment
+  settings. Agents: 232 JS, 13 runner, 30 Java/local-MySQL and 27 browser checks
+  passed; live OpenAI baseline plus persisted-plan rendering passed (one request,
+  5,350 tokens). Heroku `valerian` **v167** is deployed; health, served asset
+  hashes and read-only browser rendering verified. Exact commands, release links,
+  limitations and retained failures: `.agents/EMBODIMENT_RESULTS.md`.
+
+- EV-01 through EV-03 (2026-11-15): alternative Valerian Details / Robot view on
+  `feature/valerian-embodiment`. Speech and latest event remain; canonical plans
+  drive locally authored 3D eyes/head/arms/fingers and an integrated display.
+  Verification: 237 JS, 18 runner and 21 Java/local-MySQL checks; 52 browser cases
+  have passing evidence across the broad run and focused fixture correction.
+  Final five Robot cases and real OpenAI persisted-plan/browser smoke pass;
+  screenshots reviewed. An extended provider task proposal was rejected before
+  rendering; that failed trial is retained. No study protocol or backend changes.
+  Scope, exact checks and device/human limits: `.agents/EMBODIMENT_RESULTS.md`.
+
 - Core RPS confidence control (2026-11-12): the client's configured hand
   confidence threshold governs emission, without an additional backend 0.70
   floor. Core RPS validates numeric confidence in [0, 1] and retains capture

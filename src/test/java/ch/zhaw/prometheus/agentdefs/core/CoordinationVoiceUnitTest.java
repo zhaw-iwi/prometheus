@@ -13,9 +13,25 @@ import ch.zhaw.prometheus.model.task.*;
 import ch.zhaw.prometheus.model.policy.PromptMessage;
 
 class CoordinationVoiceUnitTest {
+    @Test void controlOccasionsAreSupersedableButCommittedContributionsAreNot() {
+        var sensor = new CoordinationAgentUnitTest();
+        sensor.propose(sensor.sensor(false), sensor.live);
+        var proposal = sensor.policy().liveActivityContext().continuation();
+        assertTrue(proposal.currentOnly());
+        sensor.start(sensor.live);
+        var activation = sensor.policy().liveActivityContext().continuation();
+        assertTrue(activation.currentOnly());
+        assertNotEquals(proposal.id(), activation.id());
+        assertEquals("0", TaskMemory.text(sensor.storage(), TaskMemory.ACTIONS, "0"));
+        var dialogue = new CoordinationAgentUnitTest();
+        dialogue.propose(dialogue.dialogue(), dialogue.live); dialogue.start(dialogue.live);
+        assertFalse(dialogue.policy().liveActivityContext().continuation().currentOnly());
+        var legacy = dialogue.storage().get(TaskResponse.KEY).getAsJsonObject().deepCopy();
+        legacy.remove("purpose"); dialogue.storage().put(TaskResponse.KEY, legacy);
+        assertFalse(dialogue.policy().liveActivityContext().continuation().currentOnly(), "Legacy pending work keeps its original delivery contract");
+    }
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
     @Test void returningFromReflectionRequiresNewConfirmedSpeechAndPreservesTheOutcome() {
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
         f.propose(f.sensor(false), f.text); f.start(f.text);
         f.say("Stop the task.", f.text);
         var outcome = f.storage().get(CoordinationMemory.OUTCOME).deepCopy();
@@ -24,41 +40,30 @@ class CoordinationVoiceUnitTest {
         assertEquals("CONVERSATION", CoordinationMemory.stage(f.storage()));
         assertEquals(outcome, f.storage().get(CoordinationMemory.OUTCOME));
         assertTrue(f.agent.getEventHistory().toList().size() > historySize);
-        var request = f.policy().liveSpeechRequest(f.owner);
-        assertTrue(request.postCommitOnly(), "An earlier Reflection draft must not spend this approval attempt");
-        assertEquals(request.facts(), request.exactSpeech(), "A deterministic acknowledgement cannot acquire invented facts");
-        assertEquals(request.created().plusSeconds(45), request.expiresAt());
-        assertEquals(request.created().plusSeconds(60), request.releaseBy());
         var continuation = f.policy().liveActivityContext().continuation();
-        assertTrue(continuation.facts().startsWith("Speak these words verbatim:"));
+        assertTrue(continuation.facts().startsWith("Convey these confirmed facts once, preserving their meaning:"));
         assertTrue(continuation.facts().contains("Previous history and recorded outcomes are preserved"));
         assertFalse(f.storage().containsKey(TaskResponse.KEY));
     }
     void ambientOccasion() {
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
         var history = new EventHistory();
         var now = Instant.now();
         for (var at : List.of(now.minusSeconds(3), now.minusSeconds(1)))
             history.appendEvent(Event.observation(Event.TYPE_SOCIAL_GROUPING, "sensor", "{\"humanCount\":2,\"ts\":\"" + at + "\"}"));
         new SensoryReactionAction(f.storage(), "Brief respectful comment", 2000, 4000, 15000).execute(history, f.live);
     }
-    @Test void ambientRemarksRetainTheirScopedShortLivedPermissionAndConsumeOnlyAfterPlayback() {
+    @Test void nativeAmbientRemarksConsumeTheirOwnOccasionWithoutCreatingTaskOrConsentEvidence() {
         ambientOccasion();
-        var request = f.policy().liveSpeechRequest(f.owner);
+        var request = f.policy().liveActivityContext().continuation();
         assertNotNull(request);
-        assertEquals(request.id(), f.policy().liveActivityContext().continuation().id());
-        assertEquals(request.created().plusSeconds(6), request.expiresAt());
-        assertEquals(request.expiresAt(), request.releaseBy());
+        var created = Instant.parse(f.storage().get(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.PENDING).getAsJsonObject().get("created").getAsString());
+        assertEquals(created.plusSeconds(6), request.expiresAt());
         assertTrue(request.facts().contains("humanCount"));
-        var committed = f.policy().liveCommittedSpeech(f.owner);
-        assertNotNull(committed); assertTrue(committed.text().contains("2 people visible"));
-        assertTrue(committed.text().contains("does not establish who arrived"));
-        assertNull(f.policy().liveSpeechRequest(new ExternalSpeech(UUID.randomUUID(), f.owner.epoch())));
-        var event = f.hear("I can see two people.", true, Instant.now());
-        assertNotNull(f.policy().liveSpeechRequest(f.owner), "An unheard draft cannot consume the occasion");
-        event.speechProvenance(event.speechProvenance().playback(true));
-        assertTrue(f.policy().liveSpeechCaptured(event, f.owner, Instant.now(), Instant.now(), List.of()));
-        assertNull(f.policy().liveSpeechRequest(f.owner));
+        var event = f.agent.recordExternalSpeech("I can see two people.", new SpeechProvenance(SpeechProvenance.Origin.NATIVE,
+                f.owner.sessionId(), f.owner.epoch(), "ambient", SpeechProvenance.Association.NONE, List.of(), true));
+        assertTrue(f.policy().liveSpeechCaptured(event, f.owner, created.plusMillis(1), created.plusMillis(2), List.of()));
+        assertNull(f.policy().liveActivityContext().continuation());
+        assertNull(event.speechProvenance().playbackConfirmed(), "Native capture does not manufacture playback proof");
         assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
         assertFalse(f.storage().containsKey(TaskResponse.KEY));
     }
@@ -66,43 +71,39 @@ class CoordinationVoiceUnitTest {
         f.propose(f.dialogue(), f.live);
         ambientOccasion();
         var response = f.storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
-        assertEquals(response.get("id").getAsString(), f.policy().liveSpeechRequest(f.owner).id().toString());
+        assertEquals(response.get("id").getAsString(), f.policy().liveActivityContext().continuation().id().toString());
         response.addProperty("created", Instant.now().minusSeconds(20).toString());
         response.addProperty("expires", Instant.now().minusSeconds(1).toString());
         f.storage().put(CoreTaskVoice.RESPONSE, response);
-        var ambient = f.policy().liveSpeechRequest(f.owner);
+        var ambient = f.policy().liveActivityContext().continuation();
         assertNotEquals(response.get("id").getAsString(), ambient.id().toString());
         var history = new EventHistory(); history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Wait"));
         ch.zhaw.prometheus.model.behaviour.SensoryRemarks.userTurn(f.storage(), history);
-        assertNotEquals(ambient.id(), f.policy().liveSpeechRequest(f.owner).id());
+        assertNull(f.policy().liveActivityContext().continuation());
     }
-    @Test void approvedHelpCannotCreateAcceptanceOrConsumeTheSavedProposalResponse() {
+    @Test void nativeHelpCannotCreateAcceptanceOrConsumeTheSavedProposalResponse() {
         f.propose(f.dialogue(), f.live);
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
-        String facts = f.policy().liveSpeechRequest(f.owner).facts();
+        String facts = f.policy().liveActivityContext().continuation().facts();
         for (String field : List.of("goal", "humanRole", "agentRole", "success"))
-            assertTrue(facts.contains(f.dialogue().get(field).getAsString()), "Approval must check the actual proposed " + field);
+            assertTrue(facts.contains(f.dialogue().get(field).getAsString()), "Native context must preserve the actual proposed " + field);
         var saved = f.storage().get(CoreTaskVoice.RESPONSE).deepCopy();
         var at = Instant.now().minusMillis(1);
         ch.zhaw.prometheus.model.coordination.CoordinationSupport.pending(f.storage(), f.owner, at, "The proposal is saved. Ask for its terms before accepting.");
         var event = f.hear("The proposal is saved. Do you need more help?", true, Instant.now());
         assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
-        event.speechProvenance(event.speechProvenance().playback(true));
-        assertTrue(f.policy().liveSpeechCaptured(event, f.owner, Instant.now(), Instant.now(), List.of()));
+        assertFalse(f.policy().liveSpeechCaptured(event, f.owner, Instant.now(), Instant.now(), List.of()), "Duplicate capture cannot become proposal consent");
         assertEquals(saved, f.storage().get(CoreTaskVoice.RESPONSE));
         assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
         assertFalse(f.policy().liveResolvedControlReply("yes", f.agent.getEventHistory(), f.owner));
     }
-    @Test void approvedProposalReviewsEverySavedTermEvenWhenBackendSpeechOmitsThem() {
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
+    @Test void nativeProposalReviewsEverySavedTermEvenWhenBackendSpeechOmitsThem() {
         String review = "We can draft a two-sentence invitation together. You supply details and judge it; I edit them. Four contributions total. Shall we start?";
         org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any())).thenReturn(f.update("PROPOSE", f.dialogue(), review));
         f.say("Propose an invitation task without starting", f.live);
         var context = f.policy().liveActivityContext();
         assertTrue(context.continuation().facts().contains("Summarize these proposal facts"));
         assertFalse(context.facts().contains(f.dialogue().get("agentRole").getAsString()));
-        String verifiedFacts = f.policy().liveSpeechRequest(f.owner).facts();
-        assertTrue(f.policy().liveSpeechRequest(f.owner).postCommitOnly());
+        String verifiedFacts = context.continuation().facts();
         for (String key : List.of("goal", "humanRole", "agentRole", "success"))
             {
             assertTrue(verifiedFacts.contains(f.dialogue().get(key).getAsString()));
@@ -142,23 +143,18 @@ class CoordinationVoiceUnitTest {
         assertTrue(delivery.plan(current, List.of()).commands().stream().noneMatch(c -> c.type().equals("session.commentary.append")),
                 "An unconfirmed append must not cause an automatic second question");
     }
-    @Test void correctionHasOneDistinctSpeakingOccasionButKeepsTheCommittedResponse() {
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
+    @Test void uncertainNativeMeaningCannotCreateACorrectionOrAnotherContribution() {
         f.propose(f.dialogue(), f.live);
         org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any()))
                 .thenReturn(f.update("START", null, "What has keys but no locks, space but no room, and Enter but you cannot go inside?"));
         f.say("Start", f.live);
-        var original = f.policy().liveActivityContext().continuation();
         var response = f.storage().get(TaskResponse.KEY).getAsJsonObject().deepCopy();
         Instant started = Instant.parse(response.get("created").getAsString()).plusNanos(1), checked = started.plusNanos(1);
         var check = TaskResponse.claim(f.storage(), f.owner, f.hear("What has many keys but opens no doors?", true, started), started, checked).orElseThrow();
-        assertTrue(TaskResponse.finish(f.storage(), f.owner, check, TaskResponse.Verdict.AMBIGUOUS, checked.plusNanos(1), true));
+        assertTrue(TaskResponse.finish(f.storage(), f.owner, check, TaskResponse.Verdict.AMBIGUOUS, checked.plusNanos(1)));
         assertNull(f.policy().liveActivityContext().continuation());
-        assertTrue(TaskResponse.correct(f.storage(), f.owner, check.segment(), checked.plusNanos(2)));
-        var corrected = f.policy().liveActivityContext().continuation();
-        assertTrue(corrected.correction()); assertNotEquals(original.id(), corrected.id());
-        assertEquals(original.expiresAt(), corrected.expiresAt()); assertEquals(original.facts(), corrected.facts());
-        assertEquals(response.get("id").getAsString(), f.policy().liveSpeechRequest(f.owner).id().toString());
+        assertEquals("UNCERTAIN", TaskResponse.status(f.storage()));
+        assertFalse(f.storage().get(TaskResponse.KEY).getAsJsonObject().has("correctionId"));
         assertEquals(response.get("deadline"), f.storage().get(TaskResponse.KEY).getAsJsonObject().get("deadline"));
         assertEquals(1, f.storage().get(TaskMemory.ACTIONS).getAsInt());
     }
@@ -216,11 +212,10 @@ class CoordinationVoiceUnitTest {
     }
     @Test void completedPreparationReviewsTheSavedTermsAndTotalBudgetBeforeAcceptance() {
         var proposal = f.sensor(true);
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
         f.propose(proposal, f.live);
         f.sign("rock", .95, Instant.now(), f.live); f.sign("paper", .95, Instant.now(), f.live);
         var context = f.policy().liveActivityContext();
-        var request = f.policy().liveSpeechRequest(f.owner);
+        var request = context.continuation();
         for (String key : List.of("goal", "humanRole", "agentRole", "success")) {
             assertTrue(context.continuation().facts().contains(proposal.get(key).getAsString()));
             assertTrue(request.facts().contains(proposal.get(key).getAsString()));
@@ -233,18 +228,16 @@ class CoordinationVoiceUnitTest {
         assertFalse(f.storage().containsKey(TaskMemory.ACTIONS));
     }
     @Test void pendingPreparationNamesTheRequiredEvidenceBeforeRequestingAcceptance() {
-        f.storage().put(ch.zhaw.prometheus.model.policy.LiveSpeechRequest.ENABLED, new com.google.gson.JsonPrimitive(true));
         f.propose(f.sensor(true), f.live);
         var context = f.policy().liveActivityContext();
         var facts = context.facts() + context.continuation().facts();
         assertTrue(context.continuation().selfContained());
-        assertTrue(context.continuation().facts().startsWith("Speak these words verbatim:"));
+        assertTrue(context.continuation().facts().startsWith("Convey these confirmed facts once, preserving their meaning:"));
         assertTrue(facts.contains("Please demonstrate rock, paper for recognition; we will review the terms before acceptance"));
         assertTrue(facts.contains("The proposal is saved and not active"));
         assertFalse(facts.contains("Shall we start?"));
         assertFalse(context.facts().contains(f.sensor(true).get("goal").getAsString()), "Keep broad agreement data out of the quiet control context");
         assertFalse(ch.zhaw.prometheus.model.coordination.CoordinationMemory.ready(f.storage()));
-        assertTrue(f.policy().liveSpeechRequest(f.owner).postCommitOnly());
         assertFalse(f.storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().has("proposalReview"));
         assertFalse(f.storage().containsKey(TaskMemory.ACTIONS));
     }

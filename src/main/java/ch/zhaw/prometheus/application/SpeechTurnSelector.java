@@ -22,6 +22,9 @@ final class SpeechTurnSelector {
             if (Event.TYPE_USER_UTTERANCE.equals(event.getType())) {
                 return Optional.empty();
             }
+            // External speech is capture evidence, not canonical Speech to resume.
+            // Do not fall back to an older utterance after a native/uncertain turn.
+            if (event.speechProvenance() != null) return Optional.empty();
             String speech = speechFromEvent(event);
             if (isPresent(speech)) {
                 return Optional.of(event);

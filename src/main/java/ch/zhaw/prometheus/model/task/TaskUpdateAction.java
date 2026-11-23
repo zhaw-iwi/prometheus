@@ -113,7 +113,8 @@ public class TaskUpdateAction extends Action {
                 + TaskSpec.HAND_CONFIDENCE_GUIDANCE
                 + inferenceGuidance(runtime)
                 + TaskSpec.triggerInstructions() + CompactBehaviourPlan.instructions(true)
-                + (DecorativeGestures.enabled(storage) ? DecorativeGestures.guidance(storage, now) : "");
+                + (DecorativeGestures.enabled(storage) ? DecorativeGestures.guidance(storage, now) : "")
+                + userRequestGuidance(runtime);
         var request = new InferenceRequest(InferencePurpose.EXTRACTION,
                 TaskMemory.messages(events, prompt, runtime.promptMessageAssembler(), now), InferenceRequest.Output.JSON_OBJECT);
         String raw;
@@ -133,6 +134,7 @@ public class TaskUpdateAction extends Action {
         String validationStage = "envelope";
         try {
             update = JsonParser.parseString(raw).getAsJsonObject();
+            if (handleUserRequest(update, events, runtime)) return;
             TaskSpec.exact(update, Set.of("operation", "task", "reply"));
             validationStage = "operation";
             operation = TaskSpec.string(update, "operation", 12);
@@ -205,6 +207,8 @@ public class TaskUpdateAction extends Action {
     protected void validateTaskUpdate(String operation, TaskSpec task) {}
     /** Opt-in wording ownership; the configured prompt and legacy actions remain unchanged. */
     protected String inferenceGuidance(PolicyRuntime runtime) { return ""; }
+    protected String userRequestGuidance(PolicyRuntime runtime) { return ""; }
+    protected boolean handleUserRequest(JsonObject update, EventHistory events, PolicyRuntime runtime) { return false; }
 
     /** Called only after validated state and output are committed to turn-local storage. */
     protected void taskCommitted(String operation, TaskSpec task, TaskSpec.Rule rule,
