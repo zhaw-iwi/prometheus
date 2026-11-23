@@ -50,7 +50,8 @@ public class GalaDinnerAction extends Action {
             case "FAIL_TASK" -> GalaDinnerTaskAction.uncertain(storage);
             case "TURN", "RECEPTION_TURN", "GAMES_TURN" -> {
                 turn(storage, events, runtime, now, !"RECEPTION_TURN".equals(galaOperation), "TURN".equals(galaOperation));
-                if (!present(storage, now)) reply(storage, null);
+                // Keep the control display for a turn accepted during the same departure grace.
+                if (!conversationPresent(storage, now)) reply(storage, null);
             }
             case "PRESENCE" -> {
                 presence(storage, events, runtime, now);
@@ -91,11 +92,14 @@ public class GalaDinnerAction extends Action {
         // or renew the idle timer. In particular, laughter must not become a model-selected QUIET.
         if (utterance.isBlank()) return;
         if (GalaDinnerRps.expired(storage, now)) reception(storage);
+        remove(storage, GalaDinnerRps.ACK_INPUT);
         if (!coCreatedTasks && GalaDinnerInput.countdownAcknowledgement(storage, utterance)) {
             // A lead-in acknowledgement must not move the countdown's speech-freshness boundary.
             traceControl(events, mode(storage), "LOCAL", "WAIT", mode(storage), "countdown_acknowledgement");
             return;
         }
+        boolean contextualCountdown = !coCreatedTasks && GalaDinnerRps.acknowledging(storage, runtime.externalSpeech(), now)
+                && GalaDinnerInput.contextualCountdownAcknowledgementCandidate(utterance);
         boolean acknowledgement = GalaDinnerInput.nonMutatingAcknowledgement(storage, utterance, now);
         GalaDinnerSensing.cancelAmbient(storage);
         if (expiredBeforeTurn(storage, now)) {
@@ -103,9 +107,7 @@ public class GalaDinnerAction extends Action {
             reception(storage);
             put(storage, SESSION, Integer.toString(events.toList().size() - 1));
         }
-        put(storage, LAST_INPUT, now.toString());
-        remove(storage, QUIET);
-        GalaDinnerDialogue.user(storage, utterance, now);
+        if (!contextualCountdown) rememberInput(storage, utterance, now);
         String command = utterance.toLowerCase(Locale.ROOT).replaceAll("[.!?]+$", "").trim();
         if (command.matches("(bitte )?(sei still|ruhe|schweig|still sein)|please be quiet|be quiet")) {
             String before = mode(storage);
@@ -189,7 +191,7 @@ public class GalaDinnerAction extends Action {
         var before = new LinkedHashMap<String, com.google.gson.JsonElement>();
         storage.toMap().forEach((key, value) -> before.put(key, value.deepCopy()));
         try {
-            String prompt = GalaDinnerPrompts.turn(mode, storage.containsKey(EXIT_REQUEST), activities, coCreatedTasks)
+            String prompt = GalaDinnerPrompts.turn(mode, storage.containsKey(EXIT_REQUEST), activities, coCreatedTasks, contextualCountdown)
                     + "\nGesture meanings:\n" + ch.zhaw.prometheus.agentdefs.core.ValerianCorePrompts.DECORATIVE_GESTURES
                     + GalaDinnerGestures.guidance(storage, now) + "\nBackend current mode: " + mode;
             var request = new InferenceRequest(InferencePurpose.BEHAVIOUR,
@@ -211,7 +213,18 @@ public class GalaDinnerAction extends Action {
             if (!EXPRESSIONS.contains(expression)) expression = "attentive";
             if (!GAZES.contains(gaze)) gaze = "toward_user";
             failureStage = "mode_operation";
-            if (!GalaDinnerPrompts.operations(mode, storage.containsKey(EXIT_REQUEST), activities, coCreatedTasks).contains(operation)) throw new IllegalArgumentException("Invalid operation in current mode");
+            if (!(contextualCountdown && "COUNTDOWN_ACK".equals(operation))
+                    && !GalaDinnerPrompts.operations(mode, storage.containsKey(EXIT_REQUEST), activities, coCreatedTasks).contains(operation)) {
+                throw new IllegalArgumentException("Invalid operation in current mode");
+            }
+            if ("COUNTDOWN_ACK".equals(operation)) {
+                if (!GalaDinnerRps.acknowledging(storage, runtime.externalSpeech(), Instant.now()))
+                    throw new IllegalArgumentException("Countdown acknowledgement expired");
+                GalaDinnerRps.acknowledgeInput(storage, events.toList().getLast());
+                traceControl(events, mode, operation, "WAIT", mode, "countdown_acknowledgement");
+                return;
+            }
+            if (contextualCountdown) rememberInput(storage, utterance, now);
             selected = operation;
             String explicitGame = activities && "RECEPTION".equals(mode) ? GalaDinnerInput.explicitGameChoice(utterance) : null;
             if (explicitGame != null) operation = explicitGame;
@@ -286,6 +299,7 @@ public class GalaDinnerAction extends Action {
                     failureStage, mode, failure.getClass().getSimpleName());
             for (String key : storage.toMap().keySet()) if (!before.containsKey(key)) remove(storage, key);
             before.forEach((key, value) -> { if (!storage.containsKey(key) || !value.equals(storage.get(key))) storage.put(key, value); });
+            if (contextualCountdown) rememberInput(storage, utterance, now);
             if (!activities) {
                 // Optional embodiment/control failure must not manufacture an activity invitation.
                 // Live still owns the answer, including explaining unavailable activities.
@@ -302,6 +316,12 @@ public class GalaDinnerAction extends Action {
                     "UNCERTAIN", "thoughtful", "toward_user"));
             traceControl(events, mode, selected, "WAIT", mode(storage), "failed");
         }
+    }
+
+    private static void rememberInput(Storage storage, String utterance, Instant now) {
+        put(storage, LAST_INPUT, now.toString());
+        remove(storage, QUIET);
+        GalaDinnerDialogue.user(storage, utterance, now);
     }
 
     private static void traceControl(EventHistory events, String before, String selected, String applied, String after, String reason) {
@@ -419,8 +439,19 @@ public class GalaDinnerAction extends Action {
 
     private static void presence(Storage storage, EventHistory events, PolicyRuntime runtime, Instant now) {
         boolean playing = "RPS".equals(mode(storage));
+        boolean resuming = storage.containsKey(ABSENT_SINCE);
         GalaDinnerSensing.presence(storage, events, runtime, now);
         if (playing && !"RPS".equals(mode(storage))) ActivityTrace.cue("rps_cancelled", events.toList().getLast().getId());
+        if (resuming && !storage.containsKey(ABSENT_SINCE) && present(storage, now)
+                && runtime.externalSpeech() != null && runtime.taskContinuation().getAsBoolean()
+                && !storage.containsKey(EXIT_REQUEST) && !text(storage, CAPTURE_ID, "").isEmpty()
+                && ("RPS_SETUP".equals(mode(storage)) || "RPS".equals(mode(storage))
+                        && "WAITING".equals(text(storage, GalaDinnerRps.PHASE, "")))) {
+            // Repair a missed opening with the same capture/progress, without replaying speech or hand motion.
+            var response = plan(null, "NONE", "attentive", "toward_user");
+            response.setDisplay(captureDisplay(storage));
+            reply(storage, response);
+        }
     }
     private static void face(Storage storage, Event event, PolicyRuntime runtime, Instant now) {
         GalaDinnerSensing.face(storage, event, runtime, now);

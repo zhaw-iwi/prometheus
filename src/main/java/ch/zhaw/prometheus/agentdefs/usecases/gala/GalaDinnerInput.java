@@ -75,6 +75,16 @@ final class GalaDinnerInput {
                 && (acknowledgement(speech) || java.util.Set.of("ja", "ja bitte", "yes", "yeah", "yep").contains(normalize(speech)));
     }
 
+    static boolean contextualCountdownAcknowledgementCandidate(String speech) {
+        // Positive meaning is classified in context, never by finding a positive word
+        // inside a larger request. Explicit interruption/negation cannot be overruled.
+        return speech.length() <= 512 && !speech.matches(".*[?\"“”„«»].*")
+                && !normalize(speech).matches(".*\\b(?:stopp?|wait|waiting|hold|pause|cancel|quit|stoppen|warte|warten|wartet|halt|"
+                        + "aufhören|aufhoeren|abbrechen|beenden|still|ruhe|schweig|nein|nicht|kein|keine|keinen|no|not|never|"
+                        + "don t|aber|but)\\b.*")
+                && !contextualFollowUp(speech) && !explicitReferenceQuestion(speech);
+    }
+
     static boolean orderedCueSequence(String speech) {
         String value = normalize(speech);
         String hand = "(?:stein|schere|papier|rock|scissors?|paper)";
