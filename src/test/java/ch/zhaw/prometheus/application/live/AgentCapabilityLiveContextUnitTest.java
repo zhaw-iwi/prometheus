@@ -63,7 +63,7 @@ class AgentCapabilityLiveContextUnitTest {
         var off = snapshot(agent, NOW);
         assertFalse(off.instructions().contains(AgentCapabilityDescription.MARKER));
         assertTrue(off.guidance().get("directCommands").contains("rock, paper and scissors"));
-        assertTrue(off.guidance().get("directCommands").contains("Honor explicit silence"));
+        assertTrue(off.guidance().get("directCommands").contains("honor silence"));
         agent.setInteractionProfile(agent.getInteractionProfile().withCapabilityAwareness(true));
         assertNotEquals(off.revision(), snapshot(agent, NOW).revision());
         agent.setInteractionProfile(agent.getInteractionProfile().withExternalRealtimeSpeech(false));
