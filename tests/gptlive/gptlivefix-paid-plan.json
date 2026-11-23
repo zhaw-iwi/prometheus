@@ -1,0 +1,78 @@
+{
+  "schema": "gptlivefix-paid-plan-v4",
+  "dated": "2026-11-18",
+  "maximumAttempts": 12,
+  "reserveUsdPerAttempt": 5,
+  "maximumReservedUsd": 49.5,
+  "models": {
+    "backend": "gpt-5.6-luna",
+    "live": "gpt-live-1",
+    "transcription": "gpt-live-transcribe",
+    "speech": "gpt-4o-mini-tts"
+  },
+  "limits": {
+    "backendRequests": 36,
+    "requestBytes": 80000,
+    "completionTokensPerRequest": 2048,
+    "reportedTokens": 250000,
+    "sessions": 1,
+    "sessionSeconds": 360,
+    "journeySeconds": 390,
+    "visitorTurns": 12,
+    "stimulusCalls": 12,
+    "stimulusCharacters": 6000,
+    "outputSpeechCalls": 12,
+    "outputSpeechCharacters": 6000
+  },
+  "pricing": {
+    "backendInputUsdPerMillion": 0.2,
+    "backendOutputUsdPerMillion": 1.2,
+    "liveUsdPerMinute": 0.05,
+    "transcriptionUsdPerMinute": 0.017,
+    "speechInputUsdPerMillion": 0.6,
+    "speechOutputUsdPerMillion": 12
+  },
+  "sources": [
+    "https://developers.openai.com/api/docs/models/gpt-5.6-luna.md",
+    "https://developers.openai.com/api/docs/models/gpt-4o-mini-tts.md",
+    "https://developers.openai.com/api/docs/pricing"
+  ],
+  "latency": {
+    "baselineOrdinaryTurns": 3,
+    "coordinationOrdinaryTurns": 3,
+    "medianAllowanceOverBaselineMs": 1000,
+    "maximumAllowanceOverBaselineMs": 2000,
+    "p95": "not reported for this small sample",
+    "clock": "browser performance.now; scheduled stimulus last voiced sample to observed native HTML-audio onset",
+    "physicalAudibility": "not measured",
+    "backendIndependence": "deterministic GLF-02 barrier is the causal check; paid timing is observational"
+  },
+  "failurePolicy": "Retain every attempt and its original reserve, including failures. No automatic provider retry or repeated unchanged rerolls. Stop after the twelfth attempt or USD 49.50 cumulative reservations. No further paid trial under this authorization.",
+  "initialBudget": {
+    "maximumAttempts": 8,
+    "reserveUsdPerAttempt": 5,
+    "maximumReservedUsd": 40
+  },
+  "reserveUsdByMode": {
+    "repair-text": 1,
+    "repair-live": 1.5
+  },
+  "amendments": [
+    {
+      "dated": "2026-11-18",
+      "reason": "Preserve all existing reservations; add one instrumented Continuous follow-up for missing observed MP3 output and one Text retest after correcting cue timing. Native retest already fits original eight attempts.",
+      "textReserveBasis": "No audio/session calls. Even 36 requests of 80000 one-byte input tokens plus 2048 output tokens each, including 25% input cache-write premium at declared model rates, cost below USD 0.81; reserve USD 1."
+    },
+    {
+      "dated": "2026-11-18",
+      "reason": "One final native retry after observed WebRTC transport loss, with peer-state diagnostics and already cached visitor audio. No provider synthesis is allowed. Retain all earlier reservations.",
+      "nativeReserveBasis": "36 bounded backend requests below USD 0.81 plus at most six Live minutes at USD 0.05/min, total below USD 1.11; reserve USD 2."
+    },
+    {
+      "dated": "2026-11-18",
+      "reason": "Manual review of automated-pass e48c073b3f found human preparation/consent spoken as an agent duty. One final validation after explicit human-subject support wording and native role-preservation guidance. All earlier reserves retained; no semantic-rubric relaxation.",
+      "nativeReserveBasis": "Cached visitor PCM is mandatory and provider Speech is blocked. Unchanged caps bound backend cost below USD 0.81 plus six Live minutes at USD 0.05/min, total below USD 1.11; reserve USD 1.50. Cumulative USD 49.50, twelve attempts maximum; no further paid trial."
+    }
+  ],
+  "nativeCachedStimuliOnly": true
+}

@@ -4,8 +4,6 @@ import { captureSummary } from "../transcription/settings.js";
 import { LiveCaptions } from "./captions.js";
 import { LiveAudioMonitor } from "./audio-diagnostics.js";
 import { LivePlaybackObserver } from "./playback-cue.js";
-import { ApprovedSpeechPlayer } from "./approved-speech.js";
-import { CommittedSpeechPlayer } from "./committed-speech.js";
 
 export class LiveClient {
   constructor({ audio, fetch = globalThis.fetch.bind(globalThis), createPeer = () => new RTCPeerConnection(),
@@ -75,7 +73,7 @@ export class LiveClient {
   async start({ agentId, accessCode, voice = "marin", mediaPreferences = {}, outputDeviceId = "" }) {
     if (this.busy) throw new Error("Wait for the previous voice session to stop.");
     if (!agentId || !accessCode) throw new Error("Connect an agent first.");
-    const run = { agentId, accessCode, muted: false, generation: ++this.generation, captions: new LiveCaptions(), ledgerKey: "", stopped: false };
+    const run = { agentId, accessCode, muted: false, generation: ++this.generation, captions: new LiveCaptions(), ledgerKey: "", historyDirty: true, stopped: false };
     this.current = run; this.status("Connecting", "Preparing microphone and speakerâ€¦"); this.onCaptions(run.captions.snapshot());
     run.audioMonitor = new LiveAudioMonitor(this.audio, value => this.diagnostic(run, { ...value, browserMs: performance.now() }));
     run.playback = new LivePlaybackObserver(this.audio, cue => {
@@ -107,11 +105,6 @@ export class LiveClient {
         if (this.current !== run) return;
         const remote = event.streams[0] || new MediaStream([event.track]);
         event.track?.addEventListener?.("ended", () => { if (this.current === run) void this.stop("Speaker track ended.", "Disconnected", "output_track_ended"); });
-        if (run.approval) {
-          try { run.approval.stream(remote); }
-          catch (_) { void this.stop('Speech capture could not be attached. Reconnect when ready.', 'Error', 'speech_capture_failed'); }
-          return;
-        }
         this.audio.srcObject = remote;
         run.playback.stream(this.audio.srcObject);
         if (event.track) run.audioMonitor.track(event.track, "output");
@@ -130,11 +123,12 @@ export class LiveClient {
           if (event.type === "session.input_transcript.delta" || event.type === "session.output_transcript.delta")
             this.diagnostic(run, { phase: "caption_received", receiptId: event.event_id, direction: event.type === "session.output_transcript.delta" ? "output" : "input", providerStartMs: event.start_ms, providerEndMs: event.end_ms });
           if (event.type === "session.started") started();
-          if (run.approval && event.type === 'session.output_transcript.delta') {
-            run.approval.receipt(event); return;
-          }
           if (run.captions.receive(event)) {
-            if (event.type === 'session.input_transcript.delta') {if (run.approval) run.approval.inputTranscript(event); else run.playback.input(event.event_id);}
+            if (event.type === 'session.input_transcript.delta' && !run.captions.isReconciled(event.event_id)) {
+              // Acknowledgement-capable countdown cues hold evidence until the backend classifies the complete input.
+              const retained = run.playback.input(event.event_id);
+              this.diagnostic(run, {phase: 'input_boundary', receiptId: event.event_id, outcome: retained ? 'playback_evidence_retained' : 'playback_evidence_reset'});
+            }
             if (event.type === 'session.output_transcript.delta') run.playback.caption(event.event_id);
             this.onCaptions(run.captions.snapshot());
           }
@@ -147,32 +141,20 @@ export class LiveClient {
       await this.gatherIce(run); this.check(run);
       const sdp = run.peer.localDescription?.sdp;
       if (!sdp) throw new Error("Voice connection did not produce an offer.");
-      run.creation = this.api(run, "sessions", { method: "POST", body: JSON.stringify({ sdp, voice, speechApproval: true }) });
+      run.creation = this.api(run, "sessions", { method: "POST", body: JSON.stringify({ sdp, voice }) });
       const session = await run.creation; run.handle = session.handle;
       for (const value of run.pendingDiagnostics || []) this.diagnostic(run, value);
       run.pendingDiagnostics = [];
       if (this.current !== run) { await this.finalize(run); return; }
-      if (session.speechApprovalRequired) {
-        const Player = session.committedSpeechOutput ? CommittedSpeechPlayer : ApprovedSpeechPlayer;
-        run.approval = new Player({audio: this.audio,
-          api: (suffix, options) => this.api(run, `sessions/${run.handle}/${suffix}`, options),
-          diagnostic: value => this.diagnostic(run, value),
-          withheld: detail => { if (this.current === run) this.status("Active", detail, {muted: run.muted}); },
-          status: detail => { if (this.current === run) this.status("Active", detail, {muted: run.muted}); },
-          caption: text => { if (this.current === run) this.onCaptions({...run.captions.snapshot(), ASSISTANT: text}); },
-          played: () => { run.historyDirty = true; void this.poll(); }
-        });
-        await run.approval.prepare(run.media.stream); this.check(run);
-      }
+      if (session.speechApprovalRequired || session.committedSpeechOutput)
+        throw new Error("This session requires an obsolete speech player. Update the server before reconnecting.");
       await run.peer.setRemoteDescription({ type: "answer", sdp: session.sdp }); this.check(run);
       let timer;
       try { await Promise.race([run.started, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("Voice startup timed out.")), this.timeoutMs); })]); }
       finally { clearTimeout(timer); }
       this.check(run);
       await this.api(run, `sessions/${run.handle}/input?muted=false`, { method: "POST" }); this.check(run);
-      run.media.setEnabled(true); this.status("Active", run.approval
-        ? "Replies are checked before playback, so expect a short pause. You can interrupt at any time."
-        : "Speak naturally. You can interrupt while the assistant speaks.", { muted: false });
+      run.media.setEnabled(true); this.status("Active", "Speak naturally. You can interrupt while the assistant speaks.", { muted: false });
       if (this.pollMs) run.timer = setInterval(() => void this.poll(), this.pollMs);
       this.diagnostic(run, { phase: "started" });
     } catch (error) {
@@ -185,8 +167,7 @@ export class LiveClient {
     try {
       const update = await this.api(run, `sessions/${run.handle}/updates?transcriptRevision=${run.transcriptRevision ?? -1}`); this.check(run);
       const status = update.status;
-      if (run.approval) run.approval.update(update.transcripts, update.playbackCue || null, update.speechRequestId);
-      else run.playback.update(update.playbackCue || null, update.transcripts);
+      run.playback.update(update.playbackCue || null, update.transcripts);
       this.diagnostic(run, { phase: "status", status });
       if (status.state !== "attached") {
         const error = new Error("Backend voice connection lost. Reconnect when ready.");
@@ -198,7 +179,7 @@ export class LiveClient {
         run.historyDirty = false;
         const history = await this.api(run, "history"); this.check(run); this.onHistory(history, run.agentId);
       }
-      const ledger = run.approval ? update.transcripts?.filter(s => s.speaker !== 'ASSISTANT') : update.transcripts;
+      const ledger = update.transcripts;
       if (!Array.isArray(ledger)) return;
       const key = ledger.map(value => `${value.segmentId}:${value.status}:${value.eventId}`).join("|");
       if (key !== run.ledgerKey) {
@@ -221,7 +202,7 @@ export class LiveClient {
     try {
       const muted = !run.muted;
       await this.api(run, `sessions/${run.handle}/input?muted=${muted}`, { method: "POST" }); this.check(run);
-      run.muted = muted; run.approval?.mute(muted); run.media.setEnabled(!muted);
+      run.muted = muted; run.media.setEnabled(!muted);
       this.diagnostic(run, { phase: "input_control", outcome: muted ? "muted" : "unmuted" }); this.status("Active", muted ? "Microphone muted. You can still hear the assistant." : "Microphone on.", { muted });
     } catch (error) { if (this.current === run) await this.stop(error.message, "Error", error.liveReason || "input_control_failed"); }
     finally { run.muting = false; }
@@ -233,7 +214,6 @@ export class LiveClient {
     this.audio.pause(); this.audio.muted = true; this.audio.srcObject = null;
     this.diagnostic(run, { phase: "output_end", reason });
     run.audioMonitor.playback("local_stop"); run.audioMonitor.close();
-    run.approval?.close();
     run.playback.close();
     run.media?.release(); run.output?.release(); clearInterval(run.timer);
     run.channel?.close(); run.peer?.close();
@@ -257,6 +237,7 @@ export class LiveClient {
           // Refresh the final ledger without delaying local Stop or finalization status.
           void Promise.all([this.api(run, `transcripts?sessionId=${encodeURIComponent(run.handle)}`), this.api(run, "history")]).then(([ledger, history]) => {
             if (this.generation !== run.generation) return;
+            run.captions.reconcile(ledger); this.onCaptions(run.captions.snapshot());
             this.onLedger(ledger, run.agentId); this.onHistory(history, run.agentId);
           }).catch(() => {});
           return result;

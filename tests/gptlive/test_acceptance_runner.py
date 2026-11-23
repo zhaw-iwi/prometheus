@@ -61,8 +61,23 @@ class AcceptanceRunnerTest(unittest.TestCase):
                           {'OPENAI_MODEL': 'invalid model', 'OPENAI_API_KEY': 'not-a-real-key'},
                           'requires an API key and configured openai.model')
 
+    def test_retired_coordination_player_cannot_bill(self):
+        self.run_rejected(['--paid-core', 'coordination'],
+                          {'OPENAI_MODEL': 'gpt-5.6-luna', 'OPENAI_API_KEY': 'not-a-real-key'},
+                          'committed-Speech Coordination harness is retired')
+
+    def test_unpriced_repair_model_cannot_bill(self):
+        self.run_rejected(['--paid-core', 'repair-live'],
+                          {'OPENAI_MODEL': 'another-model', 'OPENAI_API_KEY': 'not-a-real-key'},
+                          'revise the budget before billing another model')
+
     def test_browser_mode_cannot_be_ignored(self):
         self.run_rejected(['--browser-mode', 'enabled'], {}, 'requires --browser')
+
+    def test_embodiment_cannot_silently_select_an_unrelated_journey(self):
+        for args in (['--embodiment'], ['--embodiment','--classroom-capacity','--browser'], ['--embodiment','--paid-core','live'], ['--embodiment','--paid-gala']):
+            with self.subTest(args=args):
+                self.run_rejected(args, {}, '--embodiment requires')
 
     def test_interaction_cannot_silently_run_as_text(self):
         self.run_rejected(['--paid-core', 'coordination-text', '--coordination-scenario', 'interaction'], {},

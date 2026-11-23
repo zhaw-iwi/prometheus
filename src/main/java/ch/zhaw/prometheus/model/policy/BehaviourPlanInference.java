@@ -60,6 +60,10 @@ final class BehaviourPlanInference {
     }
 
     static BehaviourPlan nonSpeech(List<PromptMessage> context, String authored, boolean gestureOnly, LanguageModelGateway gateway) {
+        return nonSpeech(context, authored, gestureOnly, gateway, null);
+    }
+    static BehaviourPlan nonSpeech(List<PromptMessage> context, String authored, boolean gestureOnly, LanguageModelGateway gateway,
+            java.util.function.Function<JsonObject, BehaviourPlan> commandHandler) {
         if (authored == null || authored.isBlank()) return null;
         var messages = new ArrayList<>(context);
         messages.add(PromptMessage.system("External speech owns the spoken response. Generate only the non-speech complement. "
@@ -70,6 +74,10 @@ final class BehaviourPlanInference {
         JsonObject object = InferenceResult.json(gateway.infer(new InferenceRequest(InferencePurpose.BEHAVIOUR,
                 messages, InferenceRequest.Output.JSON_OBJECT))).getAsJsonObject();
         if (object.has("speech")) throw new IllegalStateException("External speech complement included competing speech");
+        if (commandHandler != null) {
+            var command = commandHandler.apply(object);
+            if (command != null) return command;
+        }
         object = CompactBehaviourPlan.expand(object);
         object.addProperty("speech", "validation-only");
         BehaviourPlan plan = parseCanonical(object, true);

@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import urlopen
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -17,6 +18,9 @@ import subprocess
 import time
 import uuid
 import pymysql
+from paid_budget import reserve
+import commanding_preflight
+from process_guard import run_owned
 
 
 def escalation_cases(root):
@@ -34,6 +38,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
+    parser.add_argument('--embodiment', action='store_true', help='Robot browser regression or real-provider persisted-plan rendering smoke')
     parser.add_argument('--browser-grep', help='Optional Playwright title filter for focused reruns')
     parser.add_argument('--browser-mode', choices=['both', 'enabled', 'disabled'], default='both', help='Select fixture modes for focused browser checks')
     parser.add_argument('--live-only', action='store_true', help='With --browser, omit already verified legacy browser regression specs')
@@ -43,13 +48,27 @@ def main():
     parser.add_argument('--classroom-capacity', action='store_true', help='Dedicated offline six-client minute with MySQL Questions measurement')
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
-    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text'], help='Explicitly paid real OpenAI core journey; local disposable database only')
+    parser.add_argument('--paid-core', choices=['live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text', 'repair-baseline', 'repair-live', 'repair-continuous', 'repair-text', *commanding_preflight.MODES], help='Explicitly paid real OpenAI core journey; local disposable database only')
     parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
+    commanding_authorization = parser.add_mutually_exclusive_group()
+    commanding_authorization.add_argument('--commanding-retests', action='store_true', help='Use the separately authorized two-attempt/$10 envelope for HP-02 and HP-03')
+    commanding_authorization.add_argument('--commanding-hp3-retest', action='store_true', help='Use the separately authorized one-attempt/$5 HP-03 follow-up envelope')
     args = parser.parse_args()
+    repair = bool(args.paid_core and args.paid_core.startswith('repair-'))
+    commanding = args.paid_core in commanding_preflight.MODES
+    if args.commanding_retests and args.paid_core not in ('commanding-hp2','commanding-hp3'):
+        parser.error('--commanding-retests only authorizes commanding-hp2 or commanding-hp3')
+    if args.commanding_hp3_retest and args.paid_core != 'commanding-hp3':
+        parser.error('--commanding-hp3-retest only authorizes commanding-hp3')
+    envelope_name = 'commanding-hp3-retest' if args.commanding_hp3_retest else 'commanding-retests' if args.commanding_retests else 'commanding-paid'
+    commanding_plan = 'tests/gptlive/' + envelope_name + '-plan.json'
+    commanding_ledger = 'target/' + envelope_name + '-budget.json'
     if args.paid_gala and args.browser:
         parser.error('--paid-gala and mocked --browser acceptance are separate runs')
     if args.connection_only and not args.paid_gala:
         parser.error('--connection-only requires --paid-gala')
+    if args.embodiment and (args.paid_gala or args.classroom_capacity or not (args.browser or args.paid_core == 'coordination-text')):
+        parser.error('--embodiment requires --browser or --paid-core coordination-text, without capacity or Gala mode')
     if args.classroom_capacity and (args.paid_core or args.paid_gala or args.browser):
         parser.error('--classroom-capacity requires a separate offline run')
     if args.classroom_capacity and args.java_tests != 'ClassroomCapacityIntegrationTest':
@@ -84,6 +103,16 @@ def main():
         model = os.environ.get('OPENAI_MODEL') or provider_props.get('openai.model', '')
         if not key or key.startswith('${') or args.paid_core and not re.fullmatch(r'[a-zA-Z0-9._:-]{1,128}', model):
             raise SystemExit('Paid core acceptance requires an API key and configured openai.model (or OPENAI_MODEL).' if args.paid_core else 'Paid Gala acceptance requires an API key.')
+        if repair and model != 'gpt-5.6-luna':
+            raise SystemExit('Paid repair plan only prices gpt-5.6-luna; revise the budget before billing another model.')
+        if commanding:
+            plan=json.loads((root/commanding_plan).read_text(encoding='utf-8'))
+            commanding_preflight.validate(plan,model)
+            commanding_preflight.validate_audio(root)
+            commanding_preflight.validate_ledger(root/commanding_ledger,plan,args.paid_core)
+            commanding_preflight.available(key,plan)
+    if args.paid_core == 'coordination':
+        raise SystemExit('The committed-Speech Coordination harness is retired; use --paid-core repair-live.')
     props = {}
     local = root / args.database_properties
     if local.exists():
@@ -100,6 +129,29 @@ def main():
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)
     artifacts.mkdir(parents=True)
+    if args.embodiment:
+        sources = [p for directory in ('src/main', 'src/test', 'tests/playwright', 'tests/js/embodiment')
+                   for p in (root/directory).rglob('*')
+                   if p.is_file() and p.suffix in ('.java', '.js', '.mjs', '.json', '.html', '.css')]
+        sources += [root/'pom.xml', root/'tests/gptlive/run_acceptance.py', root/'playwright.config.mjs',
+                    root/'tests/gptlive/embodiment_browser_smoke.mjs', root/'tests/gptlive/coordination_text_journey.mjs']
+        manifest = {'schema': 'embodiment-acceptance-v1',
+                    'sourceRevision': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
+                    'selection': {'java': args.java_tests, 'browser': args.browser,
+                                  'scenario': args.coordination_scenario, 'paid': bool(args.paid_core)},
+                    'files': {str(p.relative_to(root)).replace('\\','/'): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources},
+                    'limits': {'dbPool': 10, 'scheduledTicks': False,
+                               'providerCalls': 24 if args.paid_core else 0, 'providerTokens': 200000 if args.paid_core else 0}}
+        (artifacts/'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
+    if repair or commanding:
+        sources = [p for directory in ('src/main/java', 'src/main/resources/public', 'src/test/java', 'tests/gptlive', 'tests/playwright')
+                   for p in (root/directory).rglob('*')
+                   if p.is_file() and p.suffix in ('.java', '.js', '.mjs', '.json', '.html', '.css', '.py')]
+        manifest = {'schema': 'commanding-source-v1' if commanding else 'gptlivefix-source-v1',
+                    'sourceRevision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                    'mode': args.paid_core,
+                    'files': {str(p.relative_to(root)).replace('\\', '/'): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}}
+        (artifacts/'source.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     (artifacts / 'escalation-cases.json').write_text(json.dumps(recovery_fixture, indent=2), encoding='utf-8')
     database = pymysql.connect(host=url.hostname, port=url.port or 3306,
         user=os.environ.get('GPTLIVE_MYSQL_ADMIN_USER', props.get('spring.datasource.username')),
@@ -116,25 +168,14 @@ def main():
         PROMETHEUS_SKIP_WEBSERVER='true')
     env['PROMETHEUS_CLASSROOM_CAPACITY'] = 'true' if args.classroom_capacity else 'false'
     maven = ['mvnw.cmd'] if os.name == 'nt' else ['bash', './mvnw']
+    # Isolate acceptance from IDE compilation and classes left by another branch.
+    build_dir = artifacts/'build'
+    maven.append('-Dprometheus.build.directory=' + str(build_dir))
     npm = 'npx.cmd' if os.name == 'nt' else 'npx'
 
     def run(command, name):
         with (artifacts / (name + '.log')).open('w', encoding='utf-8') as log:
-            child = subprocess.Popen(command, env=env, stdout=log, stderr=subprocess.STDOUT,
-                                     start_new_session=os.name != 'nt')
-            try:
-                code = child.wait(timeout=420 if name == 'paid-journey' else 1800)
-            except (subprocess.TimeoutExpired, KeyboardInterrupt):
-                # Stop the owned browser/JVM descendants as well as their launcher.
-                if os.name == 'nt':
-                    subprocess.run(['taskkill', '/PID', str(child.pid), '/T', '/F'],
-                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                   creationflags=subprocess.CREATE_NO_WINDOW)
-                else:
-                    import signal
-                    os.killpg(child.pid, signal.SIGKILL)
-                child.wait(timeout=15)
-                raise
+            code = run_owned(command, env, log, (390 if commanding else 420) if name == 'paid-journey' else 1800)
         print(f'{name}: exit {code}', flush=True)
         if code:
             raise SystemExit(code)
@@ -186,21 +227,46 @@ def main():
                 PROMETHEUS_SPEECH_URL='https://api.openai.com/v1/audio/speech',
                 PROMETHEUS_LIVE_SESSIONS_URL='https://api.openai.com/v1/live/sessions',
                 PROMETHEUS_LIVE_ENABLED='true', PROMETHEUS_LIVE_REQUEST_TIMEOUT_MS='30000')
+            if args.embodiment:
+                env.update(PROMETHEUS_LIVE_ENABLED='false', PROMETHEUS_PROVIDER_MAX_REQUESTS='24',
+                    PROMETHEUS_PROVIDER_MAX_TOKENS='200000', PROMETHEUS_PROVIDER_MAX_SESSIONS='0',
+                    OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000')
             if escalation:
                 env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='24', PROMETHEUS_PROVIDER_MAX_TOKENS='200000',
                     PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
                     OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000')
                 for purpose in ('BEHAVIOUR', 'NONVERBAL', 'DECISION', 'EXTRACTION', 'SUMMARY'):
                     env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
+            if repair or commanding:
+                plan = json.loads((root/(commanding_plan if commanding else 'tests/gptlive/gptlivefix-paid-plan.json')).read_text(encoding='utf-8'))
+                env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='36', PROMETHEUS_PROVIDER_MAX_TOKENS='250000',
+                    PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
+                    OPENAI_MAX_COMPLETION_TOKENS='2048', OPENAI_REQUEST_TIMEOUT_MS='30000',
+                    PROMETHEUS_SPEECH_MODEL='gpt-4o-mini-tts', PROMETHEUS_LIVE_MODEL='gpt-live-1')
+                env['PROMETHEUS_PROVIDER_MAX_SPEECH_CALLS'] = '12' if args.paid_core == 'repair-continuous' else '0'
+                if args.paid_core == 'repair-text':
+                    env['PROMETHEUS_PROVIDER_MAX_SESSIONS'] = '0'
+                for purpose in ('BEHAVIOUR', 'NONVERBAL', 'DECISION', 'EXTRACTION', 'SUMMARY'):
+                    env['OPENAI_ROUTES_' + purpose + '_MODEL'] = model
+                    env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
+                    env['OPENAI_ROUTES_' + purpose + '_TIMEOUT_MS'] = '30000'
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
             fixture_root = artifacts / 'provider-classes'
             fixtures = fixture_root / 'fixtures' / 'provider'
             fixtures.mkdir(parents=True)
-            for source in (root / 'target/test-classes/fixtures/provider').glob('*.class'):
+            for source in (build_dir / 'test-classes/fixtures/provider').glob('*.class'):
                 shutil.copy2(source, fixtures / source.name)
-            classpath = os.pathsep.join([str(root / 'target/classes'), str(fixture_root), (artifacts / 'classpath.txt').read_text().strip()])
+            classpath = os.pathsep.join([str(build_dir / 'classes'), str(fixture_root), (artifacts / 'classpath.txt').read_text().strip()])
             env['PROMETHEUS_PROVIDER_ARTIFACT'] = str(artifacts / 'provider.jsonl')
+            if repair or commanding:
+                ledger = root/(commanding_ledger if commanding else 'target/gptlivefix-paid-budget.json')
+                if commanding: commanding_preflight.validate_ledger(ledger,plan,args.paid_core)
+                reservation = reserve(ledger, plan, args.paid_core, artifacts)
+                (artifacts/'paid-plan.json').write_text(json.dumps(plan, indent=2), encoding='utf-8')
+                env['PROMETHEUS_COMMANDING_BUDGET_LEDGER' if commanding else 'PROMETHEUS_REPAIR_BUDGET_LEDGER'] = str(ledger)
+                if commanding: env['PROMETHEUS_COMMANDING_PAID_PLAN'] = str(artifacts/'paid-plan.json')
+                print('Paid '+('commanding' if commanding else 'repair')+' cumulative reserved ceiling: $' + str(reservation['reservedUsd']), flush=True)
             with socket.socket() as port_socket:
                 port_socket.bind(('127.0.0.1', 0))
                 port = port_socket.getsockname()[1]
@@ -223,7 +289,13 @@ def main():
                     run(['node', 'tests/gptlive/gala_backend_journey.mjs', '--allow-paid-provider', str(artifacts / 'journey.json'),
                         '--game=' + args.game, *(['--connection-only'] if args.connection_only else [])], 'paid-journey')
                 else:
+                    if args.embodiment:
+                        env['PROMETHEUS_EMBODIMENT_SMOKE'] = 'true'
                     journey = 'coordination_text_journey.mjs' if args.paid_core == 'coordination-text' else 'core_backend_journey.mjs'
+                    if repair:
+                        journey = 'gptlivefix_journey.mjs'
+                    if commanding:
+                        journey = 'commanding_journey.mjs'
                     run(['node', 'tests/gptlive/' + journey, '--allow-paid-provider', str(artifacts / 'journey.json'),
                         '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()
@@ -233,9 +305,9 @@ def main():
             # Isolate just the explicit fixtures; unrelated test controllers never enter component scanning.
             fixtures = artifacts / 'fixture-classes' / 'fixtures' / 'gptlive'
             fixtures.mkdir(parents=True)
-            for source in (root / 'target/test-classes/fixtures/gptlive').glob('*.class'):
+            for source in (build_dir / 'test-classes/fixtures/gptlive').glob('*.class'):
                 shutil.copy2(source, fixtures / source.name)
-            classpath = os.pathsep.join([str(root / 'target/classes'), str(artifacts / 'fixture-classes'),
+            classpath = os.pathsep.join([str(build_dir / 'classes'), str(artifacts / 'fixture-classes'),
                 (artifacts / 'classpath.txt').read_text().strip()])
             for enabled in (('true', 'false') if args.browser_mode == 'both' else ('true',) if args.browser_mode == 'enabled' else ('false',)):
                 with socket.socket() as port_socket:
@@ -258,19 +330,27 @@ def main():
                             time.sleep(0.5)
                     else:
                         raise RuntimeError('Isolated app startup timed out.')
-                    specs = ['tests/playwright/valerian-gptlive-smoke.spec.mjs', 'tests/playwright/valerian-state-view.spec.mjs',
+                    specs = ['tests/playwright/valerian-instance-labels.spec.mjs', 'tests/playwright/valerian-commanding.spec.mjs', 'tests/playwright/valerian-gptlive-smoke.spec.mjs', 'tests/playwright/valerian-gptlive-native.spec.mjs', 'tests/playwright/valerian-continuous-smoke.spec.mjs', 'tests/playwright/valerian-state-view.spec.mjs',
                         'tests/playwright/valerian-state-graph.spec.mjs']
                     if enabled == 'true':
                         specs += ['tests/playwright/valerian-gptlive.spec.mjs']
                         if not args.live_only:
                             specs += ['tests/playwright/valerian-lifecycle.spec.mjs', 'tests/playwright/valerian-transcription.spec.mjs',
                                 'tests/playwright/valerian-column-expansion.spec.mjs', 'tests/playwright/valerian-classroom-smoke.spec.mjs']
+                    if args.embodiment:
+                        specs = ['tests/playwright/valerian-embodiment.spec.mjs', 'tests/playwright/valerian-lifecycle.spec.mjs',
+                            'tests/playwright/valerian-transcription.spec.mjs', 'tests/playwright/valerian-column-expansion.spec.mjs']
                     run([npm, 'playwright', 'test', '--config=playwright.config.mjs', *specs,
                         '--output=' + str(artifacts / ('browser-' + enabled)),
                         *(['--grep', args.browser_grep] if args.browser_grep else [])], 'browser-' + enabled)
                     stop()
     finally:
         stop()
+        if args.embodiment or commanding:
+            final_hashes = {str(p.relative_to(root)).replace('\\','/'): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources if p.exists()}
+            manifest['filesAtEnd'] = final_hashes
+            manifest['sourceChangedDuringRun'] = [name for name, value in manifest['files'].items() if final_hashes.get(name) != value]
+            (artifacts/('source.json' if commanding else 'manifest.json')).write_text(json.dumps(manifest, indent=2), encoding='utf-8')
         capacity_report = root / 'target/classroom-capacity-report.json'
         if args.classroom_capacity and capacity_report.exists():
             try:

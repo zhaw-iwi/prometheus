@@ -285,6 +285,7 @@ window.addEventListener("beforeunload", cleanupAll);
 window.addEventListener("pagehide", cleanupAll);
 
 async function init() {
+  globalThis.ValerianEmbodiment?.init();
   camera.video = document.getElementById("camera_video");
   camera.canvas = document.getElementById("overlay_canvas");
   camera.ctx = camera.canvas.getContext("2d");
@@ -1023,13 +1024,25 @@ function renderAgents() {
     }
     const option = document.createElement("option");
     option.value = id;
-    option.textContent = prometheusFacingText(agent.name || id, agentPersonaName(agent));
+    const label = instanceLabel(agent);
+    option.textContent = globalThis.PrometheusInstanceLabels.optionLabel(label);
+    option.title = `${label}\nInstance ID: ${id}`;
     select.appendChild(option);
   }
   if (state.selectedAgentId) {
     select.value = state.selectedAgentId;
   }
-  updateAgentSelectionControls();
+  updateSelectedAgentStatus();
+}
+
+function instanceLabel(agentOrId) {
+  const requestedId = typeof agentOrId === 'string' ? agentOrId : agentIdOf(agentOrId);
+  const entries = [...state.agents];
+  if (agentOrId && typeof agentOrId === 'object') entries.push(agentOrId);
+  const labels = globalThis.PrometheusInstanceLabels.labels(entries.map(agent => ({
+    id: agentIdOf(agent), name: prometheusFacingText(agent.name, agentPersonaName(agent)),
+  })));
+  return labels.get(requestedId) || globalThis.PrometheusInstanceLabels.labels([{id:requestedId}]).get(requestedId) || '';
 }
 
 async function createAgentInstance() {
@@ -1061,10 +1074,7 @@ async function createAgentInstance() {
       await selectAgent(createdId, { updateInput: true, updateSelect: true });
     }
     setAgentTypeStatus("Instance created.", "success");
-    appendLog("app", `created ${prometheusFacingText(
-      agent.name || createdId || "agent instance",
-      agentPersonaName(agent),
-    )}.`);
+    appendLog("app", `created ${instanceLabel(agent)}.`);
   } catch (error) {
     setAgentTypeStatus("Create failed.", "error");
     appendLog("app", "create agent failed: " + error.message);
@@ -1190,7 +1200,7 @@ async function loadAgentInfo() {
     const data = await response.json();
     if (!currentConnection(connection)) return false;
     state.agentInfo = data;
-    document.getElementById("agent_info_name").textContent = prometheusFacingText(data.name, data.personaName) || "-";
+    document.getElementById("agent_info_name").textContent = instanceLabel({...data, id:state.agentId}) || "-";
     document.getElementById("agent_info_description").textContent = prometheusFacingText(
       data.description,
       data.personaName,
@@ -1443,6 +1453,7 @@ function currentProfileSupportsObservation(observation) {
 
 function updateSelectedAgentStatus() {
   const selected = state.selectedAgentId || document.getElementById("agent_id_input").value.trim();
+  setText("selected_agent_identity", selected ? instanceLabel(selected) : "");
   const text = state.agentId
     ? `Connected to ${state.agentId}`
     : selected
@@ -2146,6 +2157,7 @@ async function sendTextInput() {
 }
 
 async function sendUserUtterance(text, options = {}) {
+  globalThis.ValerianEmbodiment?.settle();
   if (!state.agentId || !text || liveVoice.ui?.busy) {
     return false;
   }
@@ -2278,7 +2290,7 @@ function handleBehaviourEnvelope(event, options = {}) {
   }
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "sse_received");
   liveVoice.ui?.event({ ...event, id: event.id || options.eventId });
-  if (!liveVoice.ui?.busy && event.provenance?.origin !== "BACKEND_INTENT") queueBehaviourSpeech(plan, options);
+  if (!liveVoice.ui?.busy && !event.provenance) queueBehaviourSpeech(plan, options);
   const keys = behaviourEventKeys(event, options.eventId);
   if (keys.some((key) => state.seenBehaviourKeys.has(key))
     || (!event.provenance && !options.fromHistory && recentBehaviourPayloadSeen(event.payload))) {
@@ -2290,11 +2302,12 @@ function handleBehaviourEnvelope(event, options = {}) {
   if (!options.fromHistory) {
     rememberRecentBehaviourPayload(event.payload);
   }
-  renderBehaviourPlan(plan, { preserveNonSpeech: event.provenance?.origin === "NATIVE" });
+  renderBehaviourPlan(plan, { ...options, preserveNonSpeech: event.provenance?.origin === "NATIVE" });
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "rendered");
   renderLatestEvent(event);
   if (options.renderTranscript !== false && typeof plan.speech === "string" && plan.speech.trim()) {
-    appendMessage("assistant", plan.speech.trim(), event.id || options.eventId);
+    appendMessage("assistant", plan.speech.trim(), event.id || options.eventId,
+      event.provenance?.complete === false ? "Incomplete capture" : "");
   }
 }
 
@@ -2660,6 +2673,9 @@ function renderBehaviourPlan(plan, options = {}) {
   }
   if (plan.display?.mode === "game_result" && plan.display.roundId && camera.handRoundId
       && plan.display.roundId !== camera.handRoundId) return;
+  const capabilities = resolveInteractionCapabilities(state.agentInfo?.interactionProfile);
+  globalThis.ValerianEmbodiment?.receive(plan, { ...options,
+    modalities: capabilities.fallbackAll ? null : capabilities.supportedBehaviourModalities });
   if (!options.preserveNonSpeech) resetBehaviourPanels();
   if (typeof plan.speech === "string" && plan.speech.trim()) {
     setText("speech_preview", plan.speech.trim());
@@ -6038,7 +6054,7 @@ function renderLatestEvent(event) {
   setText("latest_behaviour_event", payload ? `${event.type}: ${payload}` : event.type);
 }
 
-function appendMessage(role, text, eventId = null) {
+function appendMessage(role, text, eventId = null, label = "") {
   if (eventId && state.seenConversationEvents.has(eventId)) return;
   if (eventId) state.seenConversationEvents.add(eventId);
   const list = document.getElementById("messages");
@@ -6046,7 +6062,11 @@ function appendMessage(role, text, eventId = null) {
   row.className = `demo-message ${role}`;
   const bubble = document.createElement("div");
   bubble.className = "demo-bubble";
-  bubble.textContent = text;
+  if (label) {
+    const heading = document.createElement("div"); heading.className = "small fw-semibold mb-1";
+    heading.textContent = label; bubble.append(heading);
+  }
+  const content = document.createElement("span"); content.textContent = text; bubble.append(content);
   row.appendChild(bubble);
   list.appendChild(row);
   list.scrollTop = list.scrollHeight;
@@ -6075,6 +6095,7 @@ function resetCockpitColumns() {
   setSpeechPlaybackStatus("Playback Ready", "idle", false);
   resetSensingState();
   resetBehaviourPanels();
+  globalThis.ValerianEmbodiment?.clear();
   setBehaviourStatus("Behaviour Idle", "idle");
 }
 
@@ -6184,7 +6205,7 @@ function setControlsEnabled(enabled) {
     "gptlive_tab",
   ]);
   document.querySelectorAll("button, textarea, select, input").forEach((el) => {
-    if (alwaysEnabled.has(el.id) || el.hasAttribute("data-theme-toggle") || el.hasAttribute("data-state-action") || el.hasAttribute("data-hand-report-action") || el.classList.contains("btn-close") ||
+    if (alwaysEnabled.has(el.id) || el.hasAttribute("data-embodiment-mode") || el.hasAttribute("data-theme-toggle") || el.hasAttribute("data-state-action") || el.hasAttribute("data-hand-report-action") || el.classList.contains("btn-close") ||
       el.hasAttribute("data-column-maximize") || el.dataset.bsDismiss === "offcanvas" ||
       el.dataset.bsToggle === "collapse") {
       return;
@@ -6293,6 +6314,7 @@ function setCameraStatus(text, mode) {
 }
 
 function cleanupAll() {
+  globalThis.ValerianEmbodiment?.dispose();
   globalThis.PrometheusObservationTiming?.stop();
   state.isPageUnloading = true;
   stateView.dock();

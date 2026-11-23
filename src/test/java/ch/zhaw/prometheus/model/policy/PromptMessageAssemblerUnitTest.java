@@ -114,7 +114,9 @@ class PromptMessageAssemblerUnitTest {
         history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Tell Valerian hello."));
         for (var bound : List.of(
                 assembler.forCapabilities(profile).forEmbodiment(AgentEmbodiment.ROBOT),
+                assembler.forCapabilities(profile).forPersonaName("Gigi"),
                 assembler.forEmbodiment(AgentEmbodiment.ROBOT).forCapabilities(profile))) {
+            assertEquals(profile.toJson(), bound.capabilities().toJson());
             var messages = bound.compose(history, "You are Valerian.", "Valerian should answer.");
             assertEquals("You are Gigi.", messages.getFirst().getContent());
             assertEquals("Gigi should answer.", messages.getLast().getContent());

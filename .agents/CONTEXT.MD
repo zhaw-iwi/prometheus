@@ -81,6 +81,49 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
+Current work is `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–05 acceptance
+is complete (current task narration, shared one-shot commands and voice/mode
+alignment). Commands derive from persisted profile tags and declared outputs,
+use admitted history positions for deduplication, and emit canonical plans.
+Valerian instance labels use stable unique short ID suffixes; stored names and
+full selection/request IDs are unchanged. All four required provider journeys
+passed, including Coordination direct commands/silent output, current task
+acceptance and one confirmed contribution, Live Multimodal supported/unsupported
+requests, and matched ordinary timing. Malformed optional command metadata cannot
+close native capture; guidance forbids substituting a previous gesture for an
+unavailable action and separates user silence from native speech ownership.
+The final HP-03 provider retest confirms both interpretation corrections.
+The owner authorized sequential milestones with commit/push after each. Paid
+authorizations were $40/eight attempts, $10/two retests and $5/one HP-03 follow-up;
+all eleven/$55 reservations are consumed, including failures. Preserve all three
+commanding ledgers and the separate completed repair ledger. No further paid
+attempt is authorized. Physical microphone/speaker checks remain NOT RUN; minor
+repeated spoken prefixes remain a fluency limitation. The owner subsequently
+authorized the HRI merge and this agents/Heroku promotion. See
+`.agents/TOWARDSCOMMANDING_DEPLOYMENT.md` for integration/release evidence and
+`.agents/TOWARDSCOMMANDING_RESULTS.md` for the exact verification and limits.
+Agents merge `223ad2a9` deployed as Heroku valerian v171 on November 19, 15:44 CET.
+Health, dyno, certificate-verified read-only DB access, served asset hashes and
+read-only cockpit rendering passed. The experiment branch is pushed as `d7d3b303`.
+
+The 2026-11-18 GPT-Live repair committed GLF-01 (`f7c1033c`), GLF-02
+(`807f60cb`), GLF-03 (`973629b5`) and GLF-04 (`3de61cec`) on main.
+Native Coordination audio is independent of backend inference/capture, while
+Text/Continuous retain canonical event Speech. Semantic task association and
+scoped playback evidence preserve backend authority; help is separate from
+proposal consent, and incomplete captures cannot authorize completion or replay.
+GLF-05 removes the retired approval/synthesis route and supplies integrated
+regressions, passing bounded real-provider happy paths, retained failure/latency
+evidence and an operator checklist. Provider and physical status are separate in the per-mode
+matrix in `.agents/GPTLIVEFIX_RESULTS.md`; physical checks remain NOT RUN.
+The preceding owner-authorized 2026-11-19 agents merge `dfc1211a` deployed as Heroku
+valerian v170, with health, asset hashes and read-only cockpit verification.
+The current owner instruction authorizes sequential milestones with a commit/push
+after each, plus bounded OpenAI happy-path smoke tests costing less than $50 total.
+Pause for an unforeseen owner decision. Physical acceptance is not established by
+synthetic/browser observations. Historical deployment permissions do not carry
+forward; follow `.agents/PLAN_GPTLIVEFIX.md` and current session instructions.
+
 PROMETHEUS currently provides:
 
 - a new Coordination Agent with persisted partial/accepted dialogue or sensor
@@ -94,37 +137,18 @@ PROMETHEUS currently provides:
   append acknowledgements. Retained native capture supports bounded assistant
   sentence assembly; user interruption, original capture/response deadlines and
   separate playback evidence remain authoritative.
-  Following owner approval, fresh Coordination Live sessions use the existing
-  output-only Speech gateway for committed replies while retaining Live input.
-  Exact words are stored separately from narration instructions. Proposal reviews
-  preserve saved roles, success, preparation and total limits; support and task
-  contributions keep their own response identity and authority. Native output
-  stays inaudible and cannot claim a synthesized task response. Other agents keep
-  their current voice paths; the earlier native approval/correction path remains
-  independently tested.
-  One durable synthesis claim and one durable release prevent automatic retries
-  or replay after uncertainty. Provider work runs outside transactions/agent locks,
-  with bounded concurrency and PCM size, and rechecks owner/epoch/revision,
-  interruption, supersession and the original 45/60-second response/playback bounds.
-  Transient sensory remarks retain their shorter admission deadline. The player
-  requires actual source end plus observed output before acknowledging playback;
-  final contributions still require the separate scoped cue before Reflection.
-  Synthesized behaviour events carry explicit SYNTHESIZED provenance and enter
-  conversation, prompts and proposal-consent evidence only after playback.
-  The canonical behaviour Speech endpoint still rejects unheard speech/intents.
-  Task prompts exclude unheard drafts before their size bound; feedback receives
-  the actual prior delivered question and must evaluate all defining clues.
-  Native capture still validates reflected media ranges, distinguishes arrival
-  jitter from missing PCM and retains its existing 30-second capture limit.
-  Committed playback takes immediate interruption from the microphone monitor,
-  not delayed native captions. Tiny structural input fragments over five seconds
-  of continuously measured silence remain incomplete audit evidence; ordinary
-  words, recent voice and missing/gapped audio retain normal admission. This is
-  a narrow noise guard, not a general transcription-error detector.
-  Sideband writes remain serialized within the existing timeout. Synthesis changes
-  delivery fidelity, not the factual validity of backend content. Current real-
-  provider acceptance and retained failures are in `.agents/ESCALATION_RESULTS.md`;
-  physical audibility remains unverified.
+  Native Live audio plays independently of backend inference and transcript
+  assembly. Task meaning is associated after capture, while final delivery still
+  needs a separate scoped browser playback cue. Partial captures remain visible
+  with an incomplete label and are excluded from complete prompt/consent and
+  canonical Speech replay. Help cannot become proposal consent. The current
+  browser no longer selects approval or committed-Speech players, and does not
+  interrupt output from a local microphone RMS threshold. The provider owns
+  native barge-in; browser input boundaries fence playback evidence.
+  The former approval/synthesis implementation, endpoints and paid harness are
+  retired. Legacy session output flags remain always false on the wire and are
+  cleared from saved policy selection on a fresh claim. No graph/history migration.
+  Current verification and limits are in `.agents/GPTLIVEFIX_RESULTS.md`.
   Bounded content-free journals explain transitions;
   it reuses the Generic/Social Space persona, knowledge, perception
   admission and task controls. Cross-phase support uses the shared user action,
@@ -181,6 +205,12 @@ PROMETHEUS currently provides:
 - an explicit Valerian cockpit lifecycle in which operational columns stay
   empty until connection, hydrate only from the connected agent, and clear on
   switch, failed connection, disconnect, logout, or re-entry;
+- an alternative Valerian Details / Robot middle region between unchanged Speech
+  and Latest Behaviour Event. Locally authored 3D geometry consumes canonical
+  plans, with static history/replay, bounded fresh gestures, explicit sign
+  precedence, reduced motion and WebGL fallback. Display data stays inspectable;
+  no inference, sensing, audio or study-protocol changes. Scope/evidence:
+  `.agents/PLAN_EMBODIMENT.md` and `.agents/EMBODIMENT_RESULTS.md`;
 - a detachable Diagnostics state view: a movable/maximisable floating panel or
   cockpit-owned popup reuses the existing state rendering and monitor stream,
   follows connection changes and returns to Diagnostics when dismissed. Its

@@ -22,10 +22,9 @@ class CoordinationDeliveryUnitTest {
         assertNull(f.policy().liveActivityContext().continuation());
         assertFalse(f.policy().liveResolvedControlReply("yes", f.agent.getEventHistory(), f.owner));
         f.storage().put(CoreTaskVoice.INVITATION, new JsonPrimitive(Instant.now().minusMillis(1).toString()));
-        var invitation = f.hear("Shall we start the saved proposal now?", true, Instant.now());
+        f.hear("Shall we start the saved", false, Instant.now());
         assertFalse(f.policy().liveResolvedControlReply("yes", f.agent.getEventHistory(), f.owner));
-        invitation.speechProvenance(invitation.speechProvenance().playback(true));
-        f.policy().liveSpeechCaptured(invitation, f.owner, Instant.now(), Instant.now(), List.of());
+        f.hear("Shall we start the saved proposal now?", true, Instant.now());
         assertTrue(f.policy().liveResolvedControlReply("yes", f.agent.getEventHistory(), f.owner));
         f.turn("START", null, "yes", f.live); assertEquals("EXECUTION", CoordinationMemory.stage(f.storage()));
     }

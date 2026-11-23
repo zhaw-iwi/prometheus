@@ -8,6 +8,28 @@ import org.junit.jupiter.params.provider.CsvSource;
 import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.*;
 
 class LiveTranscriptSegmenterUnitTest {
+    @Test void delayedTailOfTheSameUserTurnDoesNotInterruptNativeOutput() {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);
+        capture.fragment(fragment("input", Speaker.USER, 0, 200, 200, "Can you help"));
+        capture.fragment(fragment("output", Speaker.ASSISTANT, 200, 400, 400, "I can"));
+        assertTrue(capture.fragment(fragment("input-tail", Speaker.USER, 400, 600, 600, ".")).isEmpty());
+        capture.fragment(fragment("output-tail", Speaker.ASSISTANT, 400, 600, 600, " help you plan."));
+        // Genuine new voiced input still interrupts the complete available prefix.
+        var interrupted = capture.userActivity(700).getFirst();
+        assertEquals(Closure.INCOMPLETE, interrupted.closure());
+        assertEquals("I can help you plan.", interrupted.text());
+        assertEquals(2, interrupted.fragments().size());
+    }
+    @Test void adjacentReceiptAfterAnInterruptedPrefixIsNotDroppedAsLate() {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);
+        capture.fragment(fragment("prefix", Speaker.ASSISTANT, 200, 400, 400, "We can"));
+        assertEquals("We can", capture.interrupt(Speaker.ASSISTANT, "user_interrupted").getFirst().text());
+        assertTrue(capture.fragment(fragment("adjacent", Speaker.ASSISTANT, 400, 600, 600, " try")).isEmpty());
+        capture.fragment(fragment("tail", Speaker.ASSISTANT, 600, 800, 800, " a small task."));
+        var remaining = capture.close().getFirst();
+        assertEquals(" try a small task.", remaining.text());
+        assertEquals(2, remaining.fragments().size());
+    }
     @ParameterizedTest @CsvSource({"0,COMPLETE", "800,INCOMPLETE"})
     void reflectedMediaRangesDistinguishArrivalDelayFromDroppedAudio(int mediaGap, Closure expected) {
         var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);

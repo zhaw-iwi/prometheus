@@ -185,24 +185,6 @@ test('production observer samples before a cue and discards evidence on stream r
   }
 });
 
-
-test('buffered playback binds receipts after initial media warmup but never after a later stall', () => {
-  for (const failure of ['none', 'stall', 'interruption']) {
-    const f = fixture(), observer = new LivePlaybackObserver({}, () => {}); observer.gate = f.gate;
-    observer.scheduled({...f.cue, segmentId: 'speech'}, ledger()[0]);
-    observer.sample({voiced: false, playable: false, mediaTime: 0});
-    assert.equal(f.gate.receipts.size, 0);
-    observer.sample({voiced: true, playable: true, mediaTime: .05});
-    assert.equal(f.gate.receipts.size, 1);
-    if (failure === 'stall') observer.sample({voiced: true, playable: false, mediaTime: .05});
-    if (failure === 'interruption') observer.interrupt();
-    for (let i = 0; i < 10; i++) f.sample(true);
-    f.quiet();
-    assert.deepEqual(f.seen, failure === 'none' ? ['round-one'] : []);
-    observer.close();
-  }
-});
-
 test('countdown acknowledgements retain audio but block execution until the backend confirms the complete input', () => {
   const f = fixture(), cue = {...f.cue, segmentId: 'speech', allowAcknowledgements: true};
   f.gate.update({...cue, segmentId: null}); f.speak(); f.gate.input('ready-yes');
@@ -272,4 +254,18 @@ test('late acknowledgement captions use durable receipt classification; missing 
   g.gate.update(pending, ledger()); g.speak(); g.gate.input('unknown'); g.quiet();
   assert.deepEqual(g.seen, []);
   g.gate.update(null); g.gate.update(pending, ledger()); g.quiet(); assert.deepEqual(g.seen, []);
+});
+
+test('observer input reports retained evidence only for acknowledgement-capable cues', () => {
+  for (const allowAcknowledgements of [true, false]) {
+    const f = fixture(), observer = new LivePlaybackObserver({}, () => {}); observer.gate = f.gate;
+    observer.update({...f.cue, segmentId: 'speech', allowAcknowledgements}, ledger()); f.speak();
+    assert.equal(observer.input('ready-yes'), allowAcknowledgements);
+    assert.equal(f.gate.cue != null, allowAcknowledgements);
+    observer.close();
+  }
+  const f = fixture(), observer = new LivePlaybackObserver({}, () => {}); observer.gate = f.gate;
+  observer.update({...f.cue, segmentId: 'speech', allowAcknowledgements: true}, ledger()); f.speak();
+  assert.equal(observer.input('bad id with spaces'), false);
+  observer.close();
 });

@@ -1,5 +1,13 @@
 # ES-08 speech delivery decision (2026-11-12)
 
+**2026-11-18 supersession:** the owner now chooses native immediate GPT-Live
+conversation with meaning-preserving wording variation. Strict canonical Speech
+belongs in Text/Continuous. `.agents/PLAN_GPTLIVEFIX.md` supersedes this document's
+desired output architecture and historical execution permissions. Retain the
+failure/acceptance evidence below. GLF-01 protects mode contracts and Continuous
+parity; the runtime still uses this committed-Speech route until GLF-02. Current
+progress and limits are in `.agents/GPTLIVEFIX_RESULTS.md`.
+
 Status: owner approved existing Speech for committed replies on 2026-11-12.
 Implementation and the agreed ES-08 behavioural acceptance are complete. Three
 real-provider journeys have separate semantic PASS reviews on the same source

@@ -26,8 +26,6 @@ public class TaskPolicy extends Policy {
     public boolean liveIncompleteResponseIsFailure() { return false; }
     /** Maximum verified unrelated segments that may be skipped within the original response deadline. */
     public int liveUnrelatedResponseAllowance() { return 0; }
-    /** Opt in only when the client withholds unapproved audio and rechecks current release authority. */
-    public boolean liveUnheardResponseCorrection() { return false; }
     public void setConfiguredInstructions(String instructions) { this.taskInstructions = instructions; }
     @Override public String describe() {
         return voiceInstructions() + "\n" + TaskMemory.description(storage);
@@ -49,7 +47,10 @@ public class TaskPolicy extends Policy {
         if (storage.containsKey(DecorativeGestures.REQUIRED)) storage.remove(DecorativeGestures.REQUIRED);
         return DecorativeGestures.publish(storage, plan, required, java.time.Instant.now());
     }
-    @Override public void reset() { if (DecorativeGestures.enabled(storage)) DecorativeGestures.clear(storage); }
+    @Override public void reset() {
+        if (DecorativeGestures.enabled(storage)) DecorativeGestures.clear(storage);
+        ch.zhaw.prometheus.model.behaviour.DirectCommands.clear(storage);
+    }
     @Override public BehaviourPlan onRespond(State state, EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway gateway) { return null; }
     @Override public String summarise(State state, EventHistory events, PromptMessageAssembler assembler, LanguageModelGateway gateway) { return TaskMemory.description(storage); }
 }
