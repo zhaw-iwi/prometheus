@@ -95,7 +95,11 @@ and legacy RPS stay unchanged. HI-04 adds opt-in `hand.poses.v2`: distinct
 one/two-hand masks, unchanged mean-bend semantics, shared capture consumption,
 three geometric signs and independent per-finger output. Derived named shapes
 use thumb opposition/extension, not a numeric-mask substitution. Saved profiles
-stay unchanged. Ring and pointing are pending. Actual progress, calibrated
+stay unchanged. HI-05 adds opt-in `hand.geometry.v1`: projected proximity,
+spread and orientation predicates, bounded matching digital output, and the OK
+ring as a distinct tenth sign. The renderer exposes its loop and input details
+show unknown geometry without implying contact/depth. Pointing remains pending.
+Actual progress, calibrated
 detector limits and verification:
 `.agents/HAND_INTERACTION_RESULTS.md`.
 

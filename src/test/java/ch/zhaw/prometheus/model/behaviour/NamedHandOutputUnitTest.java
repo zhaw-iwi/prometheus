@@ -28,7 +28,7 @@ class NamedHandOutputUnitTest {
     @Test void aliasesAreExplicitAndMalformedFutureOrAmbiguousActionsReject() {
         assertEquals("open_palm", HandActions.sign("halt")); assertEquals("index_up", HandActions.sign("attention"));
         assertEquals("thumbs_up", HandActions.sign("Thumbs up"));
-        for (String sign : List.of("ok", "ok_ring", "rock", "constructor"))
+        for (String sign : List.of("ok", "rock", "constructor"))
             assertThrows(IllegalArgumentException.class, () -> HandActions.named(sign,"right_hand"));
         var valid = HandActions.named("peace","left_hand");
         for (String invalid : List.of(valid.toString().replace("1", "2"), valid.toString().replace("1", "\"1\""),

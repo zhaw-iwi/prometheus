@@ -6,6 +6,7 @@ export const fingerPatterns=Object.freeze({
   fist:pattern(1,1,1,1,1),peace:pattern(1,0,0,1,1),open_palm:pattern(0,0,0,0,0),
   thumbs_up:pattern(0,1,1,1,1),thumbs_down:pattern(0,1,1,1,1),index_up:pattern(1,0,1,1,1),
   shaka:pattern(0,1,1,1,0),horns:pattern(1,0,1,1,0),middle_finger:pattern(1,1,0,1,1),
+  ok_ring:pattern(.7,.735,0,0,0),
 });
 export const derivedSigns=['shaka','horns','middle_finger'];
 export function derivedSign(hand, states) {

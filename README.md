@@ -341,8 +341,8 @@ interval or add between-frame transition rules or hand tracking.
 New Coordination instances accept per-hand communication signs through
 `obs.hand.signs` v1: `fist`, `peace`, `open_palm` (halt), `thumbs_up`, `thumbs_down`
 and `index_up` (attention), plus geometric `shaka` (hang loose), `horns` and
-`middle_finger`. They declare `motion.handAction` for immediate and agreed task
-output of all nine signs and explicit finger poses. Ring and pointing are staged
+`middle_finger` and `ok_ring` (diver's OK). They declare `motion.handAction` for
+immediate and agreed task output of all ten signs and explicit finger poses. Pointing is staged
 in the [roadmap](.agents/PLAN_HAND_INTERACTION.md). Legacy RPS input/output keeps
 `rock`/`scissor`/`paper`.
 
@@ -361,7 +361,7 @@ over 350 ms. History, hidden views and reduced-motion views show a static previe
 they do not replay the action. A new intentional repeat is a new command; retrying
 the same admitted turn cannot republish it. Pending task output blocks unrelated
 demonstrations. Silence suppresses speech, independently of native Live ownership.
-"OK" needs clarification because the diver's ring is still unavailable. A plan
+"OK" needs clarification between thumbs up and the diver's ring. A plan
 or browser rendering is not a physical robot execution receipt.
 
 A new named-sign task rule replaces scalar `field`/`operator`/`value` with
@@ -409,13 +409,45 @@ A Coordination check or rule uses `handPose` in place of `handSign`, for example
 ]}
 ```
 
-Each mask has 1..5 comparisons. Two masks require two distinct hands in the same
+Each mask has 1..5 comparisons (or none when a nonempty relational condition
+below is present). Two masks require two distinct hands in the same
 capture; hands cannot be combined across frames or counted twice. Unspecified
 fingers are unrestricted; unknown readings cannot satisfy a comparison. Use
 `minConfidence:0` because finger bend has no calibrated confidence score. Numeric
 `eq`/`lt`/`gt` comparisons retain their existing meaning. Preparation, acceptance,
 freshness and finite task budgets are shared with named cues; the sign and pose
 representation of one capture cannot spend two contributions.
+
+New Coordination profiles also opt in to `hand.geometry.v1`. Each observed hand
+can include `geometry` with projected fingertip distances, proximal finger spread
+and projected palm/index/thumb axes. Distances divide image-plane separation by
+the larger projected palm width/length, with aspect ratio correction. Spread is
+angle divided by 180 degrees. Axes use unmirrored camera x-right/y-down; an
+unreliable or face-on projected axis is null. None of these estimates establishes
+physical contact, metric depth or a person's identity.
+
+A versioned hand mask can add up to six `relations`, including a relation-only
+mask with `all:[]`. For example, `{"kind":"tip_proximity","fingers":["thumb","index"],
+"operator":"lt","value":0.18}` matches a projected gap, not necessarily the named
+ring. The named ring additionally requires a bent index and three extended
+fingers, enters below 0.18, remains below 0.22, and needs three frames/300 ms.
+Unknown geometry never matches. Numeric finger curvature remains unchanged.
+
+Custom output accepts a deliberately bounded subset of the same relation grammar:
+
+- `tip_proximity`: thumb/index `lt` at least 0.05, with thumb bend 0.7 and index
+  bend 0.735; these select the supported ring preset. Other fingers stay explicit.
+- `spread`: index/middle with both bends 0; compatible `lt`/`gt` bounds select an
+  interior angle below 0.3 (54 degrees).
+- `orientation`: `index_axis` with index bend 0, one of eight plane directions,
+  and `toleranceDegrees` from 5 to 45. Output directions refer to the robot view
+  (right is view-right, up is view-up); they are not person/room targets.
+
+Spread and index orientation can be combined. Unsupported pairs/axes, conflicting
+bounds or bends reject rather than disappear. The named `ok_ring` output chooses
+the ring preset with the other three fingers extended. The sensing panel's
+**Spatial estimates** disclosure exposes the measurements and unknown readings.
+Earlier saved instances do not silently gain geometry; create a new instance.
 
 For **"extend your left index and little finger, keep the others bent"**,
 the direct-command interpreter publishes a complete pose, independently of tasks:

@@ -311,6 +311,9 @@
         },
         "fingerStates": {
           "$ref": "#/$defs/fingerStates"
+        },
+        "geometry": {
+          "$ref": "#/$defs/handGeometry"
         }
       },
       "required": [
@@ -600,7 +603,7 @@
           "items": {
             "$ref": "#/$defs/comparison"
           },
-          "minItems": 1,
+          "minItems": 0,
           "maxItems": 5
         },
         "relations": {
@@ -616,7 +619,26 @@
         "handedness",
         "all"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "all": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "relations"
+          ],
+          "properties": {
+            "relations": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
     },
     "poseCondition": {
       "type": "object",
@@ -1459,6 +1481,309 @@
         "x",
         "y",
         "z"
+      ],
+      "additionalProperties": false
+    },
+    "handGeometry": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "tipDistances": {
+          "type": "object",
+          "properties": {
+            "thumb_index": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            },
+            "thumb_middle": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            },
+            "thumb_ring": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            },
+            "thumb_little": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            },
+            "index_middle": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            },
+            "index_ring": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            },
+            "index_little": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            },
+            "middle_ring": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            },
+            "middle_little": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            },
+            "ring_little": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 4
+            }
+          },
+          "required": [
+            "thumb_index",
+            "thumb_middle",
+            "thumb_ring",
+            "thumb_little",
+            "index_middle",
+            "index_ring",
+            "index_little",
+            "middle_ring",
+            "middle_little",
+            "ring_little"
+          ],
+          "additionalProperties": false
+        },
+        "spreads": {
+          "type": "object",
+          "properties": {
+            "thumb_index": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "thumb_middle": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "thumb_ring": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "thumb_little": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "index_middle": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "index_ring": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "index_little": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "middle_ring": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "middle_little": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            },
+            "ring_little": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "thumb_index",
+            "thumb_middle",
+            "thumb_ring",
+            "thumb_little",
+            "index_middle",
+            "index_ring",
+            "index_little",
+            "middle_ring",
+            "middle_little",
+            "ring_little"
+          ],
+          "additionalProperties": false
+        },
+        "axes": {
+          "type": "object",
+          "properties": {
+            "palm_normal": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    },
+                    "y": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "index_axis": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    },
+                    "y": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "thumb_axis": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    },
+                    "y": {
+                      "type": "number",
+                      "minimum": -1,
+                      "maximum": 1
+                    }
+                  },
+                  "required": [
+                    "x",
+                    "y"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": [
+            "palm_normal",
+            "index_axis",
+            "thumb_axis"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "tipDistances",
+        "spreads",
+        "axes"
       ],
       "additionalProperties": false
     }

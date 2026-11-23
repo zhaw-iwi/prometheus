@@ -81,6 +81,11 @@ public class LiveSmokeConfiguration {
                           {"side":"right","fingers":{"thumb":1,"index":0,"middle":1,"ring":0.5,"little":1}}
                         ]}}}}
                         """;
+                if (provider.coordinationProposal != null && request.purpose() == InferencePurpose.BEHAVIOUR
+                        && prompt.contains("Accepted coordination roles and constraints") && prompt.contains("Show an OK ring silently with both hands"))
+                    return """
+                        {"motion":{"handAction":{"schemaVersion":1,"action":{"kind":"sign","sign":"ok_ring","effector":"both_hands"}}}}
+                        """;
                 if (prompt.contains("Produce the current embodiment")) return """
                         {"nonVerbal":{"gesture":"ACKNOWLEDGE","facialExpression":{"type":"attentive","intensity":0.4},
                         "gaze":{"direction":"toward_user","focus":"person"},"motion":{"stillness":0.8,"energy":0.2}},

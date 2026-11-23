@@ -34,3 +34,11 @@ export function namedHandResult(bends = {}, side = 'Right') {
   result.landmarks[0] = points.map(p=>({x:.5+p.x,y:.4+p.y,z:p.z}));
   return result;
 }
+
+export function ringResult(gap=.1,side='Right',aspectRatio=1) {
+  const result=namedHandResult({thumb:1,index:.7,middle:0,ring:0,little:0},side),p=result.landmarks[0];
+  const distance=(a,b)=>Math.hypot((p[a].x-p[b].x)*aspectRatio,p[a].y-p[b].y);
+  const scale=Math.max(distance(0,9),distance(5,17));
+  p[4]={...p[8],x:p[8].x+gap*scale/aspectRatio};
+  return result;
+}

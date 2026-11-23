@@ -1430,6 +1430,10 @@ function currentProfileSupportsHandPoses() {
   return state.agentInfo?.interactionProfile?.profileTags?.includes("hand.poses.v2") === true;
 }
 
+function currentProfileSupportsHandGeometry() {
+  return currentProfileSupportsHandPoses() && state.agentInfo?.interactionProfile?.profileTags?.includes("hand.geometry.v1") === true;
+}
+
 function updateSelectedAgentStatus() {
   const selected = state.selectedAgentId || document.getElementById("agent_id_input").value.trim();
   setText("selected_agent_identity", selected ? instanceLabel(selected) : "");
@@ -3813,7 +3817,8 @@ async function detectHandSign() {
     setText("hand_report_inference", `${inferenceMs.toFixed(1)} ms`);
     const hands = camera.handPoseEstimator(result);
     const named = camera.namedSignTracker?.observe(result, observed?.ts,
-      Number(document.getElementById("hand_confidence_threshold").value || .65), currentProfileSupportsHandPoses());
+      Number(document.getElementById("hand_confidence_threshold").value || .65), currentProfileSupportsHandPoses(),
+      currentProfileSupportsHandGeometry(), camera.video.videoWidth / camera.video.videoHeight || 1);
     const key = hands.map(hand => hand.handedness).sort().join("|");
     camera.handPoseStableFrames = key === camera.handPoseStableKey ? camera.handPoseStableFrames + 1 : 1;
     camera.handPoseStableKey = key;
@@ -5149,6 +5154,9 @@ function renderHandPoseReport(payload, status = "Detected", { combined = false }
   document.getElementById("hand_sign_report_details").hidden = !combined;
   document.getElementById("hand_pose_report").hidden = false;
   const container = document.getElementById("hand_pose_hands");
+  // A history refresh may temporarily omit geometry. Keep the user's disclosure
+  // choice across that render as well as ordinary camera-frame replacement.
+  const openGeometry=container.openGeometry ||= new Set();
   container.replaceChildren();
   hands.forEach((hand, index) => {
     const card = document.createElement("section");
@@ -5181,6 +5189,27 @@ function renderHandPoseReport(payload, status = "Detected", { combined = false }
       number.title = available ? "Estimated bend" : "Unavailable";
       row.append(label, meter, number);
       card.appendChild(row);
+    }
+    if(hand.geometry) {
+      const details=document.createElement('details'),heading=document.createElement('summary');heading.textContent='Spatial estimates';details.append(heading);
+      details.dataset.geometryHand=`${hand.id||index}/${hand.handedness}`;details.open=openGeometry.has(details.dataset.geometryHand);
+      heading.addEventListener('click',event=>{
+        event.preventDefault();details.open=!details.open;
+        if(details.open)openGeometry.add(details.dataset.geometryHand);else openGeometry.delete(details.dataset.geometryHand);
+      });
+      const note=document.createElement('small');note.textContent='Unmirrored camera view. Projected gaps use hand size; proximity does not prove contact.';details.append(note);
+      for(const [pair,gap] of Object.entries(hand.geometry.tipDistances)) {
+        const row=document.createElement('div'),spread=hand.geometry.spreads[pair];row.className='hand-geometry-row';
+        row.textContent=pair.replaceAll('_',' / ')+': gap '+(Number.isFinite(gap)?gap.toFixed(3):'unavailable')
+          +', spread '+(Number.isFinite(spread)?Math.round(spread*180)+' degrees':'unavailable');details.append(row);
+      }
+      for(const [axis,vector] of Object.entries(hand.geometry.axes)) {
+        const row=document.createElement('div');row.className='hand-geometry-row';
+        const angle=vector?Math.atan2(vector.y,vector.x)*180/Math.PI:null;
+        const names=['right','down right','down','down left','left','up left','up','up right'];
+        row.textContent=axis.replaceAll('_',' ')+': '+(angle===null?'unavailable':names[(Math.round(angle/45)+8)%8]);details.append(row);
+      }
+      card.append(details);
     }
     container.appendChild(card);
   });

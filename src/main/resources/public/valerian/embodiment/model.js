@@ -57,6 +57,7 @@ export function normalizePlan(plan, modalities = null, profileTags = null) {
       if(Object.keys(rawMotion).length!==1)throw new Error('Conflicting hand motion');
       const parsed=handAction(rawMotion.handAction);
       if(profileTags!==null&&!profileTags.includes('hand.poses.v2')&&(parsed.kind==='pose'||derivedSigns.includes(parsed.sign)))throw new Error('Custom hand output is unavailable for this instance');
+      if(profileTags!==null&&(!profileTags.includes('hand.geometry.v1')||!profileTags.includes('hand.poses.v2'))&&(parsed.sign==='ok_ring'||parsed.hands?.some(h=>h.relations?.length)))throw new Error('Relational hand output is unavailable for this instance');
       action=parsed;sign=action.kind==='pose'?'custom_pose':action.sign;
     } catch(error) {warnings.push(error.message);}
   }

@@ -100,6 +100,7 @@ class CoordinationAgentUnitTest {
         for (var state : agent.reachableStates()) {
             org.springframework.test.util.ReflectionTestUtils.setField(agent, "currentState", state);
             String instructions = adapter.instructions(agent);
+            System.out.println("Coordination Live instruction bytes: " + instructions.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
             for (String fact : List.of("Laureline", "Theresa Schmiedel", "Marc Styger", "Jasmin Grassmugg", "Alexandre de Spindler", "Institute of Information Systems"))
                 assertTrue(instructions.contains(fact), fact);
             assertTrue(instructions.contains(ValerianPersona.context().strip()));

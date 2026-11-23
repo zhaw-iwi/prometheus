@@ -204,6 +204,10 @@ public class CoordinationUpdateAction extends Action {
                 && (proposed.checks().stream().anyMatch(c -> c.handPose() != null || c.handSign() != null && ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(c.handSign().sign()))
                     || proposed.reactions() != null && proposed.reactions().rules().stream().anyMatch(r -> r.handPose() != null || r.handSign() != null && ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(r.handSign().sign()))))
             throw new IllegalArgumentException("Create a new Coordination instance to enable custom poses and derived signs");
+        if(proposed!=null&&!ch.zhaw.prometheus.model.hand.HandFeatures.geometry(storage)
+                &&(proposed.checks().stream().anyMatch(c->ch.zhaw.prometheus.model.hand.HandFeatures.requiresGeometry(c.handPose(),c.handSign()))
+                    ||proposed.reactions()!=null&&proposed.reactions().rules().stream().anyMatch(r->ch.zhaw.prometheus.model.hand.HandFeatures.requiresGeometry(r.handPose(),r.handSign()))))
+            throw new IllegalArgumentException("Create a new Coordination instance to enable hand geometry and OK ring");
         if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "REPLACE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
         if (CoreTaskVoice.normalize(text).matches("what can you do|what are your capabilities|who are you|was kannst du|wer bist du")
                 && !Set.of("KEEP", "SUPPORT").contains(operation))

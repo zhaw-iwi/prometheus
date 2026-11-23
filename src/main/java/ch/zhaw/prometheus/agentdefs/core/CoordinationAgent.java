@@ -120,6 +120,7 @@ public class CoordinationAgent implements AgentDefinition {
     public Agent createAgent(boolean presenceReception) {
         var storage = new Storage();
         storage.put(ch.zhaw.prometheus.model.hand.HandFeatures.POSES, new JsonPrimitive(true));
+        storage.put(ch.zhaw.prometheus.model.hand.HandFeatures.GEOMETRY, new JsonPrimitive(true));
         storage.put(ch.zhaw.prometheus.model.hand.HandEvidence.ENABLED, new JsonPrimitive(true));
         storage.put(CoordinationDelivery.ENABLED, new JsonPrimitive(true));
         storage.put(DecorativeGestures.ENABLED, new JsonPrimitive(true));
@@ -159,7 +160,8 @@ public class CoordinationAgent implements AgentDefinition {
         var modalities = new ArrayList<>(base.getSupportedBehaviourModalities());
         modalities.add(ch.zhaw.prometheus.model.hand.HandActions.MODALITY);
         agent.setInteractionProfile(AgentInteractionProfile.of(observations, modalities,
-                List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination", ch.zhaw.prometheus.model.hand.HandFeatures.POSES)).withPresenceControlledLive(presenceReception));
+                List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination", ch.zhaw.prometheus.model.hand.HandFeatures.POSES,
+                        ch.zhaw.prometheus.model.hand.HandFeatures.GEOMETRY)).withPresenceControlledLive(presenceReception));
         return applyDefinitionMetadata(agent);
     }
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {

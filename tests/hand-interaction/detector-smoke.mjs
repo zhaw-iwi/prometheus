@@ -23,7 +23,7 @@ for (const source of manifest.sources) {
 const server=createServer((req,res)=>{
   const file=basename(new URL(req.url,'http://localhost').pathname);
   if(!file){res.setHeader('Content-Type','text/html');res.end('<!doctype html><canvas></canvas>');return;}
-  const local=new Set(['named-signs.js','finger-pose.js','patterns.js']);
+  const local=new Set(['named-signs.js','finger-pose.js','patterns.js','geometry.js']);
   const allowed=new Set([...manifest.sources.map(s=>s.file),...local]);
   if(!allowed.has(file)){res.writeHead(404);res.end();return;}
   const path=local.has(file)?'src/main/resources/public/valerian/hand/'+file:resolve(root,file);
@@ -56,7 +56,7 @@ try {
       for(let i=0;i<manifest.frames;i++){
         const at=i*manifest.frameIntervalMs,started=performance.now();
         const result=recognizer.recognizeForVideo(canvas,at+1);
-        const classified=tracker.observe(result,new Date(100000+at).toISOString(),manifest.threshold,manifest.poses===true);
+        const classified=tracker.observe(result,new Date(100000+at).toISOString(),manifest.threshold,manifest.poses===true,manifest.geometry===true,canvas.width/canvas.height);
         const signs=classified.observation.hands.filter(h=>h.sign).map(h=>h.sign).sort();
         const poseMatch = (wanted, hands, used = new Set(), position = 0) => position === wanted.length || hands.some((hand, index) =>
           !used.has(index) && (wanted[position].side === 'any' || wanted[position].side === hand.handedness)

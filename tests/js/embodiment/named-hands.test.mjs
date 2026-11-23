@@ -11,7 +11,7 @@ for(const sign of namedSigns)test(`named ${sign} articulates both sides and a si
     for(const side of ['left','right']){
       const selected=effector==='both_hands'||effector===side+'_hand';
       for(const [i,finger] of ['index','middle','ring','little'].entries()){
-        const folded=selected&&({fist:[1,1,1,1],peace:[0,0,1,1],open_palm:[0,0,0,0],thumbs_up:[1,1,1,1],thumbs_down:[1,1,1,1],index_up:[0,1,1,1],shaka:[1,1,1,0],horns:[0,1,1,0],middle_finger:[1,0,1,1]})[sign][i]===1;
+        const folded=selected&&({fist:[1,1,1,1],peace:[0,0,1,1],open_palm:[0,0,0,0],thumbs_up:[1,1,1,1],thumbs_down:[1,1,1,1],index_up:[0,1,1,1],shaka:[1,1,1,0],horns:[0,1,1,0],middle_finger:[1,0,1,1],ok_ring:[1,0,0,0]})[sign][i]===1;
         assert.equal(robot.root.getObjectByName(`${side}.${finger}.1`).rotation.x>1,folded,side+' '+finger);
       }
       if(selected&&sign.startsWith('thumbs_')){

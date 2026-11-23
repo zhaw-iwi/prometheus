@@ -1,9 +1,9 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {test,expect} from './fixtures/offline-ui-assets.mjs';
 import {synchronizeEmbodimentFrame} from './fixtures/embodiment-frame.mjs';
-const signs=['fist','peace','open_palm','thumbs_up','thumbs_down','index_up','shaka','horns','middle_finger'];
+const signs=['fist','peace','open_palm','thumbs_up','thumbs_down','index_up','shaka','horns','middle_finger','ok_ring'];
 const action=(sign,effector='right_hand')=>({motion:{handAction:{schemaVersion:1,action:{kind:'sign',sign,effector}}}});
-test('named output renders nine signs, releases fresh actions and previews history through local MySQL',async({page,request},info)=>{
+test('named output renders ten signs, releases fresh actions and previews history through local MySQL',async({page,request},info)=>{
   test.skip(process.env.PROMETHEUS_LIVE_EXPECT_ENABLED!=='true'||!process.env.PROMETHEUS_ADMIN_TOKEN,'Use the disposable MySQL runner');
   const admin={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN},code=Math.random().toString(36).slice(2,7).toUpperCase();
   const scope=await(await request.post('/admin/access-codes',{headers:admin,data:{code,enabled:true}})).json();

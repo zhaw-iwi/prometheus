@@ -28,8 +28,10 @@ public final class HandEvidence {
             if (id == null) return false;
             if (!enabled(storage)) return true;
             if (Event.TYPE_HAND_POSE.equals(event.getType()) && !HandFeatures.poses(storage)) return true;
+            if(Event.TYPE_HAND_POSE.equals(event.getType())&&!HandFeatures.geometry(storage)
+                    &&HandPoseObservation.parse(event.getPayload()).frame().hands().asList().stream().anyMatch(h->h.getAsJsonObject().has("geometry")))return true;
             if (Event.TYPE_HAND_SIGNS.equals(event.getType()) && HandSignObservation.parse(event.getPayload()).hands().stream()
-                    .anyMatch(h -> h.sign() != null && !HandFeatures.signAllowed(h.sign(),HandFeatures.poses(storage)))) return true;
+                    .anyMatch(h -> h.sign() != null && !HandFeatures.signAllowed(h.sign(),HandFeatures.poses(storage),HandFeatures.geometry(storage)))) return true;
             if (storage.containsKey(CONSUMED)) for (var value : storage.get(CONSUMED).getAsJsonArray())
                 if (id.equals(value.getAsString())) return true;
             return false;

@@ -11,7 +11,9 @@ public record HandPoseObservation(HandFrame frame) {
         try {
             var frame=HandFrame.parse(payload,2);
             for(var item:frame.hands()) {
-                var hand=item.getAsJsonObject();exact(hand,"id","handedness","fingers","fingerStates");
+                var hand=item.getAsJsonObject();
+                if(hand.has("geometry")) {exact(hand,"id","handedness","fingers","fingerStates","geometry");HandGeometry.validate(hand.getAsJsonObject("geometry"));}
+                else exact(hand,"id","handedness","fingers","fingerStates");
                 var fingers=hand.getAsJsonObject("fingers"); var states=hand.getAsJsonObject("fingerStates");
                 if(!fingers.keySet().equals(FINGERS)||!states.keySet().equals(FINGERS))throw new IllegalArgumentException();
                 for(String name:FINGERS) {
@@ -21,6 +23,7 @@ public record HandPoseObservation(HandFrame frame) {
                     // A missing classification remains unknown; contradictory labels are invalid.
                     if(!state.isJsonNull()&&!text(state).equals(value<.4?"straight":value>.55?"bent":"neutral"))throw new IllegalArgumentException();
                 }
+                if(hand.has("geometry"))HandGeometry.validateEvidence(hand);
             }
             return new HandPoseObservation(frame);
         } catch(RuntimeException invalid) {throw new IllegalArgumentException("invalid_pose_contract",invalid);}

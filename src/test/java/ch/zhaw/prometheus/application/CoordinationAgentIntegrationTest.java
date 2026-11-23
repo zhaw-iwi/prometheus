@@ -143,6 +143,37 @@ class CoordinationAgentIntegrationTest {
                 .filter(p->p.getMotion()!=null).toList();
         assertEquals(2,plans.size());for(var plan:plans){assertEquals(motion,plan.getMotion());assertNull(plan.getSpeech());}
     }
+    @Test void relationalPosePreparationReloadAndDirectOutputPreserveTheAcceptedAgreement() throws Exception {
+        var scope=create();var proposal=fixtures.behaviour.RelationalHandFixture.agreement();
+        turn(scope,"PROPOSE",proposal.toString(),"Prepare a custom two-hand pattern, then show its response once");
+        var left=fixtures.behaviour.ComposedHandFixture.hand("left","left",0,0,.5,1,0);
+        var right=fixtures.behaviour.ComposedHandFixture.hand("right","right",1,1,1,.5,1);
+        java.util.function.BiConsumer<String,JsonObject[]> observe=(id,hands)->demo.acknowledge(scope.code(),scope.id(),
+                new EventRequest(Event.TYPE_HAND_POSE,"camera",Event.KIND_OBSERVATION,
+                        fixtures.behaviour.ComposedHandFixture.observation(id,Instant.now(),hands).toString()),OutputProfile.FULL_PLAN).orElseThrow();
+        left.add("geometry",fixtures.behaviour.RelationalHandFixture.geometry());
+        observe.accept("missing",new JsonObject[]{left});assertEquals("PREPARATION",CoordinationMemory.stage(memory(scope)));
+        observe.accept("ready",new JsonObject[]{right,left});assertEquals("READY",CoordinationMemory.stage(memory(scope)));
+        assertEquals(proposal,memory(scope).get(CoordinationMemory.DRAFT));
+        turn(scope,"START","null","Start now");assertEquals(0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        var pose=fixtures.behaviour.RelationalHandFixture.output();
+        when(gateway.infer(any())).thenReturn("{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_POSE\",\"silent\":true,\"value\":"+pose+"}}");
+        demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_USER_UTTERANCE,"user",Event.KIND_OBSERVATION,"Show this unrelated custom pose silently"),OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals(proposal,memory(scope).get(CoordinationMemory.AGREEMENT));assertEquals(0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        long wait=java.time.Duration.between(Instant.now(),Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();
+        assertTrue(wait<5000);if(wait>=0)Thread.sleep(wait+25);
+        observe.accept("ready",new JsonObject[]{left,right});assertEquals(0,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        var motion=new JsonObject();motion.add("handAction",ch.zhaw.prometheus.model.hand.HandActions.pose(pose));
+        var output=new JsonObject();output.add("motion",motion);when(gateway.infer(any())).thenReturn(output.toString());
+        observe.accept("fresh",new JsonObject[]{left,right});assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        observe.accept("fresh",new JsonObject[]{left,right});assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals(proposal,memory(scope).get(CoordinationMemory.AGREEMENT));
+        var plans=agents.findById(scope.id()).orElseThrow().getEventHistory().toList().stream()
+                .filter(e->Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType()))
+                .map(e->ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(e.getPayload()))
+                .filter(p->p.getMotion()!=null).toList();
+        assertEquals(2,plans.size());for(var plan:plans){assertEquals(motion,plan.getMotion());assertNull(plan.getSpeech());}
+    }
     @Test void namedIngressRejectsMalformedAndUndeclaredInputBeforePersistingHistory() {
         var scope = create(); int initial = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size();
         assertThrows(IllegalArgumentException.class, () -> demo.acknowledge(scope.code(), scope.id(),

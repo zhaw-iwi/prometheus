@@ -13,7 +13,9 @@ function caption() {
     p.gazeLabel?`gaze ${p.gazeLabel.replaceAll('_',' ')}`:'',p.sign?`${p.hand.replaceAll('_',' ')}: ${p.sign.replaceAll('_',' ')}`:'',
     ...p.warnings].filter(Boolean).join(' · ')||'No nonverbal action in this plan.' : 'Connect an agent to see its behaviour.';
   if(p?.action?.kind==='pose')summary.textContent=p.action.hands.map(h=>`${h.side} hand: `+Object.entries(h.fingers)
-    .map(([finger,bend])=>`${finger} ${bend<.4?'stretched':bend>.55?'bent':'neutral'}`).join(', ')).join(' / ');
+    .map(([finger,bend])=>`${finger} ${bend<.4?'stretched':bend>.55?'bent':'neutral'}`).join(', ')
+    +(h.relations?.length?'; '+h.relations.map(r=>r.kind==='orientation'?`${r.axis.replaceAll('_',' ')} ${r.direction.replaceAll('_',' ')}`
+      :`${r.fingers.join('/')} ${r.kind.replaceAll('_',' ')} ${r.operator==='lt'?'below':'above'} ${r.value}`).join('; '):'')).join(' / ');
   display.replaceChildren();display.hidden=p?.display==null;
   if(p?.display!=null) {
     const label=document.createElement('div');label.className='embodiment-display-label';label.textContent='Robot display';

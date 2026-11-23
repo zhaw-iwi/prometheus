@@ -186,7 +186,7 @@ All disposable schemas/accounts were removed. Paid spend/reservations: **$0/$0**
 
 ## HI-04 - Composed finger poses and three derived signs
 
-Status: **COMPLETE** (2026-11-23). Commit recorded in the next milestone.
+Status: **COMPLETE** (2026-11-23). Commit `0cd01f24` pushed to main.
 
 New Coordination instances explicitly opt in with `hand.poses.v2`; saved named
 profiles keep six shapes and Generic agents keep v1 numeric poses. Strict v2
@@ -284,3 +284,78 @@ cleaned by the runner; the configured remote application database was not used.
 HI-05 through HI-12: NOT STARTED. Follow `PLAN_HAND_INTERACTION.md`; each completion
 must record actual checks, remaining limits and source revision before committing
 and pushing.
+
+## HI-05 - Relational geometry and OK ring
+
+Status: **COMPLETE** (2026-11-23), prepared for the authorized commit/push.
+
+New Coordination profiles opt in to `hand.geometry.v1` independently of saved
+instances. Pose v2 optionally carries strict normalized geometry; unknown fingers
+cannot manufacture measured pairs/axes. Versioned conditions combine same-hand
+bend, up to six relations, and distinct hands, or explicitly use a relation-only
+mask. Legacy numeric curvature and Generic v1 remain unchanged. Input/output
+capabilities remain separate. Overall existing task-size limits still apply.
+
+Image-plane gaps use aspect-corrected separation divided by max projected palm
+width/length. Spread is a proximal angle divided by pi; axes are projected
+camera directions. Null axes/pairs do not match. The ring uses thumb/index gap
+enter<.18 and hold<.22, index curvature>0.25, three extended fingers and three
+frames/300 ms. Its confidence is null. It is distinct from thumbs up; ambiguous
+OK is clarified through the existing command path before a shape is committed.
+
+The digital subset supports thumb/index ring proximity with explicit .7/.735
+bends, straight index/middle spread below 54 degrees, and straight index-axis
+orientation in eight view directions. Contradictory/unsupported terms reject.
+The rig's thumb opposition closes the ring, a wrist presentation reveals its
+opening, and mirrored finger lengths now agree. The sensing disclosure persists
+through camera/history refresh. These are estimates and digital rendering,
+not physical contact, calibrated room geometry or execution receipts.
+
+Actual verification:
+
+- **171 Java unit cases**, all passing, in
+  `target/gptlive-acceptance-81ae849245/build/surefire-reports`: RelationalHand,
+  ComposedHandPose, CoordinationAgent/NamedSign/HandPose/Perception, NamedHandOutput,
+  DirectCommands/DirectCommandAgents, CompactBehaviourPlan, HandPoseTask and
+  GenericMultimodalTask. The initial focused run caught the obsolete ring-reject
+  assertion and a 16,038-byte voice prompt; the next measured 16,001. Compacting
+  duplicated policy wording retained all authority/silence guidance. The final
+  focused creation test in `hi05-prompt-size.log` measures ten reachable states,
+  maximum **15,967/16,000 UTF-8 bytes**. No limit was raised or persona truncated.
+- **Six local MySQL checks** pass in `target/gptlive-acceptance-d3d142108d`:
+  composed and relational preparation/reload/direct-output journeys plus four
+  existing query/receipt budgets. Accepted terms survive; unrelated direct output
+  spends no task action; reused preparation evidence cannot act, a fresh cue
+  acts once. Both isolated runs removed their owned schema/account and app.
+- **76 JavaScript cases** pass (`hi05-js-final.log`), including normalized gap,
+  mirror/scale/aspect invariance, missing landmarks, ring near misses/hysteresis,
+  both rendered tip distances, both hands' eight orientations, composed spread,
+  and unsupported conflicts. **Eight Python schema/runner tests** pass. The
+  strict schema permits relation-only masks but rejects empty/unknown contracts.
+  `mvnw.cmd -q -DskipTests package` and `git diff --check` pass.
+- **Four unique browser cases** pass across `d3d142108d` and final `81ae849245`:
+  production emitter -> persisted relational preparation -> explicit acceptance
+  -> nonmatching/matching cue -> silent ring; ambiguous direct OK produces no
+  action; unrelated silent relational pose preserves terms; ten direct signs;
+  twenty named front/side views and four ring closeups. Real HTTP/MySQL/SSE are
+  exercised; SDK outputs and inference interpretations are controlled fixtures.
+  Initial screenshots exposed a numerically closed but visually hidden ring and
+  a disclosure that collapsed during refresh. Both were fixed and the successful
+  ring/contact sheets, light/dark/390px details and 390px output were reviewed.
+  Earlier visual evidence remains under `d3d142108d`; exploratory yaw views are
+  retained in ignored `target/hand-interaction-detector/ring-probe.png`.
+- **20 actual model cases / 140 frames** pass in
+  `target/hand-interaction-detector/run-1795452739676`, using
+  `geometry-corpus.json`: all ten signs, reflected views, partial/two-hand masks,
+  thumbs-up/open-palm/index-up/ILY near misses. Ring stabilizes at 300 ms; all
+  cases meet the declared 1000 ms deadline. Explicit threshold remains .60;
+  product default stays .65. Initial ring exploration `run-1795451888215` failed;
+  `run-1795452243019` passed after using the documented projected normalization.
+  The model's hand-world depth did not establish fingertip contact; it is not
+  substituted for projected geometry. Fixtures are public, hash-pinned static
+  photos, not moving-user clips or broad accuracy evidence.
+
+Remaining limits: real-provider interpretation/native speech is deferred to
+HI-12; physical hardware, moving/occluded-user accuracy, general anatomical IK,
+metric depth and target pointing are not accepted here. Output geometry is the
+explicit supported subset above. Paid spend/reservations remain **$0/$0**.

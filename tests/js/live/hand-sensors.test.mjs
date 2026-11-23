@@ -53,7 +53,7 @@ function fixture({ poseSupported = false, signSupported = true, namedSupported =
   for (const name of ["ACCESS_CODE_HEADER", "REQUIRED_STABLE_GESTURE_FRAMES"]) {
     vm.runInContext(new RegExp(`^const ${name} = .*;`, "m").exec(source)[0], context);
   }
-  for (const name of ["currentProfileSupportsHandPoses", "captureObservationTime", "usableObservationTime", "detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
+  for (const name of ["currentProfileSupportsHandPoses", "currentProfileSupportsHandGeometry", "captureObservationTime", "usableObservationTime", "detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
     "submitHandSign", "acknowledgeEvent", "timedScopedFetch", "scopedFetch", "captureConnection", "currentConnection", "demoAgentPath", "sensorBackendResult",
     "setHandSignStatus", "setHandPoseStatus", "handRecognizerLabel", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate",
     "renderBehaviourPlan", "resolveInteractionCapabilities", "normalizeProfileList", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState", "renderHandConfidencePolicy"]) {

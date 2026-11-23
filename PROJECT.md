@@ -81,8 +81,8 @@ and regulation diagnostics remain future work.
   as Coordination triggers and robot output, plus bounded input/output sequences.
   The plan defines unit/contract, isolated local-MySQL, reviewed Playwright visual
   and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
-  HI-02 named-sign triggers, HI-03 output and HI-04 composed poses are complete;
-  HI-05 relational geometry and OK ring are next. The owner authorized sequential implementation,
+  HI-02 named-sign triggers, HI-03 output, HI-04 composed poses and HI-05 geometry/OK
+  ring are complete; HI-06 directional pointing is next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10202,3 +10202,22 @@ deployment remain deferred.
   5/205 events. Provider spend remains $0. Real-provider interpretation and
   physical execution are unverified; no deployment. Continue HI-05 after the
   authorized commit/push.
+
+## HI-05 - Relational geometry and OK ring (2026-11-23)
+
+- Added explicit geometry opt-in, normalized projected proximity, spread/axis
+  conditions, ring hysteresis, and a bounded shared output grammar. Existing
+  numeric masks and saved profile capabilities remain unchanged. Unsupported
+  pose combinations reject; a projected gap is never physical contact.
+- The robot articulates/opposes the thumb, presents the loop to the viewer and
+  applies supported spread/orientation. Corrected mirrored finger lengths and
+  retained disclosure state through camera/history updates.
+- Verified 171 Java unit, six isolated local MySQL/query, 76 JS and eight Python
+  contract checks; four unique Playwright cases and 20 actual model image cases
+  (140 frames). Reviewed all ten signs front/side, ring closeups, geometric
+  details in light/dark/narrow layouts and direct custom output. Packaging and
+  whitespace pass. Native instructions peak at 15,967/16,000 bytes.
+- Initial prompt-budget/test expectation failures and visually obscured ring
+  are retained in HAND_INTERACTION_RESULTS. No paid calls or deployment;
+  moving-user, provider interpretation and physical execution remain unverified.
+  Continue HI-06 after the authorized commit/push.

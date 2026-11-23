@@ -17,12 +17,15 @@ public final class HandObservationAdmission {
             throw new IllegalArgumentException("This instance does not declare this hand input");
         if(Event.TYPE_HAND_SIGNS.equals(input.getType())) {
             var parsed=HandSignObservation.parse(input.getPayload());
-            if(parsed.hands().stream().anyMatch(h -> h.sign()!=null&&!HandFeatures.signAllowed(h.sign(),HandFeatures.poses(profile))))
+            if(parsed.hands().stream().anyMatch(h -> h.sign()!=null&&!HandFeatures.signAllowed(h.sign(),HandFeatures.poses(profile),HandFeatures.geometry(profile))))
                 throw new IllegalArgumentException("This instance does not declare derived hand signs");
             rate(parsed.identity(),history,receivedAt);
         } else if(HandFeatures.poses(profile)||HandEvidence.modernPose(input.getPayload())) {
             if(!HandFeatures.poses(profile))throw new IllegalArgumentException("This instance does not declare v2 poses");
-            rate(HandPoseObservation.parse(input.getPayload()).frame().identity(),history,receivedAt);
+            var pose=HandPoseObservation.parse(input.getPayload());
+            if(!HandFeatures.geometry(profile)&&pose.frame().hands().asList().stream().anyMatch(h->h.getAsJsonObject().has("geometry")))
+                throw new IllegalArgumentException("This instance does not declare hand geometry");
+            rate(pose.frame().identity(),history,receivedAt);
         }
     }
     private static void rate(String incoming,List<Event> history,Instant receivedAt) {

@@ -46,6 +46,23 @@ class HandInteractionContractTest(unittest.TestCase):
             with self.subTest(operator=operator, value=value):
                 with self.assertRaises(ValidationError): self.validate('poseCondition', invalid)
 
+    def test_relations_are_additive_and_relation_only_masks_are_explicit(self):
+        relation = {'kind': 'tip_proximity', 'fingers': ['thumb', 'index'], 'operator': 'lt', 'value': .18}
+        condition = {'schemaVersion': 1, 'hands': [{'handedness': 'any', 'all': [], 'relations': [relation]}]}
+        self.validate('poseCondition', condition)
+        for relations in ([], [{**relation, 'value': 3}], [{**relation, 'secret': True}]):
+            invalid = copy.deepcopy(condition); invalid['hands'][0]['relations'] = relations
+            with self.assertRaises(ValidationError): self.validate('poseCondition', invalid)
+        pose = copy.deepcopy(self.examples['poseObservation'])
+        fingers = ['thumb', 'index', 'middle', 'ring', 'little']
+        pairs = {f'{a}_{b}': None for i, a in enumerate(fingers) for b in fingers[i+1:]}
+        geometry = {'schemaVersion': 1, 'tipDistances': pairs, 'spreads': pairs.copy(),
+                    'axes': {'palm_normal': None, 'index_axis': {'x': 0, 'y': -1}, 'thumb_axis': None}}
+        pose['hands'][0]['geometry'] = geometry
+        self.validate('poseObservation', pose)
+        geometry['tipDistances']['thumb_index'] = 5
+        with self.assertRaises(ValidationError): self.validate('poseObservation', pose)
+
     def test_directions_and_target_resolution_do_not_invent_a_frame_or_depth(self):
         self.validate('motion', {'schemaVersion': 1, 'action': {'kind': 'point', 'effector': 'left_hand',
             'direction': 'left', 'frame': self.examples['signObservation']['frame']}})

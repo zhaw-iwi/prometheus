@@ -1,5 +1,6 @@
 import * as T from './vendor/three.module.js';
 import {fingerPatterns} from '../hand/patterns.js';
+import {outputRelations,directionAngles} from '../hand/relations.js';
 
 // Width, opening and corner lift share a gently friendly resting shape.
 // Expression intensity interpolates from this baseline, including surprise.
@@ -104,20 +105,21 @@ export function createRobot() {
     rounded(elbow,0.25,0.38,0.27,0.09,shell,[0,-0.25,0]);
     const wrist=new T.Group();wrist.name=name+'.wrist';wrist.position.y=-0.49;elbow.add(wrist);
     sphere(wrist,joint,[0,0,0],[0.095,0.09,0.095]);
-    const hand=new T.Group();hand.position.y=-0.14;hand.scale.setScalar(1.3);wrist.add(hand);
+    const hand=new T.Group();hand.name=name+'.hand';hand.position.y=-0.14;hand.scale.setScalar(1.3);wrist.add(hand);
     rounded(hand,0.24,0.24,0.12,0.055,shell);
     rounded(hand,0.18,0.15,0.018,0.04,faceMaterial,[0,-0.015,0.075]);
     const fingers=[];
     for(let i=0;i<4;i++) {
       const finger=new T.Group();finger.position.set((i-1.5)*0.065,-0.11,0);hand.add(finger);
       finger.name=name+'.'+['index','middle','ring','little'][side===-1?3-i:i];
-      const length=[0.09,0.105,0.097,0.074][i],joints=[];let parent=finger;
+      const length=[0.09,0.105,0.097,0.074][side===-1?3-i:i],joints=[];let parent=finger;
       for(let j=0;j<3;j++) {
         const knuckle=new T.Group();knuckle.name=finger.name+'.'+j;if(j)knuckle.position.y=-length;parent.add(knuckle);
         sphere(knuckle,joint,[0,0,0],[0.029,0.029,0.029]);
         sphere(knuckle,shell,[0,-length*0.52,0],[0.031,length*0.61,0.034]);
         joints.push(knuckle);parent=knuckle;
       }
+      const tip=new T.Group();tip.name=finger.name+'.tip';tip.position.y=-length;parent.add(tip);
       fingers.push({finger,joints});
     }
     const thumb=new T.Group();thumb.name=name+'.thumb';thumb.position.set(-side*0.14,0.02,0);thumb.rotation.z=-side*0.65;hand.add(thumb);
@@ -127,6 +129,7 @@ export function createRobot() {
       sphere(k,joint,[0,0,0],[0.035,0.035,0.035]);sphere(k,shell,[0,-0.05,0],[0.038,0.058,0.04]);
       thumbJoints.push(k);parent=k;
     }
+    const tip=new T.Group();tip.name=name+'.thumb.tip';tip.position.y=-.085;parent.add(tip);
     return {side,shoulder,elbow,wrist,hand,fingers,thumb,thumbJoints};
   }
   // Robot right is viewer left, matching a face-to-face encounter.
@@ -151,6 +154,8 @@ export function createRobot() {
       a.shoulder.rotation.set(-0.08,0,a.side*0.12);a.elbow.rotation.set(-0.18,0,0);a.wrist.rotation.set(0,0,0);
       const sign=p?.sign && (p.hand==='both_hands'||p.hand===(a.side===-1?'right_hand':'left_hand'))?p.sign:'';
       const bends=sign&&p.action ? p.action.kind==='pose' ? p.action.hands.find(h=>h.side===(a.side===-1?'right':'left'))?.fingers : fingerPatterns[sign] : null;
+      const relation=outputRelations(p?.action?.kind==='pose'?p.action.hands.find(h=>h.side===(a.side===-1?'right':'left'))?.relations:[]);
+      if(sign==='ok_ring')relation.ring=true;
       if(sign) {
         const t=sample.transition??1;
         a.shoulder.rotation.set(-0.08-0.07*t,0,a.side*(0.12+0.73*t));a.elbow.rotation.x=-0.18-1.92*t;
@@ -159,8 +164,11 @@ export function createRobot() {
           // Cancel the arm orientation so the named pose has a defined robot-local
           // wrist direction. Robot right is viewer left; mirroring is explicit.
           a.wrist.rotation.set(0,0,0);root.updateMatrixWorld(true);
-          const angle=sign==='thumbs_up'?-a.side*Math.PI/2:sign==='thumbs_down'?a.side*Math.PI/2:Math.PI;
+          const angle=relation.orientation?Math.PI/2-directionAngles[relation.orientation]+a.side*relation.spread/2
+            :sign==='thumbs_up'?-a.side*Math.PI/2:sign==='thumbs_down'?a.side*Math.PI/2:Math.PI;
           const target=root.getWorldQuaternion(new T.Quaternion()).multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,0,1),angle));
+          // Show the ring's opening to the viewer; frontal palms obscure the loop.
+          if(relation.ring)target.multiply(new T.Quaternion().setFromAxisAngle(new T.Vector3(0,1,0),a.side*2*Math.PI/3));
           const local=a.elbow.getWorldQuaternion(new T.Quaternion()).invert().multiply(target);
           a.wrist.quaternion.slerp(local,t);
         }
@@ -182,15 +190,24 @@ export function createRobot() {
         const desired=bends?bends[['index','middle','ring','little'][index]]*1.5:sign==='scissor'?(index<2?0:1.5):folded?1.5:sign==='paper'?0:0.2;
         const blend=p?.action?(sample.handBlend??1):1;
         const curl=0.2+(desired-0.2)*blend;
-        finger.rotation.z=(sign==='scissor'||sign==='peace')&&index<2?(index===0?-a.side*0.13:a.side*0.13)*blend:0;
+        finger.rotation.z=index<2?(index===0?-a.side:a.side)*(relation.spread?relation.spread/2:(sign==='scissor'||sign==='peace' ? .13 : 0))*blend:0;
+        if(sign==='ok_ring'&&index>0)finger.rotation.z=a.side*(index-2)*.16*blend;
         joints.forEach((j,n)=>j.rotation.x=curl*(n===0?0.9:1));
       });
       const blend=p?.action?(sample.handBlend??1):1;
       const thumbExtended=sign==='thumbs_up'||sign==='thumbs_down';
       const thumbAngle=thumbExtended?1.55:bends?0.95-bends.thumb*.65:sign==='paper'?0.95:sign?0.3:0.65;
-      a.thumb.rotation.z=-a.side*(0.65+(thumbAngle-0.65)*blend);
+      a.thumb.rotation.set(0,0,-a.side*(0.65+(thumbAngle-0.65)*blend));
       const thumbCurl=bends?bends.thumb:sign&&sign!=='paper'?1.0:0.1;
       a.thumbJoints.forEach(j=>j.rotation.x=0.1+(thumbCurl-0.1)*blend);
+      if(relation.ring&&sign) {
+        root.updateMatrixWorld(true);
+        const side=a.side===-1?'right':'left';
+        const target=a.hand.worldToLocal(root.getObjectByName(side+'.index.tip').getWorldPosition(new T.Vector3())).sub(a.thumb.position);
+        const current=a.hand.worldToLocal(root.getObjectByName(side+'.thumb.tip').getWorldPosition(new T.Vector3())).sub(a.thumb.position);
+        const opposed=new T.Quaternion().setFromUnitVectors(current.normalize(),target.normalize()).multiply(a.thumb.quaternion);
+        a.thumb.quaternion.slerp(opposed,blend);
+      }
     }
   }
   apply({pose:null,gesture:0,ambient:0});

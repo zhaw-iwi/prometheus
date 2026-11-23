@@ -168,12 +168,14 @@ public final class DirectCommands {
         boolean gestures = profile != null && profile.getSupportedBehaviourModalities().contains("nonVerbal.gesture");
         String named = HandActions.enabled(profile) ? "show fist, peace, halt, thumbs up/down and index up" : "";
         if(!named.isEmpty()&&HandFeatures.poses(profile))named+=", shaka, horns, middle finger and custom finger poses";
+        if(!named.isEmpty()&&HandFeatures.geometry(profile))named+=", including the diver's OK ring and supported hand geometry";
         boolean hands = signs || !named.isEmpty();
         return "I can " + (!named.isEmpty() ? named : signs ? "show rock, paper and scissors" : "") + (hands && gestures ? ", and " : "")
                 + (gestures ? "make question, explanation, uncertainty, acknowledgement and polite gestures" : "")
                 + (hands || gestures ? "." : "only use the outputs enabled for this instance; no hand signs or gestures are declared.");
     }
     private static boolean allows(AgentInteractionProfile profile, Request request) {
+        if(("ok_ring".equals(request.value())||request.handAction()!=null&&HandActions.requiresGeometry(request.handAction().getAsJsonObject("action")))&&!HandFeatures.geometry(profile))return false;
         if("HAND_POSE".equals(request.kind()))return request.intent()==Intent.ACTION&&HandActions.enabled(profile)&&HandFeatures.poses(profile);
         if("HAND_SIGN".equals(request.kind())&&HandFeatures.DERIVED_SIGNS.contains(request.value())&&!HandFeatures.poses(profile))return false;
         return request.intent() == Intent.ACTION && profile.getSupportedBehaviourModalities().contains(

@@ -3,16 +3,21 @@ package ch.zhaw.prometheus.model.task;
 import java.util.*;
 import com.google.gson.*;
 import ch.zhaw.prometheus.model.hand.FingerState;
+import ch.zhaw.prometheus.model.hand.HandRelation;
 
 /** Bounded same-hand comparisons, optionally composed over two distinct hands in one capture. */
-public record HandPoseCondition(String handedness, List<Comparison> all, Integer schemaVersion, List<HandPoseCondition> hands) {
+public record HandPoseCondition(String handedness, List<Comparison> all, Integer schemaVersion, List<HandPoseCondition> hands, List<HandRelation> relations) {
     public record Comparison(String finger, String operator, JsonPrimitive value) {}
     private static final Set<String> FINGERS = Set.of("thumb", "index", "middle", "ring", "little");
-    public HandPoseCondition(String handedness, List<Comparison> all) { this(handedness,all,null,null); }
-    public HandPoseCondition { all = all == null ? null : List.copyOf(all); hands = hands == null ? null : List.copyOf(hands); }
+    public HandPoseCondition(String handedness, List<Comparison> all) { this(handedness,all,null,null,null); }
+    public HandPoseCondition { all = all == null ? null : List.copyOf(all); hands = hands == null ? null : List.copyOf(hands); relations=relations==null?null:List.copyOf(relations); }
     public boolean versioned() { return schemaVersion != null; }
+    public boolean relational() { return relations!=null&&!relations.isEmpty() || hands!=null&&hands.stream().anyMatch(HandPoseCondition::relational); }
 
     public static HandPoseCondition parse(JsonElement raw) {
+        return parse(raw,false);
+    }
+    private static HandPoseCondition parse(JsonElement raw,boolean allowRelations) {
         var object = raw.getAsJsonObject();
         if(object.has("schemaVersion")) {
             TaskSpec.exact(object,Set.of("schemaVersion","hands"));
@@ -21,17 +26,17 @@ public record HandPoseCondition(String handedness, List<Comparison> all, Integer
             var hands=new ArrayList<HandPoseCondition>();var sides=new HashSet<String>();
             for(var item:array) {
                 if(!item.isJsonObject()||item.getAsJsonObject().has("schemaVersion"))throw new IllegalArgumentException();
-                var condition=parse(item);
+                var condition=parse(item,true);
                 if(!condition.handedness().equals("any")&&!sides.add(condition.handedness()))throw new IllegalArgumentException("Conflicting hand selection");
                 hands.add(condition);
             }
-            return new HandPoseCondition(null,null,1,hands);
+            return new HandPoseCondition(null,null,1,hands,null);
         }
-        TaskSpec.exact(object, Set.of("handedness", "all"));
+        TaskSpec.exact(object, allowRelations&&object.has("relations")?Set.of("handedness", "all","relations"):Set.of("handedness", "all"));
         String side = TaskSpec.string(object, "handedness", 5);
         if (!Set.of("any", "left", "right").contains(side)) throw new IllegalArgumentException();
         var comparisons = object.getAsJsonArray("all");
-        if (comparisons.isEmpty() || comparisons.size() > 5) throw new IllegalArgumentException();
+        if (comparisons.size() > 5 || comparisons.isEmpty()&&(!allowRelations||!object.has("relations")||object.getAsJsonArray("relations").isEmpty())) throw new IllegalArgumentException();
         var seen = new HashSet<String>(); var all = new ArrayList<Comparison>();
         for (var item : comparisons) {
             var comparison = item.getAsJsonObject();
@@ -50,7 +55,7 @@ public record HandPoseCondition(String handedness, List<Comparison> all, Integer
             }
             all.add(new Comparison(finger, op, value.deepCopy()));
         }
-        return new HandPoseCondition(side, all);
+        return new HandPoseCondition(side, all,null,null,object.has("relations")?HandRelation.parse(object.get("relations")):null);
     }
 
     public boolean matches(JsonObject payload) {
@@ -70,7 +75,8 @@ public record HandPoseCondition(String handedness, List<Comparison> all, Integer
             var states = hand.get("fingerStates");
             if (fingers != null && fingers.isJsonObject() && all.stream().allMatch(c -> matches(c,
                     fingers.getAsJsonObject().get(c.finger()), states != null && states.isJsonObject()
-                            ? states.getAsJsonObject().get(c.finger()) : null)))
+                            ? states.getAsJsonObject().get(c.finger()) : null))
+                    && (relations==null||relations.stream().allMatch(r->r.matches(hand.getAsJsonObject("geometry")))))
                 return true;
         }
         return false;
@@ -93,7 +99,8 @@ public record HandPoseCondition(String handedness, List<Comparison> all, Integer
     }
     public String key() {
         return versioned()?"v1/"+hands.stream().map(HandPoseCondition::key).sorted().toList()
-                :handedness+"/"+all.stream().sorted(Comparator.comparing(Comparison::finger)).toList();
+                :handedness+"/"+all.stream().sorted(Comparator.comparing(Comparison::finger)).toList()
+                    +(relations==null?"":relations.stream().map(Object::toString).sorted().toList());
     }
     private static boolean matches(Comparison c, JsonElement raw, JsonElement state) {
         if (raw == null || !raw.isJsonPrimitive() || !raw.getAsJsonPrimitive().isNumber()) return false;
@@ -110,7 +117,9 @@ public record HandPoseCondition(String handedness, List<Comparison> all, Integer
     public String description() {
         if(versioned())return hands.stream().map(HandPoseCondition::description).collect(java.util.stream.Collectors.joining(" AND a distinct "));
         return (handedness.equals("any") ? "any single hand" : handedness + " hand") + ": "
-                + all.stream().map(c -> c.finger() + " " + c.operator() + " " + c.value().getAsString())
+                + java.util.stream.Stream.concat(
+                    all.stream().map(c -> c.finger() + " " + c.operator() + " " + c.value().getAsString()),
+                    relations==null?java.util.stream.Stream.empty():relations.stream().map(r->r.description()))
                     .collect(java.util.stream.Collectors.joining(" AND "));
     }
 

@@ -139,3 +139,10 @@ confidence is null. The original numeric bend estimator is unchanged, including
 its neutral band; use the named rule for a named shape instead of inventing a
 low-level numeric equivalence. Synthetic rotation/scale/mirroring and unknown
 landmark tests protect geometry; corpus results establish only these examples.
+
+HI-05 geometry corpus: `node tests/hand-interaction/detector-smoke.mjs
+--manifest=tests/hand-interaction/geometry-corpus.json` adds ring and reflected ring
+to the 18 existing cases. Its declared photographed near misses are thumbs up,
+open palm, index up and I-love-you. Controlled geometric tests cover opened-ring
+thresholds and unknown landmarks. These remain static-image model trials; no
+moving-user or physical execution accuracy is implied.
