@@ -10,7 +10,7 @@ const source = fs.readFileSync(new URL("../../../src/main/resources/public/valer
 
 // Exercise camera classification through the real acknowledgement/header code.
 // Only media, rendering and the HTTP response are simulated.
-function fixture({ poseSupported = false, signSupported = true, namedSupported = false, modernPoses = false, pointingSupported = false } = {}) {
+function fixture({ poseSupported = false, signSupported = true, namedSupported = false, modernPoses = false, pointingSupported = false, dynamicTargets = false } = {}) {
   let now = Date.parse("2026-10-20T08:00:00Z");
   const requests = [], elements = new Map();
   const element = id => {
@@ -18,13 +18,13 @@ function fixture({ poseSupported = false, signSupported = true, namedSupported =
     return elements.get(id);
   };
   const context = vm.createContext({
-    handSceneUi:null,
+    handSceneUi:null,detectedTargetsUi:null,
     Date: class extends Date {
       constructor(...args) { super(...(args.length ? args : [now])); }
       static now() { return now; }
     },
     Headers, performance: { now: () => now }, HTMLMediaElement: { HAVE_CURRENT_DATA: 2 },
-    state: { agentId: "agent", accessCode: "code", agentInfo:{interactionProfile:{profileTags:[...(modernPoses?['hand.poses.v2']:[]),...(pointingSupported?['hand.pointing.v1']:[])]}} }, liveVoice: { ui: { active: true } },
+    state: { agentId: "agent", accessCode: "code", agentInfo:{interactionProfile:{profileTags:[...(modernPoses?['hand.poses.v2']:[]),...(pointingSupported?['hand.pointing.v1']:[]),...(dynamicTargets?['hand.targets.v1','hand.targets.dynamic.v1']:[])]}} }, liveVoice: { ui: { active: true } },
     document: { getElementById: element },
     setText(id, value) { element(id).textContent = value; },
     renderHandSignReport(sign, options) { context.setHandSignStatus(options.statusText, options.statusMode); },
@@ -54,7 +54,7 @@ function fixture({ poseSupported = false, signSupported = true, namedSupported =
   for (const name of ["ACCESS_CODE_HEADER", "REQUIRED_STABLE_GESTURE_FRAMES"]) {
     vm.runInContext(new RegExp(`^const ${name} = .*;`, "m").exec(source)[0], context);
   }
-  for (const name of ["currentProfileSupportsHandPoses", "currentProfileSupportsHandGeometry", "currentProfileSupportsHandPointing", "captureObservationTime", "usableObservationTime", "detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
+  for (const name of ["currentProfileSupportsHandPoses", "currentProfileSupportsHandGeometry", "currentProfileSupportsHandPointing", "currentProfileSupportsDynamicTargets", "captureObservationTime", "usableObservationTime", "detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
     "submitHandSign", "acknowledgeEvent", "timedScopedFetch", "scopedFetch", "captureConnection", "currentConnection", "demoAgentPath", "sensorBackendResult",
     "setHandSignStatus", "setHandPoseStatus", "handRecognizerLabel", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate",
     "renderBehaviourPlan", "resolveInteractionCapabilities", "normalizeProfileList", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState", "renderHandConfidencePolicy"]) {
@@ -63,7 +63,7 @@ function fixture({ poseSupported = false, signSupported = true, namedSupported =
     const rest = source.slice(match.index), end = /^}/m.exec(rest);
     vm.runInContext(rest.slice(0, end.index + 1), context);
   }
-  for (const name of ["maybeEmitHandPose", "passesSensorEmitInterval", "renderNamedHandReport", "maybeEmitNamedHands", "renderPointingReport", "maybeEmitPointing"]) {
+  for (const name of ["maybeEmitHandPose", "passesSensorEmitInterval", "renderNamedHandReport", "maybeEmitNamedHands", "renderPointingReport", "maybeEmitPointing", "maybeEmitSceneTargets"]) {
     const match = new RegExp(`^(?:async )?function ${name}\\(`, "m").exec(source);
     const rest = source.slice(match.index), end = /^}/m.exec(rest);
     vm.runInContext(rest.slice(0, end.index + 1), context);
@@ -559,4 +559,15 @@ test('pointing emitter shares the exact camera frame, rate gate and capture rese
   f.element('sensor_emit_enabled').checked=true;f.advance(500);
   f.context.fetch=async()=>{f.context.resetCameraEmissionGate();return {ok:true,status:200,json:async()=>({active:true})};};
   await f.poseFrame(result);assert.equal(f.context.camera.lastPointEmitAt,0);
+});
+
+
+test('scene emitter preserves captured geometry and requires timing, capability and bounded delivery',async()=>{
+  const f=fixture({dynamicTargets:true,pointingSupported:true});const captured=f.context.PrometheusObservationTiming.capture(),snapshot={schemaVersion:1,ts:captured.ts,targets:[]};
+  await f.context.maybeEmitSceneTargets(snapshot,captured,0,'agent');assert.equal(f.requests.length,1);assert.equal(JSON.parse(JSON.parse(f.requests[0].body).payload).ts,captured.ts);
+  f.advance(499);await f.context.maybeEmitSceneTargets(snapshot,captured,0,'agent');assert.equal(f.requests.length,1);
+  f.advance(1);await f.context.maybeEmitSceneTargets(snapshot,captured,0,'agent');assert.equal(f.requests.length,2);
+  f.advance(500);f.element('sensor_emit_enabled').checked=false;await f.context.maybeEmitSceneTargets(snapshot,captured,0,'agent');assert.equal(f.requests.length,2);
+  f.element('sensor_emit_enabled').checked=true;f.context.timingEpoch++;await f.context.maybeEmitSceneTargets(snapshot,captured,0,'agent');assert.equal(f.requests.length,2);
+  f.context.state.agentInfo.interactionProfile.profileTags=[];await f.context.maybeEmitSceneTargets(snapshot,f.context.PrometheusObservationTiming.capture(),0,'agent');assert.equal(f.requests.length,2);
 });

@@ -290,6 +290,11 @@ public class AgentApplicationService {
             discardSpeculation(agentID,"scene_changed");persistAndPublishMonitor(agent);return Optional.of(scene.toString());
         }));
     }
+    public Optional<String> bindHandTarget(UUID agentID,String body){return serialized(agentID,()->persistenceTurn(()->{
+        var found=findAgent(agentID);if(found.isEmpty())return Optional.empty();var agent=found.get();
+        var binding=agent.bindHandTarget(ch.zhaw.prometheus.model.hand.HandScene.parseRequest(body),java.time.Instant.now());
+        persistAndPublishMonitor(agent);return Optional.of(binding.toString());
+    }));}
 
     public Optional<List<Event>> getAgentEventHistory(UUID agentID) {
         // History display needs durable events/paths, not the agent's policies,
@@ -364,6 +369,7 @@ public class AgentApplicationService {
             }
             Agent agent = agentMaybe.get().agent();
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
+            if(Event.TYPE_SCENE_TARGETS.equals(event.getType())&&!agent.admitSceneTargets(event,java.time.Instant.now()))return Optional.of(new ResponseView(null,agent.isActive()));
             if (Event.TYPE_HAND_SIGNS.equals(event.getType()) || Event.TYPE_HAND_POSE.equals(event.getType()) || Event.TYPE_HAND_POINTING.equals(event.getType())) {
                 ch.zhaw.prometheus.model.hand.HandObservationAdmission.validate(event, agent.getInteractionProfile(), agent.getEventHistory().toList(), java.time.Instant.now());
                 agent.resolveHandPointing(event,java.time.Instant.now());

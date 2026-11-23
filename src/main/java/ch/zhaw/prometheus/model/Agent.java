@@ -167,7 +167,23 @@ public class Agent {
         return this.storage.toMap();
     }
 
-    public com.google.gson.JsonObject handScene() {return ch.zhaw.prometheus.model.hand.HandScene.get(storage);}
+    public com.google.gson.JsonObject handScene() {
+        var result=ch.zhaw.prometheus.model.hand.HandScene.get(storage);
+        if(storage.containsKey(ch.zhaw.prometheus.model.hand.ObservedTargets.KEY))result.add("observed",new com.google.gson.Gson().toJsonTree(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(storage,java.time.Instant.now())));
+        return result;
+    }
+    public com.google.gson.JsonObject bindHandTarget(com.google.gson.JsonObject request,java.time.Instant now){
+        if(!ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile()))throw new IllegalArgumentException("Detected targets not declared");
+        var result=ch.zhaw.prometheus.model.hand.ObservedTargets.bind(storage,request,now);
+        if(ch.zhaw.prometheus.model.task.TaskMemory.active(storage))ch.zhaw.prometheus.model.coordination.CoordinationMemory.phase(storage,"PAUSED");
+        ch.zhaw.prometheus.model.coordination.CoordinationMemory.revise(storage);
+        if(storage.containsKey(ch.zhaw.prometheus.model.coordination.CoordinationMemory.DRAFT))ch.zhaw.prometheus.model.coordination.CoordinationMemory.resetPreparation(storage,now);
+        return result;
+    }
+    public boolean admitSceneTargets(Event event,java.time.Instant now){
+        if(!ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile())||!getInteractionProfile().supportsObservation(Event.TYPE_SCENE_TARGETS)||!Event.KIND_OBSERVATION.equals(event.getKind()))throw new IllegalArgumentException("Detected targets not declared");
+        return ch.zhaw.prometheus.model.hand.ObservedTargets.admit(storage,getId(),event,now);
+    }
     public com.google.gson.JsonObject configureHandScene(com.google.gson.JsonObject request,java.time.Instant now) {
         if(!ch.zhaw.prometheus.model.hand.HandFeatures.targets(getInteractionProfile()))throw new IllegalArgumentException("Create a target-capable instance");
         var result=ch.zhaw.prometheus.model.hand.HandScene.configure(storage,getId(),request,getEventHistory(),now);
@@ -181,7 +197,9 @@ public class Agent {
         if(!ch.zhaw.prometheus.model.event.Event.TYPE_HAND_POINTING.equals(event.getType())||!ch.zhaw.prometheus.model.hand.HandFeatures.targets(getInteractionProfile()))return;
         var observation=ch.zhaw.prometheus.model.hand.HandPointObservation.parse(event.getPayload());
         var json=com.google.gson.JsonParser.parseString(event.getPayload()).getAsJsonObject();
+        if(ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile()))json.add("sourceAssociation",ch.zhaw.prometheus.model.hand.ObservedTargets.source(storage,observation,now));
         json.add("resolution",ch.zhaw.prometheus.model.hand.HandScene.resolve(storage,observation,now));event.setPayload(json.toString());
+        if(ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile()))storage.put("hand.scene.pointing.v1",json.deepCopy());
     }
 
     public boolean isActive() {

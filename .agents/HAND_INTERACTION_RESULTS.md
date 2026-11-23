@@ -416,7 +416,7 @@ Paid OpenAI spend/reservations remain **$0/$0**. No configured remote database u
 
 ## HI-07 - Configured regions and registered virtual destinations
 
-Status: **COMPLETE** (2026-11-23), ready for the authorized commit/push.
+Status: **COMPLETE** (2026-11-23), committed and pushed as `c7a271a8`.
 
 New `hand.targets.v1` instances use the existing scoped API and ordinary Storage
 for a maximum of sixteen registered regions/virtual destinations. IDs include the
@@ -473,3 +473,77 @@ model evidence remains the directional baseline. Dynamic people/items, source
 association, broad moving-user robustness, room depth and native Live L-05 remain
 pending. Paid spend/reservations **$0/$0**. All owned disposable apps, schemas and
 accounts were cleaned; the configured remote database was not used.
+
+
+## HI-08 - Dynamic people and item targets
+
+Status: **COMPLETE** (2026-11-23); commit/push follows verification.
+
+Reuses the existing single COCO-SSD inference and preserves social person
+tracking. A separate bounded tracker retains person/cup/bottle/book boxes;
+ambiguous assignments, crossings, occlusion, frame changes and long gaps retire
+IDs. Server generations prevent label transfer even if a client reuses an ID.
+Scoped snapshots expire after three seconds; exact retries are idempotent and
+oversized, out-of-order, stale, malformed or undeclared input rejects.
+
+Same-frame pointing combines configured regions and fresh detected boxes. An
+estimated wrist inside exactly one person box identifies only a projected source
+to exclude; ambiguity remains unresolved and identity/depth are never inferred.
+The server recomputes source/selection and publishes the canonical current
+resolution to the UI. Explicit labels and registered virtual counterparts support
+input selection and immediate/task output. Binding edits pause active tasks;
+dispatch rechecks target/counterpart expiry after inference. History is static.
+Slow inference (>=1.8 seconds) is withheld with visible device feedback rather
+than submitted as fresh; normal target emission is at most twice per second.
+
+Actual verification:
+
+- **291 Java unit cases** pass (`hi08-units-confirmed.log`). Six new target tests
+  cover strict atomic admission/retries, generation and label retirement, profile
+  gates, source exclusion, aligned targets, frame/time pairing, explicit mapping,
+  stale dispatch and changed counterpart rejection. Existing Coordination, hand,
+  direct-command and capability regressions pass. The first broader run exposed
+  an optional social-guidance Live context at 16040 bytes; concise capability
+  wording fixes it without truncating persona or raising the limit. Ten standard
+  states now max **15908/16000 bytes**; the optional context test also passes.
+- **Three local MySQL journeys**, plus fifty focused units, pass in
+  `target/gptlive-acceptance-389b0fb44e` (53 Java cases). Dynamic bindings reload,
+  cross-scope access is denied, duplicate snapshots add no event, a 3.1-second
+  delayed interpretation produces CLARIFY without pointing, and reused raw IDs
+  cannot inherit labels. Registered-target and legacy scissors regressions pass.
+  The earlier DB run `33928ddb0d` passed thirteen Java cases; its browser selector
+  initially omitted the new spec, now included in the existing runner.
+- **88 JavaScript** and **ten Python contract/runner cases** pass in
+  `hi08-js-final.log` and `hi08-python-final.log`. Coverage includes tracker
+  movement/crossings/retirement, invalid classes/boxes, geometry and shared scoped
+  emission/timing/cadence gates. Maven package and whitespace checks pass.
+- **Two real-app Playwright journeys** pass in `389b0fb44e`: detected Cup -> label
+  and virtual counterpart -> proposal -> preparation -> explicit acceptance ->
+  one fresh cue -> silent direct point, aligned Bottle ambiguity, disappearance,
+  repair and label retirement; plus the configured Display regression. Controlled
+  SDK and inference fixtures use actual HTTP/MySQL/SSE. The first dynamic browser
+  `deffae0cc9` exposed the missing live resolution display; `1521eebc9a` then
+  exposed a test that opened Robot only after output (correct static preview,
+  not replay). The test now opens the visible renderer before command delivery.
+  Final dynamic visual/history rerun `0e50a34002` passes: selected/ambiguous
+  panels, expired-label controls at 390px, and static history point toward the
+  registered orange counterpart were reviewed. Fresh execution reaches released;
+  reload shows preview without replay. A released neutral-pose screenshot from
+  the earlier run is not claimed as evidence of the pointing pose.
+- **Actual pinned COCO-SSD/tfjs model**: eight cases/56 frames in
+  `target/hand-interaction-detector/objects/run-1795455995256` pass their declared
+  class-output expectations. Images, model and archive hashes are recorded in
+  `scene-corpus.json`; downloaded public photos remain ignored local artifacts.
+  Overlays were reviewed. **Semantic review FAIL for the original two-bottles
+  case**: a milk carton and jar were classified as bottles. This failure is
+  explicitly retained, not relabelled as accuracy success. The other reviewed
+  examples contain people, cups, a wine bottle and a book/bottle; no broad accuracy
+  is claimed. Small pixel translation is not recorded-user tracking evidence.
+  Software-WebGL inference measured **2488..3279 ms (median 2759)**, exceeding
+  online freshness. Offline replay uses artificial timestamps and is **not**
+  real-time device acceptance. Actual device timing and real-room robustness
+  remain unverified; the runtime fails closed for slow/stale captures.
+
+No provider, room-depth, physical actuator or general object-recognition acceptance
+is claimed. Paid spend/reservations remain **$0/$0**. All owned disposable apps,
+schemas and accounts are cleaned by the runner; remote MySQL was not used.

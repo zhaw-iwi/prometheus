@@ -230,6 +230,27 @@ class CoordinationAgentIntegrationTest {
         assertEquals(proposal,memory(scope).get(CoordinationMemory.AGREEMENT));assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
         assertThrows(IllegalArgumentException.class,()->demo.configureHandScene(scope.code(),scope.id(),request.toString()));
     }
+    @Test void detectedTargetsPersistWithoutRevivingExpiredLabelsAndDelayedInferenceCannotPoint() throws Exception {
+        var scope=create();var other=create();
+        java.util.function.Consumer<JsonObject> observe=data->demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_SCENE_TARGETS,"camera",Event.KIND_OBSERVATION,data.toString()),OutputProfile.FULL_PLAN).orElseThrow();
+        var scene=JsonParser.parseString(demo.configureHandScene(scope.code(),scope.id(),fixtures.behaviour.ObservedTargetsFixture.virtualRequest(0).toString()).orElseThrow()).getAsJsonObject();
+        var snapshot=fixtures.behaviour.ObservedTargetsFixture.cup(Instant.now());observe.accept(snapshot);
+        var stored=memory(scope).get(ch.zhaw.prometheus.model.hand.ObservedTargets.KEY).getAsJsonObject();var target=stored.getAsJsonArray("targets").get(0).getAsJsonObject();
+        var binding=fixtures.behaviour.ObservedTargetsFixture.binding(target,scene.getAsJsonArray("targets").get(0).getAsJsonObject());
+        assertTrue(demo.bindHandTarget(other.code(),scope.id(),binding.toString()).isEmpty());
+        demo.bindHandTarget(scope.code(),scope.id(),binding.toString()).orElseThrow();assertEquals(binding,memory(scope).get(ch.zhaw.prometheus.model.hand.ObservedTargets.BINDINGS).getAsJsonArray().get(0));
+        int historySize=agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size();observe.accept(snapshot);assertEquals(historySize,agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size());
+        var command=new JsonObject();command.addProperty("intent","ACTION");command.addProperty("kind","POINT");command.addProperty("silent",true);command.add("value",fixtures.behaviour.HandSceneFixture.action(target));
+        String answer="{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":"+command+"}";
+        when(gateway.infer(any())).thenAnswer(call->{Thread.sleep(3100);return answer;});
+        demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_USER_UTTERANCE,"user",Event.KIND_OBSERVATION,"Point at my cup silently"),OutputProfile.FULL_PLAN).orElseThrow();
+        assertEquals("CLARIFY",memory(scope).get("command.lastResult").getAsJsonObject().get("status").getAsString());
+        assertTrue(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(memory(scope),Instant.now()).isEmpty());
+        observe.accept(fixtures.behaviour.ObservedTargetsFixture.cup(Instant.now()));var revived=memory(scope).get(ch.zhaw.prometheus.model.hand.ObservedTargets.KEY).getAsJsonObject().getAsJsonArray("targets").get(0).getAsJsonObject();
+        assertNotEquals(target.get("revision"),revived.get("revision"));assertThrows(IllegalArgumentException.class,()->ch.zhaw.prometheus.model.hand.ObservedTargets.binding(memory(scope),ch.zhaw.prometheus.model.hand.HandScene.ref(revived),Instant.now()));
+        assertEquals(binding,memory(scope).get(ch.zhaw.prometheus.model.hand.ObservedTargets.BINDINGS).getAsJsonArray().get(0));
+        assertTrue(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().stream().filter(e->Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType())).noneMatch(e->e.getPayload().contains("\"resolved\"")));
+    }
     @Test void namedIngressRejectsMalformedAndUndeclaredInputBeforePersistingHistory() {
         var scope = create(); int initial = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size();
         assertThrows(IllegalArgumentException.class, () -> demo.acknowledge(scope.code(), scope.id(),

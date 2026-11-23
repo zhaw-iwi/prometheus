@@ -8,13 +8,15 @@ import static ch.zhaw.prometheus.model.hand.HandSignObservation.*;
 
 /** One unambiguous pointing hand, or an explicit unavailable estimate. */
 public record HandPointObservation(String observationId,String source,Instant observed,SpatialFrame frame,
-        String handId,String handedness,String direction,String validity,JsonObject ray,JsonObject resolution) {
+        String handId,String handedness,String direction,String validity,JsonObject ray,JsonObject resolution,JsonObject handOrigin,JsonObject sourceAssociation) {
     public String identity() {return source+"/"+observationId;}
     public static HandPointObservation parse(String payload) {
         try {
             if(payload==null||payload.getBytes(StandardCharsets.UTF_8).length>16384)throw new IllegalArgumentException();
             var o=JsonParser.parseString(payload).getAsJsonObject();
-            exact(o,"schemaVersion","observationId","source","ts","frame","handId","handedness","direction","validity","ray","resolution");
+            var fields=new java.util.HashSet<>(Set.of("schemaVersion","observationId","source","ts","frame","handId","handedness","direction","validity","ray","resolution"));
+            for(String optional:Set.of("handOrigin","sourceAssociation"))if(o.has(optional))fields.add(optional);
+            if(!fields.equals(o.keySet()))throw new IllegalArgumentException();
             integer(o.get("schemaVersion"),1,1);String id=identifier(o.get("observationId")),source=identifier(o.get("source"));
             String ts=text(o.get("ts"));if(ts.length()>40)throw new IllegalArgumentException();
             var frame=SpatialFrame.parse(o.get("frame"));if(!frame.space().equals("camera_image"))throw new IllegalArgumentException();
@@ -41,7 +43,10 @@ public record HandPointObservation(String observationId,String source,Instant ob
                 else exact(resolution,"status");
             }else throw new IllegalArgumentException("Unsupported resolution");
             if(!validity.equals("valid")&&!status.equals("unresolved"))throw new IllegalArgumentException("Invalid direction cannot select targets");
-            return new HandPointObservation(id,source,Instant.parse(ts),frame,hand,side,direction,validity,ray==null?null:ray.deepCopy(),resolution.deepCopy());
+            JsonObject origin=null,association=null;
+            if(o.has("handOrigin")&&!o.get("handOrigin").isJsonNull()){origin=o.getAsJsonObject("handOrigin");exact(origin,"x","y");HandGeometry.range(origin.get("x"),0,1);HandGeometry.range(origin.get("y"),0,1);}
+            if(o.has("sourceAssociation")){association=o.getAsJsonObject("sourceAssociation");String state=text(association.get("status"));if(state.equals("projected")){exact(association,"status","person");TargetRef.parse(association.get("person"));}else{exact(association,"status");if(!state.equals("unresolved"))throw new IllegalArgumentException();}}
+            return new HandPointObservation(id,source,Instant.parse(ts),frame,hand,side,direction,validity,ray==null?null:ray.deepCopy(),resolution.deepCopy(),origin==null?null:origin.deepCopy(),association==null?null:association.deepCopy());
         } catch(RuntimeException invalid) {throw new IllegalArgumentException("Invalid planar pointing observation",invalid);}
     }
 }

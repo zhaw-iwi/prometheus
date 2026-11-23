@@ -117,6 +117,8 @@ const camera = {
   handInferencePending: false,
   handPoseEstimator: null,
   lastPointEmitAt: 0,
+  lastSceneEmitAt: 0,
+  targetTracker: null,
   previewMirrored: true,
   namedSignTracker: null,
   lastNamedSignEmitAt: 0,
@@ -257,6 +259,7 @@ const PROFILE_VISUAL_OBSERVATIONS = [
   "obs.hand.signs",
   "obs.hand.pose",
   "obs.hand.pointing",
+  "obs.scene.targets",
 ];
 
 const PROFILE_WEATHER_OBSERVATIONS = [
@@ -266,7 +269,7 @@ const PROFILE_WEATHER_OBSERVATIONS = [
 
 const PROFILE_SENSOR_OBSERVATIONS = {
   emotion: ["obs.emotion.face"],
-  social: ["obs.human.presence", "obs.social.grouping", "obs.social.context"],
+  social: ["obs.human.presence", "obs.social.grouping", "obs.social.context", "obs.scene.targets"],
   hand: ["obs.hand.sign", "obs.hand.signs", "obs.hand.pose", "obs.hand.pointing"],
 };
 
@@ -289,7 +292,7 @@ window.addEventListener("load", init);
 window.addEventListener("beforeunload", cleanupAll);
 window.addEventListener("pagehide", cleanupAll);
 
-let handSceneUi=null;
+let handSceneUi=null,detectedTargetsUi=null;
 async function init() {
   globalThis.ValerianEmbodiment?.init();
   handSceneUi=(await import('./hand/scene.js')).mountScene(document.getElementById('hand_scene_setup'),async request=>{
@@ -298,6 +301,13 @@ async function init() {
     if(!response.ok)throw new Error('Save rejected. Check the latest camera frame, revision, region bounds and mapping.');
     const result=await response.json();await loadStorage();return result;
   });
+  detectedTargetsUi=(await import('./hand/targets-view.js')).mountTargets(document.getElementById('detected_target_setup'),async request=>{
+    const connection=captureConnection();const response=await scopedFetch(demoAgentPath('/hand-scene/binding'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});
+    if(!currentConnection(connection))throw new Error('Connection changed; select a target in the current scene.');
+    if(!response.ok)throw new Error('The target or virtual counterpart changed or expired. Select again.');
+    await loadStorage();return response.json();
+  });
+  window.addEventListener('pagehide',()=>detectedTargetsUi?.dispose(),{once:true});
   camera.video = document.getElementById("camera_video");
   document.getElementById("camera_mirror_preview").addEventListener("change",event=>{
     camera.previewMirrored=event.target.checked;camera.video.style.transform=camera.previewMirrored?"scaleX(-1)":"none";
@@ -1448,6 +1458,9 @@ function currentProfileSupportsHandPoses() {
 function currentProfileSupportsHandPointing() {
   return currentProfileSupportsObservation("obs.hand.pointing") && state.agentInfo?.interactionProfile?.profileTags?.includes("hand.pointing.v1") === true;
 }
+function currentProfileSupportsDynamicTargets(){
+  return currentProfileSupportsObservation('obs.scene.targets')&&state.agentInfo?.interactionProfile?.profileTags?.includes('hand.targets.dynamic.v1')===true;
+}
 
 function currentProfileSupportsHandGeometry() {
   return currentProfileSupportsHandPoses() && state.agentInfo?.interactionProfile?.profileTags?.includes("hand.geometry.v1") === true;
@@ -1531,7 +1544,7 @@ function renderHistoricalSensingEvent(event) {
     try { renderNamedHandReport(JSON.parse(event.payload)); setText("hand_named_status", "From history; not a new cue"); }
     catch (_) { setText("hand_named_status", "Invalid stored observation"); }
   } else if (event.type === "obs.hand.pointing") {
-    try {renderPointingReport(JSON.parse(event.payload));setText("hand_point_status","From history; not a new cue");}
+    try {const point=JSON.parse(event.payload);renderPointingReport(point);detectedTargetsUi?.point(point);setText("hand_point_status","From history; not a new cue");}
     catch(_){setText("hand_point_status","Invalid stored pointing");}
   } else if (event.type === "obs.hand.pose") {
     try {
@@ -1763,6 +1776,7 @@ function setStorageEntries(entries) {
 
 function resetStorageList() {
   handSceneUi?.clear();
+  detectedTargetsUi?.clear();
   state.storage = [];
   state.taskStatus = null;
   globalThis.PrometheusActivity?.taskStatus(null);
@@ -1776,6 +1790,9 @@ function updateHandScene(){
   const value=state.storage?.find(e=>e.key==='hand.scene.v1')?.value;
   let scene={};try{scene=value?JSON.parse(value):{};}catch(_){}
   handSceneUi?.update(scene,state.agentInfo?.interactionProfile?.profileTags?.includes('hand.targets.v1')===true);
+  const entry=key=>{try{return JSON.parse(state.storage?.find(e=>e.key===key)?.value||'null');}catch(_){return null;}};
+  detectedTargetsUi?.update({snapshot:entry('hand.scene.observed.v1')||{},configured:scene,bindings:entry('hand.scene.bindings.v1')||[],selected:entry('hand.scene.selected.v1'),enabled:currentProfileSupportsDynamicTargets()});
+  detectedTargetsUi?.point(entry('hand.scene.pointing.v1'));
 }
 
 function renderHandConfidencePolicy() {
@@ -3648,6 +3665,8 @@ async function loadSocialDetector() {
   }
   try {
     camera.socialDetector = await window.cocoSsd.load({ base: "lite_mobilenet_v2" });
+    camera.targetTracker=(await import('./hand/targets.js')).createTargetTracker();
+    camera.namedSignTracker||=(await import('./hand/named-signs.js')).createNamedSignTracker();
     camera.socialDetectorReady = true;
     appendLog("camera", "person detector ready.");
   } catch (error) {
@@ -3688,7 +3707,7 @@ async function createHandRecognizer(model, revision) {
     if (revision !== camera.handModelRevision) { recognizer.close?.(); return; }
     camera.handRecognizer = recognizer;
     camera.handPoseEstimator = poseEstimator;
-    camera.namedSignTracker = createNamedTracker();
+    camera.namedSignTracker ||= createNamedTracker();
     camera.handModel = model;
     camera.lastGestureVideoTime = -1;
     camera.handDetectorReady = true;
@@ -3782,6 +3801,8 @@ async function detectEmotion() {
 
 async function detectSocial() {
   const observed = captureObservationTime();
+  const started=performance.now();
+  const revision=camera.handEmissionRevision||0,agentId=state.agentId;
   let rawDetections = [];
   try {
     rawDetections = await camera.socialDetector.detect(camera.video);
@@ -3791,6 +3812,16 @@ async function detectSocial() {
     drawSocialStatus("Social detection error", "error");
     appendLog("camera", "social detection failed: " + errorMessage(error));
     return;
+  }
+  if(revision!==(camera.handEmissionRevision||0)||agentId!==state.agentId)return;
+  if(currentProfileSupportsDynamicTargets()&&observed&&camera.targetTracker&&camera.namedSignTracker&&performance.now()-started<1800){
+    const frame=camera.namedSignTracker.frame(camera.video.videoWidth/camera.video.videoHeight||1);
+    const snapshot=camera.targetTracker.observe(rawDetections,camera.video.videoWidth,camera.video.videoHeight,frame,observed.ts);
+    renderDetectedTargets(snapshot);
+    await maybeEmitSceneTargets(snapshot,observed,revision,agentId);
+    if(revision!==(camera.handEmissionRevision||0)||agentId!==state.agentId)return;
+  }else if(currentProfileSupportsDynamicTargets()&&performance.now()-started>=1800){
+    setText('target_saved','Object detection is too slow for fresh target selection on this device. Older tracks expire automatically.');
   }
   const people = rawDetections
     .filter((d) => d && d.class === "person" && Number(d.score || 0) >= PERSON_SCORE_THRESHOLD)
@@ -3849,7 +3880,7 @@ async function detectHandSign() {
     const hands = camera.handPoseEstimator(result);
     const named = camera.namedSignTracker?.observe(result, observed?.ts,
       Number(document.getElementById("hand_confidence_threshold").value || .65), currentProfileSupportsHandPoses(),
-      currentProfileSupportsHandGeometry(), camera.video.videoWidth / camera.video.videoHeight || 1, currentProfileSupportsHandPointing());
+      currentProfileSupportsHandGeometry(), camera.video.videoWidth / camera.video.videoHeight || 1, currentProfileSupportsHandPointing(),currentProfileSupportsDynamicTargets());
     const key = hands.map(hand => hand.handedness).sort().join("|");
     camera.handPoseStableFrames = key === camera.handPoseStableKey ? camera.handPoseStableFrames + 1 : 1;
     camera.handPoseStableKey = key;
@@ -5163,6 +5194,22 @@ function renderPointingReport(payload) {
   setText("hand_point_frame",`Unmirrored camera: x right, y down. Frame revision ${payload.frame.revision}. Preview ${camera.previewMirrored!==false?'mirrored':'unmirrored'}.`);
 }
 
+function renderDetectedTargets(snapshot){
+  const scale=overlayScale();
+  for(const target of snapshot.targets){
+    if(target.type==='person')continue;
+    const {position:p,extent:e}=target,box={x:(p.x-e.x/2)*camera.video.videoWidth,y:(p.y-e.y/2)*camera.video.videoHeight,width:e.x*camera.video.videoWidth,height:e.y*camera.video.videoHeight};
+    const displayed=mirroredOverlayBox(box.x,box.y,box.width,box.height,scale);camera.ctx.strokeStyle='#db6b22';camera.ctx.lineWidth=2;camera.ctx.strokeRect(displayed.x,displayed.y,displayed.width,displayed.height);
+    drawOverlayLabel(displayed.x,Math.max(8,displayed.y-24),target.type,'#ad4b17');
+  }
+}
+async function maybeEmitSceneTargets(snapshot,observed,revision,agentId){
+  if(!state.agentId||!currentProfileSupportsDynamicTargets()||!document.getElementById('sensor_emit_enabled').checked||!globalThis.PrometheusObservationTiming?.accepts(observed)||Date.now()-camera.lastSceneEmitAt<500)return;
+  camera.lastSceneEmitAt=Date.now();
+  await acknowledgeEvent({type:'obs.scene.targets',actor:'camera',kind:'observation',payload:JSON.stringify(snapshot)},{renderResponse:true});
+  if(revision!==(camera.handEmissionRevision||0)||agentId!==state.agentId)return;
+}
+
 async function maybeEmitPointing(named,observed) {
   const status=text=>setText("hand_point_status",text);
   if(!state.agentId||!currentProfileSupportsHandPointing()){status("Pointing delivery is unavailable for this instance");return;}
@@ -5996,6 +6043,7 @@ function resetCameraEmissionGate() {
   camera.handPoseStableFrames = 0;
   camera.lastNamedSignEmitAt = 0;
   camera.lastPointEmitAt = 0;
+  camera.lastSceneEmitAt = 0;
   setText("hand_point_status","Not sent: capture reset");
   camera.namedSignTracker?.reset();
   setText("hand_named_status", "Not sent: capture reset");
@@ -6011,6 +6059,7 @@ function resetDisabledSensorState() {
   if (!isSensorModeEnabled("social")) {
     renderSocialMetrics(null, []);
     camera.tracks.clear();
+    camera.targetTracker?.clear();
     camera.lastPresenceSignature = null;
     camera.lastGroupingSignature = null;
     camera.lastSocialContextSignature = null;
@@ -6238,6 +6287,7 @@ function resetSensingState() {
   resetHandSignReport("No sign");
   resetWeatherState();
   camera.tracks.clear();
+  camera.targetTracker?.clear();
   camera.lastEmotion = null;
   camera.lastEmotionEmitAt = 0;
   camera.lastEmotionAttemptAt = 0;

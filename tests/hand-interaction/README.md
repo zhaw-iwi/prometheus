@@ -195,3 +195,41 @@ is optional for the already published HI-06 emitter, and validated when present.
 The same-capture, source freshness, preparation/acceptance and action-budget gates
 remain in force. Native instructions expose concise capability semantics; full
 registered scene data is supplied only to backend task/command interpretation.
+
+
+## Detected people and items (HI-08)
+
+`hand.targets.dynamic.v1` also requires `hand.targets.v1` and
+`hand.pointing.v1`, plus declared `obs.scene.targets`. Old profiles remain intact.
+The existing COCO-SSD 2.2.3/lite_mobilenet_v2 inference supplies person, cup, bottle
+and book boxes (score >= .5), at most sixteen. The client sends snapshots at most
+2/s; ingress enforces 16 KiB, source age <=2 seconds (1 second skew), monotonically
+increasing captures >=200 ms apart, unique IDs and normalized image bounds.
+`sceneTargets` now requires `observationId` and `frame`. No image leaves the client.
+
+Server IDs are agent-namespaced and revisions are monotonic generations. Expiry
+is exactly capture+3 seconds. Exact retries cannot append events. Missing tracks,
+changed frames and gaps over 1.5 seconds retire references; ambiguous client
+assignments/crossings also create fresh IDs. Pointing pairs only with an earlier
+same-frame snapshot no older than 1.5 seconds. Optional `handOrigin` is the
+estimated wrist in image coordinates. The backend replaces `sourceAssociation`
+and `resolution`; exactly one overlapping person box is a projected source to
+exclude, otherwise the source is unresolved. This is not identity or depth.
+
+POST `/demo/agents/{id}/hand-scene/binding` with the normal scoped header and
+`{target:{id,revision,frame},label,destination:null|{id,revision,frame}}` selects one
+fresh track. Labels are 1..80 characters; at most sixteen bindings are retained.
+Only a current registered virtual destination can be an output counterpart.
+Bindings/reconfiguration pause active tasks and reset preparation; accepted terms
+remain intact. Selected refs and labels never survive a generation change as
+valid bindings. Dispatch rechecks both target and counterpart after inference.
+
+Run `node tests/hand-interaction/scene-detector-smoke.mjs` for hash-pinned public
+images and the real pinned model (local ignored artifacts). `scene-corpus.json`
+retains class-output expectations and **separate visual semantic findings**:
+carton/jar false bottle positives remain a known failure. Software-WebGL timings
+exceeded the live freshness window; this offline replay is not real-time device
+acceptance. The client withholds inference taking >=1.8 seconds and explains it.
+No nearest-target/depth heuristic or automatic label transfer compensates for
+missing detections. Tests with controlled SDK output cover the scoped UI flow;
+they are not recognition accuracy or paid provider evidence.

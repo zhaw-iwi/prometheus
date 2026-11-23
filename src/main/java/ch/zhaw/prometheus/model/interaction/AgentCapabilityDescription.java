@@ -68,6 +68,13 @@ public final class AgentCapabilityDescription {
     }
 
     private static String meaning(String key, AgentInteractionProfile profile) {
+        if(ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(profile)) {
+            if(key.equals("obs.scene.targets"))return "Temporary person/cup/bottle/book boxes; no identity/depth. Output needs mapped counterpart.";
+            if(key.equals("obs.hand.pointing"))return "Projected direction/target; ambiguity unresolved.";
+            if(key.equals("obs.hand.pose"))return "Bends: 0 straight,1 bent,null unknown; projected geometry, no visibility/contact proof.";
+            if(key.equals("obs.hand.signs"))return "Fist/peace/halt/thumbs up/down/index up/shaka/horns/middle finger/OK ring; no consent/geometric score.";
+            if(key.equals("motion.handAction"))return "Digital signs/finger poses, bounded geometry, eight robot directions, registered targets.";
+        }
         if(ch.zhaw.prometheus.model.hand.HandFeatures.targets(profile)&&key.equals("obs.hand.pointing"))return "Camera-plane direction and registered region selection; no room depth or intent.";
         if(ch.zhaw.prometheus.model.hand.HandFeatures.geometry(profile)) {
             if(key.equals("obs.hand.pose"))return "V2 bends (0 straight,1 bent,null unknown), projected tip gaps, spreads and axes. Estimated sides; inferred joints do not prove visibility/contact.";

@@ -1,0 +1,170 @@
+{
+  "schema": "scene-detector-corpus-v1",
+  "sdkVersion": "tfjs 1.7.4 / coco-ssd 2.2.3",
+  "model": "ssdlite_mobilenet_v2",
+  "threshold": 0.5,
+  "frames": 7,
+  "frameIntervalMs": 350,
+  "provenance": "Public TensorFlow.js demo photograph and COCO train2017 images from the pinned COCO128 archive. Images remain ignored local artifacts. COCO annotations are CC BY 4.0; image rights remain with their Flickr owners, see upstream terms. Small calibration corpus, not held-out accuracy evidence.",
+  "references": [
+    "https://github.com/tensorflow/tfjs-models/blob/master/coco-ssd/README.md",
+    "https://docs.ultralytics.com/datasets/detect/coco128",
+    "https://github.com/cocodataset/cocodataset.github.io/blob/master/dataset/termsofuse.htm"
+  ],
+  "archive": {
+    "file": "coco128.zip",
+    "url": "https://github.com/ultralytics/assets/releases/download/v0.0.0/coco128.zip",
+    "sha256": "61e5e3028863d8ffc3b81d6a514603954889f0edd5e4b44c4ce60b2da99aeb8e"
+  },
+  "sources": [
+    {
+      "file": "tf.min.js",
+      "url": "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js",
+      "sha256": "0e7b8a68b1a1cbf8a0f49093fb22199c4a03bd77b010a0657464124e053d78d2"
+    },
+    {
+      "file": "coco-ssd.js",
+      "url": "https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js",
+      "sha256": "8875b8c1bb57723990c9d6506226e0e51cd21b8b6943eb53201086096de52df5"
+    },
+    {
+      "file": "model.json",
+      "url": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/model.json",
+      "sha256": "3770b2528339b1e3340cb74360e1e40401816b009779aeb8d0cce3a4353ea3a9"
+    },
+    {
+      "file": "group1-shard1of5",
+      "url": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard1of5",
+      "sha256": "0e7af0f713e98521252321f7f84892c31cefccccec3ac64c84e5065b75ed5646"
+    },
+    {
+      "file": "group1-shard2of5",
+      "url": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard2of5",
+      "sha256": "74cc6cfc2c4510c9cd81b8ad4cebf6f6a8f305119bb365ce0eb96276da38519a"
+    },
+    {
+      "file": "group1-shard3of5",
+      "url": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard3of5",
+      "sha256": "50383033f893eae136392a403e8f70ade5efd90867df5695c4ca5ac640e14f38"
+    },
+    {
+      "file": "group1-shard4of5",
+      "url": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard4of5",
+      "sha256": "d856dc534c780068bbf6c666ce1516df2c8433d87578aa31fcdf197de7058cc2"
+    },
+    {
+      "file": "group1-shard5of5",
+      "url": "https://storage.googleapis.com/tfjs-models/savedmodel/ssdlite_mobilenet_v2/group1-shard5of5",
+      "sha256": "3d356f1fb6dfca6af78c56db34d9326706d0196e303f9de6b04f236ca79ed309"
+    },
+    {
+      "file": "image1.jpg",
+      "url": "https://raw.githubusercontent.com/tensorflow/tfjs-models/master/coco-ssd/demo/image1.jpg",
+      "sha256": "1cce24f13eaee954c86fa72b1b1a1708c8dcbd385ae7411ada7a2f052aa0cb1b"
+    },
+    {
+      "file": "000000000142.jpg",
+      "archivePath": "coco128/images/train2017/000000000142.jpg",
+      "sha256": "3c852dc71abcf6cf06ed58202d1b2c850bb783553f05c63cd6ca511936b431aa"
+    },
+    {
+      "file": "000000000283.jpg",
+      "archivePath": "coco128/images/train2017/000000000283.jpg",
+      "sha256": "a668b293598b0097c9b38c136e54b8b43241df22d1c183f6f204a87eaf1f0724"
+    },
+    {
+      "file": "000000000562.jpg",
+      "archivePath": "coco128/images/train2017/000000000562.jpg",
+      "sha256": "e31320272d768add7113d41a9c65407fd4868da1229f8658fc877e9b07c4c794"
+    },
+    {
+      "file": "000000000605.jpg",
+      "archivePath": "coco128/images/train2017/000000000605.jpg",
+      "sha256": "9135dd0723240d2d4f64ce2173901a0f23a222dea98b72e1259c28f28fa2aab6"
+    },
+    {
+      "file": "000000000643.jpg",
+      "archivePath": "coco128/images/train2017/000000000643.jpg",
+      "sha256": "53d61e69ccf08b42a1cefa414c69a1c03d72aba2852e1fde35c4da3df8753b3f"
+    }
+  ],
+  "cases": [
+    {
+      "id": "people",
+      "image": "image1.jpg",
+      "expected": [
+        "person"
+      ]
+    },
+    {
+      "id": "two-bottles",
+      "image": "000000000142.jpg",
+      "expected": [
+        "bottle"
+      ]
+    },
+    {
+      "id": "bottle",
+      "image": "000000000283.jpg",
+      "expected": [
+        "bottle"
+      ]
+    },
+    {
+      "id": "cup-close",
+      "image": "000000000562.jpg",
+      "expected": [
+        "cup"
+      ]
+    },
+    {
+      "id": "cup",
+      "image": "000000000605.jpg",
+      "expected": [
+        "cup"
+      ]
+    },
+    {
+      "id": "book-and-bottle",
+      "image": "000000000643.jpg",
+      "expected": [
+        "book",
+        "bottle"
+      ]
+    },
+    {
+      "id": "cup-pixel-motion",
+      "image": "000000000605.jpg",
+      "expected": [
+        "cup"
+      ],
+      "motion": true
+    },
+    {
+      "id": "empty",
+      "expected": []
+    }
+  ],
+  "semanticReview": {
+    "two-bottles": {
+      "status": "FAIL",
+      "actualObjects": [
+        "milk carton",
+        "jar"
+      ],
+      "predictedClasses": [
+        "bottle",
+        "bottle"
+      ],
+      "note": "Retained original class-output expectation. Visual review found two false positives; the automated class-output pass is not semantic accuracy acceptance."
+    },
+    "remainingCases": {
+      "status": "PASS",
+      "note": "Reviewed retained overlays; limited calibration images only."
+    },
+    "timing": {
+      "status": "INCONCLUSIVE",
+      "note": "Software WebGL inference took 2488-3279 ms, above live target freshness admission. This artificial-timestamp corpus proves model/tracker output only. The client withholds slow captures; device real-time acceptance remains required."
+    }
+  }
+}

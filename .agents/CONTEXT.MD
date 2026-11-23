@@ -105,7 +105,12 @@ camera restarts revise the frame. HI-07 adds `hand.targets.v1`: scoped configure
 regions/virtual targets in Storage, revisioned affine registration, server ray
 selection and dispatch-time target grounding. Edits/deletion/expiry invalidate
 references. The reference rig aims the index ray at the visible virtual marker;
-dynamic people/items remain pending.
+HI-08 adds `hand.targets.dynamic.v1`: bounded person/cup/bottle/book tracks from
+the existing COCO-SSD inference, projected source exclusion, explicit labels and
+registered virtual counterparts. Three-second expiry, generation changes and
+dispatch revalidation prevent stale references or label transfer. The small real
+model corpus exposes carton/jar bottle false positives and slow software-WebGL
+inference; device accuracy/timing remain unverified.
 Actual progress, calibrated
 detector limits and verification:
 `.agents/HAND_INTERACTION_RESULTS.md`.

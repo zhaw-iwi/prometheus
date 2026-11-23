@@ -167,7 +167,14 @@
         "observedAt": "2026-11-23T12:00:00Z",
         "expiresAt": null
       }
-    ]
+    ],
+    "observationId": "scene-example",
+    "frame": {
+      "id": "room-preview",
+      "revision": 1,
+      "space": "virtual_scene",
+      "mirrored": false
+    }
   },
   "pointObservation": {
     "schemaVersion": 1,

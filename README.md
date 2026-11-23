@@ -343,7 +343,8 @@ New Coordination instances accept per-hand communication signs through
 and `index_up` (attention), plus geometric `shaka` (hang loose), `horns` and
 `middle_finger` and `ok_ring` (diver's OK). They declare `motion.handAction` for
 immediate and agreed task output of all ten signs, explicit finger poses and planar
-pointing at directions and registered destinations. Dynamic targets and sequences follow the [roadmap](.agents/PLAN_HAND_INTERACTION.md). Legacy RPS input/output keeps
+pointing at directions, registered destinations and selected detected targets.
+Sequences follow the [roadmap](.agents/PLAN_HAND_INTERACTION.md). Legacy RPS input/output keeps
 `rock`/`scissor`/`paper`.
 
 For example, **"show thumbs up silently"** publishes one action without creating
@@ -391,6 +392,24 @@ selected 0.60 camera threshold. The unchanged 0.65 default withholds its open-pa
 sample (about 0.61); other views also produced misses. Adjusting sensitivity is
 an operator choice, not proof of general accuracy. See the retained
 [evidence and limits](.agents/HAND_INTERACTION_RESULTS.md).
+
+New instances additionally declare `hand.targets.dynamic.v1`. Enable Social
+sensing and observation delivery, then open **Detected people and items**. The
+existing COCO-SSD inference retains up to sixteen person/cup/bottle/book boxes.
+Select a current track, assign a label, and optionally associate a registered
+virtual destination for robot output. For example, "when I point at my cup,
+acknowledge it" can use that reference after preparation and acceptance; "point
+at my cup silently" uses its explicitly selected virtual counterpart. Saving a
+binding pauses active work so changed destinations cannot silently redirect it.
+
+Tracks expire after three seconds. Ambiguous crossings, disappearance or camera
+changes retire references; labels never transfer to replacement tracks. A
+uniquely overlapping person box can be excluded as the projected source, but
+this establishes no identity. Two aligned targets remain ambiguous. Slow/stale
+captures are withheld; output rechecks expiry after inference. Camera boxes alone
+provide no robot-space location or depth. Model classes are estimates: retained
+corpus review found a milk carton and jar misclassified as bottles. Real-time
+accuracy on the user's device remains an operator check; see the evidence log.
 
 New Coordination instances also declare profile tag `hand.poses.v2` and accept
 versioned `obs.hand.pose` v2. The envelope shares the named observation's source,

@@ -18,6 +18,7 @@ public final class HandObservationAdmission {
         if(Event.TYPE_HAND_POINTING.equals(input.getType())) {
             if(!HandFeatures.pointing(profile))throw new IllegalArgumentException("This instance does not declare pointing");
             var point=HandPointObservation.parse(input.getPayload());
+            if(!HandFeatures.dynamicTargets(profile)&&(point.handOrigin()!=null||point.sourceAssociation()!=null))throw new IllegalArgumentException("Dynamic source geometry not declared");
             if(!HandFeatures.targets(profile)&&!"unresolved".equals(point.resolution().get("status").getAsString()))throw new IllegalArgumentException("Targets not declared");
             rate(point.identity(),history,receivedAt);
         } else if(Event.TYPE_HAND_SIGNS.equals(input.getType())) {

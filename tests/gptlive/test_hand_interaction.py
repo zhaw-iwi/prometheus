@@ -89,6 +89,19 @@ class HandInteractionContractTest(unittest.TestCase):
         for key, value in [('expectedRevision', -1), ('transform', [0]*5), ('targets', [{}]*17)]:
             with self.assertRaises(ValidationError): self.validate('sceneConfiguration', {**config, key: value})
 
+    def test_detected_target_snapshot_and_projected_source_are_bounded(self):
+        valid = self.examples['sceneTargets']
+        for key in ('frame', 'observationId'):
+            invalid = copy.deepcopy(valid); del invalid[key]
+            with self.assertRaises(ValidationError): self.validate('sceneTargets', invalid)
+        ref = self.examples['pointObservation']['resolution']['target']
+        point = {**self.examples['pointObservation'], 'handOrigin': {'x': .4, 'y': .5},
+                 'sourceAssociation': {'status': 'projected', 'person': ref}}
+        self.validate('pointObservation', point)
+        for key, value in [('handOrigin', {'x': -1, 'y': .5}),
+                           ('sourceAssociation', {'status': 'identified', 'person': ref})]:
+            with self.assertRaises(ValidationError): self.validate('pointObservation', {**point, key: value})
+
     def test_sequences_bound_order_length_dwell_and_output_duration(self):
         valid = self.examples['inputSequence']
         for key, value in [('steps', []), ('steps', valid['steps'] * 2), ('dwellMs', 0),

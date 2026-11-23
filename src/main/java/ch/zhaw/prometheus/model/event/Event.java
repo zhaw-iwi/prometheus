@@ -34,6 +34,7 @@ public class Event {
     public static final String TYPE_HAND_SIGN = "obs.hand.sign";
     public static final String TYPE_HAND_SIGNS = "obs.hand.signs";
     public static final String TYPE_HAND_POINTING = "obs.hand.pointing";
+    public static final String TYPE_SCENE_TARGETS = "obs.scene.targets";
     public static final String TYPE_HAND_POSE = "obs.hand.pose";
     public static final String TYPE_WEATHER_CURRENT = "obs.weather.current";
     public static final String TYPE_WEATHER_FORECAST = "obs.weather.forecast";

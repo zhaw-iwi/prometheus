@@ -1231,13 +1231,21 @@
           },
           "minItems": 0,
           "maxItems": 16
+        },
+        "observationId": {
+          "$ref": "#/$defs/id"
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
         }
       },
       "required": [
         "schemaVersion",
         "source",
         "ts",
-        "targets"
+        "targets",
+        "observationId",
+        "frame"
       ],
       "additionalProperties": false
     },
@@ -1417,6 +1425,65 @@
                 "origin",
                 "vector",
                 "aspectRatio"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "handOrigin": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "y": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sourceAssociation": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "const": "unresolved"
+                }
+              },
+              "required": [
+                "status"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "const": "projected"
+                },
+                "person": {
+                  "$ref": "#/$defs/targetRef"
+                }
+              },
+              "required": [
+                "status",
+                "person"
               ],
               "additionalProperties": false
             }

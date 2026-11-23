@@ -91,7 +91,7 @@ class CoordinationAgentUnitTest {
         var original = new GenericMultimodalBehaviourAtSocialSpace().createAgent().getInteractionProfile();
         assertEquals(original.getSupportedObservations(),
                 agent.getInteractionProfile().getSupportedObservations().stream()
-                    .filter(type -> !Event.TYPE_HAND_SIGNS.equals(type) && !Event.TYPE_HAND_POINTING.equals(type)).toList());
+                    .filter(type -> !Event.TYPE_HAND_SIGNS.equals(type) && !Event.TYPE_HAND_POINTING.equals(type) && !Event.TYPE_SCENE_TARGETS.equals(type)).toList());
         assertTrue(agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_SIGNS));
         assertEquals(original.getSupportedBehaviourModalities(), agent.getInteractionProfile().getSupportedBehaviourModalities().stream()
                 .filter(m -> !ch.zhaw.prometheus.model.hand.HandActions.MODALITY.equals(m)).toList());

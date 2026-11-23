@@ -171,6 +171,8 @@ public class ScopedDemoController {
     public ResponseEntity<String> configureHandScene(@PathVariable UUID agentId,@RequestHeader(value=ACCESS_CODE_HEADER,required=false) String code,@RequestBody String body) {
         return demoService.configureHandScene(code,agentId,body).map(ResponseEntity::ok).orElseGet(()->ResponseEntity.notFound().build());
     }
+    @PostMapping(value="/demo/agents/{agentId}/hand-scene/binding",consumes=MediaType.APPLICATION_JSON_VALUE,produces=MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> bindHandTarget(@PathVariable UUID agentId,@RequestHeader(value=ACCESS_CODE_HEADER,required=false) String code,@RequestBody String body){return demoService.bindHandTarget(code,agentId,body).map(ResponseEntity::ok).orElseGet(()->ResponseEntity.notFound().build());}
 
     @PostMapping("/demo/agents/{agentId}/start")
     public ResponseEntity<ResponseView> start(

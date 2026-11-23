@@ -10,6 +10,7 @@ public final class HandFeatures {
     public static final String POSES = "hand.poses.v2";
     public static final String POINTING = "hand.pointing.v1";
     public static final String TARGETS = "hand.targets.v1";
+    public static final String DYNAMIC_TARGETS="hand.targets.dynamic.v1";
     public static final String GEOMETRY = "hand.geometry.v1";
     public static final Set<String> DERIVED_SIGNS = Set.of("shaka", "horns", "middle_finger", "ok_ring");
     private HandFeatures() {}
@@ -19,6 +20,7 @@ public final class HandFeatures {
     public static boolean pointing(Storage storage) { return storage.containsKey(POINTING) && new JsonPrimitive(true).equals(storage.get(POINTING)); }
     public static boolean targets(AgentInteractionProfile profile) {return pointing(profile)&&profile.getProfileTags().contains(TARGETS);}
     public static boolean targets(Storage storage) {return pointing(storage)&&storage.containsKey(TARGETS)&&new JsonPrimitive(true).equals(storage.get(TARGETS));}
+    public static boolean dynamicTargets(AgentInteractionProfile profile){return targets(profile)&&profile.getProfileTags().contains(DYNAMIC_TARGETS);}
     public static boolean geometry(AgentInteractionProfile profile) { return poses(profile) && profile.getProfileTags().contains(GEOMETRY); }
     public static boolean geometry(Storage storage) { return poses(storage) && storage.containsKey(GEOMETRY) && new JsonPrimitive(true).equals(storage.get(GEOMETRY)); }
     public static boolean requiresGeometry(ch.zhaw.prometheus.model.task.HandPoseCondition pose,ch.zhaw.prometheus.model.task.HandSignCondition sign) {

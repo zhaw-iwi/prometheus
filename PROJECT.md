@@ -82,8 +82,8 @@ and regulation diagnostics remain future work.
   The plan defines unit/contract, isolated local-MySQL, reviewed Playwright visual
   and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
   HI-02 named-sign triggers, HI-03 output, HI-04 composed poses and HI-05 geometry/OK
-  ring, HI-06 directional pointing and HI-07 configured targets are complete;
-  HI-08 dynamic people/items is next. The owner authorized sequential implementation,
+  ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
+  people/items are complete; HI-09 input sequences/counting is next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10260,3 +10260,25 @@ deployment remain deferred.
   inputs. Visual review corrected the index's offset from the arm centre.
 - No dynamic people/items, room depth, physical actuation or real-provider L-05
   acceptance is claimed. Continue HI-08 after the authorized commit/push.
+
+
+## HI-08 - Dynamic people and item targets (2026-11-23)
+
+- Reuses existing COCO-SSD inference for bounded ephemeral person/cup/bottle/book
+  tracks. Server generations, source-time pairing, three-second expiry, explicit
+  selection/labels and registered virtual counterparts prevent stale output and
+  label transfer. Projected source exclusion never establishes identity or depth.
+- Scoped binding setup, live authoritative selection/ambiguity display, paused
+  tasks on binding edits and dispatch-time freshness checks use existing Storage,
+  Coordination and canonical BehaviourPlan paths. Saved profiles remain unchanged.
+- Verified 291 Java units, 88 JS cases, ten contracts, three local-MySQL journeys,
+  two combined browser journeys plus the final dynamic visual/history rerun;
+  package/diff checks pass. Standard Live contexts max 15908/16000 bytes and the
+  optional social context fits. Artifacts and retained failures are in
+  `.agents/HAND_INTERACTION_RESULTS.md`.
+- Actual pinned object model: 8 cases/56 frames meet class-output expectations,
+  but visual review finds carton/jar false bottle positives. Software-WebGL
+  inference exceeds online freshness; slow captures are withheld. These limits
+  remain explicit; no general accuracy, real-time device, physical or paid Live
+  acceptance is claimed. Paid spend/reservations remain $0/$0. Disposable apps,
+  DBs/accounts cleaned; remote MySQL untouched. Continue HI-09 after commit/push.

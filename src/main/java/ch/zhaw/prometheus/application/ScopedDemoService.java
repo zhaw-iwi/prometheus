@@ -53,7 +53,7 @@ public class ScopedDemoService {
 
     public record ObservationResult(int status, ResponseView response) {}
     private static final Set<String> SENSOR_TYPES = Set.of(Event.TYPE_FACE_EMOTION, Event.TYPE_HUMAN_PRESENCE,
-            Event.TYPE_SOCIAL_GROUPING, Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_HAND_SIGN, Event.TYPE_HAND_SIGNS, Event.TYPE_HAND_POSE, Event.TYPE_HAND_POINTING,
+            Event.TYPE_SOCIAL_GROUPING, Event.TYPE_SOCIAL_CONTEXT, Event.TYPE_HAND_SIGN, Event.TYPE_HAND_SIGNS, Event.TYPE_HAND_POSE, Event.TYPE_HAND_POINTING, Event.TYPE_SCENE_TARGETS,
             Event.TYPE_WEATHER_CURRENT, Event.TYPE_WEATHER_FORECAST);
 
     public List<ObservationResult> acknowledgeObservations(String code, UUID id, List<EventRequest> requests) {
@@ -208,6 +208,7 @@ public class ScopedDemoService {
 
     public Optional<String> handScene(String code,UUID id){return hasVisibleAgent(code,id)?agentService.handScene(id):Optional.empty();}
     public Optional<String> configureHandScene(String code,UUID id,String body){return hasVisibleAgent(code,id)?agentService.configureHandScene(id,body):Optional.empty();}
+    public Optional<String> bindHandTarget(String code,UUID id,String body){return hasVisibleAgent(code,id)?agentService.bindHandTarget(id,body):Optional.empty();}
 
     public Optional<ResponseView> start(String accessCodeValue, UUID agentId) {
         if (!this.hasVisibleAgent(accessCodeValue, agentId)) {

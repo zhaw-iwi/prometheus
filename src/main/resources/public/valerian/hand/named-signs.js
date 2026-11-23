@@ -36,12 +36,12 @@ export function createNamedSignTracker(sessionId = crypto.randomUUID()) {
   let poseKey=null,poseStarted=0,poseFrames=0,poseAnchor=[],previousRings=new Set();
   let pointKey=null,pointStarted=0,pointFrames=0,frameAspect=null,frameRevision=1;
   return {
+    frame(aspectRatio=frameAspect){if(frameAspect!==null&&aspectRatio!==frameAspect)frameRevision++;frameAspect=aspectRatio;return{id:`camera-${sessionId}`,revision:frameRevision,space:'camera_image',mirrored:false};},
     newFrame() {frameRevision++;this.reset();},
     reset() { lastKey = null; frames = 0; lastTime = -Infinity; poseKey=null;poseFrames=0;poseAnchor=[];previousRings.clear();pointKey=null;pointFrames=0; },
-    observe(result, ts, threshold, poses=false, relational=false, aspectRatio=1,pointing=false) {
+    observe(result, ts, threshold, poses=false, relational=false, aspectRatio=1,pointing=false,dynamicTargets=false) {
       const time=Date.parse(ts),gap=!Number.isFinite(time)||!Number.isFinite(lastTime)||time<=lastTime||time-lastTime>1000;
-      if(frameAspect!==null&&frameAspect!==aspectRatio)frameRevision++;
-      frameAspect=aspectRatio;
+      const frame=this.frame(aspectRatio);
       if(gap)previousRings.clear();
       const {hands,poseHands}=classifyHands(result,threshold,poses,relational,aspectRatio,previousRings);
       previousRings=new Set(hands.filter(h=>h.sign==='ok_ring').map(h=>h.id+'/'+h.handedness));
@@ -55,8 +55,9 @@ export function createNamedSignTracker(sessionId = crypto.randomUUID()) {
       }
       lastKey = key; lastTime = time; frames++;
       const observation={schemaVersion: 1, observationId: `${sessionId}:${++sequence}`, source: "valerian.hand.camera", ts,
-          frame: {id: `camera-${sessionId}`, revision: frameRevision, space: "camera_image", mirrored: false}, hands};
+          frame, hands};
       const estimate=pointing?estimatePointing(result,poseHands,aspectRatio):null;
+      if(estimate&&dynamicTargets){const index=poseHands.findIndex(h=>h.id===estimate.handId),wrist=result.landmarks?.[index]?.[0];estimate.handOrigin=wrist&&Number.isFinite(wrist.x)&&Number.isFinite(wrist.y)&&wrist.x>=0&&wrist.x<=1&&wrist.y>=0&&wrist.y<=1?{x:wrist.x,y:wrist.y}:null;}
       const nextPointKey=estimate?JSON.stringify([frameRevision,estimate.handId,estimate.handedness,estimate.direction,estimate.validity]):null;
       if(gap||nextPointKey!==pointKey){pointStarted=time;pointFrames=0;}
       pointKey=nextPointKey;pointFrames++;
