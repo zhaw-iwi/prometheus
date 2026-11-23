@@ -67,6 +67,7 @@ public class LiveSmokeConfiguration {
                 if (request.output() == InferenceRequest.Output.BOOLEAN)
                     return Boolean.toString(prompt.contains("Return true if the person is clearly ready to start a round"));
                 if (request.output() == InferenceRequest.Output.TEXT) return "Ready for the next interaction.";
+                if(provider.handOutput!=null&&request.purpose()==InferencePurpose.BEHAVIOUR&&prompt.contains("Accepted coordination roles and constraints"))return provider.handOutput;
                 if (provider.coordinationProposal != null && request.purpose() == InferencePurpose.BEHAVIOUR
                         && prompt.contains("Accepted coordination roles and constraints") && prompt.contains("Offer one welcome"))
                     return "{\"speech\":\"Welcome to the lab.\",\"nonVerbal\":{\"gesture\":\"ACKNOWLEDGE\"}}";
@@ -140,6 +141,7 @@ public class LiveSmokeConfiguration {
     public static final class Provider implements LiveSessionGateway, AutoCloseable {
         public volatile CompletableFuture<Void> inferenceGate;
         public volatile String coordinationProposal;
+        public volatile String handOutput;
         public volatile String directReply;
         public final List<Synthesized> speech = new CopyOnWriteArrayList<>();
         public final Map<String, Call> calls = new ConcurrentHashMap<>();
@@ -257,6 +259,8 @@ public class LiveSmokeConfiguration {
             provider.coordinationProposal = null;
         }
         @PostMapping("/__live-fixture/direct-command") public void directCommand(@RequestBody String reply) { provider.directReply = reply; }
+        @PostMapping("/__live-fixture/hand-output") public void handOutput(@RequestBody String reply){provider.handOutput=reply;}
+        @DeleteMapping("/__live-fixture/hand-output") public void clearHandOutput(){provider.handOutput=null;}
         @DeleteMapping("/__live-fixture/direct-command") public void clearDirectCommand() { provider.directReply = null; }
         @GetMapping("/__live-fixture/speech") public List<Synthesized> speech() { return List.copyOf(provider.speech); }
         @PostMapping("/__live-fixture/ack/{id}/{action}") public Map<String, Boolean> ack(

@@ -446,7 +446,46 @@ metadata on sign/pose/point representations. Missing ordinals cannot accumulate
 dwell. This opt-in metadata is rejected by saved profiles without sequence input.
 Progress persists in ordinary Storage; reload does not replay a completion.
 Sequence specs are bounded to 16 KiB and agreements to 32 KiB; existing nonsequence
-limits remain unchanged. Digital output sequences are a subsequent milestone.
+limits remain unchanged. Digital output sequences use the separate capability below.
+
+New Coordination instances also declare `hand.sequences.output.v1`. An immediate
+request such as **Count one to five silently** produces one finite output command;
+a negotiated cue may produce the same sequence as one task contribution. The
+counting convention extends thumb, index, middle, ring and little finger in order
+on the right hand; six through ten adds the left hand in that order. The user can
+request a different explicit pose convention.
+
+`motion.handAction.action` can be `{kind:"sequence",steps:[{action:<one sign,
+pose or point action>,holdMs:500}]}`. Direct interpretations use `HAND_SEQUENCE`
+with that action as `value`. There are 1..12 steps, hold 100..5000 ms per step,
+350 ms entry and release per step, and at most 60 seconds including transitions.
+No nesting or indefinite repeat. The envelope is at most 3500 UTF-8 bytes and the
+complete task plan at most 4000 bytes, retaining the existing 4096-character event
+column. Each step must be supported; unsupported combinations reject the whole
+plan. Target freshness/mapping is checked before publication and before each
+pointing step.
+
+Fresh output runs only in a visible, ready Robot view. **Stop hand sequence**, a
+new user turn, supersession, view hiding, reduced motion, lost connection, changed
+scene or reset interrupts it. A render gap over one second also interrupts rather
+than jumping through missed steps. History/reconnect is a static first-step
+preview. Missing receipts leave completion unknown; there is no automatic replay.
+The sequence status reports digital playback, never physical robot execution.
+
+Scoped `POST /demo/agents/{id}/hand-execution` accepts exactly
+`{eventId,owner,operation,step}`: canonical persisted event UUID, renderer UUID,
+`START|STEP|COMPLETE|CANCEL`, and zero-based step. The server binds the current
+command/agent epoch, claims one owner, enforces order and elapsed durations, and
+rejects late or other-owner acknowledgements. Start must arrive within five
+seconds; the overall receipt deadline is sequence duration plus 15 seconds.
+`GET` returns current status (`PUBLISHED`, `RUNNING`, `COMPLETED`, `INTERRUPTED`,
+`UNKNOWN`), step and deadline; unchanged reads/retries produce no new event/write.
+Both routes use the normal access-code scope. Progress lives in
+`hand.execution.v1`; at most eight previous summaries are retained. Server
+restart invalidates an outstanding lease. A task waits for required hand and
+native-speech playback independently before final Reflection; failed hand output
+pauses an unfinished task or leaves its final delivery Uncertain. Its contribution
+budget is never refunded or spent once per pose.
 
 New Coordination instances also declare profile tag `hand.poses.v2` and accept
 versioned `obs.hand.pose` v2. The envelope shares the named observation's source,

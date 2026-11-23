@@ -1,6 +1,6 @@
 # Hand interaction contracts and acceptance
 
-HI-01 freezes the definitions in
+HI-01 establishes the baseline definitions in
 [`interaction-v1.schema.json`](../../src/main/resources/hand/interaction-v1.schema.json).
 Validate the named `$defs` entry, not the unrestricted bundle root. Examples are
 contract fixtures, not claims that the runtime implements these future features.
@@ -18,14 +18,18 @@ The roadmap and evidence are in `.agents/PLAN_HAND_INTERACTION.md` and
 | Hand conditions | `signCondition`, `poseCondition`, `pointCondition`, `inputSequence` | Parsed by runtime; never executable model code |
 | `BehaviourPlan.motion.handAction` | `motion` v1 | Canonical semantic intent, not actuator coordinates |
 | Connected embodiment capabilities | `capabilities` | Input and output must be checked separately |
-| Scoped execution evidence | `executionReceipt` v1 | Bound to canonical event, command, owner and epoch |
+| Scoped execution requests and evidence | `executionRequest`, `executionReceipt` v1 | HI-10 binds the canonical event to a server command/epoch and exclusive renderer lease |
 
 HI-02 implements `obs.hand.signs` and its `handSign` condition for new Coordination
 instances. HI-03 implements the six-sign subset of `motion.handAction` for new
 Coordination profiles, direct commands and task output. HI-04 adds the explicit
 `hand.poses.v2` profile tag for v2 poses/two-hand conditions, custom output and
-shaka/horns/middle_finger. The tag never widens a saved profile implicitly. Other new boundaries
-remain specifications until their milestone. Do
+shaka/horns/middle_finger. The tag never widens a saved profile implicitly. HI-05..09 implement geometry, pointing, targets and input sequences. HI-10 adds
+finite output and scoped receipts. Its request carries eventId/owner/operation/step;
+the server supplies command identity, epoch, source position and times. This
+refines the previously unimplemented draft receipt instead of trusting client
+claims of epoch, completion or observation time. Only ordered, elapsed steps under
+one current owner can complete. Other future boundaries remain specifications. Do
 not send new envelopes to old agents. Later adoption must explicitly check the
 persisted profile and offer recreation/upgrade without silently widening an
 accepted agreement or deleting history. Legacy `rock`, `scissor`, `paper` remain

@@ -167,7 +167,7 @@ public class CoordinationAgent implements AgentDefinition {
         modalities.add(ch.zhaw.prometheus.model.hand.HandActions.MODALITY);
         agent.setInteractionProfile(AgentInteractionProfile.of(observations, modalities,
                 List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination", ch.zhaw.prometheus.model.hand.HandFeatures.POSES,
-                        ch.zhaw.prometheus.model.hand.HandFeatures.GEOMETRY, ch.zhaw.prometheus.model.hand.HandFeatures.POINTING, ch.zhaw.prometheus.model.hand.HandFeatures.TARGETS, ch.zhaw.prometheus.model.hand.HandFeatures.DYNAMIC_TARGETS, ch.zhaw.prometheus.model.hand.HandFeatures.INPUT_SEQUENCES)).withPresenceControlledLive(presenceReception));
+                        ch.zhaw.prometheus.model.hand.HandFeatures.GEOMETRY, ch.zhaw.prometheus.model.hand.HandFeatures.POINTING, ch.zhaw.prometheus.model.hand.HandFeatures.TARGETS, ch.zhaw.prometheus.model.hand.HandFeatures.DYNAMIC_TARGETS, ch.zhaw.prometheus.model.hand.HandFeatures.INPUT_SEQUENCES, ch.zhaw.prometheus.model.hand.HandFeatures.OUTPUT_SEQUENCES)).withPresenceControlledLive(presenceReception));
         return applyDefinitionMetadata(agent);
     }
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {

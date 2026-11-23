@@ -41,7 +41,17 @@ public final class HandActions {
             var version = envelope.getAsJsonPrimitive("schemaVersion");
             if (!version.isNumber() || version.getAsDouble() != 1) throw new IllegalArgumentException();
             var action = envelope.getAsJsonObject("action");
-            if("point".equals(text(action,"kind"))) { PointingAction.validate(action);
+            if("sequence".equals(text(action,"kind"))){
+                if(!action.keySet().equals(Set.of("kind","steps"))||raw.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>3500)throw new IllegalArgumentException();
+                var steps=action.getAsJsonArray("steps");if(steps.isEmpty()||steps.size()>12)throw new IllegalArgumentException();
+                long duration=0;
+                for(var value:steps){var step=value.getAsJsonObject();if(!step.keySet().equals(Set.of("action","holdMs")))throw new IllegalArgumentException();
+                    HandSignObservation.integer(step.get("holdMs"),100,5000);duration+=step.get("holdMs").getAsInt()+700;
+                    if("sequence".equals(text(step.getAsJsonObject("action"),"kind")))throw new IllegalArgumentException("Nested sequence");
+                    pose(step.getAsJsonObject("action"));
+                }
+                if(duration>60000)throw new IllegalArgumentException("Sequence exceeds one minute including transitions");
+            }else if("point".equals(text(action,"kind"))) { PointingAction.validate(action);
             } else if ("pose".equals(text(action,"kind"))) {
                 if(!action.keySet().equals(Set.of("kind","hands")))throw new IllegalArgumentException();
                 var hands=action.getAsJsonArray("hands");if(hands.isEmpty()||hands.size()>2)throw new IllegalArgumentException();
@@ -62,6 +72,11 @@ public final class HandActions {
         if (plan.getMotion() == null || !plan.getMotion().isJsonObject() || !plan.getMotion().getAsJsonObject().has("handAction")) return;
         if(!enabled(profile))throw new IllegalArgumentException("Named hand output is not declared for this instance");
         var action=plan.getMotion().getAsJsonObject().getAsJsonObject("handAction").getAsJsonObject("action");
+        if("sequence".equals(text(action,"kind"))){
+            if(!HandFeatures.outputSequences(profile))throw new IllegalArgumentException("Output sequences not declared");
+            for(var step:action.getAsJsonArray("steps")){var motion=new JsonObject();motion.add("handAction",pose(step.getAsJsonObject().getAsJsonObject("action")));requireCapability(new BehaviourPlan(null,null,motion,null),profile);}
+            return;
+        }
         if("point".equals(text(action,"kind"))) {
             if(!HandFeatures.pointing(profile))throw new IllegalArgumentException("Pointing output is not declared");
             if(action.has("target")&&!HandFeatures.targets(profile))throw new IllegalArgumentException("Target output is not declared");
@@ -72,6 +87,7 @@ public final class HandActions {
         if(requiresGeometry(action)&&!HandFeatures.geometry(profile))throw new IllegalArgumentException("This instance does not declare relational output");
     }
     public static boolean requiresGeometry(JsonObject action) {
+        if("sequence".equals(text(action,"kind")))return action.getAsJsonArray("steps").asList().stream().anyMatch(s->requiresGeometry(s.getAsJsonObject().getAsJsonObject("action")));
         return "sign".equals(text(action,"kind"))?"ok_ring".equals(text(action,"sign"))
                 :"pose".equals(text(action,"kind"))&&action.getAsJsonArray("hands").asList().stream().anyMatch(h->h.getAsJsonObject().has("relations")&&!h.getAsJsonObject().getAsJsonArray("relations").isEmpty());
     }
@@ -83,7 +99,7 @@ public final class HandActions {
     public static String guidance(AgentInteractionProfile profile) {
         String input = HandFeatures.geometry(profile) && profile.getSupportedObservations().contains("obs.hand.pose") ? geometryInputGuidance() : "";
         if (!enabled(profile)) return input;
-        return input + (HandFeatures.pointing(profile)?PointingAction.guidance():"") + "\nNamed hand output overrides legacy-only motion guidance: motion is exactly {\"handAction\":{\"schemaVersion\":1,"
+        return input + (HandFeatures.outputSequences(profile)?sequenceGuidance():"") + (HandFeatures.pointing(profile)?PointingAction.guidance():"") + "\nNamed hand output overrides legacy-only motion guidance: motion is exactly {\"handAction\":{\"schemaVersion\":1,"
                 + "\"action\":{\"kind\":\"sign\",\"sign\":\"fist|peace|open_palm|thumbs_up|thumbs_down|index_up\","
                 + "\"effector\":\"left_hand|right_hand|both_hands\"}}}. Default right_hand. Hold 500 ms then release. "
                 + "Halt means open_palm; attention means index_up. Clarify ambiguous OK (thumbs up or diver ring). "
@@ -95,6 +111,12 @@ public final class HandActions {
                     + "Only requested hands move.\n" : "")
                 + (HandFeatures.geometry(profile) ? geometryGuidance() : "Ring and relational hand geometry are unavailable for this instance.\n");
     }
+    public static boolean sequence(BehaviourPlan plan){return plan!=null&&plan.getMotion()!=null&&plan.getMotion().isJsonObject()&&plan.getMotion().getAsJsonObject().has("handAction")&&"sequence".equals(plan.getMotion().getAsJsonObject().getAsJsonObject("handAction").getAsJsonObject("action").get("kind").getAsString());}
+    public static String sequenceGuidance(){return "\nFinite output sequence overrides single-action limits: command kind HAND_SEQUENCE, value {kind:sequence,steps:[{action:<one supported sign/pose/point action>,holdMs:500}]}. "
+            +"Task contributions use that same action in motion.handAction. One command/contribution, no task negotiation for an immediate finite sequence. 1..12 steps, hold 100..5000 ms, sum(hold+700 ms transition) <=60000 ms, envelope <=3500 UTF-8 bytes; no nesting/repetition. "
+            +"Count on explicitly chosen hands with poses: 0 stretched,1 bent; one through five extends thumb,index,middle,ring,little cumulatively on the right hand by default. Six through ten keeps right five and extends the left in the same order. Every finger explicit. "
+            +"Silently means no speech at all. Clarify ambiguous ranges or indefinite loops. Target freshness is rechecked at each step. Stop/new user turn, supersession, hidden view or disconnection interrupts; reload shows static history, never resumes. "
+            +"Published is not executed; only scoped client receipts establish digital playback, never physical actuation.\n";}
     public static String geometryInputGuidance() {
         return "Hand geometry v1: ok_ring means diver's OK, distinct from thumbs_up. "
                 + "Versioned pose masks may add relations (max 6): {kind:tip_proximity|spread,fingers:[a,b],operator:lt|gt,value:number} "

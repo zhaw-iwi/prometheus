@@ -113,7 +113,7 @@ public final class CoordinationMemory {
                     : "Preparation is complete; no further demonstration is needed. Awaiting your acceptance. Start accepts these terms; then an ON_CUE task needs a fresh cue.";
             case "EXECUTION" -> "Pause, stop, revise, or report completion.";
             case "PAUSED" -> "Explicitly resume, revise or stop.";
-            case "FINISHING" -> "No further action is allowed. Waiting for final response association and client playback; delivery is not yet confirmed.";
+            case "FINISHING" -> "No further action is allowed. Waiting for required speech/hand playback receipts; delivery is not yet confirmed.";
             case "UNCERTAIN" -> "Final delivery is uncertain. No automatic repeat. Reflect, revise, return, or explicitly restart with a fresh budget.";
             default -> "Reflect, revise or explicitly restart the same task.";
         } + " Return to conversation is always available and preserves history. Ambiguous start over needs clarification.";

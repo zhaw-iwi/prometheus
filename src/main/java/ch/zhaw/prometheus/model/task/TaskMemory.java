@@ -45,7 +45,7 @@ public final class TaskMemory {
         return storage.containsKey(key) ? storage.get(key).getAsString() : fallback;
     }
     static void put(Storage storage, String key, String value) { storage.put(key, new JsonPrimitive(value)); }
-    public static void clear(Storage storage) { for (String key : KEYS) if (storage.containsKey(key)) storage.remove(key);HandSequenceMemory.clear(storage); }
+    public static void clear(Storage storage) { for (String key : KEYS) if (storage.containsKey(key)) storage.remove(key);HandSequenceMemory.clear(storage);ch.zhaw.prometheus.model.hand.HandExecution.clear(storage); }
     static void revise(Storage storage) {
         storage.put(REVISION, new JsonPrimitive(Integer.parseInt(text(storage, REVISION, "0")) + 1));
     }
@@ -55,9 +55,9 @@ public final class TaskMemory {
                 + ". Proposed configuration: " + (storage.containsKey(DRAFT) ? storage.get(DRAFT) : "none");
     }
     public static BehaviourPlan plan(JsonElement raw) {
-        if (raw == null || !raw.isJsonObject() || new Gson().toJson(raw).length() > 1800) throw new IllegalArgumentException("Invalid task behaviour");
+        if (raw == null || !raw.isJsonObject() || new Gson().toJson(raw).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 4000) throw new IllegalArgumentException("Invalid task behaviour");
         var object = CompactBehaviourPlan.expand(raw.getAsJsonObject()).deepCopy();
-        if (new Gson().toJson(object).length() > 1800) throw new IllegalArgumentException("Invalid task behaviour");
+        if (new Gson().toJson(object).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 4000 || new Gson().toJson(object).length() > 1800 && !ch.zhaw.prometheus.model.hand.HandActions.sequence(BehaviourPlan.fromJson(object.toString()))) throw new IllegalArgumentException("Invalid task behaviour");
         boolean normalizedGesture = false;
         if (!Set.of("speech", "nonVerbal", "motion").containsAll(object.keySet())) throw new IllegalArgumentException("Unsupported task output modality");
         if (object.has("speech") && !object.get("speech").isJsonNull()) TaskSpec.string(object, "speech", 1000);

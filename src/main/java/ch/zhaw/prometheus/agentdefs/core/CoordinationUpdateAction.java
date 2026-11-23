@@ -254,6 +254,7 @@ public class CoordinationUpdateAction extends Action {
             }
             case "START" -> { if (!CoordinationMemory.ready(storage)) throw new IllegalArgumentException("Preparation incomplete"); }
             case "STEP" -> {
+                if(ch.zhaw.prometheus.model.hand.HandExecution.pending(storage,Instant.now()))throw new PendingResponse();
                 if (accepted != null && accepted.reactions() != null) throw new UnsupportedDialogue();
                 if (storage.containsKey(TaskResponse.KEY) && Set.of("PENDING", "CHECKING", "REJECTED").contains(TaskResponse.status(storage)))
                     throw new PendingResponse();
@@ -358,6 +359,7 @@ public class CoordinationUpdateAction extends Action {
             default -> { }
         }
         var accepted = CoordinationMemory.agreement(storage, CoordinationMemory.AGREEMENT);
+        if(action)ch.zhaw.prometheus.model.hand.HandExecution.prepareTask(storage,reply);
         if (action && accepted != null && Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0"))
                 >= (accepted.reactions() == null ? accepted.dialogueLimit() : accepted.reactions().maxActions())) {
             CoordinationMemory.phase(storage, "COMPLETED"); storage.put(CoordinationMemory.OUTCOME, new JsonPrimitive("LIMIT_REACHED"));

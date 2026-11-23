@@ -108,6 +108,32 @@ class CoordinationAgentIntegrationTest {
         var p=fixtures.behaviour.HandSequenceFixture.pose("frame-"+revision+"-"+ordinal,count,false,Instant.now());p.addProperty("captureIndex",ordinal);p.getAsJsonObject("frame").addProperty("revision",revision);
         demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_HAND_POSE,"camera",Event.KIND_OBSERVATION,p.toString()),OutputProfile.FULL_PLAN).orElseThrow();
     }
+    @Test void outputSequenceReceiptsReloadFenceOwnerAndNeverReplayAfterStopOrReset() throws Exception {
+        var scope=create();var output=fixtures.behaviour.OutputSequenceFixture.counting(1,3,100);var command=fixtures.behaviour.OutputSequenceFixture.command(output);command.addProperty("operation","KEEP");command.add("agreement",JsonNull.INSTANCE);command.add("reply",new JsonObject());when(gateway.infer(any())).thenReturn(command.toString());
+        var event=demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_USER_UTTERANCE,"user",Event.KIND_OBSERVATION,"Count one to three silently"),OutputProfile.FULL_PLAN).orElseThrow().getResponseEvent();assertNotNull(event.getId());
+        assertEquals("PUBLISHED",memory(scope).get(ch.zhaw.prometheus.model.hand.HandExecution.KEY).getAsJsonObject().get("status").getAsString());
+        var who=UUID.randomUUID();var receipt=new JsonObject();receipt.addProperty("eventId",event.getId().toString());receipt.addProperty("owner",who.toString());receipt.addProperty("operation","START");receipt.addProperty("step",0);
+        var other=admin.createAccessCode(UUID.randomUUID().toString().substring(0,5),true);assertTrue(demo.handExecution(other.getCode(),scope.id(),receipt.toString()).isEmpty());
+        clearInvocations(gateway);assertEquals("RUNNING",JsonParser.parseString(demo.handExecution(scope.code(),scope.id(),receipt.toString()).orElseThrow()).getAsJsonObject().get("status").getAsString());verifyNoInteractions(gateway);
+        assertEquals("RUNNING",JsonParser.parseString(demo.handExecution(scope.code(),scope.id(),null).orElseThrow()).getAsJsonObject().get("status").getAsString());
+        var wrong=receipt.deepCopy();wrong.addProperty("owner",UUID.randomUUID().toString());assertThrows(IllegalArgumentException.class,()->demo.handExecution(scope.code(),scope.id(),wrong.toString()));
+        Thread.sleep(825);receipt.addProperty("operation","STEP");receipt.addProperty("step",1);demo.handExecution(scope.code(),scope.id(),receipt.toString()).orElseThrow();
+        turn(scope,"STOP","null","Stop");receipt.addProperty("step",2);assertEquals("INTERRUPTED",JsonParser.parseString(demo.handExecution(scope.code(),scope.id(),receipt.toString()).orElseThrow()).getAsJsonObject().get("status").getAsString());
+        assertEquals(1,memory(scope).get(ch.zhaw.prometheus.model.hand.HandExecution.KEY).getAsJsonObject().get("step").getAsInt());
+        demo.reset(scope.code(),scope.id());assertFalse(memory(scope).containsKey(ch.zhaw.prometheus.model.hand.HandExecution.KEY));assertThrows(IllegalArgumentException.class,()->demo.handExecution(scope.code(),scope.id(),receipt.toString()));
+    }
+    @Test void oneCuePublishesOneSequenceAndFinalTaskWaitsForWholePlayback() throws Exception {
+        var scope=create();var proposal=fixtures.behaviour.NamedHandSignFixture.agreement();proposal.add("checks",new JsonArray());proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action","Count one through three silently");
+        turn(scope,"PROPOSE",proposal.toString(),"On thumbs up count one through three silently once");turn(scope,"START","null","Start now");
+        long wait=java.time.Duration.between(Instant.now(),Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();if(wait>=0)Thread.sleep(wait+25);
+        when(gateway.infer(any())).thenReturn(fixtures.behaviour.OutputSequenceFixture.plan(fixtures.behaviour.OutputSequenceFixture.counting(1,3,100)).toJson());
+        var payload=fixtures.behaviour.NamedHandSignFixture.observation("sequence-cue","thumbs_up","right",Instant.now());
+        var event=demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_HAND_SIGNS,"camera",Event.KIND_OBSERVATION,payload.toString()),OutputProfile.FULL_PLAN).orElseThrow().getResponseEvent();assertNotNull(event);
+        assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());assertEquals("FINISHING",TaskMemory.phase(memory(scope)));
+        var receipt=new JsonObject();receipt.addProperty("eventId",event.getId().toString());receipt.addProperty("owner",UUID.randomUUID().toString());receipt.addProperty("operation","START");receipt.addProperty("step",0);demo.handExecution(scope.code(),scope.id(),receipt.toString()).orElseThrow();
+        for(int i=1;i<=3;i++){Thread.sleep(825);receipt.addProperty("operation",i==3?"COMPLETE":"STEP");receipt.addProperty("step",Math.min(i,2));demo.handExecution(scope.code(),scope.id(),receipt.toString()).orElseThrow();assertEquals(i==3?"COMPLETED":"FINISHING",TaskMemory.phase(memory(scope)));}
+        assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());assertEquals(proposal,memory(scope).get(CoordinationMemory.AGREEMENT));
+    }
     @Test void namedSignPreparationAndFreshCuePersistWithoutReusingReadiness() throws Exception {
         var scope = create(); var proposal = fixtures.behaviour.NamedHandSignFixture.agreement();
         proposal.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action", "Show peace silently with both hands");

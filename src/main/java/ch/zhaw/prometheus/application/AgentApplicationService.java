@@ -282,6 +282,17 @@ public class AgentApplicationService {
     }
 
     public Optional<String> handScene(UUID agentID) {return findAgent(agentID).map(a->a.handScene().toString());}
+    public Optional<String> handExecution(UUID agentID,String body){
+        if(body!=null&&body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>1024)throw new IllegalArgumentException("Receipt exceeds 1 KiB");
+        return serialized(agentID,()->persistenceTurn(()->{
+            var found=findAgent(agentID);if(found.isEmpty())return Optional.empty();var agent=found.get();
+            String before=java.util.Objects.toString(agent.getStorage().get(ch.zhaw.prometheus.model.hand.HandExecution.KEY));
+            var result=agent.handExecution(body==null?null:com.google.gson.JsonParser.parseString(body).getAsJsonObject(),speechOwnership==null?null:speechOwnership.current(agent),java.time.Instant.now());
+            if(before.equals(java.util.Objects.toString(agent.getStorage().get(ch.zhaw.prometheus.model.hand.HandExecution.KEY))))return Optional.of(result.toString());
+            var response=agent.acknowledge(Event.systemTick(),runtimeFor(agent,OutputProfile.FULL_PLAN));
+            var saved=persistAndPublishMonitor(agent);if(response!=null)publishBehaviour(saved,response);return Optional.of(result.toString());
+        }));
+    }
     public Optional<String> configureHandScene(UUID agentID,String body) {
         if(body==null||body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>32768)throw new IllegalArgumentException("Scene exceeds 32 KiB");
         return serialized(agentID,()->persistenceTurn(()->{
@@ -384,6 +395,7 @@ public class AgentApplicationService {
                     Event computedResponse = this.acknowledgeComputedSocialSituationChange(agent, event, turnRuntime);
                     Event responseToReturn = computedResponse == null ? response : computedResponse;
                     Agent saved = this.persistAndPublishMonitor(agent);
+                    responseToReturn=committedResponse(saved,responseToReturn);
                     saved.getEventHistory().toList().stream().filter(input -> Long.valueOf(sourcePosition).equals(input.sourcePosition()))
                             .findFirst().ifPresent(input -> ch.zhaw.prometheus.logging.ActivityTrace.bind(null, null, input.getId()));
                     this.publishBehaviour(saved, responseToReturn);
@@ -511,22 +523,26 @@ public class AgentApplicationService {
         if (agent == null || responseEvent == null) {
             return;
         }
-        Event eventToPublish = responseEvent;
+        Event eventToPublish = committedResponse(agent,responseEvent);
+        LatencyTrace.behaviour(eventToPublish.getId());
+        Event published = eventToPublish;
+        AfterCommit.run(() -> LatencyTrace.measure("behaviour_publish", () -> { safePublishBehaviour(agent.getId(), published); return null; }));
+    }
+    private static Event committedResponse(Agent agent,Event responseEvent){
+        if(responseEvent==null)return null;
         List<Event> events = agent.getEventHistory().toList();
         for (int i = events.size() - 1; i >= 0; i--) {
             Event candidate = events.get(i);
             if (!Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(candidate.getType())) {
                 continue;
             }
-            if (!java.util.Objects.equals(candidate.getPayload(), responseEvent.getPayload())) {
+            if (responseEvent.sourcePosition()!=null&&!responseEvent.sourcePosition().equals(candidate.sourcePosition())
+                    || !java.util.Objects.equals(candidate.getPayload(), responseEvent.getPayload())) {
                 continue;
             }
-            eventToPublish = candidate;
-            break;
+            return candidate;
         }
-        LatencyTrace.behaviour(eventToPublish.getId());
-        Event published = eventToPublish;
-        AfterCommit.run(() -> LatencyTrace.measure("behaviour_publish", () -> { safePublishBehaviour(agent.getId(), published); return null; }));
+        return responseEvent;
     }
 
     private Event acknowledgeComputedSocialSituationChange(Agent agent, Event sourceEvent, PolicyRuntime runtime) {

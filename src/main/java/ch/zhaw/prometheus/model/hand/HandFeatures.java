@@ -12,6 +12,7 @@ public final class HandFeatures {
     public static final String TARGETS = "hand.targets.v1";
     public static final String DYNAMIC_TARGETS="hand.targets.dynamic.v1";
     public static final String INPUT_SEQUENCES="hand.sequences.input.v1";
+    public static final String OUTPUT_SEQUENCES="hand.sequences.output.v1";
     public static final String GEOMETRY = "hand.geometry.v1";
     public static final Set<String> DERIVED_SIGNS = Set.of("shaka", "horns", "middle_finger", "ok_ring");
     private HandFeatures() {}
@@ -24,6 +25,7 @@ public final class HandFeatures {
     public static boolean dynamicTargets(AgentInteractionProfile profile){return targets(profile)&&profile.getProfileTags().contains(DYNAMIC_TARGETS);}
     public static boolean inputSequences(AgentInteractionProfile profile){return poses(profile)&&profile.getProfileTags().contains(INPUT_SEQUENCES);}
     public static boolean inputSequences(Storage storage){return poses(storage)&&storage.containsKey(INPUT_SEQUENCES)&&new JsonPrimitive(true).equals(storage.get(INPUT_SEQUENCES));}
+    public static boolean outputSequences(AgentInteractionProfile profile){return poses(profile)&&profile.getProfileTags().contains(OUTPUT_SEQUENCES);}
     public static boolean geometry(AgentInteractionProfile profile) { return poses(profile) && profile.getProfileTags().contains(GEOMETRY); }
     public static boolean geometry(Storage storage) { return poses(storage) && storage.containsKey(GEOMETRY) && new JsonPrimitive(true).equals(storage.get(GEOMETRY)); }
     public static boolean requiresGeometry(ch.zhaw.prometheus.model.task.HandPoseCondition pose,ch.zhaw.prometheus.model.task.HandSignCondition sign) {

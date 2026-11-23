@@ -17,6 +17,7 @@ function caption() {
     +(h.relations?.length?'; '+h.relations.map(r=>r.kind==='orientation'?`${r.axis.replaceAll('_',' ')} ${r.direction.replaceAll('_',' ')}`
       :`${r.fingers.join('/')} ${r.kind.replaceAll('_',' ')} ${r.operator==='lt'?'below':'above'} ${r.value}`).join('; '):'')).join(' / ');
   if(p?.action?.kind==='point')summary.textContent=`${p.hand.replaceAll('_',' ')}: pointing `+(p.action.resolved?`toward ${p.action.resolved.label} (orange destination in the virtual scene)`:`${p.action.direction.replaceAll('_',' ')} from the robot's perspective`);
+  if(p?.action?.kind==='sequence')summary.textContent=`Finite hand sequence: ${p.action.steps.length} steps. History is a static first-step preview; completion requires digital playback receipts.`;
   display.replaceChildren();display.hidden=p?.display==null;
   if(p?.display!=null) {
     const label=document.createElement('div');label.className='embodiment-display-label';label.textContent='Robot display';
@@ -43,6 +44,9 @@ function draw(now=performance.now()) {
   stage.dataset.handSign=sample.pose?.sign||'';
   stage.dataset.handPhase=sample.handPhase||'';
   status.textContent=sample.handPhase ? ({preview:'Static hand pose preview',entering:'Moving into hand pose',holding:'Holding hand pose',releasing:'Releasing hand pose',released:'Hand pose released'})[sample.handPhase] : '';
+  stage.dataset.sequenceStep=sample.sequenceStep||'';stage.dataset.sequenceStatus=sample.sequenceStatus||'';
+  if(sample.sequenceStatus)status.textContent=`Step ${sample.sequenceStep} of ${sample.sequenceTotal}: ${sample.sequenceStatus==='completed'?'Digital sequence playback reported complete':sample.sequenceStatus==='preview'?'Static history preview':sample.sequenceStatus==='unknown'?'Playback uncertain; no automatic repeat':sample.sequenceStatus}`;
+  const button=root.querySelector('[data-testid="stop-hand-sequence"]');if(button){button.hidden=!sample.sequenceStatus;button.disabled=!['starting','running','waiting'].includes(sample.sequenceStatus);}
   stage.dataset.gesture=sample.pose?.gesture||'NONE';
 }
 function stop() {cancelAnimationFrame(frame);frame=null;}
@@ -85,6 +89,8 @@ function init() {
   stage=document.getElementById('embodiment_stage');canvas=document.getElementById('embodiment_canvas');
   status=document.getElementById('embodiment_status');summary=document.getElementById('embodiment_summary');
   display=document.getElementById('embodiment_display');
+  const cancel=document.createElement('button');cancel.type='button';cancel.className='btn btn-outline-secondary btn-sm mt-2';cancel.dataset.testid='stop-hand-sequence';cancel.textContent='Stop hand sequence';cancel.hidden=true;cancel.addEventListener('click',settle);status.after(cancel);
+  state.onChange=()=>{draw();stop();if(visible()&&state.pose&&!reduced.matches)frame=requestAnimationFrame(loop);};
   for(const button of root.querySelectorAll('[data-embodiment-mode]'))button.addEventListener('click',()=>setMode(button.dataset.embodimentMode));
   canvas.addEventListener('webglcontextlost',event=>{
     event.preventDefault();failed=true;stop();renderer?.dispose();renderer=null;
@@ -104,8 +110,14 @@ function receive(plan,options) {
 }
 function clear() {state.clear();stop();if(root){caption();draw();}}
 function settle() {state.settle();draw();}
+// Explicit diagnostic capture: redraw and read the same submitted GPU frame.
+function snapshot(){
+  if(!renderer||disposed)return null;const now=performance.now(),sample=state.sample(now);renderer.draw(sample,now);
+  const gl=canvas.getContext('webgl2');gl.finish();
+  return {step:sample.sequenceStep,phase:sample.handPhase,status:sample.sequenceStatus,pose:sample.pose,image:canvas.toDataURL('image/png')};
+}
 function dispose() {
-  disposed=true;stop();resizeObserver?.disconnect();renderer?.dispose();renderer=null;
+  state.clear();disposed=true;stop();resizeObserver?.disconnect();renderer?.dispose();renderer=null;
   document.removeEventListener('visibilitychange',refresh);reduced.removeEventListener('change',refresh);window.removeEventListener('storage',storage);
 }
-globalThis.ValerianEmbodiment={init,receive,clear,settle,dispose};
+globalThis.ValerianEmbodiment={init,receive,clear,settle,dispose,snapshot};

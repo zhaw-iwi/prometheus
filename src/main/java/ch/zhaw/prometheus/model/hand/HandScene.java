@@ -106,6 +106,13 @@ public final class HandScene {
     public static BehaviourPlan ground(BehaviourPlan plan,Storage storage,EventHistory history,Instant now) {
         var json=plan.toJsonObject();if(!json.has("motion")||!json.getAsJsonObject("motion").has("handAction"))return plan;
         var action=json.getAsJsonObject("motion").getAsJsonObject("handAction").getAsJsonObject("action");
+        if("sequence".equals(text(action.get("kind")))){
+            for(var item:action.getAsJsonArray("steps")){
+                var step=item.getAsJsonObject();var motion=new JsonObject();motion.add("handAction",HandActions.pose(step.getAsJsonObject("action")));
+                step.add("action",ground(new BehaviourPlan(null,null,motion,null),storage,history,now).getMotion().getAsJsonObject().getAsJsonObject("handAction").get("action"));
+            }
+            HandActions.validate(json.getAsJsonObject("motion").get("handAction"));return BehaviourPlan.fromJson(json.toString());
+        }
         if(!"point".equals(text(action.get("kind")))||!action.has("target"))return plan;
         var targetRef=TargetRef.parse(action.get("target"));var t=require(storage,targetRef,now);var scene=get(storage);JsonObject p=t.getAsJsonObject("position").deepCopy();String label=text(t.get("label"));
         if("detected".equals(text(t.get("provenance")))){

@@ -106,4 +106,21 @@ class CoordinationDeliveryUnitTest {
         assertEquals("PENDING", TaskResponse.status(f.storage()));
         assertNotNull(f.policy().liveActivityContext().playbackCue());
     }
+    @Test void finalSpeechAndHandPlaybackMustBothCompleteInEitherOrder(){
+        for(boolean handFirst:new boolean[]{false,true}){
+            // Use the existing real Live association/receipt boundary for speech.
+            f.agent.reset();startOne();capture();var cue=f.policy().liveActivityContext().playbackCue();
+            var sequence=fixtures.behaviour.OutputSequenceFixture.plan(fixtures.behaviour.OutputSequenceFixture.counting(1,1,100));
+            ch.zhaw.prometheus.model.hand.HandExecution.prepareTask(f.storage(),sequence);
+            var event=f.agent.getEventHistory().appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN,"assistant",sequence.toJson()));org.springframework.test.util.ReflectionTestUtils.setField(event,"id",UUID.randomUUID());
+            var now=Instant.now();ch.zhaw.prometheus.model.hand.HandExecution.publish(f.storage(),event,f.agent.executionEpoch(),null,now);
+            var request=new JsonObject();request.addProperty("eventId",event.getId().toString());request.addProperty("owner",UUID.randomUUID().toString());request.addProperty("operation","START");request.addProperty("step",0);
+            ch.zhaw.prometheus.model.hand.HandExecution.receipt(f.storage(),f.agent.getEventHistory(),f.agent.executionEpoch(),null,request,now);
+            if(!handFirst)f.agent.acknowledge(system(CoordinationDelivery.PLAYED,cue.id().toString()),f.live);
+            assertEquals("FINISHING",TaskMemory.phase(f.storage()));request.addProperty("operation","COMPLETE");
+            ch.zhaw.prometheus.model.hand.HandExecution.receipt(f.storage(),f.agent.getEventHistory(),f.agent.executionEpoch(),null,request,now.plusMillis(800));
+            if(handFirst){assertEquals("FINISHING",TaskMemory.phase(f.storage()));f.agent.acknowledge(system(CoordinationDelivery.PLAYED,cue.id().toString()),f.live);}
+            f.agent.acknowledge(Event.systemTick(),f.text);assertEquals("COMPLETED",TaskMemory.phase(f.storage()));assertEquals("REFLECTION",CoordinationMemory.stage(f.storage()));assertTrue(f.agent.getCurrentState().getName().contains("reflection"));
+        }
+    }
 }

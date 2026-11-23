@@ -208,6 +208,7 @@ public class ScopedDemoService {
 
     public Optional<String> handScene(String code,UUID id){return hasVisibleAgent(code,id)?agentService.handScene(id):Optional.empty();}
     public Optional<String> configureHandScene(String code,UUID id,String body){return hasVisibleAgent(code,id)?agentService.configureHandScene(id,body):Optional.empty();}
+    public Optional<String> handExecution(String code,UUID id,String body){return hasVisibleAgent(code,id)?agentService.handExecution(id,body):Optional.empty();}
     public Optional<String> bindHandTarget(String code,UUID id,String body){return hasVisibleAgent(code,id)?agentService.bindHandTarget(id,body):Optional.empty();}
 
     public Optional<ResponseView> start(String accessCodeValue, UUID agentId) {

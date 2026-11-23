@@ -1,5 +1,6 @@
 import {handAction,handTiming} from '../hand/actions.js';
 import {derivedSigns} from '../hand/patterns.js';
+import {HandSequencePlayer} from '../hand/sequence-player.js';
 // Pure, bounded interpretation of the public BehaviourPlan contract.
 const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 const token = value => typeof value === 'string' ? value.trim().replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase().replace(/[ -]+/g, '_') : '';
@@ -56,11 +57,15 @@ export function normalizePlan(plan, modalities = null, profileTags = null) {
     else try {
       if(Object.keys(rawMotion).length!==1)throw new Error('Conflicting hand motion');
       const parsed=handAction(rawMotion.handAction);
+      if(parsed.kind==='sequence'){
+        if(profileTags!==null&&!profileTags.includes('hand.sequences.output.v1'))throw new Error('Hand sequences are unavailable for this instance');
+        for(const step of parsed.steps){const child=normalizePlan({motion:{handAction:{schemaVersion:1,action:step.action}}},modalities,profileTags);if(child.warnings.length)throw new Error(child.warnings.join('; '));}
+      }
       if(profileTags!==null&&!profileTags.includes('hand.poses.v2')&&(parsed.kind==='pose'||derivedSigns.includes(parsed.sign)))throw new Error('Custom hand output is unavailable for this instance');
       if(profileTags!==null&&(!profileTags.includes('hand.geometry.v1')||!profileTags.includes('hand.poses.v2'))&&(parsed.sign==='ok_ring'||parsed.hands?.some(h=>h.relations?.length)))throw new Error('Relational hand output is unavailable for this instance');
       if(parsed.kind==='point'&&profileTags!==null&&!profileTags.includes('hand.pointing.v1'))throw new Error('Pointing is unavailable for this instance');
       if(parsed.kind==='point'&&parsed.target&&profileTags!==null&&!profileTags.includes('hand.targets.v1'))throw new Error('Target output is unavailable for this instance');
-      action=parsed;sign=action.kind==='point'?'point':action.kind==='pose'?'custom_pose':action.sign;
+      action=parsed;sign=action.kind==='sequence'?'sequence':action.kind==='point'?'point':action.kind==='pose'?'custom_pose':action.sign;
     } catch(error) {warnings.push(error.message);}
   }
   const effector = (action?.kind==='pose' ? action.hands.length===2?'both_hands':action.hands[0].side+'_hand' : action?.effector) || token(motion.effector) || 'right_hand';
@@ -78,21 +83,31 @@ export function normalizePlan(plan, modalities = null, profileTags = null) {
 // motion only when the event is fresh AND its view is visible at receipt time.
 export class EmbodimentState {
   constructor() { this.clear(); this.visible = false; this.reduced = false; }
-  clear() { this.pose = null; this.started = null; }
+  clear() { this.sequence?.cancel('cleared');this.sequence=null;this.pose = null; this.started = null; }
   visibility(visible, reduced = this.reduced) {
+    if(!visible||reduced)this.sequence?.cancel(!visible?'hidden':'reduced_motion');
     this.visible = visible; this.reduced = reduced; this.started = null;
   }
   receive(plan, options = {}, now = 0) {
     if (options.preserveNonSpeech) return;
+    this.sequence?.cancel('superseded');this.sequence=null;
     this.pose = normalizePlan(plan, options.modalities ?? null, options.profileTags ?? null);
     const fresh = ['live', 'acknowledgement'].includes(options.delivery) && !options.fromHistory;
     this.started = fresh && this.visible && !this.reduced ? now : null;
+    if(this.pose.action?.kind==='sequence'&&this.started!==null&&options.sequenceRequest){
+      this.sequence=new HandSequencePlayer(this.pose.action,{request:options.sequenceRequest,clock:options.clock||(()=>performance.now()),wake:()=>this.onChange?.()});this.sequence.start();
+    }
   }
-  settle() { this.started = null; }
+  settle() { this.sequence?.cancel('operator_stop');this.started = null; }
   sample(now) {
     if (!this.pose) return { pose: null, gesture: 0, ambient: 0, active: false };
     const duration = 2800 - this.pose.energy * 900;
     const elapsed = this.started === null ? null : Math.max(0, now - this.started);
+    if(this.pose.action?.kind==='sequence'){
+      const s=this.sequence?.sample(now),action=s?.action||this.pose.action.steps[0].action;
+      const pose=normalizePlan({motion:{handAction:{schemaVersion:1,action}}});
+      return {pose,gesture:0,ambient:0,active:s?.active||false,transition:s?.blend??1,handBlend:s?.blend??1,handPhase:s?.phase||'preview',sequenceStatus:s?.status||'preview',sequenceStep:s?s.index+1:1,sequenceTotal:this.pose.action.steps.length};
+    }
     if(this.pose.action) {
       const {enter,hold,release}=handTiming, end=enter+hold+release;
       const active=elapsed!==null&&elapsed<end&&this.visible&&!this.reduced;

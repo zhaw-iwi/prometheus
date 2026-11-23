@@ -32,7 +32,7 @@ public final class DirectCommands {
         return " " + capabilities(profile)
                 + " One immediate demo needs no body, setup, agreement or second consent."
                 + " Hear the full request; honor silence, else acknowledge once without claiming execution."
-                + " Capability queries imply no action; conditional/multiple actions need agreement."
+                + (HandFeatures.outputSequences(profile)?" Capability queries imply no action; conditional actions need agreement.":" Capability queries imply no action; conditional/multiple actions need agreement.")
                 + " Results concern only their pending turn; never acknowledge twice.";
     }
     public static String guidance(AgentInteractionProfile profile, boolean taskEnvelope) {
@@ -92,7 +92,7 @@ public final class DirectCommands {
         var flag = object.get("silent");
         if (!flag.isJsonPrimitive() || !flag.getAsJsonPrimitive().isBoolean()) throw new IllegalArgumentException("Invalid command silence flag");
         String kind = object.get("kind").isJsonNull() ? null : string(object.get("kind"));
-        String action = object.get("value").isJsonNull() || "HAND_POSE".equals(kind) || "POINT".equals(kind) ? null : string(object.get("value"));
+        String action = object.get("value").isJsonNull() || "HAND_POSE".equals(kind) || "POINT".equals(kind) || "HAND_SEQUENCE".equals(kind) ? null : string(object.get("value"));
         JsonObject handAction = null;
         String effector = object.has("effector") ? string(object.get("effector")) : "right_hand";
         if (!HandActions.EFFECTORS.contains(effector) || object.has("effector") && (intent != Intent.ACTION || !"HAND_SIGN".equals(kind)))
@@ -104,9 +104,9 @@ public final class DirectCommands {
                 if (action.equals("scissors")) action = "scissor";
                 if (!SIGNS.contains(action) && !HandSignObservation.SIGNS.contains(action)) throw new IllegalArgumentException("Unsupported hand sign");
                 if (SIGNS.contains(action) && object.has("effector")) throw new IllegalArgumentException("Use the named sign for sided output");
-            } else if ("HAND_POSE".equals(kind)||"POINT".equals(kind)) {
+            } else if ("HAND_POSE".equals(kind)||"POINT".equals(kind)||"HAND_SEQUENCE".equals(kind)) {
                 handAction=HandActions.pose(object.getAsJsonObject("value"));
-                if(!("POINT".equals(kind)?"point":"pose").equals(handAction.getAsJsonObject("action").get("kind").getAsString()))throw new IllegalArgumentException("Expected a pose action");
+                if(!("POINT".equals(kind)?"point":"HAND_SEQUENCE".equals(kind)?"sequence":"pose").equals(handAction.getAsJsonObject("action").get("kind").getAsString()))throw new IllegalArgumentException("Expected a pose action");
             } else if ("GESTURE".equals(kind)) {
                 action = action == null ? "" : action.strip().toUpperCase(Locale.ROOT).replace(' ', '_');
                 if (!GESTURES.contains(action)) throw new IllegalArgumentException("Unsupported gesture");
@@ -128,7 +128,7 @@ public final class DirectCommands {
             status = "CONFLICT"; words = "A task response is still pending. Would you like to resolve or pause that task before a separate demonstration?";
         } else { status = "ACCEPTED"; action = true; words = "I'll show " + label(request) + "."; }
         JsonObject grounded=request.handAction();
-        if(action&&grounded!=null&&grounded.getAsJsonObject("action").has("target")) {
+        if(action&&grounded!=null&&(grounded.getAsJsonObject("action").has("target")||"sequence".equals(grounded.getAsJsonObject("action").get("kind").getAsString()))) {
             try {
                 var motion=new JsonObject();motion.add("handAction",grounded);var raw=new JsonObject();raw.add("motion",motion);
                 grounded=ch.zhaw.prometheus.model.hand.HandScene.ground(BehaviourPlan.fromJson(raw.toString()),storage,history,java.time.Instant.now()).getMotion().getAsJsonObject().getAsJsonObject("handAction");
@@ -144,7 +144,7 @@ public final class DirectCommands {
                 if (HandSignObservation.SIGNS.contains(request.value())) motion.add("handAction", HandActions.named(request.value(), request.effector()));
                 else motion.addProperty("handSign", request.value());
                 plan.add("motion", motion);
-            } else if ("HAND_POSE".equals(request.kind())||"POINT".equals(request.kind())) {
+            } else if ("HAND_POSE".equals(request.kind())||"POINT".equals(request.kind())||"HAND_SEQUENCE".equals(request.kind())) {
                 var motion=new JsonObject();motion.add("handAction",grounded.deepCopy());plan.add("motion",motion);
             }
             storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
@@ -171,11 +171,13 @@ public final class DirectCommands {
         return true;
     }
     public static String capabilities(AgentInteractionProfile profile) {
+        if(HandActions.enabled(profile)&&HandFeatures.outputSequences(profile))return "I can show ten named signs, custom finger poses and supported geometry, point in eight planar directions or at mapped targets, and perform finite hand sequences or counting. I can also make question, explanation, uncertainty, acknowledgement and polite gestures.";
         boolean signs = profile != null && profile.getSupportedBehaviourModalities().contains("motion.handSign");
         boolean gestures = profile != null && profile.getSupportedBehaviourModalities().contains("nonVerbal.gesture");
         String named = HandActions.enabled(profile) ? "show fist, peace, halt, thumbs up/down and index up" : "";
         if(!named.isEmpty()&&HandFeatures.poses(profile))named+=", shaka, horns, middle finger and custom finger poses";
         if(!named.isEmpty()&&HandFeatures.geometry(profile))named+=", including the diver's OK ring and supported hand geometry";
+        if(!named.isEmpty()&&HandFeatures.outputSequences(profile))named+=", finite sequences and finger counting";
         if(!named.isEmpty()&&HandFeatures.pointing(profile))named+=", and point in eight planar directions";
         boolean hands = signs || !named.isEmpty();
         return "I can " + (!named.isEmpty() ? named : signs ? "show rock, paper and scissors" : "") + (hands && gestures ? ", and " : "")
@@ -183,6 +185,9 @@ public final class DirectCommands {
                 + (hands || gestures ? "." : "only use the outputs enabled for this instance; no hand signs or gestures are declared.");
     }
     private static boolean allows(AgentInteractionProfile profile, Request request) {
+        if("HAND_SEQUENCE".equals(request.kind())){
+            try{var motion=new JsonObject();motion.add("handAction",request.handAction());HandActions.requireCapability(new BehaviourPlan(null,null,motion,null),profile);return request.intent()==Intent.ACTION;}catch(RuntimeException invalid){return false;}
+        }
         if(("ok_ring".equals(request.value())||request.handAction()!=null&&HandActions.requiresGeometry(request.handAction().getAsJsonObject("action")))&&!HandFeatures.geometry(profile))return false;
         if("POINT".equals(request.kind()))return request.intent()==Intent.ACTION&&HandActions.enabled(profile)&&HandFeatures.pointing(profile)
                 &&(!request.handAction().getAsJsonObject("action").has("target")||HandFeatures.targets(profile));
@@ -196,6 +201,7 @@ public final class DirectCommands {
                 || Set.of("PENDING", "CHECKING", "REJECTED").contains(TaskResponse.status(storage));
     }
     private static String label(Request request) {
+        if("HAND_SEQUENCE".equals(request.kind()))return "the requested finite hand sequence";
         if("POINT".equals(request.kind()))return request.handAction().getAsJsonObject("action").has("target")?"a point toward the registered destination":"a point "+request.handAction().getAsJsonObject("action").get("direction").getAsString().replace('_',' ')+" from my perspective";
         if("HAND_POSE".equals(request.kind()))return "the requested finger pose";
         if ("HAND_SIGN".equals(request.kind())) return "a " + (request.value().equals("scissor") ? "scissors" : request.value().replace('_', ' ')) + " sign";

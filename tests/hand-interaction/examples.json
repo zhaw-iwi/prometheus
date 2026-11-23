@@ -270,12 +270,14 @@
   },
   "executionReceipt": {
     "schemaVersion": 1,
-    "eventId": "event-1",
-    "commandId": "command-1",
-    "ownerId": "owner-1",
+    "id": "command-1",
     "epoch": "epoch-1",
-    "step": 0,
-    "status": "completed",
-    "observedAt": "2026-11-23T12:00:00Z"
+    "position": 1,
+    "step": 2,
+    "total": 3,
+    "status": "COMPLETED",
+    "published": "2026-11-23T12:00:00Z",
+    "deadline": "2026-11-23T12:00:20Z",
+    "ended": "2026-11-23T12:00:04Z"
   }
 }

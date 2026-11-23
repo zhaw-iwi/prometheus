@@ -105,6 +105,12 @@ camera restarts revise the frame. HI-07 adds `hand.targets.v1`: scoped configure
 regions/virtual targets in Storage, revisioned affine registration, server ray
 selection and dispatch-time target grounding. Edits/deletion/expiry invalidate
 references. The reference rig aims the index ray at the visible virtual marker;
+HI-10 adds opt-in finite output sequences/counting through the same canonical
+handAction and direct/task routes. Ordered scoped renderer receipts own one
+bounded playback lease; target grounding is rechecked per step. Cancellation,
+expiry, reload and process/voice-owner changes cannot replay output. Final tasks
+wait for required hand and native audio receipts independently. Digital client
+receipts are not physical actuation evidence.
 HI-09 adds opt-in input sequences across signs, poses, pointing and counts 0..10.
 Bounded persisted progress uses capture ordinals/source dwell and independent
 preparation/execution epochs. Unknown/gapped readings reset dwell; source or

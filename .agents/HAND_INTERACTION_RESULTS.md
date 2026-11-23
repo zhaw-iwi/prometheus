@@ -564,7 +564,7 @@ change the retained detector accuracy/timing limitations. Paid spend remains $0.
 
 ## HI-09 - Ordered input sequences and counting
 
-Status: **COMPLETE** (2026-11-23), verified for commit/push.
+Status: **COMPLETE** (2026-11-23), committed and pushed as `3aa0676d`.
 
 Added typed sign/pose/point/count sequences (1..12 steps) on checks and ON_CUE
 rules, with independent preparation/run epochs and bounded durable progress.
@@ -602,3 +602,52 @@ Verification actually run:
   completed-390 screenshots: readable progress/count/status without clipping.
 - Maven package and diff whitespace checks pass. No physical, real-room counting,
   or provider acceptance claimed. Paid spend/reservations remain **$0/$0**.
+
+
+## HI-10 - Finite output sequences and robot counting
+
+Status: **COMPLETE** (2026-11-23), verified for commit/push.
+
+Added a capability-gated sequence of 1..12 supported sign/pose/point actions to
+handAction and HAND_SEQUENCE direct interpretations. One sequence is one command
+or task contribution. Hold 100..5000 ms; 350 ms entry/release per step; complete
+sequence <=60 seconds, envelope <=3500 UTF-8 bytes, task plan <=4000 bytes. No
+nested/indefinite output. Existing single outputs and saved profiles are unchanged.
+
+HandExecution uses ordinary Storage and the existing serialized scoped application
+boundary: canonical persisted event, server command/epoch/process identity, one
+renderer owner, ordered timed receipts, five-second start and duration+15s end
+windows. Target output is grounded before each step. Stop, new input, supersession,
+changed scene, hidden/reduced/disconnected views and render gaps interrupt without
+replay. Reload is a static preview; missing receipts become unknown. Final tasks
+join required native speech and hand receipts in either order; no automatic retry
+or extra action budget. The earlier unimplemented draft receipt schema was refined
+to server-owned evidence plus a bounded event/owner/operation/step request.
+
+Verification actually run:
+
+- Final focused Java/local MySQL run `target/gptlive-acceptance-b2374e535f`: 121
+  selected Hand/OutputSequence/NamedOutput/DirectCommands/Coordination delivery,
+  voice and agent units plus two sequence persistence journeys pass. Database
+  tests cover cross-scope denial, exclusive owner, persisted partial progress,
+  Stop, late receipts, reset, one cue/one sequence, and final playback gating.
+- 65 JS embodiment/rig/sensor tests pass, including virtual-clock step order,
+  finger articulation, Stop after two, delayed authorization, hidden/reduced
+  views, render gaps, target failure, connection loss and legacy behavior.
+- Twelve Python schema/preflight tests pass. Native instruction maximum in the
+  ten standard states is 15,903 bytes; optional social context also passes.
+- `target/gptlive-acceptance-0ab1e53b1a`: 32 Java checks and one scoped browser
+  journey pass. `target/gptlive-acceptance-20a544d139`: updated browser journey
+  passes with synchronized GPU captures. Reviewed count-1 through count-5: thumb,
+  then index/middle/ring/little visibly extend cumulatively. Reviewed narrow static
+  history; Stop and final task receipt assertions pass. Earlier unsynchronized
+  page captures sometimes showed an older frame; they are not pose accuracy proof.
+- Retained initial failures: a test used an invalid spatial-frame literal;
+  instruction growth exceeded optional Live context by 47 bytes (fixed by compact
+  capability wording); HTTP acknowledgements lacked the persisted event ID (now
+  shared with SSE); legacy VM tests exposed unnecessary crypto allocation (now
+  only allocated for a sequence). Corrected focused checks, Maven package and diff whitespace validation pass.
+
+No paid/provider, physical actuation or real-room accuracy claim. Spend/reservations
+remain **$0/$0**. All runner-owned app/schema/account resources were cleaned;
+remote MySQL and historical paid ledgers were untouched.

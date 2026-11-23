@@ -172,9 +172,15 @@ public class Agent {
         if(storage.containsKey(ch.zhaw.prometheus.model.hand.ObservedTargets.KEY))result.add("observed",new com.google.gson.Gson().toJsonTree(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(storage,java.time.Instant.now())));
         return result;
     }
+    public com.google.gson.JsonObject handExecution(com.google.gson.JsonObject request,ch.zhaw.prometheus.model.policy.ExternalSpeech owner,java.time.Instant now){
+        if(!ch.zhaw.prometheus.model.hand.HandFeatures.outputSequences(getInteractionProfile()))throw new IllegalArgumentException("Output sequences not declared");
+        return request==null?ch.zhaw.prometheus.model.hand.HandExecution.view(storage,now):ch.zhaw.prometheus.model.hand.HandExecution.receipt(storage,getEventHistory(),executionEpoch(),owner,request,now);
+    }
+    public void interruptHandExecution(String reason){ch.zhaw.prometheus.model.hand.HandExecution.cancel(storage,reason,java.time.Instant.now());}
     public com.google.gson.JsonObject bindHandTarget(com.google.gson.JsonObject request,java.time.Instant now){
         if(!ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile()))throw new IllegalArgumentException("Detected targets not declared");
         var result=ch.zhaw.prometheus.model.hand.ObservedTargets.bind(storage,request,now);
+        interruptHandExecution("target_binding_changed");
         if(ch.zhaw.prometheus.model.task.TaskMemory.active(storage))ch.zhaw.prometheus.model.coordination.CoordinationMemory.phase(storage,"PAUSED");
         ch.zhaw.prometheus.model.coordination.CoordinationMemory.revise(storage);
         if(storage.containsKey(ch.zhaw.prometheus.model.coordination.CoordinationMemory.DRAFT))ch.zhaw.prometheus.model.coordination.CoordinationMemory.resetPreparation(storage,now);
@@ -187,6 +193,7 @@ public class Agent {
     public com.google.gson.JsonObject configureHandScene(com.google.gson.JsonObject request,java.time.Instant now) {
         if(!ch.zhaw.prometheus.model.hand.HandFeatures.targets(getInteractionProfile()))throw new IllegalArgumentException("Create a target-capable instance");
         var result=ch.zhaw.prometheus.model.hand.HandScene.configure(storage,getId(),request,getEventHistory(),now);
+        interruptHandExecution("scene_changed");
         // Keep accepted terms intact, but never silently re-arm them against new destinations.
         if(ch.zhaw.prometheus.model.task.TaskMemory.active(storage))ch.zhaw.prometheus.model.coordination.CoordinationMemory.phase(storage,"PAUSED");
         ch.zhaw.prometheus.model.coordination.CoordinationMemory.revise(storage);
@@ -210,7 +217,7 @@ public class Agent {
         runtime = runtime.forCapabilities(this.getInteractionProfile());
         try {
             Event response = this.currentState.start(runtime);
-            return this.recordEvent(response);
+            return this.recordEvent(response,runtime);
         } catch (ContenFilterException e) {
             throw e;
         }
@@ -230,7 +237,7 @@ public class Agent {
             return null;
         }
         Event response = this.currentState.generate(runtime);
-        return this.recordEvent(response);
+        return this.recordEvent(response,runtime);
     }
 
     public Event acknowledge(Event event, PolicyRuntime runtime) {
@@ -262,12 +269,12 @@ public class Agent {
             evaluation = GuardEvaluation.prepare(this.currentState, runtime);
             PolicyRuntime turnRuntime = runtime.withGuardEvaluation(evaluation);
             Event response = this.currentState.acknowledge(event, turnRuntime);
-            return this.recordEvent(response);
+            return this.recordEvent(response,runtime);
         } catch (TransitionException e) {
             this.currentState = e.getSubsequentState();
             if (this.currentState.isStarting()) {
                 Event response = this.currentState.start(runtime);
-                return this.recordEvent(response);
+                return this.recordEvent(response,runtime);
             }
             this.currentState.enter();
             return this.acknowledgeWithoutRegulation(event, false, runtime);
@@ -352,6 +359,7 @@ public class Agent {
     }
 
     public void reset() {
+        ch.zhaw.prometheus.model.hand.HandExecution.clear(storage);
         this.executionEpoch = UUID.randomUUID();
         this.currentState = this.initialState;
         this.currentState.reset();
@@ -473,11 +481,22 @@ public class Agent {
     }
 
     private Event recordEvent(Event event) {
+        return recordEvent(event,null);
+    }
+    private Event recordEvent(Event event,PolicyRuntime runtime) {
         if (event == null || this.eventHistory == null || this.currentState == null) {
             return null;
         }
         event.setStatePath(this.currentState.getActiveStatePath());
-        return this.eventHistory.appendEvent(event);
+        event=this.eventHistory.appendEvent(event);
+        if(ch.zhaw.prometheus.model.hand.HandFeatures.outputSequences(getInteractionProfile())){
+            if(Event.TYPE_USER_UTTERANCE.equals(event.getType()))interruptHandExecution("new_user_turn");
+            if(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())){
+                if(event.getPayload().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>4096)throw new IllegalArgumentException("Behaviour event exceeds 4 KiB");
+                ch.zhaw.prometheus.model.hand.HandExecution.publish(storage,event,executionEpoch(),runtime==null?null:runtime.externalSpeech(),java.time.Instant.now());
+            }
+        }
+        return event;
     }
 
     private RegulationSystem resolveRegulationSystemFromSpec() {

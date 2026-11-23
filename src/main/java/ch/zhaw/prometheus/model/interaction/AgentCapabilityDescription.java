@@ -74,7 +74,7 @@ public final class AgentCapabilityDescription {
             if(key.equals("obs.hand.pointing"))return "Projected direction/target; ambiguity unresolved.";
             if(key.equals("obs.hand.pose"))return "Bends: 0 straight,1 bent,null unknown; projected geometry, no visibility/contact proof.";
             if(key.equals("obs.hand.signs"))return "Fist/peace/halt/thumbs up/down/index up/shaka/horns/middle finger/OK ring; no consent/geometric score.";
-            if(key.equals("motion.handAction"))return "Digital signs/poses/geometry; eight robot directions or registered targets.";
+            if(key.equals("motion.handAction"))return "Digital signs/poses/geometry; eight robot directions or registered targets."+(ch.zhaw.prometheus.model.hand.HandFeatures.outputSequences(profile)?" Finite sequences/counting.":"");
         }
         if(ch.zhaw.prometheus.model.hand.HandFeatures.targets(profile)&&key.equals("obs.hand.pointing"))return "Camera-plane direction and registered region selection; no room depth or intent.";
         if(ch.zhaw.prometheus.model.hand.HandFeatures.geometry(profile)) {

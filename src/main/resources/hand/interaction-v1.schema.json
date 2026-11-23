@@ -1597,49 +1597,92 @@
       "additionalProperties": false
     },
     "executionReceipt": {
+      "description": "Authoritative scoped digital playback state; not physical actuation evidence. Unknown or interrupted commands never resume automatically.",
       "type": "object",
       "properties": {
         "schemaVersion": {
           "const": 1
         },
-        "eventId": {
-          "$ref": "#/$defs/id"
-        },
-        "commandId": {
-          "$ref": "#/$defs/id"
-        },
-        "ownerId": {
+        "id": {
           "$ref": "#/$defs/id"
         },
         "epoch": {
           "$ref": "#/$defs/id"
         },
-        "step": {
+        "position": {
           "type": "integer",
-          "minimum": 0,
-          "maximum": 11
+          "minimum": 0
         },
         "status": {
           "enum": [
-            "started",
-            "completed",
-            "interrupted",
-            "unknown"
+            "PUBLISHED",
+            "RUNNING",
+            "COMPLETED",
+            "INTERRUPTED",
+            "UNKNOWN"
           ]
         },
-        "observedAt": {
+        "published": {
           "$ref": "#/$defs/time"
+        },
+        "deadline": {
+          "$ref": "#/$defs/time"
+        },
+        "step": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 11
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "started": {
+          "$ref": "#/$defs/time"
+        },
+        "stepStarted": {
+          "$ref": "#/$defs/time"
+        },
+        "ended": {
+          "$ref": "#/$defs/time"
+        },
+        "reason": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "session": {
+          "$ref": "#/$defs/id"
+        },
+        "current": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "$ref": "#/$defs/action"
+            },
+            "holdMs": {
+              "type": "integer",
+              "minimum": 100,
+              "maximum": 5000
+            }
+          },
+          "required": [
+            "action",
+            "holdMs"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
         "schemaVersion",
-        "eventId",
-        "commandId",
-        "ownerId",
+        "id",
         "epoch",
-        "step",
+        "position",
         "status",
-        "observedAt"
+        "published",
+        "deadline",
+        "step",
+        "total"
       ],
       "additionalProperties": false
     },
@@ -2066,6 +2109,39 @@
         "cameraFrame",
         "transform",
         "targets"
+      ],
+      "additionalProperties": false
+    },
+    "executionRequest": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "owner": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "operation": {
+          "enum": [
+            "START",
+            "STEP",
+            "COMPLETE",
+            "CANCEL"
+          ]
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 11
+        }
+      },
+      "required": [
+        "eventId",
+        "owner",
+        "operation",
+        "step"
       ],
       "additionalProperties": false
     }

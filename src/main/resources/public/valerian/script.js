@@ -2094,6 +2094,7 @@ function monitorStreamUrl() {
 }
 
 function closeBehaviourStream() {
+  globalThis.ValerianEmbodiment?.settle();
   if (state.behaviourSource) {
     state.behaviourSource.close();
     state.behaviourSource = null;
@@ -2352,7 +2353,7 @@ function handleBehaviourEnvelope(event, options = {}) {
   if (!options.fromHistory) {
     rememberRecentBehaviourPayload(event.payload);
   }
-  renderBehaviourPlan(plan, { ...options, preserveNonSpeech: event.provenance?.origin === "NATIVE" });
+  renderBehaviourPlan(plan, { ...options, eventId:event.id||options.eventId, preserveNonSpeech: event.provenance?.origin === "NATIVE" });
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "rendered");
   renderLatestEvent(event);
   if (options.renderTranscript !== false && typeof plan.speech === "string" && plan.speech.trim()) {
@@ -2663,6 +2664,7 @@ function setSpeechPlaybackStatus(label, mode, stoppable) {
 }
 
 async function stopSpeechPlayback(reason = "operator_stop", options = {}) {
+  globalThis.ValerianEmbodiment?.settle();
   speechPlayback.generation += 1;
   speechPlayback.enqueueChain = Promise.resolve();
   const coordinator = speechPlayback.coordinator;
@@ -2722,7 +2724,16 @@ function renderBehaviourPlan(plan, options = {}) {
     return;
   }
   const capabilities = resolveInteractionCapabilities(state.agentInfo?.interactionProfile);
+  const sequence=plan.motion?.handAction?.action?.kind==='sequence'&&!!options.eventId;
+  const connection=sequence?captureConnection():null,owner=sequence?crypto.randomUUID():null;
+  const sequenceRequest=sequence?async(operation,step)=>{
+    if(!currentConnection(connection)&&operation!=='CANCEL')throw new Error('Changed agent scope');
+    const response=await fetch(`/demo/agents/${connection.agentId}/hand-execution`,{method:'POST',headers:{'Content-Type':'application/json','X-Prometheus-Access-Code':connection.code},body:JSON.stringify({eventId:options.eventId,owner,operation,step}),keepalive:operation==='CANCEL',signal:AbortSignal.timeout(5000)});
+    if(!response.ok)throw new Error('Hand playback receipt rejected');const receipt=await response.json();
+    if(!currentConnection(connection)&&operation!=='CANCEL')throw new Error('Changed agent scope');return receipt;
+  }:null;
   globalThis.ValerianEmbodiment?.receive(plan, { ...options,
+    sequenceRequest,
     modalities: capabilities.fallbackAll ? null : capabilities.supportedBehaviourModalities,
     profileTags: state.agentInfo?.interactionProfile?.profileTags || [] });
   if (!options.preserveNonSpeech) resetBehaviourPanels();
@@ -2783,6 +2794,7 @@ function renderMotion(motion, options = {}) {
   setBehaviourChannelActive("motion", true);
   if (motion.handAction) {
     const action=motion.handAction.action;
+    if(action?.kind==='sequence'){setText('motion_value',`Finite hand sequence: ${action.steps.length} steps`);return;}
     setText("motion_value", action?.kind==='sign' ? `${asText(action.sign).replaceAll('_',' ')} / ${asText(action.effector).replaceAll('_',' ')}` : action?.kind==='pose' ? `Custom finger pose: ${action.hands.map(h=>h.side).join(' / ')}` : action?.kind==='point' ? action.resolved ? `Point toward ${action.resolved.label}` : `Point ${action.direction.replaceAll('_',' ')} from the robot's perspective` : 'Unsupported hand action');
     return;
   }

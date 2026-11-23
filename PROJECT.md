@@ -83,7 +83,7 @@ and regulation diagnostics remain future work.
   and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
   HI-02 named-sign triggers, HI-03 output, HI-04 composed poses and HI-05 geometry/OK
   ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
-  people/items and HI-09 input sequences/counting are complete; HI-10 output sequences is next. The owner authorized sequential implementation,
+  people/items, HI-09 input sequences and HI-10 output sequences/counting are complete; HI-11 integrated acceptance is next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10302,3 +10302,21 @@ deployment remain deferred.
 - Evidence: `.agents/HAND_INTERACTION_RESULTS.md`. Controlled sensor fixtures
   establish control, not real-room counting accuracy. No paid provider requests.
   Continue HI-10 after authorized commit/push.
+
+
+## HI-10 - Finite output sequences and robot counting (2026-11-23)
+
+- Extended the existing handAction contract/direct command path with bounded
+  sign/pose/point sequences and explicit counting. One command or contribution;
+  every substep is capability checked and pointing is grounded again at playback.
+- Added one scoped, persisted renderer lease with canonical event identity,
+  ordered elapsed step receipts, owner/epoch/process fences, deadlines and
+  cancellation. Final tasks join hand and native speech receipts independently;
+  missing/interrupted delivery remains uncertain, never automatically replayed.
+- Added visible progress/Stop, static history and gap/visibility/disconnect fences
+  to the existing renderer. Local database and browser journeys exercise counting,
+  Stop after two, reload/reset and a task waiting for final playback. Reviewed
+  synchronized GPU images for all five counting steps; ordinary screenshots had
+  sometimes captured an older frame and are not used as step accuracy proof.
+- See `.agents/HAND_INTERACTION_RESULTS.md` for actual checks and retained failures.
+  No provider or physical trial. Continue HI-11 after authorized commit/push.

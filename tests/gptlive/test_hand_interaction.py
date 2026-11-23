@@ -124,6 +124,17 @@ class HandInteractionContractTest(unittest.TestCase):
                     with self.assertRaises(ValidationError):
                         self.validate(name, {**self.examples[name], 'captureIndex': ordinal})
 
+    def test_execution_requests_cannot_claim_completion_or_choose_another_epoch(self):
+        request = {'eventId': '11111111-1111-4111-8111-111111111111',
+                   'owner': '22222222-2222-4222-8222-222222222222', 'operation': 'START', 'step': 0}
+        self.validate('executionRequest', request)
+        for key, value in [('epoch', 'invented'), ('operation', 'EXECUTED'), ('step', 12), ('eventId', 'guessed')]:
+            with self.assertRaises(ValidationError): self.validate('executionRequest', {**request, key: value})
+        state = copy.deepcopy(self.examples['executionReceipt'])
+        state.update(status='RUNNING', step=0, current={'action': self.examples['motion']['action'], 'holdMs': 500})
+        self.validate('executionReceipt', state)
+        with self.assertRaises(ValidationError): self.validate('executionReceipt', {**state, 'physicalSuccess': True})
+
     def test_input_and_output_capabilities_are_separate_and_no_legacy_sign_is_renamed(self):
         capabilities = copy.deepcopy(self.examples['capabilities'])
         capabilities['output']['signs'] = []

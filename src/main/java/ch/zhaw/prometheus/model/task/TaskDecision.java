@@ -26,6 +26,7 @@ public class TaskDecision extends Decision {
     }
     static Optional<TaskSpec.Rule> matching(Storage storage, EventHistory history, PolicyRuntime runtime, Instant now) {
         TaskMemory.trace(storage);
+        if(ch.zhaw.prometheus.model.hand.HandExecution.pending(storage,now))return waitFor("awaiting_hand_playback",null);
         if (!TaskMemory.active(storage) || !storage.containsKey(TaskMemory.SPEC) || history.isEmpty()) return waitFor("task_inactive", null);
         var events = history.toList(); var latest = events.getLast();
         if (ch.zhaw.prometheus.model.hand.HandEvidence.consumed(storage, latest)) return waitFor("duplicate_or_invalid_hand_observation", latest.getId());
