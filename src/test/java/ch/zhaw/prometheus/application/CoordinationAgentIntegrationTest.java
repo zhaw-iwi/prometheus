@@ -61,6 +61,29 @@ class CoordinationAgentIntegrationTest {
         assertInstanceOf(CoordinationPolicy.class, agent.getCurrentState().ownPolicy());
         return ((TaskPolicy) agent.getCurrentState().ownPolicy()).storage();
     }
+    @Test void legacyScissorsAgreementAndHistorySurviveReloadUnchanged() throws Exception {
+        var scope = create(); JsonObject proposal;
+        int instructions = liveContexts.snapshot(scope.code(), scope.id()).orElseThrow().instructions().length();
+        assertTrue(instructions <= 16000, "Keep the existing Live instruction ceiling");
+        System.out.println("HI-01 Live instruction characters=" + instructions);
+        try (var input = getClass().getResourceAsStream("/hand-interaction/legacy-agreement.json")) {
+            proposal = JsonParser.parseReader(new java.io.InputStreamReader(Objects.requireNonNull(input),
+                    java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+        }
+        turn(scope, "PROPOSE", proposal.toString(), "Propose one acknowledgement on scissors");
+        assertEquals("READY", CoordinationMemory.stage(memory(scope)));
+        turn(scope, "START", "null", "Start now");
+        assertEquals(proposal, memory(scope).get(CoordinationMemory.AGREEMENT));
+        assertEquals(0, memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertEquals("scissor", memory(scope).get(TaskMemory.SPEC).getAsJsonObject()
+                .getAsJsonArray("rules").get(0).getAsJsonObject().get("value").getAsString());
+        var before = agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
+        var after = agents.findById(scope.id()).orElseThrow().getEventHistory().toList();
+        assertEquals(before.stream().map(Event::getId).toList(), after.stream().map(Event::getId).toList());
+        assertEquals(before.stream().map(Event::getPayload).toList(), after.stream().map(Event::getPayload).toList());
+        assertEquals(before.stream().map(Event::sourcePosition).toList(), after.stream().map(Event::sourcePosition).toList());
+        System.out.println("HI-01 legacy scissors: persisted events=" + after.size() + ", actions=0");
+    }
     @Test void acceptedPersistedTaskWithdrawsQueuedProposalAndReconnectNeverReplaysIt() throws Exception {
         var scope = create(); var sessionId = UUID.randomUUID();
         var initial = liveContexts.claim(scope.code(), scope.id(), sessionId).orElseThrow();

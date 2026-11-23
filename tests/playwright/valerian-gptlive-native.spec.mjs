@@ -1,4 +1,5 @@
 import {hardware} from './fixtures/native-hardware.mjs';
+import {writeFileSync} from 'node:fs';
 import { test, expect } from './fixtures/offline-ui-assets.mjs';
 
 // Real application, MySQL, SSE, audio element and Web Audio. Only provider
@@ -148,6 +149,11 @@ for (const lostAck of [false, true]) test(`native Coordination final contributio
     const history = await (await request.get(path + '/live/history', {headers})).json();
     expect(history.filter(e => e.provenance?.origin === 'NATIVE' && e.payload.includes('First fixture observation.'))).toHaveLength(1);
     expect(history.filter(e => e.provenance?.origin === 'SYNTHESIZED')).toHaveLength(0);
+    writeFileSync(info.outputPath('hand-baseline-native.json'), JSON.stringify({
+      lostAck, playbackRequests: playback.length, synthesisRequests: synthesis.length,
+      persistedEvents: history.length, actions: (await memory())['task.actions'],
+    }, null, 2));
+    await page.locator('[data-column-panel="interaction"]').screenshot({path:info.outputPath(`hand-baseline-native-${lostAck ? 'uncertain' : 'confirmed'}.png`)});
     await info.attach('native-delivery-evidence', {contentType:'application/json', body:Buffer.from(JSON.stringify({lostAck, playback, synthesis, memory:await memory()}))});
   } finally {await request.delete(path, {headers});}
 });

@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { test, expect } from "./fixtures/offline-ui-assets.mjs";
 
 const scenario = JSON.parse(readFileSync(new URL("../gptlive/gptlivefix-scenarios.json", import.meta.url))).sensor;
@@ -160,6 +160,10 @@ test("Coordination Text and Continuous preserve agreement, preparation and one c
         actionsOnAcceptance: accepted["task.actions"], actions: completed["task.actions"],
         phase: completed["task.phase"], outcome: completed["coordination.outcome"],
         contribution: JSON.parse(contribution.responseEvent.payload), speechRequests: spoken.length };
+      writeFileSync(info.outputPath(`hand-baseline-${mode}.json`), JSON.stringify({
+        ...evidence[mode], persistedEvents: events.length, userTurns: 3, submittedHandObservations: 4,
+      }, null, 2));
+      await page.locator('[data-column-panel="interaction"]').screenshot({path: info.outputPath(`hand-baseline-${mode}.png`)});
       await page.locator("#open_diagnostics").click();
       await page.getByTestId("connect-agent").click(); // The connected button toggles to Disconnect.
       await page.keyboard.press("Escape");

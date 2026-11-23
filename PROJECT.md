@@ -75,6 +75,16 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Hand interaction implementation (2026-11-23): HI-01 through HI-12 in
+  [.agents/PLAN_HAND_INTERACTION.md](.agents/PLAN_HAND_INTERACTION.md) cover named
+  signs, explicit one/two-hand finger poses and directional/target pointing, each
+  as Coordination triggers and robot output, plus bounded input/output sequences.
+  The plan defines unit/contract, isolated local-MySQL, reviewed Playwright visual
+  and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline is complete; subsequent
+  milestones have not started. The owner authorized sequential implementation,
+  commit/push after each milestone, and at most $50 new cumulative provider spend.
+  No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+
 - Main synchronization and Live acknowledgement hooks (2026-11-23): merged remote
   main's GLF-01..05, TWC-01..05, robot embodiment and course assets with local hand
   detection, client confidence control and acknowledgement-aware multi-segment
@@ -10125,3 +10135,17 @@ full-main evidence remains **904 passing cases and one capacity skip** in
 `main-full-java.log`; the follow-up is in `main-preview/target/surefire-reports`
 and `main-java.log`. Only test fixtures/tests and this record change. Push and
 deployment remain deferred.
+
+
+## Hand interaction HI-01 (2026-11-23): contracts and compatibility baseline
+
+- Froze bounded versioned hand/pose/point/sequence schemas and examples without
+  enabling unfinished runtime capabilities; preserved legacy RPS meanings.
+- Added an isolated acceptance selection, nine future Live fixtures and a separate
+  owner-authorized $50 cumulative envelope. Unimplemented paid journeys fail closed.
+- Verified 66 Java, 21 Python and 36 JavaScript tests, two real-app Playwright
+  journeys and reviewed three mode screenshots; saved scissors agreement/history
+  survives reload. Measured Live instructions: 15,921/16,000 characters.
+- Exact commands, local artifacts, resource counts and limits are recorded in
+  `.agents/HAND_INTERACTION_RESULTS.md`. No provider spend, physical acceptance or
+  deployment. Owner requested commit/push and continuation to HI-02.

@@ -1,0 +1,20 @@
+{
+  "goal": "Acknowledge scissors once",
+  "humanRole": "Show scissors after accepting",
+  "agentRole": "Acknowledge the fresh scissors cue once",
+  "success": "One acknowledgement",
+  "questions": [],
+  "checks": [],
+  "dialogueLimit": 4,
+  "reactions": {
+    "goal": "Acknowledge scissors once",
+    "maxActions": 1,
+    "sessionBound": true,
+    "firstAction": "ON_CUE",
+    "rules": [{
+      "eventType": "obs.hand.sign", "field": "sign", "operator": "eq", "value": "scissor",
+      "action": "Acknowledge scissors", "effect": "ACT", "minConfidence": 0.8,
+      "samples": 1, "cooldownSeconds": 3
+    }]
+  }
+}

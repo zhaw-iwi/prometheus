@@ -81,7 +81,14 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
-Current work is `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–05 acceptance
+Current work is `.agents/PLAN_HAND_INTERACTION.md`: sequential HI-01 through
+HI-12 implementation, commit and push after each verified milestone, authorized
+on 2026-11-23. The new cumulative provider cap is $50 including failures and all
+provider modalities; use its separate ledger, not the exhausted historical
+budgets below. New hand contracts are specifications until their implementing
+milestone. Actual progress and evidence: `.agents/HAND_INTERACTION_RESULTS.md`.
+
+Previous work `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–05 acceptance
 is complete (current task narration, shared one-shot commands and voice/mode
 alignment). Commands derive from persisted profile tags and declared outputs,
 use admitted history positions for deduplication, and emit canonical plans.
@@ -97,7 +104,7 @@ The owner authorized sequential milestones with commit/push after each. Paid
 authorizations were $40/eight attempts, $10/two retests and $5/one HP-03 follow-up;
 all eleven/$55 reservations are consumed, including failures. Preserve all three
 commanding ledgers and the separate completed repair ledger. No further paid
-attempt is authorized. Physical microphone/speaker checks remain NOT RUN; minor
+attempt is authorized under those historical envelopes. Physical microphone/speaker checks remain NOT RUN; minor
 repeated spoken prefixes remain a fluency limitation. No new deployment authorization. See
 `.agents/TOWARDSCOMMANDING_RESULTS.md` for the exact verification and limits.
 

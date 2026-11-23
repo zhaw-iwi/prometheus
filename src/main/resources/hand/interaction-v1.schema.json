@@ -1,0 +1,1466 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:prometheus:hand-interaction:v1",
+  "title": "Hand interaction v1 - opt-in contract; runtime adoption staged by HI milestones",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$"
+    },
+    "sign": {
+      "enum": [
+        "fist",
+        "peace",
+        "open_palm",
+        "thumbs_up",
+        "thumbs_down",
+        "index_up",
+        "shaka",
+        "horns",
+        "middle_finger",
+        "ok_ring"
+      ]
+    },
+    "side": {
+      "enum": [
+        "left",
+        "right",
+        "unknown"
+      ]
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 40
+    },
+    "frame": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "space": {
+          "enum": [
+            "camera_image",
+            "robot_local",
+            "virtual_scene"
+          ]
+        },
+        "mirrored": {
+          "const": false
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "space",
+        "mirrored"
+      ],
+      "additionalProperties": false
+    },
+    "point": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
+        },
+        "y": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
+        },
+        "z": {
+          "type": "number",
+          "minimum": -1000,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "additionalProperties": false
+    },
+    "direction": {
+      "enum": [
+        "left",
+        "right",
+        "up",
+        "down",
+        "up_left",
+        "up_right",
+        "down_left",
+        "down_right"
+      ]
+    },
+    "fingerReadings": {
+      "type": "object",
+      "properties": {
+        "thumb": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "index": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "middle": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ring": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "little": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "thumb",
+        "index",
+        "middle",
+        "ring",
+        "little"
+      ],
+      "additionalProperties": false
+    },
+    "fingerStates": {
+      "type": "object",
+      "properties": {
+        "thumb": {
+          "anyOf": [
+            {
+              "enum": [
+                "straight",
+                "neutral",
+                "bent"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "index": {
+          "anyOf": [
+            {
+              "enum": [
+                "straight",
+                "neutral",
+                "bent"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "middle": {
+          "anyOf": [
+            {
+              "enum": [
+                "straight",
+                "neutral",
+                "bent"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ring": {
+          "anyOf": [
+            {
+              "enum": [
+                "straight",
+                "neutral",
+                "bent"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "little": {
+          "anyOf": [
+            {
+              "enum": [
+                "straight",
+                "neutral",
+                "bent"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "thumb",
+        "index",
+        "middle",
+        "ring",
+        "little"
+      ],
+      "additionalProperties": false
+    },
+    "signHand": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "handedness": {
+          "$ref": "#/$defs/side"
+        },
+        "sign": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sign"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "handedness",
+        "sign",
+        "confidence"
+      ],
+      "additionalProperties": false
+    },
+    "poseHand": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "handedness": {
+          "$ref": "#/$defs/side"
+        },
+        "fingers": {
+          "$ref": "#/$defs/fingerReadings"
+        },
+        "fingerStates": {
+          "$ref": "#/$defs/fingerStates"
+        }
+      },
+      "required": [
+        "id",
+        "handedness",
+        "fingers",
+        "fingerStates"
+      ],
+      "additionalProperties": false
+    },
+    "signObservation": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "observationId": {
+          "$ref": "#/$defs/id"
+        },
+        "source": {
+          "$ref": "#/$defs/id"
+        },
+        "ts": {
+          "$ref": "#/$defs/time"
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        },
+        "hands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/signHand"
+          },
+          "minItems": 0,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "observationId",
+        "source",
+        "ts",
+        "frame",
+        "hands"
+      ],
+      "additionalProperties": false
+    },
+    "poseObservation": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "observationId": {
+          "$ref": "#/$defs/id"
+        },
+        "source": {
+          "$ref": "#/$defs/id"
+        },
+        "ts": {
+          "$ref": "#/$defs/time"
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        },
+        "hands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/poseHand"
+          },
+          "minItems": 0,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "observationId",
+        "source",
+        "ts",
+        "frame",
+        "hands"
+      ],
+      "additionalProperties": false
+    },
+    "comparison": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "finger": {
+              "enum": [
+                "thumb",
+                "index",
+                "middle",
+                "ring",
+                "little"
+              ]
+            },
+            "operator": {
+              "enum": [
+                "eq"
+              ]
+            },
+            "value": {
+              "enum": [
+                "straight",
+                "neutral",
+                "bent"
+              ]
+            }
+          },
+          "required": [
+            "finger",
+            "operator",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "finger": {
+              "enum": [
+                "thumb",
+                "index",
+                "middle",
+                "ring",
+                "little"
+              ]
+            },
+            "operator": {
+              "enum": [
+                "eq",
+                "lt",
+                "gt"
+              ]
+            },
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "finger",
+            "operator",
+            "value"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "relation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "tip_proximity"
+              ]
+            },
+            "fingers": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "thumb",
+                  "index",
+                  "middle",
+                  "ring",
+                  "little"
+                ]
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": true
+            },
+            "operator": {
+              "enum": [
+                "lt",
+                "gt"
+              ]
+            },
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2
+            }
+          },
+          "required": [
+            "kind",
+            "fingers",
+            "operator",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "spread"
+              ]
+            },
+            "fingers": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "thumb",
+                  "index",
+                  "middle",
+                  "ring",
+                  "little"
+                ]
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "uniqueItems": true
+            },
+            "operator": {
+              "enum": [
+                "lt",
+                "gt"
+              ]
+            },
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "kind",
+            "fingers",
+            "operator",
+            "value"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "orientation"
+              ]
+            },
+            "axis": {
+              "enum": [
+                "palm_normal",
+                "index_axis",
+                "thumb_axis"
+              ]
+            },
+            "direction": {
+              "$ref": "#/$defs/direction"
+            },
+            "toleranceDegrees": {
+              "type": "number",
+              "minimum": 5,
+              "maximum": 45
+            }
+          },
+          "required": [
+            "kind",
+            "axis",
+            "direction",
+            "toleranceDegrees"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "handCondition": {
+      "type": "object",
+      "properties": {
+        "handedness": {
+          "enum": [
+            "any",
+            "left",
+            "right"
+          ]
+        },
+        "all": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/comparison"
+          },
+          "minItems": 1,
+          "maxItems": 5
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation"
+          },
+          "minItems": 0,
+          "maxItems": 6
+        }
+      },
+      "required": [
+        "handedness",
+        "all"
+      ],
+      "additionalProperties": false
+    },
+    "poseCondition": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "hands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/handCondition"
+          },
+          "minItems": 1,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "hands"
+      ],
+      "additionalProperties": false
+    },
+    "signCondition": {
+      "type": "object",
+      "properties": {
+        "sign": {
+          "$ref": "#/$defs/sign"
+        },
+        "handedness": {
+          "enum": [
+            "any",
+            "left",
+            "right"
+          ]
+        }
+      },
+      "required": [
+        "sign",
+        "handedness"
+      ],
+      "additionalProperties": false
+    },
+    "targetRef": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "frame"
+      ],
+      "additionalProperties": false
+    },
+    "pointCondition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "direction": {
+              "$ref": "#/$defs/direction"
+            },
+            "frame": {
+              "$ref": "#/$defs/frame"
+            },
+            "handedness": {
+              "enum": [
+                "any",
+                "left",
+                "right"
+              ]
+            }
+          },
+          "required": [
+            "direction",
+            "frame",
+            "handedness"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "target": {
+              "$ref": "#/$defs/targetRef"
+            },
+            "handedness": {
+              "enum": [
+                "any",
+                "left",
+                "right"
+              ]
+            }
+          },
+          "required": [
+            "target",
+            "handedness"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "sign"
+              ]
+            },
+            "condition": {
+              "$ref": "#/$defs/signCondition"
+            }
+          },
+          "required": [
+            "kind",
+            "condition"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "pose"
+              ]
+            },
+            "condition": {
+              "$ref": "#/$defs/poseCondition"
+            }
+          },
+          "required": [
+            "kind",
+            "condition"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "point"
+              ]
+            },
+            "condition": {
+              "$ref": "#/$defs/pointCondition"
+            }
+          },
+          "required": [
+            "kind",
+            "condition"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "count"
+              ]
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "hands": {
+              "enum": [
+                "either",
+                "left",
+                "right",
+                "both"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "count",
+            "hands"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "inputSequence": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/condition"
+          },
+          "minItems": 1,
+          "maxItems": 12
+        },
+        "dwellMs": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 5000
+        },
+        "maximumGapMs": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 30000
+        },
+        "maximumDurationMs": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 120000
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "steps",
+        "dwellMs",
+        "maximumGapMs",
+        "maximumDurationMs"
+      ],
+      "additionalProperties": false
+    },
+    "outputHand": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "enum": [
+            "left",
+            "right"
+          ]
+        },
+        "fingers": {
+          "type": "object",
+          "properties": {
+            "thumb": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "index": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "middle": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "ring": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "little": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "thumb",
+            "index",
+            "middle",
+            "ring",
+            "little"
+          ],
+          "additionalProperties": false
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relation"
+          },
+          "minItems": 0,
+          "maxItems": 6
+        }
+      },
+      "required": [
+        "side",
+        "fingers"
+      ],
+      "additionalProperties": false
+    },
+    "signOutput": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "sign"
+          ]
+        },
+        "sign": {
+          "$ref": "#/$defs/sign"
+        },
+        "effector": {
+          "enum": [
+            "left_hand",
+            "right_hand",
+            "both_hands"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "sign",
+        "effector"
+      ],
+      "additionalProperties": false
+    },
+    "poseOutput": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "pose"
+          ]
+        },
+        "hands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/outputHand"
+          },
+          "minItems": 1,
+          "maxItems": 2
+        }
+      },
+      "required": [
+        "kind",
+        "hands"
+      ],
+      "additionalProperties": false
+    },
+    "pointOutput": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "point"
+              ]
+            },
+            "effector": {
+              "enum": [
+                "left_hand",
+                "right_hand"
+              ]
+            },
+            "direction": {
+              "$ref": "#/$defs/direction"
+            },
+            "frame": {
+              "$ref": "#/$defs/frame"
+            }
+          },
+          "required": [
+            "kind",
+            "effector",
+            "direction",
+            "frame"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "enum": [
+                "point"
+              ]
+            },
+            "effector": {
+              "enum": [
+                "left_hand",
+                "right_hand"
+              ]
+            },
+            "target": {
+              "$ref": "#/$defs/targetRef"
+            }
+          },
+          "required": [
+            "kind",
+            "effector",
+            "target"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "action": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/signOutput"
+        },
+        {
+          "$ref": "#/$defs/poseOutput"
+        },
+        {
+          "$ref": "#/$defs/pointOutput"
+        }
+      ]
+    },
+    "sequenceOutput": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "sequence"
+          ]
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "$ref": "#/$defs/action"
+              },
+              "holdMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 5000
+              }
+            },
+            "required": [
+              "action",
+              "holdMs"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "maxItems": 12
+        }
+      },
+      "required": [
+        "kind",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    "motion": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "action": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/action"
+            },
+            {
+              "$ref": "#/$defs/sequenceOutput"
+            }
+          ]
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "type": {
+          "enum": [
+            "region",
+            "person",
+            "cup",
+            "bottle",
+            "book",
+            "virtual"
+          ]
+        },
+        "provenance": {
+          "enum": [
+            "configured",
+            "detected",
+            "virtual"
+          ]
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        },
+        "position": {
+          "$ref": "#/$defs/point"
+        },
+        "extent": {
+          "$ref": "#/$defs/extent"
+        },
+        "observedAt": {
+          "$ref": "#/$defs/time"
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "label",
+        "type",
+        "provenance",
+        "frame",
+        "position",
+        "extent",
+        "observedAt",
+        "expiresAt"
+      ],
+      "additionalProperties": false
+    },
+    "sceneTargets": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "source": {
+          "$ref": "#/$defs/id"
+        },
+        "ts": {
+          "$ref": "#/$defs/time"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/target"
+          },
+          "minItems": 0,
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "source",
+        "ts",
+        "targets"
+      ],
+      "additionalProperties": false
+    },
+    "resolution": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "enum": [
+                "resolved"
+              ]
+            },
+            "target": {
+              "$ref": "#/$defs/targetRef"
+            }
+          },
+          "required": [
+            "status",
+            "target"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "enum": [
+                "ambiguous"
+              ]
+            },
+            "candidates": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/targetRef"
+              },
+              "minItems": 2,
+              "maxItems": 4
+            }
+          },
+          "required": [
+            "status",
+            "candidates"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "status": {
+              "enum": [
+                "unresolved"
+              ]
+            },
+            "reason": {
+              "enum": [
+                "no_target",
+                "invalid_geometry",
+                "source_unknown",
+                "expired",
+                "frame_mismatch"
+              ]
+            }
+          },
+          "required": [
+            "status",
+            "reason"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "pointObservation": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "observationId": {
+          "$ref": "#/$defs/id"
+        },
+        "source": {
+          "$ref": "#/$defs/id"
+        },
+        "ts": {
+          "$ref": "#/$defs/time"
+        },
+        "frame": {
+          "$ref": "#/$defs/frame"
+        },
+        "handId": {
+          "$ref": "#/$defs/id"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/direction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "resolution": {
+          "$ref": "#/$defs/resolution"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "observationId",
+        "source",
+        "ts",
+        "frame",
+        "handId",
+        "direction",
+        "resolution"
+      ],
+      "additionalProperties": false
+    },
+    "capabilityDirection": {
+      "type": "object",
+      "properties": {
+        "signs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sign"
+          },
+          "minItems": 0,
+          "maxItems": 10,
+          "uniqueItems": true
+        },
+        "poses": {
+          "type": "boolean"
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "tip_proximity",
+              "spread",
+              "orientation"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 3,
+          "uniqueItems": true
+        },
+        "pointFrames": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "camera_image",
+              "robot_local",
+              "virtual_scene"
+            ]
+          },
+          "minItems": 0,
+          "maxItems": 3,
+          "uniqueItems": true
+        },
+        "sequenceSteps": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 12
+        }
+      },
+      "required": [
+        "signs",
+        "poses",
+        "relations",
+        "pointFrames",
+        "sequenceSteps"
+      ],
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "contractVersion": {
+          "const": 1
+        },
+        "input": {
+          "$ref": "#/$defs/capabilityDirection"
+        },
+        "output": {
+          "$ref": "#/$defs/capabilityDirection"
+        }
+      },
+      "required": [
+        "contractVersion",
+        "input",
+        "output"
+      ],
+      "additionalProperties": false
+    },
+    "executionReceipt": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "eventId": {
+          "$ref": "#/$defs/id"
+        },
+        "commandId": {
+          "$ref": "#/$defs/id"
+        },
+        "ownerId": {
+          "$ref": "#/$defs/id"
+        },
+        "epoch": {
+          "$ref": "#/$defs/id"
+        },
+        "step": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 11
+        },
+        "status": {
+          "enum": [
+            "started",
+            "completed",
+            "interrupted",
+            "unknown"
+          ]
+        },
+        "observedAt": {
+          "$ref": "#/$defs/time"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "eventId",
+        "commandId",
+        "ownerId",
+        "epoch",
+        "step",
+        "status",
+        "observedAt"
+      ],
+      "additionalProperties": false
+    },
+    "extent": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "z": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

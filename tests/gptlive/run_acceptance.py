@@ -20,6 +20,7 @@ import uuid
 import pymysql
 from paid_budget import reserve
 import commanding_preflight
+import hand_interaction
 from process_guard import run_owned
 
 
@@ -36,6 +37,8 @@ def escalation_cases(root):
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--hand-interaction', choices=hand_interaction.SELECTIONS,
+                        help='Dedicated hand contracts/baseline; staged Live journeys fail closed until implemented')
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--embodiment', action='store_true', help='Robot browser regression or real-provider persisted-plan rendering smoke')
@@ -51,6 +54,11 @@ def main():
     commanding_authorization.add_argument('--commanding-retests', action='store_true', help='Use the separately authorized two-attempt/$10 envelope for HP-02 and HP-03')
     commanding_authorization.add_argument('--commanding-hp3-retest', action='store_true', help='Use the separately authorized one-attempt/$5 HP-03 follow-up envelope')
     args = parser.parse_args()
+    try:
+        if hand_interaction.configure(args):
+            return
+    except ValueError as invalid:
+        parser.error(str(invalid))
     repair = bool(args.paid_core and args.paid_core.startswith('repair-'))
     commanding = args.paid_core in commanding_preflight.MODES
     if args.commanding_retests and args.paid_core not in ('commanding-hp2','commanding-hp3'):
@@ -120,6 +128,12 @@ def main():
     assert re.fullmatch(r'gptlive_[0-9a-f]{10}', username)
     artifacts = root / 'target' / ('gptlive-acceptance-' + suffix)
     artifacts.mkdir(parents=True)
+    if args.hand_interaction:
+        selection = {'schema': 'hand-interaction-run-v1', 'selection': args.hand_interaction,
+                     'sourceRevision': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                     'java': args.java_tests, 'browserGrep': args.browser_grep, 'realProviderRequests': 0,
+                     'plan': hand_interaction.manifest()}
+        (artifacts / 'hand-interaction.json').write_text(json.dumps(selection, indent=2), encoding='utf-8')
     if args.embodiment:
         sources = [p for directory in ('src/main', 'src/test', 'tests/playwright', 'tests/js/embodiment')
                    for p in (root/directory).rglob('*')

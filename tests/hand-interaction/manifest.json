@@ -1,0 +1,142 @@
+{
+  "schema": "hand-interaction-acceptance-v1",
+  "baselineIsAcceptance": false,
+  "baselineRevision": "025697df95ea1e1d4b62cfad9a7550a1d88e9a26",
+  "budget": {
+    "authorization": "hand-interaction-2026-11-23-usd50",
+    "maximumReservedUsd": 50,
+    "maximumAttempts": 12,
+    "reserveUsdPerAttempt": 4,
+    "ledger": "target/hand-interaction-budget.json",
+    "includes": [
+      "successful and failed attempts",
+      "backend inference",
+      "native Live audio",
+      "speech synthesis",
+      "grading"
+    ],
+    "pricingVerified": false
+  },
+  "baselineCeilings": {
+    "realProviderRequests": 0,
+    "handSamplesPerSecond": 5,
+    "handObservationBytes": 16384,
+    "handStateBytes": 65536,
+    "liveInstructionsCharacters": 16000,
+    "contextQueries": 25,
+    "scopedReceiptQueries": 4,
+    "receiptStatements": 1,
+    "pooledConnections": 10
+  },
+  "journeys": [
+    {
+      "id": "L-01",
+      "name": "Named signs",
+      "milestones": [
+        "HI-02",
+        "HI-03"
+      ],
+      "fixture": {
+        "steps": "Ask capabilities; request thumbs up; negotiate \"on thumbs up, show peace once\"; prepare/accept; send wrong then fresh correct sign; deliberately repeat a direct command."
+      },
+      "expected": "Correct spoken scope; one action per authorized turn/cue; no premature task start, duplicate contribution or competing speech; visible correct poses.",
+      "providerReady": false
+    },
+    {
+      "id": "L-02",
+      "name": "Custom poses",
+      "milestones": [
+        "HI-04"
+      ],
+      "fixture": {
+        "steps": "Specify a custom two-hand pattern; demonstrate it during preparation; accept one response on its next occurrence; ask robot to reproduce it silently."
+      },
+      "expected": "All finger/side constraints preserved; split/missing readings do not match; readiness spends no action; one response and correct ten-finger output; no audio for silent demonstration.",
+      "providerReady": false
+    },
+    {
+      "id": "L-03",
+      "name": "Ring and geometry",
+      "milestones": [
+        "HI-05"
+      ],
+      "fixture": {
+        "steps": "Ask for \"OK\", resolve shape if ambiguous; demonstrate an OK ring and a near miss; agree one ring-triggered response; request the ring from the robot."
+      },
+      "expected": "Thumb-up/ring distinction, all geometric terms retained, near miss rejected, one accepted cue, rendered ring and consistent speech.",
+      "providerReady": false
+    },
+    {
+      "id": "L-04",
+      "name": "Direction",
+      "milestones": [
+        "HI-06"
+      ],
+      "fixture": {
+        "steps": "Negotiate \"when I point to my left, point to your right\"; accept and exercise wrong/correct directions; request an immediate left-pointing demonstration."
+      },
+      "expected": "Correct disclosed frames, no mirroring reversal, one action, correct visible arm/finger direction and no task mutation by the unrelated direct request.",
+      "providerReady": false
+    },
+    {
+      "id": "L-05",
+      "name": "Registered target",
+      "milestones": [
+        "HI-07"
+      ],
+      "fixture": {
+        "steps": "Identify the configured display; agree a response to pointing there; accept and trigger it; request pointing at that display."
+      },
+      "expected": "Same scoped target/frame across agreement and output, correct selected region, supported virtual mapping and visible target-directed output.",
+      "providerReady": false
+    },
+    {
+      "id": "L-06",
+      "name": "Person/item",
+      "milestones": [
+        "HI-08"
+      ],
+      "fixture": {
+        "steps": "Select one of two ambiguous cups, negotiate a pointing-triggered response and trigger it; directly request pointing at a clearly selected person; remove that target before repeating."
+      },
+      "expected": "Clarification precedes action, stable target binding, fresh cup/person resolution, no invented personal identity, and no action at a stale target.",
+      "providerReady": false
+    },
+    {
+      "id": "L-07",
+      "name": "Input sequence",
+      "milestones": [
+        "HI-09"
+      ],
+      "fixture": {
+        "steps": "Agree \"one, then two, then three -> one acknowledgement\"; accept; show an incomplete/wrong sequence then a valid one; hold the last pose."
+      },
+      "expected": "Spoken terms retain order/limits; inspectable progress; only full sequence spends one action; holding the final pose does not repeat it.",
+      "providerReady": false
+    },
+    {
+      "id": "L-08",
+      "name": "Output sequence",
+      "milestones": [
+        "HI-10"
+      ],
+      "fixture": {
+        "steps": "Request counting one to five silently; request a second bounded sequence and Stop after step two; agree one pose-triggered output sequence and execute it."
+      },
+      "expected": "Correct ordered visual steps, silent request respected, timely cancellation, no late/reconnected replay, one task contribution with scoped completion evidence.",
+      "providerReady": false
+    },
+    {
+      "id": "L-09",
+      "name": "Mode/conversation regression",
+      "milestones": [
+        "HI-11"
+      ],
+      "fixture": {
+        "steps": "Three matched ordinary turns on Coordination and the existing Live comparison agent; one supported new direct request; inspect Text/Continuous parity through the local real-app suite."
+      },
+      "expected": "Native speech remains independent, correct capabilities, no extra TTS, no false completion claim; compare browser audio onset with the declared baseline and retain evidence.",
+      "providerReady": false
+    }
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "signObservation": {
+    "schemaVersion": 1,
+    "observationId": "frame-1",
+    "source": "valerian.hand.camera",
+    "ts": "2026-11-23T12:00:00Z",
+    "frame": {
+      "id": "camera",
+      "revision": 1,
+      "space": "camera_image",
+      "mirrored": false
+    },
+    "hands": [
+      {
+        "id": "h0",
+        "handedness": "right",
+        "sign": "thumbs_up",
+        "confidence": 0.91
+      }
+    ]
+  },
+  "poseObservation": {
+    "schemaVersion": 2,
+    "observationId": "frame-1",
+    "source": "valerian.hand.camera",
+    "ts": "2026-11-23T12:00:00Z",
+    "frame": {
+      "id": "camera",
+      "revision": 1,
+      "space": "camera_image",
+      "mirrored": false
+    },
+    "hands": [
+      {
+        "id": "h0",
+        "handedness": "right",
+        "fingers": {
+          "thumb": 0.8,
+          "index": 0.1,
+          "middle": 0.8,
+          "ring": 0.8,
+          "little": 0.8
+        },
+        "fingerStates": {
+          "thumb": "bent",
+          "index": "straight",
+          "middle": "bent",
+          "ring": "bent",
+          "little": "bent"
+        }
+      }
+    ]
+  },
+  "poseCondition": {
+    "schemaVersion": 1,
+    "hands": [
+      {
+        "handedness": "right",
+        "all": [
+          {
+            "finger": "index",
+            "operator": "eq",
+            "value": "straight"
+          }
+        ]
+      }
+    ]
+  },
+  "inputSequence": {
+    "schemaVersion": 1,
+    "steps": [
+      {
+        "kind": "count",
+        "count": 0,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 1,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 2,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 3,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 4,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 5,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 6,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 7,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 8,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 9,
+        "hands": "both"
+      },
+      {
+        "kind": "count",
+        "count": 10,
+        "hands": "both"
+      }
+    ],
+    "dwellMs": 300,
+    "maximumGapMs": 5000,
+    "maximumDurationMs": 120000
+  },
+  "motion": {
+    "schemaVersion": 1,
+    "action": {
+      "kind": "sign",
+      "sign": "thumbs_up",
+      "effector": "right_hand"
+    }
+  },
+  "sceneTargets": {
+    "schemaVersion": 1,
+    "source": "operator",
+    "ts": "2026-11-23T12:00:00Z",
+    "targets": [
+      {
+        "id": "display",
+        "revision": 1,
+        "label": "Display",
+        "type": "virtual",
+        "provenance": "virtual",
+        "frame": {
+          "id": "room-preview",
+          "revision": 1,
+          "space": "virtual_scene",
+          "mirrored": false
+        },
+        "position": {
+          "x": 1,
+          "y": 0,
+          "z": 0
+        },
+        "extent": {
+          "x": 0.2,
+          "y": 0.2,
+          "z": 0.2
+        },
+        "observedAt": "2026-11-23T12:00:00Z",
+        "expiresAt": null
+      }
+    ]
+  },
+  "pointObservation": {
+    "schemaVersion": 1,
+    "observationId": "frame-1",
+    "source": "valerian.hand.camera",
+    "ts": "2026-11-23T12:00:00Z",
+    "frame": {
+      "id": "camera",
+      "revision": 1,
+      "space": "camera_image",
+      "mirrored": false
+    },
+    "handId": "h0",
+    "direction": "right",
+    "resolution": {
+      "status": "resolved",
+      "target": {
+        "id": "display",
+        "revision": 1,
+        "frame": {
+          "id": "room-preview",
+          "revision": 1,
+          "space": "virtual_scene",
+          "mirrored": false
+        }
+      }
+    }
+  },
+  "capabilities": {
+    "contractVersion": 1,
+    "input": {
+      "signs": [
+        "fist",
+        "peace",
+        "open_palm",
+        "thumbs_up",
+        "thumbs_down",
+        "index_up",
+        "shaka",
+        "horns",
+        "middle_finger",
+        "ok_ring"
+      ],
+      "poses": true,
+      "relations": [
+        "tip_proximity",
+        "spread",
+        "orientation"
+      ],
+      "pointFrames": [
+        "camera_image"
+      ],
+      "sequenceSteps": 12
+    },
+    "output": {
+      "signs": [
+        "fist",
+        "peace",
+        "open_palm",
+        "thumbs_up",
+        "thumbs_down",
+        "index_up",
+        "shaka",
+        "horns",
+        "middle_finger",
+        "ok_ring"
+      ],
+      "poses": true,
+      "relations": [
+        "tip_proximity",
+        "spread",
+        "orientation"
+      ],
+      "pointFrames": [
+        "robot_local",
+        "virtual_scene"
+      ],
+      "sequenceSteps": 12
+    }
+  },
+  "executionReceipt": {
+    "schemaVersion": 1,
+    "eventId": "event-1",
+    "commandId": "command-1",
+    "ownerId": "owner-1",
+    "epoch": "epoch-1",
+    "step": 0,
+    "status": "completed",
+    "observedAt": "2026-11-23T12:00:00Z"
+  }
+}

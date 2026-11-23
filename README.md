@@ -338,14 +338,13 @@ require releasing and repeating the pose. Sample stability does not establish
 physical hand identity across frames. Classification does not change the emission
 interval or add between-frame transition rules or hand tracking.
 
-Coordination preparation checks may use `eventType`, `handPose` and
-`minConfidence` with the same semantics. A demonstration establishes readiness,
-not permission to perform the action; acceptance and a fresh subsequent cue are
-still required. The new rule guidance is appended at inference time for saved
-agents too. Saved agreements are unchanged: re-propose and accept an old task
-that incorrectly used `obs.hand.sign == middle_finger`. The `obs.hand.pose` event
-contains no named sign, and task setup must not substitute the accompanying
-`obs.hand.sign` event for bend comparisons.
+Numeric hand poses currently apply to Generic task agents; Coordination does
+not yet admit `obs.hand.pose` or pose preparation checks. Its current hand cues
+remain legacy `rock`/`scissor`/`paper`. The [hand interaction roadmap](.agents/PLAN_HAND_INTERACTION.md)
+and [versioned contracts](tests/hand-interaction/README.md) cover explicit future
+Coordination adoption. Saved agreements are unchanged. The existing
+`obs.hand.pose` event contains no named sign, and Generic task setup must not
+substitute the accompanying `obs.hand.sign` event for bend comparisons.
 
 Agents can identify a hand-capture window with an opaque `display.captureId`
 (1-128 characters) alongside `awaitingUserSign: true`. The cockpit echoes it as
