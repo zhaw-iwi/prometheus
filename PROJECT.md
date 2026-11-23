@@ -75,6 +75,26 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Main synchronization and Live acknowledgement hooks (2026-11-23): merged remote
+  main's GLF-01..05, TWC-01..05, robot embodiment and course assets with local hand
+  detection, client confidence control and acknowledgement-aware multi-segment
+  playback cues. The Live client keeps GLF-04's unreconciled-input boundary but
+  routes it through the acknowledgement-aware observer instead of the retired
+  approval player; `input_boundary` records `playback_evidence_retained` or
+  `playback_evidence_reset`. The hand-sign capability text is shorter so
+  Coordination Live instructions stay within budget (15,997 of 16,000 bytes), and
+  a stale "Honor explicit silence" assertion inherited from remote main now matches
+  the compact guidance. The neutral `liveContextualAcknowledgements()` and
+  post-admission `liveNonMutatingAcknowledgement(Event, ExternalSpeech)` hooks from
+  the agents Gala/Swiss work are now on main; ingress records
+  `countdown_acknowledgement` only if the original cue, deadline and speech owner
+  survive the turn. Both default to false and no main-catalog policy enables
+  acknowledgement cues, so main behaviour is unchanged. Verification passed 245
+  JavaScript tests and 1,032 Java cases (one opt-in capacity skip) against a
+  disposable local MySQL schema, since removed. Forked tests need a JDK 21 runtime;
+  inline Mockito fails on JDK 26. Browser/Playwright, real-provider and physical
+  trials were not run. Restart the backend and hard-refresh cockpits.
+
 - Towards commanding (2026-11-19): TWC-01 prevents queued obsolete Coordination
   state announcements from surviving a later committed occasion and withdraws
   already-sent obsolete instructions once. Valid task contributions retain their

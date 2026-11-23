@@ -143,21 +143,36 @@ public class LiveTranscriptIngressService {
                 persisted.finish("CLARIFICATION", "short_reply_without_established_context", null);
             } else {
                 var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
-                boolean countdownAcknowledgement = false;
-                if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy
-                        && policy.liveNonMutatingAcknowledgement(text)) {
-                    var activity = policy.liveActivityContext();
-                    var cue = activity == null ? null : activity.playbackCue();
-                    countdownAcknowledgement = cue != null && cue.allowAcknowledgements() && !cue.expired(Instant.now());
+                ch.zhaw.prometheus.model.policy.LivePlaybackCue originalCue = null;
+                boolean knownAcknowledgement = false;
+                if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy) {
+                    knownAcknowledgement = policy.liveNonMutatingAcknowledgement(text);
+                    if (knownAcknowledgement || policy.liveContextualAcknowledgements()) {
+                        var activity = policy.liveActivityContext();
+                        originalCue = activity == null ? null : activity.playbackCue();
+                    }
                 }
                 int before = agent.getEventHistory().toList().size();
                 var response = turns.acknowledge(id, new EventRequest(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, Event.KIND_OBSERVATION, text), OutputProfile.FULL_PLAN);
                 agents.flush();
                 Agent fresh = agents.findById(id).orElseThrow();
                 List<Event> appended = fresh.getEventHistory().toList();
-                UUID eventId = appended.stream().skip(before).filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType()))
-                        .map(Event::getId).findFirst().orElse(null);
+                Event input = appended.stream().skip(before).filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType()))
+                        .findFirst().orElse(null);
+                UUID eventId = input == null ? null : input.getId();
                 if (response.isEmpty()) throw new IllegalStateException("Agent disappeared during transcript ingress");
+                boolean countdownAcknowledgement = false;
+                if (input != null && originalCue != null && originalCue.allowAcknowledgements()
+                        && !originalCue.expired(Instant.now()) && owner.equals(ownership.current(fresh))) {
+                    var currentLeaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(fresh.getCurrentState()).getLast();
+                    if (currentLeaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy) {
+                        var activity = policy.liveActivityContext();
+                        var cue = activity == null ? null : activity.playbackCue();
+                        countdownAcknowledgement = cue != null && cue.allowAcknowledgements() && !cue.expired(Instant.now())
+                                && cue.id().equals(originalCue.id()) && cue.expiresAt().equals(originalCue.expiresAt())
+                                && (knownAcknowledgement || policy.liveNonMutatingAcknowledgement(input, owner));
+                    }
+                }
                 persisted.finish("COMPLETE", countdownAcknowledgement ? "countdown_acknowledgement" : "acknowledged", eventId);
                 // Ordinary speech remains externally owned; this call can only supply configured non-speech behaviour.
                 if (owner.equals(ownership.current(fresh)) && response.get().getResponseEvent() == null)
