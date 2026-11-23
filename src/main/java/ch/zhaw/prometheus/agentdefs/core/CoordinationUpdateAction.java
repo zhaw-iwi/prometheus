@@ -95,6 +95,7 @@ public class CoordinationUpdateAction extends Action {
                         + TaskSpec.HAND_CONFIDENCE_GUIDANCE
                         + (ch.zhaw.prometheus.model.hand.HandFeatures.pointing(storage) ? ch.zhaw.prometheus.model.task.HandPointCondition.instructions() : "")
                         + ch.zhaw.prometheus.model.hand.HandActions.guidance(runtime.promptMessageAssembler().capabilities())
+                        + ch.zhaw.prometheus.model.hand.HandScene.guidance(storage)
                         + "\nPrevious accepted agreement (data): " + (storage.containsKey(CoordinationMemory.AGREEMENT) ? storage.get(CoordinationMemory.AGREEMENT) : "none")
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
                         + "\nLatest user reflection (their report, not a measured outcome): " + (storage.containsKey(CoordinationMemory.REVIEW) ? storage.get(CoordinationMemory.REVIEW) : "none")
@@ -139,12 +140,13 @@ public class CoordinationUpdateAction extends Action {
                 rejection = "reply_shape";
                 reply = controlReply(operation, update.get("reply"));
                 ch.zhaw.prometheus.model.hand.HandActions.requireCapability(reply, runtime.promptMessageAssembler().capabilities());
+                reply=ch.zhaw.prometheus.model.hand.HandScene.ground(reply,storage,events,Instant.now());
             }
             rejection = "operation_constraints";
             validate(operation, proposed, assent, invitation, text);
             if(proposed!=null) {
-                for(var check:proposed.checks())if(check.handPoint()!=null)check.handPoint().requireCurrentFrame(events,now);
-                if(proposed.reactions()!=null)for(var rule:proposed.reactions().rules())if(rule.handPoint()!=null)rule.handPoint().requireCurrentFrame(events,now);
+                for(var check:proposed.checks())if(check.handPoint()!=null)check.handPoint().requireCurrentFrame(events,Instant.now(),storage);
+                if(proposed.reactions()!=null)for(var rule:proposed.reactions().rules())if(rule.handPoint()!=null)rule.handPoint().requireCurrentFrame(events,Instant.now(),storage);
             }
             rejection = "speech_intent_length";
             if (runtime.externalSpeech() != null && reply.getSpeech() != null && reply.getSpeech().length() > 350)

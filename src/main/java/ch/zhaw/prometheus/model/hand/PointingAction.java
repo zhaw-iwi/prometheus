@@ -7,8 +7,13 @@ import static ch.zhaw.prometheus.model.hand.HandSignObservation.*;
 public final class PointingAction {
     private PointingAction() {}
     public static void validate(JsonObject action) {
-        exact(action,"kind","effector","direction","frame");
         if(!"point".equals(text(action.get("kind")))||!Set.of("left_hand","right_hand").contains(text(action.get("effector"))))throw new IllegalArgumentException();
+        if(action.has("target")) {
+            exact(action,action.has("resolved")?new String[]{"kind","effector","target","resolved"}:new String[]{"kind","effector","target"});TargetRef.parse(action.get("target"));
+            if(action.has("resolved")){var r=action.getAsJsonObject("resolved");exact(r,"label","position","frame");String label=text(r.get("label"));if(label.isBlank()||label.length()>80)throw new IllegalArgumentException();HandScene.position(r.getAsJsonObject("position"),false);if(!SpatialFrame.parse(r.get("frame")).space().equals("virtual_scene"))throw new IllegalArgumentException();}
+            return;
+        }
+        exact(action,"kind","effector","direction","frame");
         HandGeometry.angle(text(action.get("direction")));
         if(!SpatialFrame.ROBOT.equals(SpatialFrame.parse(action.get("frame"))))throw new IllegalArgumentException("Unregistered output frame");
     }

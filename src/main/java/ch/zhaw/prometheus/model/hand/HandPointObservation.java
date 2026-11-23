@@ -33,8 +33,14 @@ public record HandPointObservation(String observationId,String source,Instant ob
                 double delta=Math.atan2(Math.sin(Math.atan2(y,x)-HandGeometry.angle(direction)),Math.cos(Math.atan2(y,x)-HandGeometry.angle(direction)));
                 if(Math.abs(Math.toDegrees(delta))>18.5)throw new IllegalArgumentException("Ambiguous direction boundary");
             } else if(direction!=null||ray!=null)throw new IllegalArgumentException("Unavailable pointing cannot claim a ray");
-            var resolution=o.getAsJsonObject("resolution");exact(resolution,"status");
-            if(!"unresolved".equals(text(resolution.get("status"))))throw new IllegalArgumentException("Target selection is not enabled");
+            var resolution=o.getAsJsonObject("resolution");String status=text(resolution.get("status"));
+            if("resolved".equals(status)){exact(resolution,"status","target");TargetRef.parse(resolution.get("target"));}
+            else if("ambiguous".equals(status)){exact(resolution,"status","candidates");var candidates=resolution.getAsJsonArray("candidates");if(candidates.size()<2||candidates.size()>4)throw new IllegalArgumentException();for(var c:candidates)TargetRef.parse(c);}
+            else if("unresolved".equals(status)){
+                if(resolution.has("reason")){exact(resolution,"status","reason");if(!Set.of("no_target","invalid_geometry","source_unknown","expired","frame_mismatch").contains(text(resolution.get("reason"))))throw new IllegalArgumentException();}
+                else exact(resolution,"status");
+            }else throw new IllegalArgumentException("Unsupported resolution");
+            if(!validity.equals("valid")&&!status.equals("unresolved"))throw new IllegalArgumentException("Invalid direction cannot select targets");
             return new HandPointObservation(id,source,Instant.parse(ts),frame,hand,side,direction,validity,ray==null?null:ray.deepCopy(),resolution.deepCopy());
         } catch(RuntimeException invalid) {throw new IllegalArgumentException("Invalid planar pointing observation",invalid);}
     }

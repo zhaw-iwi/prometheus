@@ -131,6 +131,7 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
     }
     public JsonObject json() {
         var result = JSON.toJsonTree(this).getAsJsonObject();
+        for(int i=0;i<rules.size();i++)if(rules.get(i).handPoint()!=null)result.getAsJsonArray("rules").get(i).getAsJsonObject().add("handPoint",rules.get(i).handPoint().json());
         // Keep legacy/default serialization stable; only the additive timing needs a new field.
         if (firstAction == FirstAction.IMMEDIATE) result.remove("firstAction");
         return result;

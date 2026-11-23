@@ -82,7 +82,8 @@ and regulation diagnostics remain future work.
   The plan defines unit/contract, isolated local-MySQL, reviewed Playwright visual
   and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
   HI-02 named-sign triggers, HI-03 output, HI-04 composed poses and HI-05 geometry/OK
-  ring and HI-06 directional pointing are complete; HI-07 configured targets is next. The owner authorized sequential implementation,
+  ring, HI-06 directional pointing and HI-07 configured targets are complete;
+  HI-08 dynamic people/items is next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10239,3 +10240,23 @@ deployment remain deferred.
 - No depth/target/person association, recorded moving-user accuracy, physical
   actuation or real-provider acceptance is claimed. Paid spend remains $0.
   Continue HI-07 after the authorized commit/push.
+
+## HI-07 - Configured regions and scene targets (2026-11-23)
+
+- Added opt-in scoped scene setup in ordinary Storage, up to sixteen named regions
+  or virtual destinations, explicit bounded affine registration and optimistic
+  revisions. Server recomputation preserves unique/ambiguous/unresolved projected
+  selection. Edited/deleted/expired or cross-agent references cannot redirect tasks.
+- Typed target conditions share preparation/acceptance/cue consumption. Direct and
+  task output resolve current state after inference; the rig aims its index ray
+  at a labelled virtual destination with a visible marker. Too-near destinations
+  require repair. Saved setup pauses active tasks and invalidates preparation.
+- Verified 181 Java unit cases, two isolated local-MySQL journeys, 84 JavaScript
+  and nine Python cases, two reviewed browser journeys, packaging and diff checks.
+  Evidence: `.agents/HAND_INTERACTION_RESULTS.md`. Native instructions max 15974
+  of 16000 bytes across ten states. Paid spend remains $0.
+- Corrected target-condition round-trip serialization and exposed current pointing
+  frame/sign evidence to opted-in backend negotiation without widening Generic
+  inputs. Visual review corrected the index's offset from the arm centre.
+- No dynamic people/items, room depth, physical actuation or real-provider L-05
+  acceptance is claimed. Continue HI-08 after the authorized commit/push.

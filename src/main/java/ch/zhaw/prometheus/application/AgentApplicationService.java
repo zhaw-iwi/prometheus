@@ -281,6 +281,16 @@ public class AgentApplicationService {
                 .toList());
     }
 
+    public Optional<String> handScene(UUID agentID) {return findAgent(agentID).map(a->a.handScene().toString());}
+    public Optional<String> configureHandScene(UUID agentID,String body) {
+        if(body==null||body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>32768)throw new IllegalArgumentException("Scene exceeds 32 KiB");
+        return serialized(agentID,()->persistenceTurn(()->{
+            var found=findAgent(agentID);if(found.isEmpty())return Optional.empty();
+            var agent=found.get();var scene=agent.configureHandScene(ch.zhaw.prometheus.model.hand.HandScene.parseRequest(body),java.time.Instant.now());
+            discardSpeculation(agentID,"scene_changed");persistAndPublishMonitor(agent);return Optional.of(scene.toString());
+        }));
+    }
+
     public Optional<List<Event>> getAgentEventHistory(UUID agentID) {
         // History display needs durable events/paths, not the agent's policies,
         // transitions and storage. Scoped callers retain their fresh access check.
@@ -356,6 +366,7 @@ public class AgentApplicationService {
             Event event = new Event(request.getType(), request.getActor(), request.getKind(), request.getPayload());
             if (Event.TYPE_HAND_SIGNS.equals(event.getType()) || Event.TYPE_HAND_POSE.equals(event.getType()) || Event.TYPE_HAND_POINTING.equals(event.getType())) {
                 ch.zhaw.prometheus.model.hand.HandObservationAdmission.validate(event, agent.getInteractionProfile(), agent.getEventHistory().toList(), java.time.Instant.now());
+                agent.resolveHandPointing(event,java.time.Instant.now());
             }
             PolicyRuntime acknowledgementRuntime = agentMaybe.get().runtime();
             try (var preview = speculation == null || acknowledgementRuntime.externalSpeech() != null ? null : speculation.open(agentID, agent.executionEpoch(),

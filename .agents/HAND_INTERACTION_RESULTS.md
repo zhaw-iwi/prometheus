@@ -362,7 +362,7 @@ explicit supported subset above. Paid spend/reservations remain **$0/$0**.
 
 ## HI-06 - Directional pointing in a declared frame
 
-Status: **COMPLETE** (2026-11-23), ready for the authorized commit/push.
+Status: **COMPLETE** (2026-11-23), committed and pushed as `98922ef8`.
 
 The first pointing-v1 emitter completes the initial schema with source side,
 validity and aspect-corrected ray evidence. A single pointing hand stabilizes over
@@ -413,3 +413,63 @@ Actual verification:
 Remaining limits: targets/calibration, metric depth, real-provider/native speech,
 recorded moving/occluded-user acceptance and physical execution remain unverified.
 Paid OpenAI spend/reservations remain **$0/$0**. No configured remote database use.
+
+## HI-07 - Configured regions and registered virtual destinations
+
+Status: **COMPLETE** (2026-11-23), ready for the authorized commit/push.
+
+New `hand.targets.v1` instances use the existing scoped API and ordinary Storage
+for a maximum of sixteen registered regions/virtual destinations. IDs include the
+agent namespace; optimistic revisions and exact frame identity bind all references.
+An explicit bounded affine transform maps camera regions into virtual scene units.
+The backend recomputes projected selection (one/none/multiple), never trusting a
+client's claimed target or a nearest-depth guess. Up to four candidates explain
+ambiguity. Setup changes pause active tasks and clear preparation while preserving
+accepted terms. Expiry/deletion/recreation cannot revive obsolete references.
+
+Direct and task output ground a target against current registry/camera evidence
+after inference. Model-supplied snapshots cannot override it. The backend adds a
+bounded resolved position; the renderer aims its index ray at the orange virtual
+destination and labels it. Positions are limited to x=-4..4/y=-1..5/z=-3..3 and
+at least 1.8 virtual units from the selected shoulder. This is the reference
+avatar's supported workspace, not room calibration or physical actuator evidence.
+
+Actual verification:
+
+- **181 Java unit cases** pass (`hi07-units-final.log`): the HI-06 regression set
+  plus six HandScene cases. Coverage includes scoped/revisioned references,
+  intersection ambiguity, behind-ray negatives, stale frames, malformed/bounded
+  registration, degenerate transforms, deletion/recreation/expiry, target-condition
+  round trips, mapped and unmapped output, current-snapshot replacement, virtual
+  output without a camera, and too-near destination rejection.
+- **Two local MySQL journeys** pass in `target/gptlive-acceptance-bdf3deebcb`
+  (28 Java cases including 26 units). Registered setup and accepted agreement
+  reload unchanged, cross-scope setup is denied, forged client selection is
+  recomputed, fresh preparation/cue acts once, silent direct output spends no task
+  action, and deletion produces repair. The earlier scoped journey also passes
+  in `0411945376`; the first `929f474801` exposed noncanonical serialization of
+  target conditions. Fixed canonical JSON now round-trips strictly.
+- **84 JavaScript cases** and **nine Python contract/runner cases** pass in the
+  HI-07 final logs. The rig test checks the index ray against actual destinations
+  for both hands and nonzero depth, not just plan JSON or the shoulder direction.
+  `hi07-aim.log` retains the focused aiming check. Maven package and diff checks
+  pass. Native instruction checks across ten states max **15974/16000 bytes**.
+- **Two browser journeys** pass in `bdf3deebcb`: the HI-06 directional regression
+  and configured Display -> preparation -> acceptance -> fresh cue -> explanation
+  -> silent target point; overlapping Doorway yields ambiguity, reload preserves
+  setup/history, and re-registration cannot redirect the old command. Final
+  configured/ambiguous setup, 390px controls, and target output were reviewed.
+  The earlier successful browser `892e3fa9a9` exposed a small visible index offset;
+  aiming now accounts for the index's offset from the arm centre. Initial browser
+  `3345d8838b` retained the same serialization failure as the first DB run.
+- Backend prompt tests found that current pointing frame evidence had been omitted
+  by the legacy perception-type list. Opted-in named/pointing evidence is now
+  included without widening Generic's supported task observations. This is
+  deterministic interpretation-context evidence, not a real-provider result.
+
+No new detector model is introduced in HI-07; the browser uses controlled SDK
+outputs and fake inference over real local HTTP/MySQL/SSE. HI-06's separate actual
+model evidence remains the directional baseline. Dynamic people/items, source
+association, broad moving-user robustness, room depth and native Live L-05 remain
+pending. Paid spend/reservations **$0/$0**. All owned disposable apps, schemas and
+accounts were cleaned; the configured remote database was not used.

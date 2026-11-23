@@ -70,6 +70,7 @@ public final class CoordinationMemory {
         var draft = agreement(storage, DRAFT); var evidence = evidence(storage); boolean changed = false;
         for (int i = 0; i < draft.checks().size(); i++) {
             String key = Integer.toString(i);
+            var point=draft.checks().get(i).handPoint();if(point!=null&&!point.current(storage,now))continue;
             if (evidence.has(key) || !TaskDecision.matchesObservation(draft.checks().get(i).rule(), event, now)) continue;
             var proof = new JsonObject(); proof.addProperty("observed", observed.toString());
             proof.addProperty("eventId", event.getId() == null ? event.getType() + ":" + observed : event.getId().toString());

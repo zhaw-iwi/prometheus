@@ -127,6 +127,13 @@ public final class DirectCommands {
         } else if (busy(storage)) {
             status = "CONFLICT"; words = "A task response is still pending. Would you like to resolve or pause that task before a separate demonstration?";
         } else { status = "ACCEPTED"; action = true; words = "I'll show " + label(request) + "."; }
+        JsonObject grounded=request.handAction();
+        if(action&&grounded!=null&&grounded.getAsJsonObject("action").has("target")) {
+            try {
+                var motion=new JsonObject();motion.add("handAction",grounded);var raw=new JsonObject();raw.add("motion",motion);
+                grounded=ch.zhaw.prometheus.model.hand.HandScene.ground(BehaviourPlan.fromJson(raw.toString()),storage,history,java.time.Instant.now()).getMotion().getAsJsonObject().getAsJsonObject("handAction");
+            } catch(RuntimeException invalid){action=false;status="CLARIFY";words="That target changed, expired, lacks a mapping or is too close to the digital arm. Please update its destination.";}
+        }
         var plan = new JsonObject();
         if (!silentMode && !request.silent()) plan.addProperty("speech", words);
         if (action) {
@@ -138,14 +145,14 @@ public final class DirectCommands {
                 else motion.addProperty("handSign", request.value());
                 plan.add("motion", motion);
             } else if ("HAND_POSE".equals(request.kind())||"POINT".equals(request.kind())) {
-                var motion=new JsonObject();motion.add("handAction",request.handAction().deepCopy());plan.add("motion",motion);
+                var motion=new JsonObject();motion.add("handAction",grounded.deepCopy());plan.add("motion",motion);
             }
             storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
         }
         var receipt = new JsonObject(); receipt.addProperty("sourcePosition", event.sourcePosition()); receipt.addProperty("status", status);
         receipt.addProperty("silent", request.silent()); receipt.addProperty("kind", request.kind()); receipt.addProperty("value", request.value());
         if ("HAND_SIGN".equals(request.kind()) && HandSignObservation.SIGNS.contains(request.value())) receipt.addProperty("effector", request.effector());
-        if(request.handAction()!=null)receipt.add("handAction",request.handAction().deepCopy());
+        if(grounded!=null)receipt.add("handAction",grounded.deepCopy());
         // Accepted/published plans are not execution receipts. Keep only bounded identity/result data here.
         storage.put(LAST, receipt);
         var handled = storage.containsKey(HISTORY) ? storage.get(HISTORY).getAsJsonArray().deepCopy() : new JsonArray();
@@ -177,7 +184,8 @@ public final class DirectCommands {
     }
     private static boolean allows(AgentInteractionProfile profile, Request request) {
         if(("ok_ring".equals(request.value())||request.handAction()!=null&&HandActions.requiresGeometry(request.handAction().getAsJsonObject("action")))&&!HandFeatures.geometry(profile))return false;
-        if("POINT".equals(request.kind()))return request.intent()==Intent.ACTION&&HandActions.enabled(profile)&&HandFeatures.pointing(profile);
+        if("POINT".equals(request.kind()))return request.intent()==Intent.ACTION&&HandActions.enabled(profile)&&HandFeatures.pointing(profile)
+                &&(!request.handAction().getAsJsonObject("action").has("target")||HandFeatures.targets(profile));
         if("HAND_POSE".equals(request.kind()))return request.intent()==Intent.ACTION&&HandActions.enabled(profile)&&HandFeatures.poses(profile);
         if("HAND_SIGN".equals(request.kind())&&HandFeatures.DERIVED_SIGNS.contains(request.value())&&!HandFeatures.poses(profile))return false;
         return request.intent() == Intent.ACTION && profile.getSupportedBehaviourModalities().contains(
@@ -188,7 +196,7 @@ public final class DirectCommands {
                 || Set.of("PENDING", "CHECKING", "REJECTED").contains(TaskResponse.status(storage));
     }
     private static String label(Request request) {
-        if("POINT".equals(request.kind()))return "a point "+request.handAction().getAsJsonObject("action").get("direction").getAsString().replace('_',' ')+" from my perspective";
+        if("POINT".equals(request.kind()))return request.handAction().getAsJsonObject("action").has("target")?"a point toward the registered destination":"a point "+request.handAction().getAsJsonObject("action").get("direction").getAsString().replace('_',' ')+" from my perspective";
         if("HAND_POSE".equals(request.kind()))return "the requested finger pose";
         if ("HAND_SIGN".equals(request.kind())) return "a " + (request.value().equals("scissor") ? "scissors" : request.value().replace('_', ' ')) + " sign";
         return switch (request.value()) {

@@ -204,6 +204,32 @@ class CoordinationAgentIntegrationTest {
                 .map(e->ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(e.getPayload())).filter(plan->plan.getMotion()!=null).toList();
         assertEquals(2,plans.size());assertTrue(plans.stream().allMatch(plan->plan.getSpeech()==null));
     }
+    @Test void configuredTargetsStayScopedPersistAndInvalidateWithoutRedirectingAcceptedTerms() throws Exception {
+        var scope=create();var other=create();
+        java.util.function.Consumer<JsonObject> observe=data->demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_HAND_POINTING,"camera",Event.KIND_OBSERVATION,data.toString()),OutputProfile.FULL_PLAN).orElseThrow();
+        observe.accept(fixtures.behaviour.PointingFixture.observation("initial","right",Instant.now()));
+        var request=fixtures.behaviour.HandSceneFixture.request(0);
+        assertTrue(demo.configureHandScene(other.code(),scope.id(),request.toString()).isEmpty());
+        var scene=JsonParser.parseString(demo.configureHandScene(scope.code(),scope.id(),request.toString()).orElseThrow()).getAsJsonObject();
+        assertEquals(scene,JsonParser.parseString(demo.handScene(scope.code(),scope.id()).orElseThrow()));
+        var target=scene.getAsJsonArray("targets").get(0).getAsJsonObject();var proposal=fixtures.behaviour.HandSceneFixture.agreement(target);
+        turn(scope,"PROPOSE",proposal.toString(),"When I point at the registered display, explain it once");assertEquals(proposal,memory(scope).get(CoordinationMemory.DRAFT));
+        var fabricated=fixtures.behaviour.PointingFixture.observation("false-selection","left",Instant.now());
+        var claim=new JsonObject();claim.addProperty("status","resolved");claim.add("target",ch.zhaw.prometheus.model.hand.HandScene.ref(target).json());fabricated.add("resolution",claim);observe.accept(fabricated);
+        assertEquals("PREPARATION",CoordinationMemory.stage(memory(scope)),"Client-supplied selection must be recomputed");
+        observe.accept(fixtures.behaviour.PointingFixture.observation("prepare-target","right",Instant.now()));assertEquals("READY",CoordinationMemory.stage(memory(scope)));turn(scope,"START","null","Start now");
+        long wait=java.time.Duration.between(Instant.now(),Instant.parse(memory(scope).get(TaskMemory.AFTER).getAsString())).toMillis();assertTrue(wait<5000);if(wait>=0)Thread.sleep(wait+25);
+        when(gateway.infer(any())).thenReturn("{\"speech\":\"The registered display shows the current slide.\"}");observe.accept(fixtures.behaviour.PointingFixture.observation("cue-target","right",Instant.now()));
+        assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());assertEquals(proposal,memory(scope).get(CoordinationMemory.AGREEMENT));
+        var command=new JsonObject();command.addProperty("intent","ACTION");command.addProperty("kind","POINT");command.addProperty("silent",true);command.add("value",fixtures.behaviour.HandSceneFixture.action(target));
+        var direct=new JsonObject();direct.addProperty("operation","KEEP");direct.add("agreement",JsonNull.INSTANCE);direct.add("reply",new JsonObject());direct.add("command",command);when(gateway.infer(any())).thenReturn(direct.toString());
+        var say=new EventRequest(Event.TYPE_USER_UTTERANCE,"user",Event.KIND_OBSERVATION,"Point at the registered display silently");demo.acknowledge(scope.code(),scope.id(),say,OutputProfile.FULL_PLAN).orElseThrow();
+        var receipt=memory(scope).get("command.lastResult").getAsJsonObject();assertEquals("ACCEPTED",receipt.get("status").getAsString());assertTrue(receipt.getAsJsonObject("handAction").getAsJsonObject("action").has("resolved"));
+        var deleted=fixtures.behaviour.HandSceneFixture.request(1);deleted.add("targets",new JsonArray());demo.configureHandScene(scope.code(),scope.id(),deleted.toString()).orElseThrow();
+        demo.acknowledge(scope.code(),scope.id(),say,OutputProfile.FULL_PLAN).orElseThrow();assertEquals("CLARIFY",memory(scope).get("command.lastResult").getAsJsonObject().get("status").getAsString());
+        assertEquals(proposal,memory(scope).get(CoordinationMemory.AGREEMENT));assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
+        assertThrows(IllegalArgumentException.class,()->demo.configureHandScene(scope.code(),scope.id(),request.toString()));
+    }
     @Test void namedIngressRejectsMalformedAndUndeclaredInputBeforePersistingHistory() {
         var scope = create(); int initial = agents.findById(scope.id()).orElseThrow().getEventHistory().toList().size();
         assertThrows(IllegalArgumentException.class, () -> demo.acknowledge(scope.code(), scope.id(),

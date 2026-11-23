@@ -160,7 +160,9 @@ export function createRobot() {
       if(sign) {
         const t=sample.transition??1;
         if(p.action?.kind==='point') {
-          const d=robotDirection(p.action.direction),target=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,-1,0),new T.Vector3(d.x,d.y,d.z));
+          const destination=p.action.resolved?.position;
+          const d=destination?new T.Vector3(destination.x,destination.y,destination.z).sub(a.shoulder.position).normalize():robotDirection(p.action.direction);
+          const target=new T.Quaternion().setFromUnitVectors(new T.Vector3(0,-1,0),new T.Vector3(d.x,d.y,d.z));
           a.shoulder.quaternion.slerp(target,t);a.elbow.rotation.x=-.18*(1-t);a.wrist.rotation.set(0,0,0);
         } else {
         a.shoulder.rotation.set(-0.08-0.07*t,0,a.side*(0.12+0.73*t));a.elbow.rotation.x=-0.18-1.92*t;
@@ -214,6 +216,15 @@ export function createRobot() {
         const opposed=new T.Quaternion().setFromUnitVectors(current.normalize(),target.normalize()).multiply(a.thumb.quaternion);
         a.thumb.quaternion.slerp(opposed,blend);
       }
+      if(sign==='point'&&p.action?.resolved) {
+        // Aim the index ray itself, accounting for its offset from the arm centre.
+        root.updateMatrixWorld(true);const side=a.side===-1?'right':'left',position=p.action.resolved.position;
+        const destination=a.shoulder.parent.worldToLocal(new T.Vector3(position.x,position.y,position.z)).sub(a.shoulder.position);
+        const base=a.shoulder.worldToLocal(root.getObjectByName(side+'.index').getWorldPosition(new T.Vector3()));
+        const localRay=new T.Vector3(base.x,-Math.sqrt(Math.max(1e-8,destination.lengthSq()-base.x*base.x-base.z*base.z)),base.z);
+        const target=new T.Quaternion().setFromUnitVectors(localRay.normalize(),destination.normalize());
+        a.shoulder.quaternion.setFromEuler(new T.Euler(-.08,0,a.side*.12)).slerp(target,blend);
+      }
     }
   }
   apply({pose:null,gesture:0,ambient:0});
@@ -232,6 +243,7 @@ export class RobotScene {
     const key=new T.DirectionalLight(0xffe8cc,3.3);key.position.set(-3,5,5);this.scene.add(key);
     const rim=new T.DirectionalLight(0xa4dbed,2);rim.position.set(4,2,-2);this.scene.add(rim);
     this.robot=createRobot();this.scene.add(this.robot.root);
+    this.destination=new T.Mesh(new T.SphereGeometry(.08,12,8),new T.MeshBasicMaterial({color:0xdb6b22}));this.destination.visible=false;this.scene.add(this.destination);
     this.renderer.setClearColor(0,0);
   }
   resize(width,height) {
@@ -242,7 +254,9 @@ export class RobotScene {
     this.camera.updateProjectionMatrix();
   }
   draw(sample,time) {
-    const zoom=sample.pose?.action?.kind==='point'?.56:1;
+    const destination=sample.pose?.action?.resolved?.position;
+    this.destination.visible=!!destination;if(destination)this.destination.position.set(destination.x,destination.y,destination.z);
+    const zoom=destination?Math.min(.56,this.camera.right/(Math.abs(destination.x)+.4),this.camera.top/(Math.abs(destination.y-1.1)+.4)):sample.pose?.action?.kind==='point'?.56:1;
     if(this.camera.zoom!==zoom){this.camera.zoom=zoom;this.camera.updateProjectionMatrix();}
     this.robot.apply(sample,time);this.renderer.render(this.scene,this.camera);
   }

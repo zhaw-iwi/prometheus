@@ -163,6 +163,15 @@ public class ScopedDemoController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    @GetMapping(value="/demo/agents/{agentId}/hand-scene",produces=MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> handScene(@PathVariable UUID agentId,@RequestHeader(value=ACCESS_CODE_HEADER,required=false) String code) {
+        return demoService.handScene(code,agentId).map(ResponseEntity::ok).orElseGet(()->ResponseEntity.notFound().build());
+    }
+    @PostMapping(value="/demo/agents/{agentId}/hand-scene",consumes=MediaType.APPLICATION_JSON_VALUE,produces=MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> configureHandScene(@PathVariable UUID agentId,@RequestHeader(value=ACCESS_CODE_HEADER,required=false) String code,@RequestBody String body) {
+        return demoService.configureHandScene(code,agentId,body).map(ResponseEntity::ok).orElseGet(()->ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/demo/agents/{agentId}/start")
     public ResponseEntity<ResponseView> start(
             @RequestHeader(value = ACCESS_CODE_HEADER, required = false) String headerAccessCode,

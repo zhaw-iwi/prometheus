@@ -101,7 +101,11 @@ ring as a distinct tenth sign. The renderer exposes its loop and input details
 show unknown geometry without implying contact/depth. HI-06 adds opt-in
 `hand.pointing.v1`: stable eight-sector camera directions, exact frame-bound cues,
 and robot-relative arm/index output. Preview mirroring changes display only;
-camera restarts revise the frame. Region/person/item resolution remains pending.
+camera restarts revise the frame. HI-07 adds `hand.targets.v1`: scoped configured
+regions/virtual targets in Storage, revisioned affine registration, server ray
+selection and dispatch-time target grounding. Edits/deletion/expiry invalidate
+references. The reference rig aims the index ray at the visible virtual marker;
+dynamic people/items remain pending.
 Actual progress, calibrated
 detector limits and verification:
 `.agents/HAND_INTERACTION_RESULTS.md`.

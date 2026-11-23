@@ -155,3 +155,43 @@ publishes unresolved target selection. New instances explicitly opt in to
 model direction corpus with `node tests/hand-interaction/detector-smoke.mjs
 --manifest=tests/hand-interaction/pointing-corpus.json`. Its translated/rotated
 photo case exercises pixel motion, not recorded-user tracking accuracy.
+
+## Configured scene registration (HI-07)
+
+New `hand.targets.v1` instances expose scoped GET/POST
+`/demo/agents/{agentId}/hand-scene`, authenticated with
+`X-Prometheus-Access-Code`. POST validates `$defs.sceneConfiguration` and semantic
+bounds before one serialized Storage write. The request replaces the configuration:
+
+```json
+{"schemaVersion":1,"expectedRevision":0,
+ "cameraFrame":{"id":"current-camera","revision":2,"space":"camera_image","mirrored":false},
+ "transform":[8,0,-4,0,-3,3],
+ "targets":[{"key":"display","label":"Display","type":"region",
+   "position":{"x":0.9,"y":0.5,"z":0},"extent":{"x":0.1,"y":0.3,"z":0},"expiresAt":null}]}
+```
+
+Copy an actually fresh observed frame; the illustrative ID is not registrable.
+Transform `[a,b,c,d,e,f]` maps camera `(x,y)` to scene
+`(a*x+b*y+c,d*x+e*y+f,0)`. Coefficients are finite -10..10, determinant magnitude
+at least .01, all image corners inside x=-4..4/y=-1..5. A null transform permits
+region cues but no region output. Virtual entries use scene positions directly;
+no camera is needed for virtual-only setup. Region extents are full dimensions,
+strictly positive in x/y, z=0, entirely inside the image. Virtual z is -3..3.
+Targets optionally expire within the next day. Maximum sixteen entries/32 KiB.
+
+Responses assign agent-namespaced IDs, monotonic revisions, provenance, observed
+and expiry times, and frame identity. All references become obsolete on any
+configuration replacement. Stable IDs do not imply stable meaning after edits.
+Target conditions are exactly `{target:{id,revision,frame},handedness}`.
+Target commands are `{kind:"point",effector:"left_hand",target:{id,revision,frame}}`.
+The backend adds `resolved:{label,position,frame}` from current scoped state,
+ignoring any supplied snapshot. Missing/expired mappings never dispatch. The
+reference arm requires a target at least 1.8 virtual units from its shoulder.
+
+Incoming selection is always recomputed; up to four candidate references explain
+ambiguity without asserting an exhaustive list. Pointing-v1's unresolved `reason`
+is optional for the already published HI-06 emitter, and validated when present.
+The same-capture, source freshness, preparation/acceptance and action-budget gates
+remain in force. Native instructions expose concise capability semantics; full
+registered scene data is supplied only to backend task/command interpretation.

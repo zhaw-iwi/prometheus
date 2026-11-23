@@ -45,6 +45,7 @@ public class TaskDecision extends Decision {
         var result = spec.rules().stream().sorted(Comparator.comparing(TaskSpec.Rule::effect).reversed())
                 .filter(rule -> rule.effect() != TaskSpec.Effect.WAIT || !"WAITING".equals(TaskMemory.phase(storage)))
                 .filter(rule -> rule.eventType().equals(latest.getType()))
+                .filter(rule -> rule.handPoint()==null||rule.handPoint().current(storage,now))
                 .filter(rule -> stable(rule, events.subList(from, events.size()), after, now, reason)).findFirst();
         ch.zhaw.prometheus.logging.ActivityTrace.cue(result.isPresent() ? "cue_matched" : reason[0], latest.getId(), latest.getType());
         return result;

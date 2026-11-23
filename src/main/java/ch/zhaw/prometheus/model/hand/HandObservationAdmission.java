@@ -17,7 +17,9 @@ public final class HandObservationAdmission {
             throw new IllegalArgumentException("This instance does not declare this hand input");
         if(Event.TYPE_HAND_POINTING.equals(input.getType())) {
             if(!HandFeatures.pointing(profile))throw new IllegalArgumentException("This instance does not declare pointing");
-            rate(HandPointObservation.parse(input.getPayload()).identity(),history,receivedAt);
+            var point=HandPointObservation.parse(input.getPayload());
+            if(!HandFeatures.targets(profile)&&!"unresolved".equals(point.resolution().get("status").getAsString()))throw new IllegalArgumentException("Targets not declared");
+            rate(point.identity(),history,receivedAt);
         } else if(Event.TYPE_HAND_SIGNS.equals(input.getType())) {
             var parsed=HandSignObservation.parse(input.getPayload());
             if(parsed.hands().stream().anyMatch(h -> h.sign()!=null&&!HandFeatures.signAllowed(h.sign(),HandFeatures.poses(profile),HandFeatures.geometry(profile))))

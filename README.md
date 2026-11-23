@@ -343,7 +343,7 @@ New Coordination instances accept per-hand communication signs through
 and `index_up` (attention), plus geometric `shaka` (hang loose), `horns` and
 `middle_finger` and `ok_ring` (diver's OK). They declare `motion.handAction` for
 immediate and agreed task output of all ten signs, explicit finger poses and planar
-pointing. Target pointing and sequences follow the [roadmap](.agents/PLAN_HAND_INTERACTION.md). Legacy RPS input/output keeps
+pointing at directions and registered destinations. Dynamic targets and sequences follow the [roadmap](.agents/PLAN_HAND_INTERACTION.md). Legacy RPS input/output keeps
 `rock`/`scissor`/`paper`.
 
 For example, **"show thumbs up silently"** publishes one action without creating
@@ -468,13 +468,45 @@ revising the agreement. Older-frame cues cannot match.
 **"Point left silently"** uses the robot's own left, appearing view-right in the
 front view, with its index extended and arm aligned. A direct `POINT` command's
 value is the action below; it has no separate top-level effector. Eight directions
-and either single hand are supported; forward/back and person/item targets await
-calibration/target milestones. Task and direct output share validation and remain
+and either single hand are supported; forward/back and dynamic person/item targets
+await the later target milestones. Task and direct output share validation and remain
 silent when requested. Saved profiles require a new instance to gain pointing.
 
 ```json
 {"motion":{"handAction":{"schemaVersion":1,"action":{"kind":"point","effector":"left_hand","direction":"left","frame":{"id":"valerian.robot","revision":1,"space":"robot_local","mirrored":false}}}}}
 ```
+
+New Coordination instances also declare `hand.targets.v1`. Open **Pointing
+destinations** in Sensed signals, with a current camera frame delivered. Add named
+camera regions using normalized unmirrored centres and full width/height, or
+virtual destinations using scene x-right/y-up/z-toward-viewer units. Up to sixteen
+destinations can be retained or expire within a day. Labels identify setup entries;
+they do not establish identity or room coordinates.
+
+Explicitly enable the camera-plane mapping and assign image edges to digital
+scene positions before commanding output toward a camera region. The setup UI
+uses an axis-aligned affine mapping; the API supports a bounded nondegenerate 2D
+affine transform. This is operator registration, not inferred metric calibration.
+**"When I point at the registered display, explain it"** binds its exact scoped
+ID, target revision and camera frame. The server intersects the projected ray
+with current regions: one hit resolves, multiple hits remain ambiguous, and none
+remains unresolved. No nearest-target or depth guess breaks ties.
+
+**"Point at the registered display silently"** resolves the same destination into
+the scene immediately before publishing output. The avatar aligns its index ray
+with the orange destination; the caption names it. The reference rig supports
+positions x=-4..4, y=-1..5, z=-3..3 and requires at least 1.8 virtual units from the
+selected shoulder. Unsupported, missing, stale or expired destinations request
+repair. History is a static snapshot of the original destination, not a new action.
+
+Saving setup increments the registry revision, pauses active tasks and clears
+pending preparation evidence while preserving the agreed terms. Revise terms
+that refer to changed targets. Deleting/recreating a name cannot revive an old
+reference; another agent's reference cannot resolve here. Camera restarts require
+new region registration. Older saved instances retain their existing capabilities.
+The scoped `GET`/`POST /demo/agents/{id}/hand-scene` endpoint uses the usual access
+header; writes include `expectedRevision` and are bounded to 32 KiB. See
+[the scene contract](tests/hand-interaction/README.md) for exact shapes.
 
 For **"extend your left index and little finger, keep the others bent"**,
 the direct-command interpreter publishes a complete pose, independently of tasks:

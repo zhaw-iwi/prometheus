@@ -93,6 +93,7 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
     }
     public JsonObject json() {
         var value = JSON.toJsonTree(this).getAsJsonObject();
+        for(int i=0;i<checks.size();i++)if(checks.get(i).handPoint()!=null)value.getAsJsonArray("checks").get(i).getAsJsonObject().add("handPoint",checks.get(i).handPoint().json());
         value.add("reactions", reactions == null ? JsonNull.INSTANCE : reactions.json());
         return value;
     }

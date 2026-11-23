@@ -64,6 +64,7 @@ public final class HandActions {
         var action=plan.getMotion().getAsJsonObject().getAsJsonObject("handAction").getAsJsonObject("action");
         if("point".equals(text(action,"kind"))) {
             if(!HandFeatures.pointing(profile))throw new IllegalArgumentException("Pointing output is not declared");
+            if(action.has("target")&&!HandFeatures.targets(profile))throw new IllegalArgumentException("Target output is not declared");
             return;
         }
         if("pose".equals(text(action,"kind")) ? !HandFeatures.poses(profile) : !HandFeatures.signAllowed(text(action,"sign"),HandFeatures.poses(profile),HandFeatures.geometry(profile)))

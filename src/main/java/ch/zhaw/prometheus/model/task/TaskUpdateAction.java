@@ -80,6 +80,7 @@ public class TaskUpdateAction extends Action {
             String prompt = getPolicy().describe() + "\n" + TaskMemory.description(storage) + "\n" + instruction
                     + inferenceGuidance(runtime)
                     + ch.zhaw.prometheus.model.hand.HandActions.guidance(runtime.promptMessageAssembler().capabilities())
+                    + ch.zhaw.prometheus.model.hand.HandScene.guidance(storage)
                     + "\nReturn only the canonical JSON behaviour plan (speech, nonVerbal, declared motion). No task configuration fields."
                     + CompactBehaviourPlan.instructions(false);
             ch.zhaw.prometheus.model.behaviour.BehaviourPlan plan;
@@ -90,6 +91,7 @@ public class TaskUpdateAction extends Action {
                 if (cancelled(storage, runtime)) return;
                 generated = true;
                 plan = TaskMemory.plan(JsonParser.parseString(raw), runtime.promptMessageAssembler().capabilities());
+                plan=ch.zhaw.prometheus.model.hand.HandScene.ground(plan,storage,events,Instant.now());
             } catch (RuntimeException failure) {
                 if (cancelled(storage, runtime)) return;
                 ch.zhaw.prometheus.logging.ActivityTrace.failed(generated ? "task_behaviour_invalid" : "task_provider_failed");

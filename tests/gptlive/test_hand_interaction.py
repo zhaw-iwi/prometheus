@@ -75,6 +75,20 @@ class HandInteractionContractTest(unittest.TestCase):
         invalid['frame']['mirrored'] = False; invalid['direction'] = 'forward'
         with self.assertRaises(ValidationError): self.validate('pointObservation', invalid)
 
+    def test_registered_target_commands_and_runtime_resolution_are_bounded(self):
+        ref = self.examples['pointObservation']['resolution']['target']
+        action = {'kind': 'point', 'effector': 'left_hand', 'target': ref}
+        self.validate('motion', {'schemaVersion': 1, 'action': action})
+        action['resolved'] = {'label': 'Display', 'position': {'x': 3.2, 'y': 1.5, 'z': 0}, 'frame': ref['frame']}
+        self.validate('motion', {'schemaVersion': 1, 'action': action})
+        action['resolved']['execute'] = 'untrusted'
+        with self.assertRaises(ValidationError): self.validate('motion', {'schemaVersion': 1, 'action': action})
+        self.validate('pointObservation', {**self.examples['pointObservation'], 'resolution': {'status': 'unresolved'}})
+        config = {'schemaVersion': 1, 'expectedRevision': 0, 'cameraFrame': None, 'transform': None, 'targets': []}
+        self.validate('sceneConfiguration', config)
+        for key, value in [('expectedRevision', -1), ('transform', [0]*5), ('targets', [{}]*17)]:
+            with self.assertRaises(ValidationError): self.validate('sceneConfiguration', {**config, key: value})
+
     def test_sequences_bound_order_length_dwell_and_output_duration(self):
         valid = self.examples['inputSequence']
         for key, value in [('steps', []), ('steps', valid['steps'] * 2), ('dwellMs', 0),

@@ -68,10 +68,11 @@ public final class AgentCapabilityDescription {
     }
 
     private static String meaning(String key, AgentInteractionProfile profile) {
+        if(ch.zhaw.prometheus.model.hand.HandFeatures.targets(profile)&&key.equals("obs.hand.pointing"))return "Camera-plane direction and registered region selection; no room depth or intent.";
         if(ch.zhaw.prometheus.model.hand.HandFeatures.geometry(profile)) {
             if(key.equals("obs.hand.pose"))return "V2 bends (0 straight,1 bent,null unknown), projected tip gaps, spreads and axes. Estimated sides; inferred joints do not prove visibility/contact.";
             if(key.equals("obs.hand.signs"))return "Fist, peace, halt, thumbs up/down, index up, shaka, horns, middle finger, OK ring. Geometric shapes have no calibrated score; no consent.";
-            if(key.equals("motion.handAction"))return "Ten signs and per-finger poses; bounded ring, index/middle spread and index orientation. Digital output only." + (ch.zhaw.prometheus.model.hand.HandFeatures.pointing(profile)?" Eight robot-relative pointing directions.":"");
+            if(key.equals("motion.handAction"))return "Ten signs and per-finger poses; bounded ring, index/middle spread and index orientation. Digital output only." + (ch.zhaw.prometheus.model.hand.HandFeatures.pointing(profile)?" Eight robot-relative directions"+(ch.zhaw.prometheus.model.hand.HandFeatures.targets(profile)?" or registered targets.":"."):"");
         }
         if (ch.zhaw.prometheus.model.hand.HandFeatures.poses(profile)) {
             if (key.equals("obs.hand.pose")) return "V2 one/two-hand bends: 0 straight, 1 bent, null unknown. States: straight <0.4, bent >0.55, else neutral. Hidden joints may be inferred; sides estimated, not identity.";

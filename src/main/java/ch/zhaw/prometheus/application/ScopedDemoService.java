@@ -206,6 +206,9 @@ public class ScopedDemoService {
         return this.agentService.getAgentStorage(agentId);
     }
 
+    public Optional<String> handScene(String code,UUID id){return hasVisibleAgent(code,id)?agentService.handScene(id):Optional.empty();}
+    public Optional<String> configureHandScene(String code,UUID id,String body){return hasVisibleAgent(code,id)?agentService.configureHandScene(id,body):Optional.empty();}
+
     public Optional<ResponseView> start(String accessCodeValue, UUID agentId) {
         if (!this.hasVisibleAgent(accessCodeValue, agentId)) {
             return Optional.empty();

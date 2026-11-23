@@ -92,6 +92,8 @@ public class LiveSmokeConfiguration {
                         {"motion":{"handAction":{"schemaVersion":1,"action":{"kind":"point","effector":"right_hand","direction":"right",
                           "frame":{"id":"valerian.robot","revision":1,"space":"robot_local","mirrored":false}}}}}
                         """;
+                if (provider.coordinationProposal != null && request.purpose() == InferencePurpose.BEHAVIOUR
+                        && prompt.contains("Explain the display in one sentence")) return "{\"speech\":\"The registered display shows the current slide.\"}";
                 if (prompt.contains("Produce the current embodiment")) return """
                         {"nonVerbal":{"gesture":"ACKNOWLEDGE","facialExpression":{"type":"attentive","intensity":0.4},
                         "gaze":{"direction":"toward_user","focus":"person"},"motion":{"stillness":0.8,"energy":0.2}},

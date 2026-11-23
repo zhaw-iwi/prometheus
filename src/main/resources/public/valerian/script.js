@@ -289,8 +289,15 @@ window.addEventListener("load", init);
 window.addEventListener("beforeunload", cleanupAll);
 window.addEventListener("pagehide", cleanupAll);
 
+let handSceneUi=null;
 async function init() {
   globalThis.ValerianEmbodiment?.init();
+  handSceneUi=(await import('./hand/scene.js')).mountScene(document.getElementById('hand_scene_setup'),async request=>{
+    const connection=captureConnection();const response=await scopedFetch(demoAgentPath('/hand-scene'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(request)});
+    if(!currentConnection(connection))throw new Error('Connection changed; reload this scene.');
+    if(!response.ok)throw new Error('Save rejected. Check the latest camera frame, revision, region bounds and mapping.');
+    const result=await response.json();await loadStorage();return result;
+  });
   camera.video = document.getElementById("camera_video");
   document.getElementById("camera_mirror_preview").addEventListener("change",event=>{
     camera.previewMirrored=event.target.checked;camera.video.style.transform=camera.previewMirrored?"scaleX(-1)":"none";
@@ -1207,6 +1214,7 @@ async function loadAgentInfo() {
     const data = await response.json();
     if (!currentConnection(connection)) return false;
     state.agentInfo = data;
+    updateHandScene();
     document.getElementById("agent_info_name").textContent = instanceLabel({...data, id:state.agentId}) || "-";
     document.getElementById("agent_info_description").textContent = prometheusFacingText(
       data.description,
@@ -1748,11 +1756,13 @@ function setStorageEntries(entries) {
   }
   state.storageSnapshot = snapshot;
   state.storage = nextEntries;
+  updateHandScene();
   renderHandConfidencePolicy();
   renderStorageList();
 }
 
 function resetStorageList() {
+  handSceneUi?.clear();
   state.storage = [];
   state.taskStatus = null;
   globalThis.PrometheusActivity?.taskStatus(null);
@@ -1760,6 +1770,12 @@ function resetStorageList() {
   state.storageSnapshot = null;
   renderHandConfidencePolicy();
   renderStorageList();
+}
+
+function updateHandScene(){
+  const value=state.storage?.find(e=>e.key==='hand.scene.v1')?.value;
+  let scene={};try{scene=value?JSON.parse(value):{};}catch(_){}
+  handSceneUi?.update(scene,state.agentInfo?.interactionProfile?.profileTags?.includes('hand.targets.v1')===true);
 }
 
 function renderHandConfidencePolicy() {
@@ -2733,7 +2749,7 @@ function renderMotion(motion, options = {}) {
   setBehaviourChannelActive("motion", true);
   if (motion.handAction) {
     const action=motion.handAction.action;
-    setText("motion_value", action?.kind==='sign' ? `${asText(action.sign).replaceAll('_',' ')} / ${asText(action.effector).replaceAll('_',' ')}` : action?.kind==='pose' ? `Custom finger pose: ${action.hands.map(h=>h.side).join(' / ')}` : action?.kind==='point' ? `Point ${action.direction.replaceAll('_',' ')} from the robot's perspective` : 'Unsupported hand action');
+    setText("motion_value", action?.kind==='sign' ? `${asText(action.sign).replaceAll('_',' ')} / ${asText(action.effector).replaceAll('_',' ')}` : action?.kind==='pose' ? `Custom finger pose: ${action.hands.map(h=>h.side).join(' / ')}` : action?.kind==='point' ? action.resolved ? `Point toward ${action.resolved.label}` : `Point ${action.direction.replaceAll('_',' ')} from the robot's perspective` : 'Unsupported hand action');
     return;
   }
   const sign = normalizeSign(motion.handSign);
@@ -5140,6 +5156,7 @@ async function maybeEmitNamedHands(named, observed) {
 }
 
 function renderPointingReport(payload) {
+  handSceneUi?.point(payload);
   const panel=document.getElementById("hand_point_report");if(!panel)return;panel.hidden=false;
   panel.dataset.frameId=payload.frame.id;panel.dataset.frameRevision=String(payload.frame.revision);
   setText("hand_point_detection",payload.validity==='valid'?`${payload.handedness} hand: ${payload.direction.replaceAll('_',' ')} in the camera plane`:`Direction unavailable: ${payload.validity}`);

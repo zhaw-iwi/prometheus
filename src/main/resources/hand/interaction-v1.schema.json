@@ -1035,6 +1035,28 @@
             },
             "target": {
               "$ref": "#/$defs/targetRef"
+            },
+            "resolved": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "position": {
+                  "$ref": "#/$defs/point"
+                },
+                "frame": {
+                  "$ref": "#/$defs/frame"
+                }
+              },
+              "required": [
+                "label",
+                "position",
+                "frame"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
@@ -1281,8 +1303,7 @@
             }
           },
           "required": [
-            "status",
-            "reason"
+            "status"
           ],
           "additionalProperties": false
         }
@@ -1866,6 +1887,103 @@
         "tipDistances",
         "spreads",
         "axes"
+      ],
+      "additionalProperties": false
+    },
+    "sceneConfiguration": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "expectedRevision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483646
+        },
+        "cameraFrame": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/frame"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "minimum": -10,
+                "maximum": 10
+              },
+              "minItems": 6,
+              "maxItems": 6
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]{0,31}$"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "type": {
+                "enum": [
+                  "region",
+                  "virtual"
+                ]
+              },
+              "position": {
+                "$ref": "#/$defs/point"
+              },
+              "extent": {
+                "$ref": "#/$defs/extent"
+              },
+              "expiresAt": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/time"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "key",
+              "label",
+              "type",
+              "position",
+              "extent",
+              "expiresAt"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 16
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "expectedRevision",
+        "cameraFrame",
+        "transform",
+        "targets"
       ],
       "additionalProperties": false
     }

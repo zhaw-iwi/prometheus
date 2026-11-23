@@ -26,6 +26,16 @@ export function estimatePointing(result,hands,aspectRatio=1) {
 }
 export function validatePointAction(a) {
   const exact=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).length===keys.length&&keys.every(k=>Object.hasOwn(o,k));
+  if(a?.kind==='point'&&a.target){
+    const frame=f=>exact(f,['id','revision','space','mirrored'])&&typeof f.id==='string'&&/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,79}$/.test(f.id)&&Number.isInteger(f.revision)&&f.revision>0&&f.mirrored===false;
+    const p=a.resolved?.position;
+    if(!exact(a,['kind','effector','target','resolved'])||!['left_hand','right_hand'].includes(a.effector)||!exact(a.target,['id','revision','frame'])
+      ||typeof a.target.id!=='string'||!Number.isInteger(a.target.revision)||a.target.revision<1||!frame(a.target.frame)||!['camera_image','virtual_scene'].includes(a.target.frame.space)
+      ||!exact(a.resolved,['label','position','frame'])||typeof a.resolved.label!=='string'||a.resolved.label.length>80||!frame(a.resolved.frame)||a.resolved.frame.space!=='virtual_scene'
+      ||!exact(p,['x','y','z'])||![p.x,p.y,p.z].every(Number.isFinite)||p.x< -4||p.x>4||p.y< -1||p.y>5||Math.abs(p.z)>3)throw new Error('Unresolved or invalid target');
+    if(Math.hypot(p.x-(a.effector==='left_hand'?.58:-.58),p.y-1.29,p.z)<1.8)throw new Error('Destination is inside the pointing arm workspace');
+    return;
+  }
   if(!exact(a,['kind','effector','direction','frame'])||a.kind!=='point'||!['left_hand','right_hand'].includes(a.effector)
       ||!planeDirections.includes(a.direction)||!exact(a.frame,Object.keys(robotFrame))||!Object.keys(robotFrame).every(k=>a.frame[k]===robotFrame[k]))
     throw new Error('Unsupported pointing direction or frame');

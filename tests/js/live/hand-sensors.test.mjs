@@ -18,6 +18,7 @@ function fixture({ poseSupported = false, signSupported = true, namedSupported =
     return elements.get(id);
   };
   const context = vm.createContext({
+    handSceneUi:null,
     Date: class extends Date {
       constructor(...args) { super(...(args.length ? args : [now])); }
       static now() { return now; }

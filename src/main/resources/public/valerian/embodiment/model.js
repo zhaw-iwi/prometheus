@@ -59,6 +59,7 @@ export function normalizePlan(plan, modalities = null, profileTags = null) {
       if(profileTags!==null&&!profileTags.includes('hand.poses.v2')&&(parsed.kind==='pose'||derivedSigns.includes(parsed.sign)))throw new Error('Custom hand output is unavailable for this instance');
       if(profileTags!==null&&(!profileTags.includes('hand.geometry.v1')||!profileTags.includes('hand.poses.v2'))&&(parsed.sign==='ok_ring'||parsed.hands?.some(h=>h.relations?.length)))throw new Error('Relational hand output is unavailable for this instance');
       if(parsed.kind==='point'&&profileTags!==null&&!profileTags.includes('hand.pointing.v1'))throw new Error('Pointing is unavailable for this instance');
+      if(parsed.kind==='point'&&parsed.target&&profileTags!==null&&!profileTags.includes('hand.targets.v1'))throw new Error('Target output is unavailable for this instance');
       action=parsed;sign=action.kind==='point'?'point':action.kind==='pose'?'custom_pose':action.sign;
     } catch(error) {warnings.push(error.message);}
   }
