@@ -82,6 +82,17 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Agents synchronization (2026-11-23): local agents now contains origin/agents
+  through `c1e885f8` (TWC/GLF promotion, robot embodiment, CORS and Heroku v171
+  records), main `025697df` and swiss-robo-day `55a3fc33`. Shared framework
+  conflicts reuse main's resolutions; the Valerian/Gala UI delta is unchanged and
+  the contextual acknowledgement hooks in `LiveTranscriptIngressService` and
+  `ExternalVoicePolicy` are identical to main. Verification passed 246 JavaScript
+  tests and 1,463 Java cases (two opt-in capacity skips) against a disposable local
+  MySQL schema, since removed. Not yet pushed, because pushing agents deploys to
+  Heroku. Browser/Playwright, real-provider and physical camera/robot trials were
+  not run. Restart the backend and hard-refresh cockpits after deployment.
+
 - Main synchronization and Live acknowledgement hooks (2026-11-23): merged remote
   main's GLF-01..05, TWC-01..05, robot embodiment and course assets with local hand
   detection, client confidence control and acknowledgement-aware multi-segment
