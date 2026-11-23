@@ -12,6 +12,8 @@ function caption() {
   summary.textContent=p ? [p.gesture!=='NONE'?p.gesture.toLowerCase().replaceAll('_',' '):'',p.faceLabel,
     p.gazeLabel?`gaze ${p.gazeLabel.replaceAll('_',' ')}`:'',p.sign?`${p.hand.replaceAll('_',' ')}: ${p.sign.replaceAll('_',' ')}`:'',
     ...p.warnings].filter(Boolean).join(' · ')||'No nonverbal action in this plan.' : 'Connect an agent to see its behaviour.';
+  if(p?.action?.kind==='pose')summary.textContent=p.action.hands.map(h=>`${h.side} hand: `+Object.entries(h.fingers)
+    .map(([finger,bend])=>`${finger} ${bend<.4?'stretched':bend>.55?'bent':'neutral'}`).join(', ')).join(' / ');
   display.replaceChildren();display.hidden=p?.display==null;
   if(p?.display!=null) {
     const label=document.createElement('div');label.className='embodiment-display-label';label.textContent='Robot display';

@@ -1,4 +1,5 @@
 import * as T from './vendor/three.module.js';
+import {fingerPatterns} from '../hand/patterns.js';
 
 // Width, opening and corner lift share a gently friendly resting shape.
 // Expression intensity interpolates from this baseline, including surprise.
@@ -149,6 +150,7 @@ export function createRobot() {
     for(const a of arms) {
       a.shoulder.rotation.set(-0.08,0,a.side*0.12);a.elbow.rotation.set(-0.18,0,0);a.wrist.rotation.set(0,0,0);
       const sign=p?.sign && (p.hand==='both_hands'||p.hand===(a.side===-1?'right_hand':'left_hand'))?p.sign:'';
+      const bends=sign&&p.action ? p.action.kind==='pose' ? p.action.hands.find(h=>h.side===(a.side===-1?'right':'left'))?.fingers : fingerPatterns[sign] : null;
       if(sign) {
         const t=sample.transition??1;
         a.shoulder.rotation.set(-0.08-0.07*t,0,a.side*(0.12+0.73*t));a.elbow.rotation.x=-0.18-1.92*t;
@@ -177,8 +179,7 @@ export function createRobot() {
         const folded=sign==='rock'||sign==='scissor'&&i>1;
         // Index is nearest the thumb, which is mirrored with the hand.
         const index=a.side===-1?3-i:i;
-        const namedFold=p?.action&&(sign==='fist'||sign==='thumbs_up'||sign==='thumbs_down'||sign==='peace'&&index>=2||sign==='index_up'&&index!==0);
-        const desired=p?.action&&sign?(namedFold?1.5:0):sign==='scissor'?(index<2?0:1.5):folded?1.5:sign==='paper'?0:0.2;
+        const desired=bends?bends[['index','middle','ring','little'][index]]*1.5:sign==='scissor'?(index<2?0:1.5):folded?1.5:sign==='paper'?0:0.2;
         const blend=p?.action?(sample.handBlend??1):1;
         const curl=0.2+(desired-0.2)*blend;
         finger.rotation.z=(sign==='scissor'||sign==='peace')&&index<2?(index===0?-a.side*0.13:a.side*0.13)*blend:0;
@@ -186,9 +187,9 @@ export function createRobot() {
       });
       const blend=p?.action?(sample.handBlend??1):1;
       const thumbExtended=sign==='thumbs_up'||sign==='thumbs_down';
-      const thumbAngle=thumbExtended?1.55:sign==='paper'||sign==='open_palm'?0.95:sign?0.3:0.65;
+      const thumbAngle=thumbExtended?1.55:bends?0.95-bends.thumb*.65:sign==='paper'?0.95:sign?0.3:0.65;
       a.thumb.rotation.z=-a.side*(0.65+(thumbAngle-0.65)*blend);
-      const thumbCurl=thumbExtended?0:sign&&sign!=='paper'&&sign!=='open_palm'?1.0:0.1;
+      const thumbCurl=bends?bends.thumb:sign&&sign!=='paper'?1.0:0.1;
       a.thumbJoints.forEach(j=>j.rotation.x=0.1+(thumbCurl-0.1)*blend);
     }
   }

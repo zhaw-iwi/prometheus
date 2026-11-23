@@ -119,8 +119,8 @@ public class TaskDecision extends Decision {
             if (!matches(rule, event, reason)) return false;
             if (newer != null && time.isAfter(newer)) return false;
             newer = time;
-            String identity = rule.handSign() == null ? time.toString()
-                    : ch.zhaw.prometheus.model.hand.HandSignObservation.parse(event.getPayload()).identity();
+            String identity = ch.zhaw.prometheus.model.hand.HandEvidence.identity(event);
+            if (identity == null) identity = time.toString();
             if (seen.add(identity) && ++count >= rule.samples()) return true;
         }
         reason[0] = "insufficient_samples";

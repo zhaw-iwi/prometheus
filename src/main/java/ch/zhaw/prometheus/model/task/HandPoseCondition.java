@@ -4,14 +4,29 @@ import java.util.*;
 import com.google.gson.*;
 import ch.zhaw.prometheus.model.hand.FingerState;
 
-/** A bounded conjunction evaluated on a single hand, never across hands or observations. */
-public record HandPoseCondition(String handedness, List<Comparison> all) {
+/** Bounded same-hand comparisons, optionally composed over two distinct hands in one capture. */
+public record HandPoseCondition(String handedness, List<Comparison> all, Integer schemaVersion, List<HandPoseCondition> hands) {
     public record Comparison(String finger, String operator, JsonPrimitive value) {}
     private static final Set<String> FINGERS = Set.of("thumb", "index", "middle", "ring", "little");
-    public HandPoseCondition { all = List.copyOf(all); }
+    public HandPoseCondition(String handedness, List<Comparison> all) { this(handedness,all,null,null); }
+    public HandPoseCondition { all = all == null ? null : List.copyOf(all); hands = hands == null ? null : List.copyOf(hands); }
+    public boolean versioned() { return schemaVersion != null; }
 
     public static HandPoseCondition parse(JsonElement raw) {
         var object = raw.getAsJsonObject();
+        if(object.has("schemaVersion")) {
+            TaskSpec.exact(object,Set.of("schemaVersion","hands"));
+            ch.zhaw.prometheus.model.hand.HandSignObservation.integer(object.get("schemaVersion"),1,1);
+            var array=object.getAsJsonArray("hands");if(array.isEmpty()||array.size()>2)throw new IllegalArgumentException();
+            var hands=new ArrayList<HandPoseCondition>();var sides=new HashSet<String>();
+            for(var item:array) {
+                if(!item.isJsonObject()||item.getAsJsonObject().has("schemaVersion"))throw new IllegalArgumentException();
+                var condition=parse(item);
+                if(!condition.handedness().equals("any")&&!sides.add(condition.handedness()))throw new IllegalArgumentException("Conflicting hand selection");
+                hands.add(condition);
+            }
+            return new HandPoseCondition(null,null,1,hands);
+        }
         TaskSpec.exact(object, Set.of("handedness", "all"));
         String side = TaskSpec.string(object, "handedness", 5);
         if (!Set.of("any", "left", "right").contains(side)) throw new IllegalArgumentException();
@@ -39,6 +54,10 @@ public record HandPoseCondition(String handedness, List<Comparison> all) {
     }
 
     public boolean matches(JsonObject payload) {
+        if(versioned()) {
+            var observed=ch.zhaw.prometheus.model.hand.HandPoseObservation.parse(payload.toString()).frame().hands();
+            return assign(observed,0,new HashSet<>());
+        }
         var hands = payload.getAsJsonArray("hands");
         if (hands == null || hands.size() > 2) return false;
         for (var item : hands) {
@@ -56,6 +75,26 @@ public record HandPoseCondition(String handedness, List<Comparison> all) {
         }
         return false;
     }
+    private boolean assign(JsonArray observed,int next,Set<String> used) {
+        if(next==hands.size())return true;
+        var condition=hands.get(next);
+        if(!condition.handedness().equals("any")) {
+            int count=0;
+            for(var item:observed)if(condition.handedness().equals(item.getAsJsonObject().get("handedness").getAsString()))count++;
+            if(count!=1)return false;
+        }
+        for(var item:observed) {
+            String id=item.getAsJsonObject().get("id").getAsString();if(used.contains(id))continue;
+            var one=new JsonObject();var array=new JsonArray();array.add(item);one.add("hands",array);
+            if(!condition.matches(one))continue;
+            used.add(id);if(assign(observed,next+1,used))return true;used.remove(id);
+        }
+        return false;
+    }
+    public String key() {
+        return versioned()?"v1/"+hands.stream().map(HandPoseCondition::key).sorted().toList()
+                :handedness+"/"+all.stream().sorted(Comparator.comparing(Comparison::finger)).toList();
+    }
     private static boolean matches(Comparison c, JsonElement raw, JsonElement state) {
         if (raw == null || !raw.isJsonPrimitive() || !raw.getAsJsonPrimitive().isNumber()) return false;
         double value = raw.getAsDouble();
@@ -69,9 +108,21 @@ public record HandPoseCondition(String handedness, List<Comparison> all) {
         };
     }
     public String description() {
+        if(versioned())return hands.stream().map(HandPoseCondition::description).collect(java.util.stream.Collectors.joining(" AND a distinct "));
         return (handedness.equals("any") ? "any single hand" : handedness + " hand") + ": "
                 + all.stream().map(c -> c.finger() + " " + c.operator() + " " + c.value().getAsString())
                     .collect(java.util.stream.Collectors.joining(" AND "));
+    }
+
+    public static String coordinationInstructions() {
+        return "\nPose v2 coordination: obs.hand.pose rules use handPose exactly {\"schemaVersion\":1,\"hands\":[{\"handedness\":\"any|left|right\","
+                + "\"all\":[{\"finger\":\"thumb|index|middle|ring|little\",\"operator\":\"eq|lt|gt\",\"value\":\"straight|neutral|bent\"}]}]}. "
+                + "Use 1..2 distinct hands and 1..5 distinct finger comparisons per hand. Partial input masks leave other fingers unconstrained. "
+                + "Stretched means straight; bend means bent. eq accepts a state or explicit numeric 0..1; lt/gt only numbers. "
+                + "All hands and fingers must match ONE frame; unknown is never neutral. minConfidence must be 0 (bend is not a confidence score). "
+                + "Other rule fields are action, effect, samples and cooldownSeconds. Checks have exactly eventType, handPose, minConfidence. "
+                + "Use named obs.hand.signs for shaka, horns and middle_finger with minConfidence 0. Their geometric extension/opposed-thumb "
+                + "classification differs from mean joint bend; do not translate those names into numeric pose masks. Geometry has no calibrated score.\n";
     }
 
     /** Appended at inference time so persisted configuration prompts gain the same validated extension. */

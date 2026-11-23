@@ -13,6 +13,17 @@ import ch.zhaw.prometheus.model.event.*;
 import ch.zhaw.prometheus.model.task.*;
 
 class CoordinationPerceptionUnitTest {
+    @Test void derivedShapesHaveNoInventedClassifierConfidence() {
+        var now=Instant.now();var history=new EventHistory();
+        var observation=fixtures.behaviour.NamedHandSignFixture.observation("shape","horns","left",now);
+        observation.getAsJsonArray("hands").get(0).getAsJsonObject().add("confidence",JsonNull.INSTANCE);
+        history.appendEvent(Event.observation(Event.TYPE_HAND_SIGNS,"camera",observation.toString()));
+        var answer=CoordinationPerception.answer(history,"What hand sign do you see?",now);
+        assertTrue(answer.contains("left hand: horns"));assertTrue(answer.contains("geometric estimate"));assertFalse(answer.contains("%"));
+        observation.getAsJsonArray("hands").get(0).getAsJsonObject().addProperty("sign","fist");
+        history.appendEvent(Event.observation(Event.TYPE_HAND_SIGNS,"camera",observation.toString()));
+        assertTrue(CoordinationPerception.answer(history,"What hand sign do you see?",now).startsWith("No named sign"));
+    }
     @Test void questionsAboutAgreedTriggersAreNotMistakenForCurrentPerception() {
         var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(false), f.text);
         f.agent.getEventHistory().appendEvent(Event.observation(Event.TYPE_HAND_SIGN, "camera",

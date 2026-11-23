@@ -16,3 +16,21 @@ export function handResult(bends = {}, side = "Right") {
   return { worldLandmarks: [points], landmarks: [points.map(p => ({ x: .4 + p.x, y: .4 + p.y, z: p.z }))],
     handedness: [[{ categoryName: side, score: .95 }]], gestures: [] };
 }
+
+// Anatomical palm separation for opposition/extension tests; still synthetic.
+export function namedHandResult(bends = {}, side = 'Right') {
+  const result = handResult(bends, side), points = result.worldLandmarks[0];
+  for (const [i, name] of ['index','middle','ring','little'].entries()) {
+    const root = 5 + i * 4, bend = bends[name] ?? 0;
+    let x = -.03 + .02 * i, y = .05;
+    for (let step = 0; step < 4; step++) {
+      if (step) { const angle = (step - 1) * bend * Math.PI / 2; x += .025 * Math.sin(angle); y += .025 * Math.cos(angle); }
+      points[root + step] = {x,y,z:0};
+    }
+  }
+  points[1] = {x:-.025,y:.01,z:0};points[2] = {x:-.04,y:.025,z:0};
+  const reach = -.04 + .08 * (bends.thumb ?? 0);
+  points[3] = {x:points[2].x+reach/2,y:.04,z:0};points[4] = {x:points[2].x+reach,y:.055,z:0};
+  result.landmarks[0] = points.map(p=>({x:.5+p.x,y:.4+p.y,z:p.z}));
+  return result;
+}

@@ -340,8 +340,9 @@ interval or add between-frame transition rules or hand tracking.
 
 New Coordination instances accept per-hand communication signs through
 `obs.hand.signs` v1: `fist`, `peace`, `open_palm` (halt), `thumbs_up`, `thumbs_down`
-and `index_up` (attention). They also declare `motion.handAction` for immediate
-and agreed task output of the same six signs. Custom poses and pointing are staged
+and `index_up` (attention), plus geometric `shaka` (hang loose), `horns` and
+`middle_finger`. They declare `motion.handAction` for immediate and agreed task
+output of all nine signs and explicit finger poses. Ring and pointing are staged
 in the [roadmap](.agents/PLAN_HAND_INTERACTION.md). Legacy RPS input/output keeps
 `rock`/`scissor`/`paper`.
 
@@ -391,13 +392,56 @@ sample (about 0.61); other views also produced misses. Adjusting sensitivity is
 an operator choice, not proof of general accuracy. See the retained
 [evidence and limits](.agents/HAND_INTERACTION_RESULTS.md).
 
-Numeric hand poses currently apply to Generic task agents; Coordination does
-not yet admit `obs.hand.pose` or pose preparation checks. Its current hand cues
-include legacy `rock`/`scissor`/`paper` and the opt-in named signs above. The [hand interaction roadmap](.agents/PLAN_HAND_INTERACTION.md)
-and [versioned contracts](tests/hand-interaction/README.md) cover explicit future
-Coordination adoption. Saved agreements are unchanged. The existing
-`obs.hand.pose` event contains no named sign, and Generic task setup must not
-substitute the accompanying `obs.hand.sign` event for bend comparisons.
+New Coordination instances also declare profile tag `hand.poses.v2` and accept
+versioned `obs.hand.pose` v2. The envelope shares the named observation's source,
+`observationId`, timestamp and frame; each of up to two hands has its own `id`,
+subject-side `handedness`, five numeric/null `fingers` and five consistent
+`fingerStates`. It omits v1's `handCount` and `handednessConfidence`. Generic
+agents keep their existing v1 contract and numeric semantics. Earlier Coordination
+instances keep their saved capabilities; create a new instance for this feature.
+
+A Coordination check or rule uses `handPose` in place of `handSign`, for example:
+
+```json
+{"schemaVersion":1,"hands":[
+  {"handedness":"left","all":[{"finger":"index","operator":"eq","value":"straight"}]},
+  {"handedness":"right","all":[{"finger":"middle","operator":"eq","value":"bent"}]}
+]}
+```
+
+Each mask has 1..5 comparisons. Two masks require two distinct hands in the same
+capture; hands cannot be combined across frames or counted twice. Unspecified
+fingers are unrestricted; unknown readings cannot satisfy a comparison. Use
+`minConfidence:0` because finger bend has no calibrated confidence score. Numeric
+`eq`/`lt`/`gt` comparisons retain their existing meaning. Preparation, acceptance,
+freshness and finite task budgets are shared with named cues; the sign and pose
+representation of one capture cannot spend two contributions.
+
+For **"extend your left index and little finger, keep the others bent"**,
+the direct-command interpreter publishes a complete pose, independently of tasks:
+
+```json
+{"motion":{"handAction":{"schemaVersion":1,"action":{"kind":"pose","hands":[
+  {"side":"left","fingers":{"thumb":1,"index":0,"middle":1,"ring":1,"little":0}}
+]}}}}
+```
+
+Output uses 0 straight, 1 bent and 0.5 neutral for unspecified fingers; each
+requested hand supplies all five values. Both hands can have independent values.
+The same validated output is available to accepted task actions. Input is an
+estimate of human joints; output is a digital pose target, not measured actuation.
+
+The three derived signs use finger extension and thumb opposition, independently
+of the low-level mean curvature reading. A thumb can lie across the palm with
+relatively straight joints. Shaka requires an outward thumb; horns and middle
+finger require an opposed thumb, so the thumb-extended I-love-you shape is not
+horns. Long-finger extension uses proximal/distal joint angles; a clearly folded
+joint is not averaged away. Thresholds and invariant geometry tests live in
+`hand/finger-pose.js`. Derived signs have `confidence:null` and need task
+`minConfidence:0`; the UI labels them geometric estimates. They still require
+known in-frame landmarks and three stable frames over 300 ms. These estimates
+cannot establish actual finger visibility or physical contact. The original
+mean-bend thresholds and saved Generic rules remain unchanged.
 
 Agents can identify a hand-capture window with an opaque `display.captureId`
 (1-128 characters) alongside `awaitingUserSign: true`. The cockpit echoes it as
@@ -1352,7 +1396,7 @@ Supported observation event types in the current public contract:
 | `obs.social.grouping` | `user` | JSON string with group count, singleton count, largest group size, groups, and source. |
 | `obs.social.context` | `user` | JSON string with `schemaVersion: 1`, aggregate group fields, and per-person movement/attention fields. |
 | `obs.hand.sign` | `user` | JSON string with an RPS `sign` (`rock`, `scissor`, `paper`), confidence, source and timestamp. Camera events may include `cannedGesture`, `stabilityFrames`, `recognizer`, `inferenceMs`, and active `captureId`. |
-| `obs.hand.pose` | `user` | JSON string with `schemaVersion: 1`, `handCount`, up to two `hands` with estimated `handedness`, optional `handednessConfidence`, numeric/null `fingers` (`thumb`, `index`, `middle`, `ring`, `little`) and optional `fingerStates` with those same keys (`straight`, `neutral`, `bent` or null), plus source, recognizer and `ts`. Bend is 0 straight to 1 fully bent; below 0.4 is straight, above 0.55 bent, the inclusive middle range neutral. Null is unavailable. See the hand-detector section for the full schema and limits. |
+| `obs.hand.pose` | `user` | New Coordination: strict v2 shared-frame envelope described above. Generic legacy: JSON string with `schemaVersion: 1`, `handCount`, up to two `hands` with estimated `handedness`, optional `handednessConfidence`, numeric/null `fingers` (`thumb`, `index`, `middle`, `ring`, `little`) and optional `fingerStates` with those same keys (`straight`, `neutral`, `bent` or null), plus source, recognizer and `ts`. Bend is 0 straight to 1 fully bent; below 0.4 is straight, above 0.55 bent, the inclusive middle range neutral. Null is unavailable. See the hand-detector section for the full schema and limits. |
 | `obs.weather.current` | `system` | JSON string with location, condition, intensity, wind, temperature, precipitation, and timestamp. |
 | `obs.weather.forecast` | `system` | JSON string with location and `days[]` forecast entries. |
 
@@ -2347,9 +2391,9 @@ Agent**, and connect through the existing cockpit. This is a new definition; bot
 Generic variants remain available and saved graphs are not migrated. Text,
 Continuous and GPT-Live use the same backend agreement. The observation and output
 profile retains its existing sensing, speech, supported nonverbal expression and RPS hand-sign output.
-The new finger/hand-pose observations, preparation checks and reaction rules remain
-unavailable to Coordination. New instances additionally accept the six per-hand
-communication signs documented above; saved instance profiles are unchanged.
+New instances additionally accept nine per-hand communication signs and explicit
+one/two-hand pose preparation checks and reaction rules, with the matching digital
+outputs documented above. Saved instance profiles are unchanged.
 
 The agent reuses Social Space's complete voice and shared `ValerianPersona` /
 `CoreAgentReference`: SIRA Lab, IWI, Theresa, Marc, Jasmin and Alexandre, the fictional

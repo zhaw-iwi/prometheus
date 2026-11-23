@@ -10,7 +10,7 @@ const source = fs.readFileSync(new URL("../../../src/main/resources/public/valer
 
 // Exercise camera classification through the real acknowledgement/header code.
 // Only media, rendering and the HTTP response are simulated.
-function fixture({ poseSupported = false, signSupported = true, namedSupported = false } = {}) {
+function fixture({ poseSupported = false, signSupported = true, namedSupported = false, modernPoses = false } = {}) {
   let now = Date.parse("2026-10-20T08:00:00Z");
   const requests = [], elements = new Map();
   const element = id => {
@@ -23,7 +23,7 @@ function fixture({ poseSupported = false, signSupported = true, namedSupported =
       static now() { return now; }
     },
     Headers, performance: { now: () => now }, HTMLMediaElement: { HAVE_CURRENT_DATA: 2 },
-    state: { agentId: "agent", accessCode: "code" }, liveVoice: { ui: { active: true } },
+    state: { agentId: "agent", accessCode: "code", agentInfo:{interactionProfile:{profileTags:modernPoses?['hand.poses.v2']:[]}} }, liveVoice: { ui: { active: true } },
     document: { getElementById: element },
     setText(id, value) { element(id).textContent = value; },
     renderHandSignReport(sign, options) { context.setHandSignStatus(options.statusText, options.statusMode); },
@@ -53,7 +53,7 @@ function fixture({ poseSupported = false, signSupported = true, namedSupported =
   for (const name of ["ACCESS_CODE_HEADER", "REQUIRED_STABLE_GESTURE_FRAMES"]) {
     vm.runInContext(new RegExp(`^const ${name} = .*;`, "m").exec(source)[0], context);
   }
-  for (const name of ["captureObservationTime", "usableObservationTime", "detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
+  for (const name of ["currentProfileSupportsHandPoses", "captureObservationTime", "usableObservationTime", "detectHandSign", "selectCameraGesture", "updateCameraStability", "maybeEmitCameraSign",
     "submitHandSign", "acknowledgeEvent", "timedScopedFetch", "scopedFetch", "captureConnection", "currentConnection", "demoAgentPath", "sensorBackendResult",
     "setHandSignStatus", "setHandPoseStatus", "handRecognizerLabel", "markSensorEmitted", "normalizeSign", "round", "resetCameraEmissionGate",
     "renderBehaviourPlan", "resolveInteractionCapabilities", "normalizeProfileList", "renderMotion", "renderDisplay", "captureIdOf", "updateHandCapture", "resetSensingState", "renderHandConfidencePolicy"]) {
@@ -113,6 +113,18 @@ test("named signs use the real scoped emitter, preserve capture time and fence r
   await f.poseFrame(result);assert.equal(f.context.camera.lastNamedSignEmitAt,0);
   f.context.timingAvailable=false;f.advance(300);await f.poseFrame(result);
   assert.match(f.element('hand_named_status').textContent,/synchronized/);
+});
+
+test('modern pose and named events share the capture identity and require timed stability',async()=>{
+  const f=fixture({poseSupported:true,namedSupported:true,signSupported:false,modernPoses:true});
+  f.element('emit_interval_ms').value='1000';
+  const result=handResult({index:1},'Left');result.gestures=[[{categoryName:'Closed_Fist',score:.9}]];
+  await f.poseFrame(result);await f.poseFrame(result);await f.poseFrame(result);assert.equal(f.requests.length,0);
+  f.advance(300);await f.poseFrame(result);f.advance(150);await f.poseFrame(result);f.advance(150);await f.poseFrame(result);
+  assert.equal(f.requests.length,2);
+  const [sign,pose]=f.requests.map(r=>JSON.parse(JSON.parse(r.body).payload));
+  assert.equal(pose.schemaVersion,2);assert.equal(pose.observationId,sign.observationId);assert.deepEqual(pose.frame,sign.frame);
+  assert.equal(pose.ts,sign.ts);assert.equal(pose.hands[0].id,sign.hands[0].id);
 });
 
 test("RPS capture uses the configured confidence and still requires three qualifying samples", async () => {

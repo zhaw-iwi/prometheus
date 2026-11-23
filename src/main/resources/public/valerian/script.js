@@ -1426,6 +1426,10 @@ function currentProfileSupportsObservation(observation) {
   return capabilities.fallbackAll || profileListIntersects(capabilities.supportedObservations, [observation]);
 }
 
+function currentProfileSupportsHandPoses() {
+  return state.agentInfo?.interactionProfile?.profileTags?.includes("hand.poses.v2") === true;
+}
+
 function updateSelectedAgentStatus() {
   const selected = state.selectedAgentId || document.getElementById("agent_id_input").value.trim();
   setText("selected_agent_identity", selected ? instanceLabel(selected) : "");
@@ -2651,7 +2655,8 @@ function renderBehaviourPlan(plan, options = {}) {
   }
   const capabilities = resolveInteractionCapabilities(state.agentInfo?.interactionProfile);
   globalThis.ValerianEmbodiment?.receive(plan, { ...options,
-    modalities: capabilities.fallbackAll ? null : capabilities.supportedBehaviourModalities });
+    modalities: capabilities.fallbackAll ? null : capabilities.supportedBehaviourModalities,
+    profileTags: state.agentInfo?.interactionProfile?.profileTags || [] });
   if (!options.preserveNonSpeech) resetBehaviourPanels();
   if (typeof plan.speech === "string" && plan.speech.trim()) {
     setText("speech_preview", plan.speech.trim());
@@ -2710,7 +2715,7 @@ function renderMotion(motion, options = {}) {
   setBehaviourChannelActive("motion", true);
   if (motion.handAction) {
     const action=motion.handAction.action;
-    setText("motion_value", action?.kind==='sign' ? `${asText(action.sign).replaceAll('_',' ')} ? ${asText(action.effector).replaceAll('_',' ')}` : 'Unsupported hand action');
+    setText("motion_value", action?.kind==='sign' ? `${asText(action.sign).replaceAll('_',' ')} / ${asText(action.effector).replaceAll('_',' ')}` : action?.kind==='pose' ? `Custom finger pose: ${action.hands.map(h=>h.side).join(' / ')}` : 'Unsupported hand action');
     return;
   }
   const sign = normalizeSign(motion.handSign);
@@ -3808,7 +3813,7 @@ async function detectHandSign() {
     setText("hand_report_inference", `${inferenceMs.toFixed(1)} ms`);
     const hands = camera.handPoseEstimator(result);
     const named = camera.namedSignTracker?.observe(result, observed?.ts,
-      Number(document.getElementById("hand_confidence_threshold").value || .65));
+      Number(document.getElementById("hand_confidence_threshold").value || .65), currentProfileSupportsHandPoses());
     const key = hands.map(hand => hand.handedness).sort().join("|");
     camera.handPoseStableFrames = key === camera.handPoseStableKey ? camera.handPoseStableFrames + 1 : 1;
     camera.handPoseStableKey = key;
@@ -3817,13 +3822,14 @@ async function detectHandSign() {
       recognizer: "mediapipe", handCount: hands.length, hands,
       inferenceMs: round(inferenceMs, 1), ts: observed?.ts ?? null,
     };
-    renderHandPoseReport(pose, "Detected", { combined: true });
+    const modernPose = currentProfileSupportsHandPoses() && named;
+    renderHandPoseReport(modernPose ? named.pose : pose, "Detected", { combined: true });
     await maybeEmitCameraSign(candidate, observed);
     if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
     if (named) renderNamedHandReport(named.observation, {legacyDetected: !!candidate, frames: named.frames});
     if (named) await maybeEmitNamedHands(named, observed);
     if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
-    await maybeEmitHandPose(pose, observed);
+    await maybeEmitHandPose(modernPose ? named.pose : pose, observed, modernPose ? {stable:named.poseStable,frames:named.poseFrames} : null);
     if (revision !== (camera.handEmissionRevision || 0) || agentId !== state.agentId) return;
     camera.lastGestureVideoTime = frameTime;
   } catch (error) {
@@ -5085,7 +5091,7 @@ function renderNamedHandReport(payload, {legacyDetected = false, frames = null} 
   }
   setText("hand_named_detection", hands.length ? hands.map(h =>
     `${h.handedness === "unknown" ? "Unknown side" : h.handedness} hand: ${h.sign ? h.sign.replaceAll("_", " ") : "unrecognized"}`
-    + (Number.isFinite(h.confidence) ? ` (${Math.round(h.confidence * 100)}%)` : "")).join(" · ") : "No hands detected");
+    + (Number.isFinite(h.confidence) ? ` (${Math.round(h.confidence * 100)}%)` : h.sign ? " (geometric estimate)" : "")).join(" · ") : "No hands detected");
 }
 
 async function maybeEmitNamedHands(named, observed) {
@@ -5108,7 +5114,7 @@ async function maybeEmitNamedHands(named, observed) {
   status(data ? "Delivered to agent; task acceptance is shown in Activity" : "Observation delivery failed");
 }
 
-async function maybeEmitHandPose(payload, observed = captureObservationTime()) {
+async function maybeEmitHandPose(payload, observed = captureObservationTime(), stability = null) {
   if (!state.agentId) { setHandPoseStatus("Not sent: connect an agent", "idle"); return; }
   if (!document.getElementById("sensor_emit_enabled").checked) {
     setHandPoseStatus("Not sent: enable Emit camera observations", "idle"); return;
@@ -5117,6 +5123,9 @@ async function maybeEmitHandPose(payload, observed = captureObservationTime()) {
     setHandPoseStatus("Local only: this agent does not support hand poses", "idle"); return;
   }
   if (!usableObservationTime(observed, "handPose")) return;
+  if (payload.schemaVersion === 2 && !stability?.stable) {
+    setHandPoseStatus(`Stabilizing pose (${stability?.frames || 0} frames; minimum 300 ms)`, "idle"); return;
+  }
   if (camera.handPoseStableFrames < REQUIRED_STABLE_GESTURE_FRAMES) {
     setHandPoseStatus(`Stabilizing ${camera.handPoseStableFrames}/${REQUIRED_STABLE_GESTURE_FRAMES}`, "idle"); return;
   }

@@ -81,7 +81,8 @@ and regulation diagnostics remain future work.
   as Coordination triggers and robot output, plus bounded input/output sequences.
   The plan defines unit/contract, isolated local-MySQL, reviewed Playwright visual
   and nine real OpenAI Live acceptance journeys. HI-01 contracts/baseline and
-  HI-02 named-sign triggers and HI-03 output are complete; HI-04 custom poses are next. The owner authorized sequential implementation,
+  HI-02 named-sign triggers, HI-03 output and HI-04 composed poses are complete;
+  HI-05 relational geometry and OK ring are next. The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10181,3 +10182,23 @@ deployment remain deferred.
 - Live instructions measure 15,955/16,000 bytes. Paid provider spend remains $0;
   real interpretation and physical execution are unverified. No deployment.
   Continue HI-04 after the authorized commit/push.
+
+## Hand interaction HI-04 (2026-11-23): composed poses and derived signs
+
+- New Coordination profiles opt in to strict shared-frame v2 poses and partial
+  one/two-hand conditions. Preparation, acceptance and contribution limits use
+  existing task authority. Direct/task output independently drives all ten fingers.
+  Old profiles, Generic numeric semantics and legacy RPS remain unchanged.
+- Added shaka, horns and middle finger in both directions. Actual model failures
+  led to explicit extension/thumb-opposition geometry for named shapes while
+  preserving low-level mean curvature. Unknown stays unknown; derived scores
+  are never fabricated. Near-miss/mirror and actual two-hand fixtures pass.
+- Verified 167 Java unit, 30 unique local MySQL integration, 70 JS and seven
+  Python contract cases; four real-app Playwright cases plus final focused
+  rechecks; 18 actual MediaPipe cases / 126 frames; packaging and whitespace.
+  Reviewed named/custom rig views and light/dark/narrow/unavailable input/output.
+  Retained initial geometry and test-harness failures; see HAND_INTERACTION_RESULTS.
+- Live instructions measure 15,993/16,000 bytes; context queries remain 8 for
+  5/205 events. Provider spend remains $0. Real-provider interpretation and
+  physical execution are unverified; no deployment. Continue HI-05 after the
+  authorized commit/push.

@@ -29,7 +29,7 @@ class CoordinationNamedSignUnitTest {
         assertEquals(proposal,f.storage().get(CoordinationMemory.AGREEMENT));
     }
     @Test void everyShapeAndSideUsesOneHandAndStrictEvidence() {
-        for (String sign : HandSignObservation.SIGNS) for (String side : java.util.List.of("left", "right", "unknown")) {
+        for (String sign : HandSignObservation.BASIC_SIGNS) for (String side : java.util.List.of("left", "right", "unknown")) {
             var input = observation("frame", sign, side, Instant.now());
             var parsed = HandSignObservation.parse(input.toString());
             assertTrue(new HandSignCondition(sign, "any").matches(parsed, .8));

@@ -8,6 +8,7 @@ import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.task.*;
 import ch.zhaw.prometheus.model.hand.HandActions;
 import ch.zhaw.prometheus.model.hand.HandSignObservation;
+import ch.zhaw.prometheus.model.hand.HandFeatures;
 
 /** Validates an interpreted one-shot request; never executes a task transition or confirms physical delivery. */
 public final class DirectCommands {
@@ -16,7 +17,8 @@ public final class DirectCommands {
     private static final Set<String> SIGNS = Set.of("rock", "scissor", "paper");
     private static final Set<String> GESTURES = Set.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE");
     public enum Intent { ACTION, CAPABILITY, CLARIFY, UNSUPPORTED }
-    public record Request(Intent intent, String kind, String value, boolean silent, String effector) {
+    public record Request(Intent intent, String kind, String value, boolean silent, String effector, JsonObject handAction) {
+        public Request(Intent intent, String kind, String value, boolean silent, String effector) { this(intent,kind,value,silent,effector,null); }
         public Request(Intent intent, String kind, String value, boolean silent) { this(intent, kind, value, silent, "right_hand"); }
     }
     public record Result(BehaviourPlan plan, String status) {}
@@ -60,6 +62,7 @@ public final class DirectCommands {
                 Include only actions permitted by the declared output modalities. Do not invent actuator identifiers.
                 """ + HandActions.guidance(profile)
                 + (HandActions.enabled(profile) ? "HAND_SIGN commands also accept the six named values above and optional effector (default right_hand); keep value a string.\n" : "")
+                + (HandFeatures.poses(profile) && HandActions.enabled(profile) ? "For an immediate custom pose use command kind HAND_POSE, value equal to the complete {kind:pose,hands:[...]} action above, and no effector field. HAND_SIGN also accepts shaka, horns and middle_finger.\n" : "")
                 + (taskEnvelope ? "For ANY non-null command, including CAPABILITY, CLARIFY and UNSUPPORTED, use operation KEEP, task/agreement null, and reply exactly {}. "
                         + "Do not answer the user or add speech, nonVerbal, motion or display inside reply in this branch. The backend constructs all command output. "
                         + "This overrides ordinary KEEP reply instructions, in every speech mode. Example capability fields: "
@@ -89,7 +92,8 @@ public final class DirectCommands {
         var flag = object.get("silent");
         if (!flag.isJsonPrimitive() || !flag.getAsJsonPrimitive().isBoolean()) throw new IllegalArgumentException("Invalid command silence flag");
         String kind = object.get("kind").isJsonNull() ? null : string(object.get("kind"));
-        String action = object.get("value").isJsonNull() ? null : string(object.get("value"));
+        String action = object.get("value").isJsonNull() || "HAND_POSE".equals(kind) ? null : string(object.get("value"));
+        JsonObject handAction = null;
         String effector = object.has("effector") ? string(object.get("effector")) : "right_hand";
         if (!HandActions.EFFECTORS.contains(effector) || object.has("effector") && (intent != Intent.ACTION || !"HAND_SIGN".equals(kind)))
             throw new IllegalArgumentException("Invalid command effector");
@@ -100,12 +104,15 @@ public final class DirectCommands {
                 if (action.equals("scissors")) action = "scissor";
                 if (!SIGNS.contains(action) && !HandSignObservation.SIGNS.contains(action)) throw new IllegalArgumentException("Unsupported hand sign");
                 if (SIGNS.contains(action) && object.has("effector")) throw new IllegalArgumentException("Use the named sign for sided output");
+            } else if ("HAND_POSE".equals(kind)) {
+                handAction=HandActions.pose(object.getAsJsonObject("value"));
+                if(!"pose".equals(handAction.getAsJsonObject("action").get("kind").getAsString()))throw new IllegalArgumentException("Expected a pose action");
             } else if ("GESTURE".equals(kind)) {
                 action = action == null ? "" : action.strip().toUpperCase(Locale.ROOT).replace(' ', '_');
                 if (!GESTURES.contains(action)) throw new IllegalArgumentException("Unsupported gesture");
             } else throw new IllegalArgumentException("Unsupported command kind");
         }
-        return new Request(intent, kind, action, flag.getAsBoolean(), effector);
+        return new Request(intent, kind, action, flag.getAsBoolean(), effector, handAction);
     }
     public static Result evaluate(Request request, AgentInteractionProfile profile, Storage storage, EventHistory history, boolean silentMode) {
         var event = currentUser(history);
@@ -130,12 +137,15 @@ public final class DirectCommands {
                 if (HandSignObservation.SIGNS.contains(request.value())) motion.add("handAction", HandActions.named(request.value(), request.effector()));
                 else motion.addProperty("handSign", request.value());
                 plan.add("motion", motion);
+            } else if ("HAND_POSE".equals(request.kind())) {
+                var motion=new JsonObject();motion.add("handAction",request.handAction().deepCopy());plan.add("motion",motion);
             }
             storage.put(DecorativeGestures.REQUIRED, new JsonPrimitive(true));
         }
         var receipt = new JsonObject(); receipt.addProperty("sourcePosition", event.sourcePosition()); receipt.addProperty("status", status);
         receipt.addProperty("silent", request.silent()); receipt.addProperty("kind", request.kind()); receipt.addProperty("value", request.value());
         if ("HAND_SIGN".equals(request.kind()) && HandSignObservation.SIGNS.contains(request.value())) receipt.addProperty("effector", request.effector());
+        if(request.handAction()!=null)receipt.add("handAction",request.handAction().deepCopy());
         // Accepted/published plans are not execution receipts. Keep only bounded identity/result data here.
         storage.put(LAST, receipt);
         var handled = storage.containsKey(HISTORY) ? storage.get(HISTORY).getAsJsonArray().deepCopy() : new JsonArray();
@@ -157,12 +167,15 @@ public final class DirectCommands {
         boolean signs = profile != null && profile.getSupportedBehaviourModalities().contains("motion.handSign");
         boolean gestures = profile != null && profile.getSupportedBehaviourModalities().contains("nonVerbal.gesture");
         String named = HandActions.enabled(profile) ? "show fist, peace, halt, thumbs up/down and index up" : "";
+        if(!named.isEmpty()&&HandFeatures.poses(profile))named+=", shaka, horns, middle finger and custom finger poses";
         boolean hands = signs || !named.isEmpty();
         return "I can " + (!named.isEmpty() ? named : signs ? "show rock, paper and scissors" : "") + (hands && gestures ? ", and " : "")
                 + (gestures ? "make question, explanation, uncertainty, acknowledgement and polite gestures" : "")
                 + (hands || gestures ? "." : "only use the outputs enabled for this instance; no hand signs or gestures are declared.");
     }
     private static boolean allows(AgentInteractionProfile profile, Request request) {
+        if("HAND_POSE".equals(request.kind()))return request.intent()==Intent.ACTION&&HandActions.enabled(profile)&&HandFeatures.poses(profile);
+        if("HAND_SIGN".equals(request.kind())&&HandFeatures.DERIVED_SIGNS.contains(request.value())&&!HandFeatures.poses(profile))return false;
         return request.intent() == Intent.ACTION && profile.getSupportedBehaviourModalities().contains(
                 "HAND_SIGN".equals(request.kind()) ? HandSignObservation.SIGNS.contains(request.value()) ? HandActions.MODALITY : "motion.handSign" : "nonVerbal.gesture");
     }
@@ -171,6 +184,7 @@ public final class DirectCommands {
                 || Set.of("PENDING", "CHECKING", "REJECTED").contains(TaskResponse.status(storage));
     }
     private static String label(Request request) {
+        if("HAND_POSE".equals(request.kind()))return "the requested finger pose";
         if ("HAND_SIGN".equals(request.kind())) return "a " + (request.value().equals("scissor") ? "scissors" : request.value().replace('_', ' ')) + " sign";
         return switch (request.value()) {
             case "OPEN_QUESTION" -> "a question gesture";

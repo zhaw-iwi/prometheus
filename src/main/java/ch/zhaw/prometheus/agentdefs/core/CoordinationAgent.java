@@ -103,7 +103,7 @@ public class CoordinationAgent implements AgentDefinition {
             Explain limits, cooldown, first action and whether Live loss pauses the task. Dialogue tasks always pause on Live loss.
             Task control cannot activate sensors, change turn settings, fetch weather, identify people, control devices,
             run arbitrary code or verify physical actions. Suggest a supported alternative for unsupported requests.
-            Behaviour output remains canonical speech/nonVerbal/handSign. No locomotion, arbitrary display or scored game engine.
+            Behaviour output remains canonical speech/nonVerbal and declared motion. No locomotion, arbitrary display or scored game engine.
 
             Before returning JSON, check two common errors:
             1. Copy agreement.goal exactly into reactions.goal; do not summarize or paraphrase it.
@@ -119,6 +119,7 @@ public class CoordinationAgent implements AgentDefinition {
     @Override public Agent createAgent() { return createAgent(reception); }
     public Agent createAgent(boolean presenceReception) {
         var storage = new Storage();
+        storage.put(ch.zhaw.prometheus.model.hand.HandFeatures.POSES, new JsonPrimitive(true));
         storage.put(ch.zhaw.prometheus.model.hand.HandEvidence.ENABLED, new JsonPrimitive(true));
         storage.put(CoordinationDelivery.ENABLED, new JsonPrimitive(true));
         storage.put(DecorativeGestures.ENABLED, new JsonPrimitive(true));
@@ -154,12 +155,11 @@ public class CoordinationAgent implements AgentDefinition {
                 "Valerian coordinates conversational and multimodal tasks through shared agreements, preparation, execution and reflection.", states.get("CONVERSATION"), storage);
         var base = ValerianCoreAgentFactory.multimodalBehaviourProfile();
         var observations = new ArrayList<>(base.getSupportedObservations());
-        observations.remove(AgentInteractionProfile.OBS_HAND_POSE);
         observations.add(AgentInteractionProfile.OBS_HAND_SIGNS);
         var modalities = new ArrayList<>(base.getSupportedBehaviourModalities());
         modalities.add(ch.zhaw.prometheus.model.hand.HandActions.MODALITY);
         agent.setInteractionProfile(AgentInteractionProfile.of(observations, modalities,
-                List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination")).withPresenceControlledLive(presenceReception));
+                List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.coordination", ch.zhaw.prometheus.model.hand.HandFeatures.POSES)).withPresenceControlledLive(presenceReception));
         return applyDefinitionMetadata(agent);
     }
     @Override public AgentCreationResult createInstance(AgentCreationContext context) {

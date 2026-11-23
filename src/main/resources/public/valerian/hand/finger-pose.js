@@ -41,7 +41,7 @@ export function classifyFingerBend(bend) {
 export function estimateHandPoses(result) {
   return (Array.isArray(result?.landmarks) ? result.landmarks : []).slice(0, 2).map((image, index) => {
     const category = result.handedness?.[index]?.[0];
-    const label = category?.categoryName?.toLowerCase();
+    const label = typeof category?.categoryName === 'string' ? category.categoryName.toLowerCase() : null;
     const fingers = Object.fromEntries(Object.entries(FINGER_CHAINS).map(([name, chain]) => [name,
       chain.every(point => inFrame(image?.[point])) ? fingerBend(result.worldLandmarks?.[index], chain) : null]));
     return {
@@ -52,4 +52,30 @@ export function estimateHandPoses(result) {
       fingerStates: Object.fromEntries(Object.entries(fingers).map(([name, bend]) => [name, classifyFingerBend(bend)])),
     };
   });
+}
+
+// Named shapes describe finger extension and thumb opposition, which are not
+// identical to the legacy mean joint-curvature reading above. A straight thumb
+// can be folded across the palm. Keep those measurements separate and explicit.
+export function namedFingerStates(result, index, hand) {
+  const points = result?.worldLandmarks?.[index];
+  if (!hand || Object.values(hand.fingers).some(value => !Number.isFinite(value))) return null;
+  const vector = (a, b) => ['x', 'y', 'z'].map(axis => points[b][axis] - points[a][axis]);
+  const across = vector(5, 17), thumb = vector(2, 4);
+  const widthSquared = across.reduce((sum, value) => sum + value * value, 0);
+  if (!Number.isFinite(widthSquared) || widthSquared < 1e-12) return null;
+  const opposition = across.reduce((sum, value, axis) => sum + value * thumb[axis], 0) / widthSquared;
+  return {
+    thumb: opposition < -.2 ? 'straight' : opposition > .15 ? 'bent' : 'neutral',
+    ...Object.fromEntries(Object.entries(FINGER_CHAINS).filter(([name]) => name !== 'thumb')
+      .map(([name, chain]) => {
+        const proximal = fingerBend(points, chain.slice(1, 4));
+        const distal = fingerBend(points, chain.slice(2, 5));
+        // A folded distal joint must not be averaged away by a straight joint.
+        const state = proximal === null || distal === null ? null
+          : Math.max(proximal, distal) > .55 ? 'bent'
+          : (proximal + distal) / 2 < .4 ? 'straight' : 'neutral';
+        return [name, state];
+      })),
+  };
 }

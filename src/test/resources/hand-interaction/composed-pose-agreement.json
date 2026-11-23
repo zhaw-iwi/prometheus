@@ -1,0 +1,80 @@
+{
+  "goal": "Acknowledge thumbs up once",
+  "humanRole": "Show a right-hand thumbs up after accepting",
+  "agentRole": "Acknowledge the new cue",
+  "success": "One acknowledgement",
+  "questions": [],
+  "checks": [
+    {
+      "eventType": "obs.hand.pose",
+      "minConfidence": 0,
+      "handPose": {
+        "schemaVersion": 1,
+        "hands": [
+          {
+            "handedness": "left",
+            "all": [
+              {
+                "finger": "index",
+                "operator": "eq",
+                "value": "straight"
+              }
+            ]
+          },
+          {
+            "handedness": "right",
+            "all": [
+              {
+                "finger": "middle",
+                "operator": "eq",
+                "value": "bent"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "dialogueLimit": 2,
+  "reactions": {
+    "goal": "Acknowledge thumbs up once",
+    "maxActions": 1,
+    "sessionBound": true,
+    "firstAction": "ON_CUE",
+    "rules": [
+      {
+        "eventType": "obs.hand.pose",
+        "action": "Show the agreed custom finger pose silently",
+        "effect": "ACT",
+        "minConfidence": 0,
+        "samples": 1,
+        "cooldownSeconds": 3,
+        "handPose": {
+          "schemaVersion": 1,
+          "hands": [
+            {
+              "handedness": "left",
+              "all": [
+                {
+                  "finger": "index",
+                  "operator": "eq",
+                  "value": "straight"
+                }
+              ]
+            },
+            {
+              "handedness": "right",
+              "all": [
+                {
+                  "finger": "middle",
+                  "operator": "eq",
+                  "value": "bent"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

@@ -11,15 +11,25 @@ public final class HandEvidence {
     public static boolean enabled(Storage storage) {
         return storage.containsKey(ENABLED) && new JsonPrimitive(true).equals(storage.get(ENABLED));
     }
-    private static String identity(Event event) {
-        if (!Event.TYPE_HAND_SIGNS.equals(event.getType())) return null;
-        return HandSignObservation.parse(event.getPayload()).identity();
+    public static String identity(Event event) {
+        if (Event.TYPE_HAND_SIGNS.equals(event.getType())) return HandSignObservation.parse(event.getPayload()).identity();
+        if (Event.TYPE_HAND_POSE.equals(event.getType()) && modernPose(event.getPayload())) return HandPoseObservation.parse(event.getPayload()).frame().identity();
+        return null;
+    }
+    public static boolean modernPose(String payload) {
+        try {
+            var raw=JsonParser.parseString(payload).getAsJsonObject();
+            return raw.has("observationId") || raw.has("schemaVersion") && !new JsonPrimitive(1).equals(raw.get("schemaVersion"));
+        } catch(RuntimeException invalid) { return false; }
     }
     public static boolean consumed(Storage storage, Event event) {
         try {
             String id = identity(event);
             if (id == null) return false;
             if (!enabled(storage)) return true;
+            if (Event.TYPE_HAND_POSE.equals(event.getType()) && !HandFeatures.poses(storage)) return true;
+            if (Event.TYPE_HAND_SIGNS.equals(event.getType()) && HandSignObservation.parse(event.getPayload()).hands().stream()
+                    .anyMatch(h -> h.sign() != null && !HandFeatures.signAllowed(h.sign(),HandFeatures.poses(storage)))) return true;
             if (storage.containsKey(CONSUMED)) for (var value : storage.get(CONSUMED).getAsJsonArray())
                 if (id.equals(value.getAsString())) return true;
             return false;

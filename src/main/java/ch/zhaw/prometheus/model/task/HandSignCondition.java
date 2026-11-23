@@ -17,7 +17,7 @@ public record HandSignCondition(String sign, String handedness) {
         var candidates = observation.hands().stream().filter(h -> handedness.equals("any") || handedness.equals(h.handedness())).toList();
         // Two reported left/right hands cannot establish which requested hand was meant.
         if (!handedness.equals("any") && candidates.size() != 1) return false;
-        return candidates.stream().anyMatch(h -> sign.equals(h.sign()) && h.confidence() != null && h.confidence() >= threshold);
+        return candidates.stream().anyMatch(h -> sign.equals(h.sign()) && (h.confidence() != null ? h.confidence() >= threshold : threshold == 0 && ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(sign)));
     }
     public String description() { return sign + " on " + (handedness.equals("any") ? "either single hand" : "the " + handedness + " hand"); }
     public static String instructions() {
@@ -30,7 +30,7 @@ public record HandSignCondition(String sign, String handedness) {
                 Default minConfidence 0, samples 1, cooldownSeconds 3; a requested side is the human's handedness.
                 Keep old obs.hand.sign rock/scissor/paper tasks unchanged. A sign is neither consent nor intent.
                 Input support alone does not authorize output; follow the declared output capabilities.
-                OK ring, custom poses, counting and pointing are not available yet; explain that limit.
+                Additional pose, ring, counting or pointing support requires explicit declared capabilities.
                 """;
     }
 }

@@ -89,8 +89,7 @@ class CoordinationAgentUnitTest {
         var created = new CoordinationAgent().createInstance(new AgentCreationContext(new PromptMessageAssembler(), gateway));
         assertTrue(BehaviourPlan.fromJson(created.starterEvent().getPayload()).getSpeech().contains("Valerian")); verifyNoInteractions(gateway);
         var original = new GenericMultimodalBehaviourAtSocialSpace().createAgent().getInteractionProfile();
-        assertEquals(original.getSupportedObservations().stream()
-                .filter(type -> !ch.zhaw.prometheus.model.interaction.AgentInteractionProfile.OBS_HAND_POSE.equals(type)).toList(),
+        assertEquals(original.getSupportedObservations(),
                 agent.getInteractionProfile().getSupportedObservations().stream()
                     .filter(type -> !Event.TYPE_HAND_SIGNS.equals(type)).toList());
         assertTrue(agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_SIGNS));

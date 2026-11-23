@@ -1,4 +1,5 @@
 import {handAction,handTiming} from '../hand/actions.js';
+import {derivedSigns} from '../hand/patterns.js';
 // Pure, bounded interpretation of the public BehaviourPlan contract.
 const object = value => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 const token = value => typeof value === 'string' ? value.trim().replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase().replace(/[ -]+/g, '_') : '';
@@ -19,7 +20,7 @@ const gazes = {
   toward_left: [-0.45, 0], toward_right: [0.45, 0], down: [0, 0.25], up: [0, -0.25],
   away: [0.55, 0.12], averted: [0.55, 0.12], downward: [0, 0.25], upward: [0, -0.25],
 };
-export function normalizePlan(plan, modalities = null) {
+export function normalizePlan(plan, modalities = null, profileTags = null) {
   plan = object(plan);
   const allowed = name => modalities === null || modalities.some(m => name === m || name.startsWith(m + '.'));
   const nv = object(plan.nonVerbal), motion = allowed('motion.handSign') ? object(plan.motion) : {};
@@ -54,10 +55,12 @@ export function normalizePlan(plan, modalities = null) {
     if(!allowed('motion.handAction'))warnings.push('Named hand output is unavailable for this instance');
     else try {
       if(Object.keys(rawMotion).length!==1)throw new Error('Conflicting hand motion');
-      action=handAction(rawMotion.handAction);sign=action.sign;
+      const parsed=handAction(rawMotion.handAction);
+      if(profileTags!==null&&!profileTags.includes('hand.poses.v2')&&(parsed.kind==='pose'||derivedSigns.includes(parsed.sign)))throw new Error('Custom hand output is unavailable for this instance');
+      action=parsed;sign=action.kind==='pose'?'custom_pose':action.sign;
     } catch(error) {warnings.push(error.message);}
   }
-  const effector = action?.effector || token(motion.effector) || 'right_hand';
+  const effector = (action?.kind==='pose' ? action.hands.length===2?'both_hands':action.hands[0].side+'_hand' : action?.effector) || token(motion.effector) || 'right_hand';
   const hand = ['left_hand', 'right_hand', 'both_hands'].includes(effector) ? effector : '';
   if (sign && !hand) warnings.push('Unmapped effector: ' + effector);
   return {
@@ -78,7 +81,7 @@ export class EmbodimentState {
   }
   receive(plan, options = {}, now = 0) {
     if (options.preserveNonSpeech) return;
-    this.pose = normalizePlan(plan, options.modalities ?? null);
+    this.pose = normalizePlan(plan, options.modalities ?? null, options.profileTags ?? null);
     const fresh = ['live', 'acknowledgement'].includes(options.delivery) && !options.fromHistory;
     this.started = fresh && this.visible && !this.reduced ? now : null;
   }

@@ -13,7 +13,7 @@ import ch.zhaw.prometheus.model.task.*;
 class NamedHandOutputUnitTest {
     final AgentInteractionProfile profile = AgentInteractionProfile.of(List.of(), List.of(HandActions.MODALITY), List.of("demo.valerian.coordination"));
     @Test void allSixNamedActionsAndSidesUseTheSameContractWithoutSpendingTaskBudget() {
-        for (String sign : HandSignObservation.SIGNS) for (String side : HandActions.EFFECTORS) {
+        for (String sign : HandSignObservation.BASIC_SIGNS) for (String side : HandActions.EFFECTORS) {
             var history = new EventHistory(); history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Show " + sign + " silently"));
             var storage = new Storage(); storage.put(TaskMemory.ACTIONS, new JsonPrimitive(2));
             var input = JsonParser.parseString("{\"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_SIGN\",\"value\":\"" + sign + "\",\"effector\":\"" + side + "\",\"silent\":true}}").getAsJsonObject();
@@ -28,7 +28,7 @@ class NamedHandOutputUnitTest {
     @Test void aliasesAreExplicitAndMalformedFutureOrAmbiguousActionsReject() {
         assertEquals("open_palm", HandActions.sign("halt")); assertEquals("index_up", HandActions.sign("attention"));
         assertEquals("thumbs_up", HandActions.sign("Thumbs up"));
-        for (String sign : List.of("ok", "ok_ring", "shaka", "rock", "constructor"))
+        for (String sign : List.of("ok", "ok_ring", "rock", "constructor"))
             assertThrows(IllegalArgumentException.class, () -> HandActions.named(sign,"right_hand"));
         var valid = HandActions.named("peace","left_hand");
         for (String invalid : List.of(valid.toString().replace("1", "2"), valid.toString().replace("1", "\"1\""),

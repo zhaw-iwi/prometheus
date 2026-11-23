@@ -42,8 +42,8 @@ public final class AgentCapabilityDescription {
         result.add("supportedBehaviourModalities", array(profile.getSupportedBehaviourModalities()));
         result.addProperty("externalRealtimeSpeech", profile.isExternalRealtimeSpeech());
         JsonObject meanings = new JsonObject();
-        for (String key : profile.getSupportedObservations()) meanings.addProperty(key, meaning(key));
-        for (String key : profile.getSupportedBehaviourModalities()) meanings.addProperty(key, meaning(key));
+        for (String key : profile.getSupportedObservations()) meanings.addProperty(key, meaning(key, profile));
+        for (String key : profile.getSupportedBehaviourModalities()) meanings.addProperty(key, meaning(key, profile));
         result.add("meanings", meanings);
         result.add("limits", array(List.of(
                 "Empty lists mean unspecified, not unlimited.",
@@ -66,7 +66,12 @@ public final class AgentCapabilityDescription {
                 + json;
     }
 
-    private static String meaning(String key) {
+    private static String meaning(String key, AgentInteractionProfile profile) {
+        if (ch.zhaw.prometheus.model.hand.HandFeatures.poses(profile)) {
+            if (key.equals("obs.hand.pose")) return "V2 one/two-hand bends: 0 straight, 1 bent, null unknown. States: straight <0.4, bent >0.55, else neutral. Hidden joints may be inferred; sides estimated, not identity.";
+            if (key.equals("obs.hand.signs")) return "Per-hand fist, peace, halt, thumbs up/down, index up; geometric shaka, horns, middle finger (no calibrated score). No intent/consent.";
+            if (key.equals("motion.handAction")) return "Digital output: nine named signs or custom per-finger bends on left/right/both hands. No physical receipt.";
+        }
         return MEANINGS.getOrDefault(key, "Custom capability; its semantics are unspecified here.");
     }
 

@@ -31,8 +31,10 @@ public final class CoordinationPerception {
         try {
             if (Event.TYPE_HAND_SIGNS.equals(latest.getType())) {
                 var observation = ch.zhaw.prometheus.model.hand.HandSignObservation.parse(latest.getPayload());
-                var signs = observation.hands().stream().filter(h -> h.sign() != null && h.confidence() != null)
-                        .map(h -> h.handedness() + " hand: " + h.sign().replace('_', ' ') + " (" + Math.round(h.confidence() * 100) + "%)")
+                var signs = observation.hands().stream().filter(h -> h.sign() != null && (h.confidence() != null
+                                || ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(h.sign())))
+                        .map(h -> h.handedness() + " hand: " + h.sign().replace('_', ' ') + (h.confidence() == null
+                                ? " (geometric estimate; no calibrated confidence)" : " (" + Math.round(h.confidence() * 100) + "%)"))
                         .collect(java.util.stream.Collectors.joining(", "));
                 return signs.isBlank() ? "No named sign is established by the fresh supplied hand observation."
                         : "The fresh supplied estimate reports " + signs + ". This is recognition, not intent or task acceptance.";

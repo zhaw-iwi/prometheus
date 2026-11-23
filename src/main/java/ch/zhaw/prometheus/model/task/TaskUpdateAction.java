@@ -151,6 +151,9 @@ public class TaskUpdateAction extends Action {
             if ((operation.equals("PROPOSE") || operation.equals("ACTIVATE")) && task == null) throw new IllegalArgumentException();
             if (task != null && !ch.zhaw.prometheus.model.hand.HandEvidence.enabled(storage)
                     && task.rules().stream().anyMatch(rule -> rule.handSign() != null)) throw new IllegalArgumentException("Unsupported named-hand capability");
+            if (task != null && !ch.zhaw.prometheus.model.hand.HandFeatures.poses(storage)
+                    && task.rules().stream().anyMatch(r -> r.handPose() != null && r.handPose().versioned() || r.handSign() != null && ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(r.handSign().sign())))
+                throw new IllegalArgumentException("Unsupported pose capability");
             if (Set.of("KEEP", "STOP", "PAUSE", "RESUME").contains(operation) && task != null) throw new IllegalArgumentException();
             if (operation.equals("PAUSE") && !TaskMemory.active(storage) && !"PAUSED".equals(TaskMemory.phase(storage))) throw new IllegalArgumentException();
             if (operation.equals("RESUME")) {

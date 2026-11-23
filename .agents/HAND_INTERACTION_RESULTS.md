@@ -123,9 +123,9 @@ hands, broader lighting/occlusion and paid L-01 remain unverified. No provider
 calls or reservations were made. All disposable database users/schemas were
 removed; no remote application database was used.
 
-## HI-03 ? Six named signs as immediate and task output
+## HI-03 - Six named signs as immediate and task output
 
-Status: **COMPLETE** (2026-11-23). Commit recorded in the next milestone.
+Status: **COMPLETE** (2026-11-23). Commit `bd678342` pushed to main.
 
 New Coordination profiles declare `motion.handAction`. The shared command handler
 and task validator accept the six implemented named signs with left/right/both
@@ -184,8 +184,103 @@ Instruction headroom is 45 bytes in the measured case; later capability addition
 must compact guidance, not truncate it. HI-02 detector limitations still apply.
 All disposable schemas/accounts were removed. Paid spend/reservations: **$0/$0**.
 
+## HI-04 - Composed finger poses and three derived signs
+
+Status: **COMPLETE** (2026-11-23). Commit recorded in the next milestone.
+
+New Coordination instances explicitly opt in with `hand.poses.v2`; saved named
+profiles keep six shapes and Generic agents keep v1 numeric poses. Strict v2
+pose ingress shares frame identity with named input, validates ten independent
+readings, and counts companion representations once against rate/action limits.
+Preparation and task rules use bounded partial masks on one or two distinct
+hands from the same capture. Direct `HAND_POSE` and canonical task output carry
+complete left/right finger targets, with neutral defaults for unspecified
+requests. The rig independently articulates all ten fingers and preserves the
+existing bounded hold/release and history-preview lifecycle.
+
+Shaka, horns and middle finger work as named triggers and output. Real detector
+failures exposed why averaging every joint cannot describe every named shape:
+a thumb may be straight at its joints but opposed across the palm; one folded
+finger joint can be averaged away. Named extension uses proximal/distal angles
+and palm-normalized thumb opposition, requiring known landmarks and timed
+stability. This does not change the low-level curvature values, thresholds or
+saved numeric predicates. Derived confidence is null, labelled geometric, with
+no fabricated classifier percentage. Named requests use named predicates rather
+than silently replacing them with numeric masks.
+
+Verification actually run:
+
+- **167 Java unit cases** pass in `target/hand-interaction-mysql/hi04-unit-confirmed.log`:
+  composed/legacy poses, named signals, all four command agents, strict output,
+  capability gates, preparation, unknown readings, distinct assignment, shared
+  evidence and perception. A focused 16-case perception recheck also passes after
+  excluding unscored basic classifier signs from factual answers. An earlier
+  PowerShell redirection reported exit 1 for Mockito's stderr warning although
+  all selected JUnit reports passed; the subprocess rerun reports Maven exit 0.
+- **26 local MySQL integration cases** pass in `target/gptlive-acceptance-b8b96c4c65`
+  (21 Coordination, five direct commands). Custom draft/checks and accepted terms
+  survive reload; a separate direct custom output leaves the action count/terms
+  intact. Missing-hand and reused preparation evidence do not act; a fresh
+  two-hand cue publishes one silent pose; its retry cannot repeat it.
+  The later `17a4bb59ba` run also passes 23 selected unit/integration checks.
+  The final `cfbd82df84` run passes four additional query/receipt cases plus
+  the saved-scissors check: **30 unique integration cases** across the runs. Live
+  instructions measure **15,993/16,000 UTF-8 bytes**, retaining explicit native
+  silence and automatic-remark authority. Context queries stay at 8 for 5/205
+  events; receipt entity loads stay zero. Later additions must compact guidance.
+- **70 JavaScript cases** pass in `hi04-js-final.log`, including all ten independent
+  joints, neutral/unknown readings, side/capability gates, shared emitter capture
+  identity, timed stability and rotation/scale/reflection invariance of derived
+  signs. **Seven Python contract tests** pass. Packaging and whitespace checks pass.
+- **18 actual-detector cases / 126 frames** pass in
+  `target/hand-interaction-detector/run-1795451252597`: the previous nine cases,
+  three new shapes and their mirrors, I-love-you versus horns, a partial one-hand
+  mask and a two-hand mask. All expected stable results arrive within 450 ms.
+  `composed-corpus.json` records hash-pinned public HaGRID overview provenance,
+  crops/transforms, the 0.60 operator setting and 1000 ms admission deadline.
+  Product default remains 0.65. The earlier three-shape failures are preserved in
+  `run-1795450811113` and diagnostics `run-1795451005539`; an intermediate geometric
+  attempt in `run-1795451054820` missed shaka/middle finger. The final criterion
+  evaluates emitted stable classifications, allowing unstable model warm-up but
+  forbidding any stable wrong result. This criterion change is explicit; prior
+  every-raw-frame failures were not relabelled. These are static-image fixtures,
+  not recorded motion or broad demographic/real-room accuracy.
+- Browser evidence is retained in `17a4bb59ba`, `3c13e0eb17`, `62c4e41aa9`
+  and the final narrow-layout/direct-pose run `3b5feb0ea3`. The complete two-hand cue journey and both
+  contact sheets pass in `62c4e41aa9`. Eighteen named and six custom front/side
+  views, the unavailable reading, and light/dark/narrow input panels were reviewed.
+  Nine direct named outputs, silence, task preservation, history deduplication,
+  unsupported profiles and the custom rig pass. Initial custom journey failures
+  were a case-sensitive test label and a fixture-only missing test class at
+  runtime; the provider fixture is now self-contained. Visual review caught
+  Chromium's WebGL context ceiling in an 18-cell contact sheet: two blank cells
+  escaped the old canvas-count assertion. The revised harness snapshots/disposes
+  each rendering and explicitly rejects empty pixels. Initial artifacts remain.
+  Four unique browser cases now pass. The final composed journey additionally
+  requests a silent standalone two-hand pose, verifies the exact ten values,
+  preserves the accepted agreement/action count, and checks its history preview.
+  The 390 px output and corrected non-wrapping Unavailable label were reviewed.
+  Camera/provider outputs in browser tests are fixtures; HTTP, MySQL and the
+  application pipeline are real. Both task and direct custom plans are silent.
+
+Commands: the local runner used `--java-tests` for the listed classes and
+`--browser --browser-mode enabled --browser-grep` for composed/named output
+journeys; exact invocations/artifacts are retained in the named logs. Units ran
+via Maven `-Dtest=... test`, Node `--test tests/js/hand/*.test.mjs
+tests/js/embodiment/*.test.mjs tests/js/live/hand-sensors.test.mjs`, and Python
+`-B -m unittest discover -s tests/gptlive -p test_hand_interaction.py`. The detector
+command is `node tests/hand-interaction/detector-smoke.mjs
+--manifest=tests/hand-interaction/composed-corpus.json`. Final Maven package and
+`git diff --check` pass.
+
+Remaining limits: small calibrated detector corpus only; inferred landmarks do
+not prove visibility or contact. Relational poses/ring/pointing/sequences and
+real-provider L-02 remain pending. No physical actuation or receipt is claimed.
+Paid OpenAI spend/reservations: **$0/$0**. All disposable accounts/schemas are
+cleaned by the runner; the configured remote application database was not used.
+
 ## Subsequent milestones
 
-HI-04 through HI-12: NOT STARTED. Follow `PLAN_HAND_INTERACTION.md`; each completion
-must record its actual checks, remaining limits and source revision here before
-committing and pushing.
+HI-05 through HI-12: NOT STARTED. Follow `PLAN_HAND_INTERACTION.md`; each completion
+must record actual checks, remaining limits and source revision before committing
+and pushing.

@@ -91,7 +91,12 @@ instances through `obs.hand.signs`, shared typed task predicates and consumed-fr
 fencing. HI-03 adds the same six named outputs through `motion.handAction` for
 new Coordination profiles, shared direct/task validation and the digital hand rig.
 Fresh output holds then releases; history remains a static preview. Saved profiles
-and legacy RPS stay unchanged. Custom poses and pointing are pending. Actual progress, calibrated detector limits and verification:
+and legacy RPS stay unchanged. HI-04 adds opt-in `hand.poses.v2`: distinct
+one/two-hand masks, unchanged mean-bend semantics, shared capture consumption,
+three geometric signs and independent per-finger output. Derived named shapes
+use thumb opposition/extension, not a numeric-mask substitution. Saved profiles
+stay unchanged. Ring and pointing are pending. Actual progress, calibrated
+detector limits and verification:
 `.agents/HAND_INTERACTION_RESULTS.md`.
 
 Previous work `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–05 acceptance

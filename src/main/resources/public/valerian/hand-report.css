@@ -1,6 +1,6 @@
 .hand-report-body { display: grid; gap: .75rem; min-height: 0; }
 .finger-pose-hand + .finger-pose-hand { margin-top: .75rem; }
-.finger-pose-row { display: grid; grid-template-columns: 4rem minmax(0, 1fr) 3.5rem; gap: .5rem; align-items: center; }
+.finger-pose-row { display: grid; grid-template-columns: 6rem minmax(0, 1fr) 3.5rem; gap: .5rem; align-items: center; }
 .finger-pose-row meter { width: 100%; }
 .finger-pose-row output { grid-column: 3; text-align: right; font-variant-numeric: tabular-nums; }
 .hand-report .signal-report-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4rem .65rem; }

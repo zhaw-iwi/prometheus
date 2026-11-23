@@ -336,6 +336,7 @@ def main():
                     if enabled == 'true':
                         specs.append('tests/playwright/valerian-named-signs.spec.mjs')
                         specs.append('tests/playwright/valerian-named-output.spec.mjs')
+                        specs.append('tests/playwright/valerian-composed-poses.spec.mjs')
                         specs.append('tests/playwright/valerian-finger-pose.spec.mjs')
                         specs += ['tests/playwright/valerian-gptlive.spec.mjs']
                         if not args.live_only:

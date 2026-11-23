@@ -1,9 +1,9 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {test,expect} from './fixtures/offline-ui-assets.mjs';
 import {synchronizeEmbodimentFrame} from './fixtures/embodiment-frame.mjs';
-const signs=['fist','peace','open_palm','thumbs_up','thumbs_down','index_up'];
+const signs=['fist','peace','open_palm','thumbs_up','thumbs_down','index_up','shaka','horns','middle_finger'];
 const action=(sign,effector='right_hand')=>({motion:{handAction:{schemaVersion:1,action:{kind:'sign',sign,effector}}}});
-test('named output renders six signs, releases fresh actions and previews history through local MySQL',async({page,request},info)=>{
+test('named output renders nine signs, releases fresh actions and previews history through local MySQL',async({page,request},info)=>{
   test.skip(process.env.PROMETHEUS_LIVE_EXPECT_ENABLED!=='true'||!process.env.PROMETHEUS_ADMIN_TOKEN,'Use the disposable MySQL runner');
   const admin={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN},code=Math.random().toString(36).slice(2,7).toUpperCase();
   const scope=await(await request.post('/admin/access-codes',{headers:admin,data:{code,enabled:true}})).json();
@@ -25,10 +25,10 @@ test('named output renders six signs, releases fresh actions and previews histor
       await expect(stage).toHaveAttribute('data-hand-sign',sign);await expect(stage).toHaveAttribute('data-hand-phase','released');
     }
     const outputs=(await history()).filter(e=>e.type==='resp.behaviour_plan'&&JSON.parse(e.payload).motion?.handAction);
-    expect(outputs).toHaveLength(6);expect(outputs.every(e=>!JSON.parse(e.payload).speech)).toBe(true);
+    expect(outputs).toHaveLength(signs.length);expect(outputs.every(e=>!JSON.parse(e.payload).speech)).toBe(true);
     expect((await memory())['task.actions']).toBeUndefined();expect((await memory())['coordination.agreement']).toBeUndefined();
     await page.reload();await expect(stage).toHaveAttribute('data-ready','true');await expect(stage).toHaveAttribute('data-hand-phase','preview');
-    expect((await history()).filter(e=>e.type==='resp.behaviour_plan'&&JSON.parse(e.payload).motion?.handAction)).toHaveLength(6);
+    expect((await history()).filter(e=>e.type==='resp.behaviour_plan'&&JSON.parse(e.payload).motion?.handAction)).toHaveLength(signs.length);
     await page.evaluate(e=>handleBehaviourEnvelope(e,{delivery:'live',eventId:e.id}),outputs.at(-1));
     await expect(stage).toHaveAttribute('data-hand-phase','preview');
     for(const [width,theme] of [[1440,'light'],[1440,'dark'],[390,'light']]){
@@ -74,9 +74,14 @@ test('named pose front and side contact sheet uses the production hand rig',asyn
       const scene=new RobotScene(canvas);scene.resize(400,360);scene.camera.position.set(angle==='side'?5:0,1.5,8);scene.camera.lookAt(0,1.1,0);
       const pose=normalizePlan({motion:{handAction:{schemaVersion:1,action:{kind:'sign',sign,effector:'both_hands'}}}});
       scene.draw({pose,gesture:0,ambient:0,transition:1,handBlend:1},0);
-      canvas.getContext('webgl2').finish();(window.__poseScenes??=[]).push(scene);
+      canvas.getContext('webgl2').finish();
+      const snapshot=document.createElement('canvas');snapshot.width=canvas.width;snapshot.height=canvas.height;snapshot.style.cssText=canvas.style.cssText;
+      const context=snapshot.getContext('2d');context.drawImage(canvas,0,0);
+      const pixels=context.getImageData(0,0,snapshot.width,snapshot.height).data;
+      if(pixels.filter((value,index)=>index%4===3&&value>0).length<1000)throw new Error('Empty pose rendering');
+      cell.replaceChild(snapshot,canvas);scene.dispose();scene.renderer.forceContextLoss();
     }
   },signs);
   await page.screenshot({path:info.outputPath('named-pose-contact-sheet.png'),fullPage:true});
-  expect(await page.locator('canvas').count()).toBe(12);
+  expect(await page.locator('canvas').count()).toBe(signs.length*2);
 });

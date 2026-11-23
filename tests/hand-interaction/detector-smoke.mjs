@@ -6,7 +6,8 @@ import {resolve,basename} from 'node:path';
 import {chromium} from '@playwright/test';
 
 const root=resolve('target/hand-interaction-detector'); mkdirSync(root,{recursive:true});
-const manifest=JSON.parse(readFileSync('tests/hand-interaction/detector-corpus.json','utf8'));
+const manifestPath=process.argv.find(arg=>arg.startsWith('--manifest='))?.slice(11)||'tests/hand-interaction/detector-corpus.json';
+const manifest=JSON.parse(readFileSync(manifestPath,'utf8'));
 const artifacts=resolve(root,`run-${Date.now()}`);mkdirSync(artifacts);
 writeFileSync(resolve(artifacts,'manifest.json'),JSON.stringify(manifest,null,2));
 const selected=process.argv.find(arg=>arg.startsWith('--case='))?.slice(7);
@@ -22,9 +23,10 @@ for (const source of manifest.sources) {
 const server=createServer((req,res)=>{
   const file=basename(new URL(req.url,'http://localhost').pathname);
   if(!file){res.setHeader('Content-Type','text/html');res.end('<!doctype html><canvas></canvas>');return;}
-  const allowed=new Set([...manifest.sources.map(s=>s.file),'named-signs.js']);
+  const local=new Set(['named-signs.js','finger-pose.js','patterns.js']);
+  const allowed=new Set([...manifest.sources.map(s=>s.file),...local]);
   if(!allowed.has(file)){res.writeHead(404);res.end();return;}
-  const path=file==='named-signs.js'?'src/main/resources/public/valerian/hand/named-signs.js':resolve(root,file);
+  const path=local.has(file)?'src/main/resources/public/valerian/hand/'+file:resolve(root,file);
   res.setHeader('Content-Type',file.endsWith('.wasm')?'application/wasm':/\.(m?js)$/.test(file)?'application/javascript':'application/octet-stream');
   res.end(readFileSync(path));
 });
@@ -54,15 +56,22 @@ try {
       for(let i=0;i<manifest.frames;i++){
         const at=i*manifest.frameIntervalMs,started=performance.now();
         const result=recognizer.recognizeForVideo(canvas,at+1);
-        const classified=tracker.observe(result,new Date(100000+at).toISOString(),manifest.threshold);
+        const classified=tracker.observe(result,new Date(100000+at).toISOString(),manifest.threshold,manifest.poses===true);
         const signs=classified.observation.hands.filter(h=>h.sign).map(h=>h.sign).sort();
-        const match=JSON.stringify(signs)===JSON.stringify([...scenario.expected].sort());
-        if(classified.stable&&match&&stableAt===null)stableAt=at;
-        frames.push({at,ms:performance.now()-started,stable:classified.stable,match,hands:classified.observation.hands,classes:result.gestures});
+        const poseMatch = (wanted, hands, used = new Set(), position = 0) => position === wanted.length || hands.some((hand, index) =>
+          !used.has(index) && (wanted[position].side === 'any' || wanted[position].side === hand.handedness)
+          && Object.entries(wanted[position].states).every(([finger,state]) => hand.fingerStates[finger] === state)
+          && poseMatch(wanted,hands,new Set([...used,index]),position+1));
+        const match=scenario.expectedPose ? poseMatch(scenario.expectedPose,classified.pose.hands)
+          : JSON.stringify(signs)===JSON.stringify([...scenario.expected].sort());
+        const stable=scenario.expectedPose?classified.poseStable:classified.stable;
+        if(stable&&match&&stableAt===null)stableAt=at;
+        frames.push({at,ms:performance.now()-started,stable,match,hands:classified.observation.hands,pose:classified.pose,classes:result.gestures,
+          ...(manifest.diagnostics ? {landmarks:result.landmarks,worldLandmarks:result.worldLandmarks} : {})});
       }
       recognizer.close();
-      const passed=stableAt!==null&&stableAt<=manifest.stableDeadlineMs&&frames.every(f=>f.match);
-      output.push({id:scenario.id,expected:scenario.expected,stableAt,passed,frames,image:canvas.toDataURL('image/png')});
+      const passed=stableAt!==null&&stableAt<=manifest.stableDeadlineMs&&frames.every(f=>f.match||manifest.admissionOnly===true&&!f.stable);
+      output.push({id:scenario.id,expected:scenario.expected??scenario.expectedPose,stableAt,passed,frames,image:canvas.toDataURL('image/png')});
     }
     return output;
   },manifest);

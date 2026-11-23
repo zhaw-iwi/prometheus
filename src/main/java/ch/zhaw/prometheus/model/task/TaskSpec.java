@@ -43,8 +43,7 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
         public String conditionKey() {
             if (handSign != null) return eventType + "/" + handSign.sign() + "/" + handSign.handedness();
             return handPose == null ? conditionDescription()
-                    : eventType + "/" + handPose.handedness() + "/" + handPose.all().stream()
-                        .sorted(Comparator.comparing(HandPoseCondition.Comparison::finger)).toList();
+                    : eventType + "/" + handPose.key();
         }
     }
     private static final Gson JSON = new Gson();
@@ -108,6 +107,7 @@ public record TaskSpec(String goal, int maxActions, List<Rule> rules, boolean se
                 if (!rule.get("minConfidence").getAsJsonPrimitive().isNumber()) throw new IllegalArgumentException();
                 double confidence = rule.get("minConfidence").getAsDouble();
                 if (!Double.isFinite(confidence) || confidence < 0 || confidence > 1) throw new IllegalArgumentException();
+                if (handSign != null && ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(handSign.sign()) && confidence != 0) throw new IllegalArgumentException("Derived shapes have no calibrated confidence");
                 if (handPose != null && confidence != 0) throw new IllegalArgumentException("Finger bend has no detection confidence");
                 if (legacy && !rule.get("complete").getAsJsonPrimitive().isBoolean()) throw new IllegalArgumentException();
                 Effect effect = legacy ? (rule.get("complete").getAsBoolean() ? Effect.COMPLETE : Effect.ACT)

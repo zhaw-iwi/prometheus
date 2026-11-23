@@ -14,7 +14,7 @@ import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 import ch.zhaw.prometheus.spi.InferenceRequest;
 
-/** Hand-pose support remains available to Generic agents, outside Coordination's sensing contract. */
+/** Generic keeps legacy numeric poses; new Coordination instances opt into v2 poses. */
 class CoordinationHandPoseUnitTest {
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
 
@@ -25,11 +25,11 @@ class CoordinationHandPoseUnitTest {
         return proposal;
     }
 
-    @Test void coordinationKeepsPoseExcludedWhileAddingNamedSignInput() {
-        assertFalse(f.agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_POSE));
+    @Test void coordinationDeclaresVersionedPosesWithoutChangingGenericContracts() {
+        assertTrue(f.agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_POSE));
         assertTrue(f.agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_SIGN));
         assertTrue(f.agent.getInteractionProfile().supportsObservation(Event.TYPE_HAND_SIGNS));
-        assertFalse(f.agent.getInteractionProfile().getSupportedObservations().contains(AgentInteractionProfile.OBS_HAND_POSE));
+        assertTrue(ch.zhaw.prometheus.model.hand.HandFeatures.poses(f.agent.getInteractionProfile()));
         assertTrue(new GenericMultimodalBehaviourAtSocialSpace().createAgent().getInteractionProfile()
                 .getSupportedObservations().contains(AgentInteractionProfile.OBS_HAND_POSE));
         f.propose(CoordinationAgentUnitTest.sensor(true), f.text);

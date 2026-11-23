@@ -98,6 +98,7 @@ public class CoordinationUpdateAction extends Action {
                         + "\nRecent committed operations (requests/plans, not physical evidence): " + (storage.containsKey(CoordinationMemory.LOG) ? storage.get(CoordinationMemory.LOG) : "none")
                         + "\nLatest user reflection (their report, not a measured outcome): " + (storage.containsKey(CoordinationMemory.REVIEW) ? storage.get(CoordinationMemory.REVIEW) : "none")
                         + "\nSupported sensor fields: " + TaskSpec.FIELDS
+                        + (ch.zhaw.prometheus.model.hand.HandFeatures.poses(storage) ? ch.zhaw.prometheus.model.task.HandPoseCondition.coordinationInstructions() : "")
                         + (ch.zhaw.prometheus.model.hand.HandEvidence.enabled(storage) ? ch.zhaw.prometheus.model.task.HandSignCondition.instructions() : "")
                         + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. For ordinary KEEP or REFLECT replies, omit reply.speech and supply only supported nonverbal behaviour. For a confirmed task contribution, describe the required contribution in reply.speech in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
                         + (assent ? "\nInterpret this short reply ONLY against the completed utterance: " + new JsonPrimitive(invitation)
@@ -199,6 +200,10 @@ public class CoordinationUpdateAction extends Action {
                 && (proposed.checks().stream().anyMatch(c -> c.handSign() != null)
                     || proposed.reactions() != null && proposed.reactions().rules().stream().anyMatch(r -> r.handSign() != null)))
             throw new IllegalArgumentException("Create a new Coordination instance to enable named hand signs");
+        if (proposed != null && !ch.zhaw.prometheus.model.hand.HandFeatures.poses(storage)
+                && (proposed.checks().stream().anyMatch(c -> c.handPose() != null || c.handSign() != null && ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(c.handSign().sign()))
+                    || proposed.reactions() != null && proposed.reactions().rules().stream().anyMatch(r -> r.handPose() != null || r.handSign() != null && ch.zhaw.prometheus.model.hand.HandFeatures.DERIVED_SIGNS.contains(r.handSign().sign()))))
+            throw new IllegalArgumentException("Create a new Coordination instance to enable custom poses and derived signs");
         if (!OPERATIONS.contains(operation) || (Set.of("PROPOSE", "REPLACE", "PROPOSE_AND_START").contains(operation) != (proposed != null))) throw new IllegalArgumentException();
         if (CoreTaskVoice.normalize(text).matches("what can you do|what are your capabilities|who are you|was kannst du|wer bist du")
                 && !Set.of("KEEP", "SUPPORT").contains(operation))

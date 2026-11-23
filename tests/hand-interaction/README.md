@@ -22,7 +22,9 @@ The roadmap and evidence are in `.agents/PLAN_HAND_INTERACTION.md` and
 
 HI-02 implements `obs.hand.signs` and its `handSign` condition for new Coordination
 instances. HI-03 implements the six-sign subset of `motion.handAction` for new
-Coordination profiles, direct commands and task output. Other new boundaries
+Coordination profiles, direct commands and task output. HI-04 adds the explicit
+`hand.poses.v2` profile tag for v2 poses/two-hand conditions, custom output and
+shaka/horns/middle_finger. The tag never widens a saved profile implicitly. Other new boundaries
 remain specifications until their milestone. Do
 not send new envelopes to old agents. Later adoption must explicitly check the
 persisted profile and offer recreation/upgrade without silently widening an
@@ -114,3 +116,26 @@ run directory each time. Rotated/mirrored/cropped views are declared pixel
 transforms, not additional independent people or private captures. Model/source
 digest drift fails before inference. This small corpus is not a real-room accuracy
 claim; retained default-threshold and exploratory-view failures are in the results.
+
+HI-04 expanded corpus (18 cases / 126 actual inference frames):
+
+```powershell
+node tests/hand-interaction/detector-smoke.mjs --manifest=tests/hand-interaction/composed-corpus.json
+```
+
+It adds hash-pinned crops of the public HaGRID gesture overview (Kapitanov et al.),
+three derived signs and mirrored views, the I-love-you near miss and partial
+one/two-hand masks. Attribution and source/license links are in the manifest;
+photos and transformed captures remain under ignored target. This is static-image
+inference, not recorded moving hands. The new admission criterion requires the
+expected stable result by 1000 ms and forbids any stable wrong result; unstable
+warm-up estimates remain in artifacts. Original every-raw-frame and initial
+geometry failures are retained in the results log, not relabelled as passing.
+
+Derived named shapes use proximal/distal extension and palm-normalized thumb
+opposition. They deliberately differ from mean joint-curvature `fingerStates`:
+folding a thumb across the palm can leave its joints nearly straight. Their
+confidence is null. The original numeric bend estimator is unchanged, including
+its neutral band; use the named rule for a named shape instead of inventing a
+low-level numeric equivalence. Synthetic rotation/scale/mirroring and unknown
+landmark tests protect geometry; corpus results establish only these examples.
