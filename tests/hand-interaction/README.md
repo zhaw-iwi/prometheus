@@ -296,9 +296,9 @@ browser/Java selections. Keep the existing developer model configuration unchang
 
 The enforced plan is `tests/gptlive/hand-paid-plan.json`. Its separate persistent
 ledger is `target/hand-interaction-budget.json`; never reset it or refund a failed
-attempt. Allocation 10 preserves the 88-attempt/$186 original checkpoint and reserves
-$5 for each new selection, including the backend and Live. Its maximum is 98
-attempts/$236. Restore the latest committed ledger using the
+attempt. Allocation 11 adds $20 to the $50 continuation from the 88-attempt/$186 checkpoint.
+Each new selection reserves $5 including backend and Live. The cumulative limit is
+102 attempts/$256. Restore the latest committed ledger using the
 [handoff](../../.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 Each attempt permits one six-minute native session, ten backend requests, 80,000
 UTF-8 bytes per request, 2,048 completion tokens per call and twelve visitor

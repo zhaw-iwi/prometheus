@@ -7,9 +7,9 @@ which local credentials, audio and database prerequisites must be recreated.
 
 ## Current hand acceptance allocation
 
-Allocation 10 starts with 88 attempts and $186 reserved. This continuation permits
-ten $5 reservations, including backend inference and native Live, with a cumulative
-limit of $236. See the latest hand interaction handoff for the current ledger.
+Allocation 11 adds $20 to the $50 continuation that began at 88 attempts/$186.
+Each selection reserves $5 across backend inference and native Live. The cumulative
+ceiling is 102 attempts/$256. See the latest hand interaction handoff for the current ledger.
 The L-02 report records command delivery and individual native caption/audio
 observations under each direct turn's `commandTiming`. Clock overlap and missing
 evidence leave ordering undetermined. The local PCM, outgoing RTP counters

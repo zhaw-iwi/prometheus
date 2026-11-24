@@ -4,7 +4,13 @@ export function commandTiming(turn, traces, diagnostics) {
   const source=turn.commandSource?.id;
   const delivery=source ? traces.filter(e=>e.sourceId===source && /^command_.*_(send|ack)$/.test(e.phase))
     .sort((a,b)=>a.sequence-b.sequence) : [];
-  return {source,delivery,observations:observations(turn.events||[],turn.clock,diagnostics,
+  const receipt=turn.memory?.['command.lastResult'];
+  const poseId=source && receipt && receipt.sourcePosition===turn.commandSource.position ? receipt.renderedEvent : null;
+  const committed=poseId ? traces.find(e=>e.sourceId===poseId && e.phase==='command_pose_receipt_committed') : null;
+  const send=delivery.find(e=>e.phase==='command_rendered_send'), ack=delivery.find(e=>e.phase==='command_rendered_ack');
+  const renderer=poseId ? {poseId,committedMs:committed?.serverMs??null,sendMs:send?.serverMs??null,
+    ackMs:ack?.serverMs??null,observations:observations(turn.events||[],turn.clock,diagnostics,send?.serverMs,ack?.serverMs)} : null;
+  return {source,delivery,renderer,observations:observations(turn.events||[],turn.clock,diagnostics,
     delivery.find(e=>e.phase.endsWith('_send'))?.serverMs,delivery.find(e=>e.phase.endsWith('_ack'))?.serverMs)};
 }
 

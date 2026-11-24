@@ -113,12 +113,16 @@ class LiveCommandResultUnitTest {
         DirectCommands.publishedPose(storage, plan, owner);
         assertFalse(DirectCommands.renderedPose(storage, history, source.getId(), owner, now));
         assertFalse(DirectCommands.renderedPose(storage, history, id, null, now));
+        assertFalse(DirectCommands.renderedPose(storage, history, id,
+                new ch.zhaw.prometheus.model.policy.ExternalSpeech(UUID.randomUUID(), owner.epoch()), now));
         assertFalse(DirectCommands.renderedPose(storage, history, id, owner, now.plusSeconds(30)));
         assertEquals("ACCEPTED", LiveCommandResult.current(agent, now, source.getId()::equals).status());
-        assertTrue(DirectCommands.renderedPose(storage, history, id, owner, now));
+        assertTrue(DirectCommands.renderedPose(storage, history, id, owner, now.plusSeconds(4)));
         assertFalse(DirectCommands.renderedPose(storage, history, id, owner, now));
         var confirmed = LiveCommandResult.current(agent, now, source.getId()::equals);
         assertEquals("RENDERED", confirmed.status()); assertEquals(source.getId(), confirmed.source());
         assertTrue(confirmed.facts().contains("Digital renderer confirmed this pose."));
+        history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Do something else"));
+        assertNull(LiveCommandResult.current(agent, now.plusSeconds(5), source.getId()::equals));
     }
 }

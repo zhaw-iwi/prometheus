@@ -36,6 +36,7 @@ import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 import ch.zhaw.prometheus.model.commons.actions.StaticExtractionAction;
 import ch.zhaw.prometheus.model.commons.decisions.StaticDecision;
 import ch.zhaw.prometheus.model.event.Event;
+import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 import ch.zhaw.prometheus.model.policy.OutputProfile;
 import ch.zhaw.prometheus.model.policy.PolicyRuntime;
 import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
@@ -46,6 +47,7 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 @Service
 public class AgentApplicationService {
+    public record PoseRendered(UUID agentId, ExternalSpeech owner, UUID eventId) {}
     private static final Logger LOGGER = LoggerFactory.getLogger(AgentApplicationService.class);
 
     private final AgentRepository repository;
@@ -296,9 +298,15 @@ public class AgentApplicationService {
             if (request != null && new com.google.gson.JsonPrimitive("POSE_RENDERED").equals(request.get("operation"))) {
                 if (!request.keySet().equals(java.util.Set.of("operation", "eventId")))
                     throw new IllegalArgumentException("Invalid pose rendering receipt");
-                boolean changed = agent.renderedPose(UUID.fromString(ch.zhaw.prometheus.model.hand.HandSignObservation.text(request.get("eventId"))),
-                        speechOwnership == null ? null : speechOwnership.current(agent), java.time.Instant.now());
-                if (changed) persistAndPublishMonitor(agent);
+                UUID eventId = UUID.fromString(ch.zhaw.prometheus.model.hand.HandSignObservation.text(request.get("eventId")));
+                var owner = speechOwnership == null ? null : speechOwnership.current(agent);
+                if (agent.renderedPose(eventId, owner, java.time.Instant.now())) {
+                    persistAndPublishMonitor(agent);
+                    if (applicationEvents != null) {
+                        var receipt = new PoseRendered(agentID, owner, eventId);
+                        AfterCommit.run(() -> applicationEvents.publishEvent(receipt));
+                    }
+                }
                 return Optional.of("{}");
             }
             boolean sceneChanged=refreshScene(agent);

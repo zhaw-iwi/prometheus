@@ -1,4 +1,4 @@
-"""Fail-closed $50 continuation from the immutable 88-attempt/$186 checkpoint. Importing this module never bills."""
+"""Fail-closed $70 continuation from the immutable 88-attempt/$186 checkpoint. Importing never bills."""
 import hashlib
 import json
 import os
@@ -15,6 +15,7 @@ EXTENSION = 'hand-interaction-2026-11-24-usd20-extension'
 SECOND_EXTENSION = 'hand-interaction-2026-11-24-usd30-extension'
 THIRD_EXTENSION = 'hand-interaction-2026-11-24-usd100-extension'
 CONTINUATION = 'hand-interaction-2026-11-24-live-continuation-usd50'
+CONTINUATION_EXTENSION = 'hand-interaction-2026-11-24-live-continuation-plus-usd20'
 LIMITS = dict(backendRequests=10, requestBytes=80000, inputFramingTokenAllowance=2048,
               completionTokensPerRequest=2048, reportedTokens=250000, sessions=1,
               sessionSeconds=360, journeySeconds=390, visitorTurns=12,
@@ -26,9 +27,9 @@ def validate(plan, model):
     if plan.get('acceptanceRevision') != 2:
         raise ValueError('Use hand acceptance revision 2; preserve earlier failures')
     if (plan.get('schema') != 'hand-paid-plan-v1' or plan.get('authorized') is not True
-            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 98
-            or plan.get('maximumReservedUsd') != 236 or plan.get('reserveUsdPerAttempt') != 5
-            or plan.get('allocationRevision') != 10 or plan.get('extensionAuthorization') != CONTINUATION):
+            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 102
+            or plan.get('maximumReservedUsd') != 256 or plan.get('reserveUsdPerAttempt') != 5
+            or plan.get('allocationRevision') != 11 or plan.get('extensionAuthorization') != CONTINUATION_EXTENSION):
         raise ValueError('Unreviewed hand authorization')
     if plan.get('models') != {'backend': 'gpt-6.2-sol', 'live': 'gpt-live-1.1'} or model != 'gpt-6.2-sol' or plan.get('backendReasoningEffort') != 'low':
         raise ValueError('Unpriced hand model')
@@ -47,6 +48,7 @@ def validate(plan, model):
 
 
 def _allocation_for(index):
+    if index >= 96: return 11, CONTINUATION_EXTENSION
     if index >= 88: return 10, CONTINUATION
     if index < 28: return 4, EXTENSION
     if index < 36: return 5, EXTENSION
@@ -66,7 +68,15 @@ def checkpoint_history():
             or extension['continuationCapUsd'] != 50 or len(extra) > 10
             or extension['cumulativeReservedUsd'] != base['reservedUsd'] + sum(a['reservedUsd'] for a in extra)):
         raise ValueError('Invalid hand continuation checkpoint')
-    return {**base, 'attempts': base['attempts'] + extra, 'reservedUsd': extension['cumulativeReservedUsd']}
+    attempts = base['attempts'] + extra
+    topup = json.loads((CHECKPOINT / 'live-continuation-extension.json').read_text(encoding='utf-8'))
+    added = topup['reservations']
+    if (len(attempts) != topup['baseAttempts'] or topup['baseAttempts'] != 96
+            or extension['cumulativeReservedUsd'] != topup['baseReservedUsd'] or topup['baseReservedUsd'] != 226
+            or topup['addedCapUsd'] != 20 or topup['continuationCapUsd'] != 70 or len(added) > 6
+            or topup['cumulativeReservedUsd'] != topup['baseReservedUsd'] + sum(a['reservedUsd'] for a in added)):
+        raise ValueError('Invalid hand continuation extension checkpoint')
+    return {**base, 'attempts': attempts + added, 'reservedUsd': topup['cumulativeReservedUsd']}
 
 
 def restore_checkpoint(ledger=LEDGER):
@@ -85,23 +95,23 @@ def history(ledger=LEDGER):
     data = json.loads(ledger.read_text(encoding='utf-8'))
     attempts = data.get('attempts')
     if (data.get('authorization') != AUTHORIZATION or not isinstance(attempts, list)
-            or not 88 <= len(attempts) <= 98 or any(a.get('mode') not in MODES
+            or not 96 <= len(attempts) <= 102 or any(a.get('mode') not in MODES
                                        or a.get('reservedUsd') != (4 if i<3 else 2 if i<28 else 1 if i<74 else 7 if i<78 else 5)
                                        or not a.get('artifact')
                                        or i >= 22 and (a.get('allocationRevision'), a.get('extensionAuthorization')) != _allocation_for(i)
                                        for i,a in enumerate(attempts))
             or data.get('reservedUsd') != sum(a['reservedUsd'] for a in attempts)
-            or data.get('reservedUsd') > 236):
+            or data.get('reservedUsd') > 256):
         raise ValueError('Invalid hand ledger; never replace or reset it')
     saved = checkpoint_history()['attempts']
-    if attempts[:len(saved)] != saved or sum(a['reservedUsd'] for a in attempts[88:]) > 50:
+    if attempts[:len(saved)] != saved or sum(a['reservedUsd'] for a in attempts[88:]) > 70:
         raise ValueError('Invalid hand ledger: checkpoint prefix or continuation cap')
     return data
 
 
 def available_budget(mode, ledger=LEDGER):
     data = history(ledger)
-    if mode not in MODES or len(data['attempts']) >= 98 or data['reservedUsd'] + 5 > 236:
+    if mode not in MODES or len(data['attempts']) >= 102 or data['reservedUsd'] + 5 > 256:
         raise ValueError('Hand budget exhausted or invalid selection; no provider call permitted')
     return data
 
@@ -112,7 +122,9 @@ def reserve(mode, artifact, ledger=LEDGER):
     descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     try:
         data = available_budget(mode, ledger)
-        data['attempts'].append({'mode': mode, 'artifact': str(Path(artifact).resolve()), 'reservedUsd': 5, 'allocationRevision': 10, 'extensionAuthorization': CONTINUATION})
+        revision, authorization = _allocation_for(len(data['attempts']))
+        data['attempts'].append({'mode': mode, 'artifact': str(Path(artifact).resolve()), 'reservedUsd': 5,
+                                 'allocationRevision': revision, 'extensionAuthorization': authorization})
         data['reservedUsd'] += 5
         temporary = ledger.with_suffix('.tmp')
         temporary.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')

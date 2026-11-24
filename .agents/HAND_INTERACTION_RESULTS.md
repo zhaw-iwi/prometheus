@@ -1691,3 +1691,52 @@ Verification passed 315 focused Java tests, 48 isolated local-MySQL cases, six
 Playwright cases, 18 Node tests, 45 Python tests, nine schema examples and Maven
 packaging. The source manifests recorded no changes during any of the four paid
 runs. The original reservations and earlier recorded verdicts were preserved.
+
+### Attempt 97, original L-02 proposal and renderer delivery
+
+Allocation 11 adds the owner's $20 to the $50 continuation. Attempt 97 reserved
+$5. The ledger stands at 97 entries/$231, with $45 of $70 reserved in this
+continuation and $25 available. These figures record reservations. The
+[portable checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-extension.json)
+contains the original input timing, full captions, local audio transcription,
+review delivery timeline and reservation. The run directory is `3934fdcc27`.
+
+- **Opening passed in this run.** Attempt 96 began speaking 5.47 seconds into
+  the original recording, with 17.94 seconds of visitor speech remaining.
+  Its “laugh” caption preceded the first “When my” input caption. Attempt 97
+  played the same recording. The first native caption arrived 2.13 seconds
+  after the visitor finished and the first audible output followed at 2.54
+  seconds. Live described the requested two-hand pattern, the demonstration
+  and acceptance. The saved draft contained all ten finger states.
+- **Full journey failed at review capture.** The exact demonstration satisfied
+  preparation and the backend reached READY. Live spoke a 45-word review ending
+  “Shall we start?” and repeated “one action total.” The 105-second local audio
+  transcription independently reached the final question. Only the proposal
+  stimulus played. During the review the provider produced the input caption
+  “Mm-mm”. The first four words of the review were saved as incomplete. The
+  extra visitor turn was admitted at 20:41:54.322 UTC, the review occasion was
+  withdrawn at 20:41:54.654, and the remaining words were saved separately.
+  The backend never recorded a completed review. The proposal stayed inactive
+  with zero actions. Consent and the independent direct pose were unexercised.
+- **Renderer delivery verified offline.** An accepted, persisted receipt now
+  wakes the exact owner after commit. The existing quiet context read supplies
+  the current command result. The fixed-clock test delivers one quiet update
+  inside the five-second coalescing window. Domain tests cover delayed,
+  duplicate, missing, wrong-session and expired receipts, and a superseding user
+  turn. The paid run provides no new receipt-to-Live latency measurement.
+
+All 368 focused Java unit tests, 48 local-MySQL tests, six browser cases,
+45 Python tests, 19 Node tests, nine schema examples and Maven packaging passed.
+The first offline Text sequence check sampled the step label and the finger
+pose in separate frames. The rerun checked the complete pose against the step
+and phase of each captured image. The paid source manifest remained unchanged.
+The runner stopped its app and removed its disposable schema/account.
+
+The server audio bucket containing the “Mm-mm” caption had 28,800 input samples,
+zero input peak RMS and 16,320 voiced output samples. The last bucket with
+voiced input ended 39.80 seconds before the caption arrived. Replaying the
+captured review prefix and provider media offsets through the production
+segmenter closed the review as `INCOMPLETE/user_interrupted` with both silent
+and voiced input controls. Next, test turn admission against time-aligned input
+audio for this case, a quiet genuine interruption, and missing or delayed audio.
+Preserve explicit consent and interruption handling. HI-12 and L-02 remain open.

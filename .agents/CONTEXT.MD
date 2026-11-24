@@ -122,7 +122,7 @@ showed native speech already underway before the exact-turn pose result was sent
 Attempt 90 reproduced truncated consent and the request for fresh confirmation.
 The backend separates command acceptance from digital rendering and withholds
 ambiguous OK motion. Native semantic acceptance remains outstanding. Allocation
-10 permits up to $50 in new reservations from entry 89. The maximum ledger is
+10 permits up to $50 in new reservations from entry 89. That allocation permitted
 98 entries/$236 inclusive. Attempts 91 and 92 demonstrated correct direct
 OK clarification and post-task pose acknowledgement. Their full journeys
 still have capture or review failures. Attempt 93 delivered a past-tense review
@@ -130,7 +130,12 @@ and one arming confirmation, but its consent repair included unsupported gesture
 narration. Attempt 94 passed L-03 with deliberate incomplete consent and a
 subsequent fresh acceptance. Attempt 96 correctly reviewed preparation and
 armed once. Its invented opening task and early claim of digital display keep
-L-02 open. The ledger has 96 entries and $226 reserved, leaving $10 in the continuation.
+L-02 open. Allocation 11 adds $20 to the existing cap, allowing a total of $70 from attempt 89
+and a cumulative maximum of 102 entries/$256.
+Attempt 97 waited for the full proposal and matched its terms. An unscripted
+“Mm-mm” input during the review split its capture and the review was withdrawn.
+The direct pose was not reached. Exact-owner urgent renderer delivery passed
+offline. The ledger stands at 97/$231 with $25 available.
 See `.agents/HAND_INTERACTION_RESULTS.md` for individual outcomes. Isolated tests
 use GPT-6.2 Sol (low) and GPT-Live-1.1. Measured billing is unavailable.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,

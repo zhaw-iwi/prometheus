@@ -36,7 +36,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
     @Override public boolean hasDraft() { return storage().containsKey(CoordinationMemory.DRAFT); }
     @Override public String liveDirectCommandGuidance() {
         return "REFLECTION".equals(CoordinationMemory.stage(storage()))
-                ? "Treat 'show' or 'stretch' as a new demo, even for the same pose. Acknowledge the request once or let the robot respond. Discuss feedback or restart only if asked."
+                ? "Treat 'show' or 'stretch' as a new demo, even for the same pose. Acknowledge once or let the robot respond. Say it was shown only after renderer confirmation. Discuss feedback or restart only if asked."
                 : "";
     }
     @Override public String statusPhase() {
@@ -53,8 +53,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "All task proposals, transitions, actions, edits and recovery require backend confirmation. "
                 + "Use 'you' for human duties/preparation/consent, 'I' for agent duties; never swap. "
                 + "Give confirmed task/support responses once, then listen. Keep persona asides for ordinary conversation. "
-                + "Never complete a partial task request. "
-                + "Acknowledge a proposed task briefly. Its saved terms and next step follow. "
+                + "A task opener asking you to wait can have more terms coming. Listen or say 'go ahead'. Leave its name, cue and action open. "
                 + "During preparation/proposal, never preview task content, including sample jokes. Say 'the line you supplied' only for user-supplied text. "
                 + "Only confirm acceptance, start or completion on its speaking occasion. Partial consent leaves a proposal inactive. "
                 + "Omit implementation details. Answer unrelated questions and explicitly requested capability examples. "

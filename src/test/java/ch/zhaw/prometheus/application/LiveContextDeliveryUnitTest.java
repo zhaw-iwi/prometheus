@@ -274,6 +274,40 @@ class LiveContextDeliveryUnitTest {
             verify(contexts, times(2)).refresh(AGENT, owner);
         } finally { bridge.shutdown(); }
     }
+    @Test void matchingPoseReceiptRefreshesInsideCoalescingWindowAndOnlyAddsQuietFacts() {
+        var contexts = mock(LiveAgentContextService.class);
+        var initial = snapshot("r1", "Guide");
+        var now = new AtomicLong();
+        Clock clock = mock(Clock.class);
+        when(clock.millis()).thenAnswer(call -> now.get());
+        var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
+        UUID user = UUID.randomUUID(), pose = UUID.randomUUID();
+        var rendered = new LiveContextSnapshot(AGENT, EPOCH, "r2", Instant.EPOCH, initial.statePath(),
+                initial.instructions(), List.of(), 0, initial.guidance(), initial.userSilenceMs(), null, false,
+                false, initial.assistantSilenceMs(), new LiveCommandResult.Turn(user, "RENDERED", "Renderer confirmed."));
+        when(contexts.refresh(AGENT, owner)).thenReturn(Optional.of(new LiveAgentContextService.Update(initial, List.of())),
+                Optional.of(new LiveAgentContextService.Update(rendered, List.of())));
+        var bridge = new LiveContextBridgeService(contexts, clock);
+        var sent = new CopyOnWriteArrayList<LiveContextDelivery.Command>();
+        var applied = new AtomicInteger();
+        var session = bridge.open(initial, owner, sent::add, c -> applied.incrementAndGet(), value -> fail(value));
+        try {
+            session.ready();
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 1);
+            now.set(100);
+            bridge.changed(new AgentCommitted(AGENT, EPOCH));
+            bridge.poseRendered(new AgentApplicationService.PoseRendered(UUID.randomUUID(), owner, pose));
+            bridge.poseRendered(new AgentApplicationService.PoseRendered(AGENT, new ExternalSpeech(owner.sessionId(), UUID.randomUUID()), pose));
+            verify(contexts, times(1)).refresh(AGENT, owner);
+            bridge.poseRendered(new AgentApplicationService.PoseRendered(AGENT, owner, pose));
+            await().atMost(Duration.ofSeconds(3)).until(() -> applied.get() == 2);
+            assertEquals(1, sent.size());
+            assertEquals("session.thinking.append", sent.getFirst().type());
+            assertEquals("RENDERED", sent.getFirst().commandStatus());
+            assertEquals(user, sent.getFirst().sourceId());
+            assertTrue(session.status().recent().stream().anyMatch(t -> t.phase().equals("command_pose_receipt_committed") && pose.equals(t.sourceId())));
+        } finally { bridge.shutdown(); }
+    }
     @Test void pendingDelegationStillWakesAtItsFiveSecondDeadline() {
         var contexts = mock(LiveAgentContextService.class); var now = new AtomicLong();
         Clock clock = mock(Clock.class); when(clock.millis()).thenAnswer(call -> now.get());

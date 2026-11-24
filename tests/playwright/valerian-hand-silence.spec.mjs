@@ -50,10 +50,19 @@ for(const mode of ['Text','Continuous'])test(`strict hand silence in ${mode} cov
     await silent('custom pose',async()=>{await say('Show the custom two hand pose silently');await expect(stage).toHaveAttribute('data-hand-sign','custom_pose');await expect(stage).toHaveAttribute('data-hand-phase','released');expect((await memory())['command.lastResult'].silent).toBe(true);});
     await interpret('HAND_SEQUENCE',sequence);
     await silent('count sequence',async()=>{
-      await say('Count one to three silently');
-      for(let i=1;i<=3;i++){await expect(stage).toHaveAttribute('data-sequence-step',String(i));await expect(stage).toHaveAttribute('data-hand-phase','holding');
-        const snapshot=await page.evaluate(()=>ValerianEmbodiment.snapshot());expect(snapshot.pose.action).toEqual(sequence.steps[i-1].action);
-        writeFileSync(info.outputPath(`${mode}-count-${i}.png`),Buffer.from(snapshot.image.split(',')[1],'base64'));}
+      const captures=sequence.steps.map(async({action},index)=>{
+        const step=index+1;
+        const frame=await page.waitForFunction(step=>{
+          const stage=document.querySelector('[data-testid="embodiment-stage"]');
+          if(stage?.dataset.sequenceStep!==String(step)||stage.dataset.handPhase!=='holding')return false;
+          const snapshot=ValerianEmbodiment.snapshot();
+          return snapshot?.step===step&&snapshot.phase==='holding' ? snapshot : false;
+        },step);
+        const snapshot=await frame.jsonValue();
+        expect(snapshot.pose.action).toEqual(action);
+        writeFileSync(info.outputPath(`${mode}-count-${step}.png`),Buffer.from(snapshot.image.split(',')[1],'base64'));
+      });
+      await Promise.all([...captures,say('Count one to three silently')]);
       await expect(stage).toHaveAttribute('data-sequence-status','completed');await expect.poll(async()=>(await memory())['hand.execution.v1'].status).toBe('COMPLETED');
     });
     await request.delete('/__live-fixture/direct-command');

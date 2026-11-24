@@ -17,6 +17,19 @@ test('only exact-turn send and ACK bracket each observed fragment, retaining ove
   assert.ok(commandTiming(turn,[],new Map()).observations.every(e=>e.observed==='undetermined'));
 });
 
+test('renderer timing requires the exact pose and uses the rendered acknowledgement',()=>{
+  const turn={commandSource:{id:'user',position:4},memory:{'command.lastResult':{sourcePosition:4,renderedEvent:'pose'}},
+    clock:{sent:100,received:104,serverTimeMs:1000},events:[120,150].map(at=>({at,type:'output_voice'}))};
+  const traces=[['old','command_pose_receipt_committed',1000],['user','command_accepted_ack',1005],
+    ['pose','command_pose_receipt_committed',1024],['user','command_rendered_send',1026],['user','command_rendered_ack',1032]]
+    .map(([sourceId,phase,serverMs],sequence)=>({sourceId,phase,serverMs,sequence}));
+  const {renderer}=commandTiming(turn,traces,new Map());
+  assert.equal(renderer.committedMs,1024);assert.equal(renderer.sendMs,1026);assert.equal(renderer.ackMs,1032);
+  assert.deepEqual(renderer.observations.map(e=>e.observed),['observed_before_result_sent','observed_after_result_ack']);
+  turn.commandSource.position=8;
+  assert.equal(commandTiming(turn,traces,new Map()).renderer,null);
+});
+
 test('arming joins its comment by occasion ID and brackets both replies, including one before commit',()=>{
   const at=ms=>new Date(ms).toISOString();
   const memory={'core.task.response':{id:'arm',created:at(1020),expires:at(2000)},'task.response':{id:'arm',purpose:'ARMING'}};

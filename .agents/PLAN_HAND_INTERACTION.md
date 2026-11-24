@@ -827,3 +827,12 @@ showed one correct arming confirmation and a review in the past tense. Attempt
 94 passed the full L-03 geometry journey with the deliberate incomplete consent
 turn. Consult the [latest results](HAND_INTERACTION_RESULTS.md) and the tracked
 continuation ledger before selecting another paid journey.
+
+Allocation 11 adds the owner-authorized $20 to the $50 continuation. Its initial
+balance is $30 at entry 96/$226. Each paid selection reserves $5 and counts toward
+the $70 continuation and $256 cumulative ceilings. The ledger retains all earlier
+entries under their original authorizations. Attempt 97 played the original
+L-02 proposal. It passed the opening and stopped at a split proposal review,
+before the direct command. The offline segmenter replay split the review with
+both silent and voiced input. Test time-aligned audio evidence for admission
+and preserve quiet genuine interruptions. The remaining reservation balance is $25.

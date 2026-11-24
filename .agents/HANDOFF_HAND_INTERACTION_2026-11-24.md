@@ -2,7 +2,7 @@
 
 HI-01 through HI-11 are complete. HI-12 remains open. The historical implementation
 checkpoint was `82d12bc7`. The latest findings and reservations are in
-[`live-continuation.json`](checkpoints/hand-interaction-2026-11-24/live-continuation.json)
+[the extension checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-extension.json)
 and the final section of [the results](HAND_INTERACTION_RESULTS.md).
 
 ## Start here
@@ -77,7 +77,19 @@ The [results](HAND_INTERACTION_RESULTS.md) and portable
 [run evidence](checkpoints/hand-interaction-2026-11-24/live-continuation.json)
 preserve the individual verdicts and the review, repair and arming timelines.
 Allocation 10 has used eight $5 reservations, reaching 96 attempts/$226
-cumulatively. Two more ($10) fit the owner's cap.
+cumulatively at the close of that allocation.
+
+Attempt 97, the single original L-02 run selected under allocation 11, waited
+for the visitor's full proposal and described the correct hand pattern. During
+the spoken review the provider supplied “Mm-mm” as new visitor input. The
+review was split and withdrawn. The task stayed inactive. The new urgent
+renderer receipt passed offline coverage and was not reached in this run.
+The server received 28,800 zero-peak input samples in the caption's audio
+bucket. Offline replay closed the review identically for silent and voiced
+input. Test audio-backed admission against quiet real interruptions before a
+new paid selection.
+The ledger now contains **97 attempts/$231**, leaving **$25** of the $70
+continuation. See the [attempt 97 evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-extension.json).
 
 ## Findings carried into this continuation
 
@@ -113,10 +125,10 @@ tests. These results are historical evidence, not tests run on the new device.
 
 ## Carry the spending history across devices
 
-Allocation 10 permits up to $50 of new reservations from attempt 89, including the
-backend and GPT-Live. Each selection reserves $5. The enforced maximum is 98 entries
-and $236 cumulative. The former allocation's unused balance is included in this
-envelope. Obtain fresh owner authorization before increasing it. Invoices are unavailable.
+Allocation 11 adds the owner's $20 increase to the existing $50 continuation.
+Across backend inference and GPT-Live, the continuation ceiling is $70 from attempt 89.
+Each selection reserves $5. The cumulative ceiling is 102 entries and $256.
+Obtain fresh owner authorization before increasing it. Invoices are unavailable.
 
 Restore historical reservations before any paid selection. The helper verifies the
 original canonical checksum and the complete tracked continuation prefix. It only

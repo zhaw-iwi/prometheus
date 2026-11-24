@@ -3,8 +3,8 @@
   "authorized": true,
   "authorization": "hand-interaction-2026-11-23-usd50",
   "dated": "2026-11-23",
-  "maximumAttempts": 98,
-  "maximumReservedUsd": 236,
+  "maximumAttempts": 102,
+  "maximumReservedUsd": 256,
   "reserveUsdPerAttempt": 5,
   "models": {
     "backend": "gpt-6.2-sol",
@@ -48,10 +48,10 @@
   },
   "stimulus": "Locally synthesized Windows speech, 24kHz mono PCM. Controlled sensor/scene observations; real provider interpretation, speech and capture. No provider synthesis or grading.",
   "rubric": "Review complete captured replies and received native audio, plus synchronized visible output. Wrong sign, side, direction, target, order, roles, terms, count, renewed consent after activation, premature execution, false cancellation, denial or completion claim fails. Missing evidence is INCONCLUSIVE. GPT-Live strict silence is unsupported by owner decision 2026-11-24; truthful optional native speech is allowed. No backend playback approval, buffering, muting or replacement TTS may make Live pass. Text/Continuous strict silence is verified separately. Sensor fixtures do not prove camera accuracy; digital receipts do not prove physical actuation. Preserve revision-1 failures; require new revision-2 evidence.",
-  "failurePolicy": "Keep every failed/crashed reservation and artifact. No refunds, ledger reset or automatic paid retries. Ten initial sessions cover L-01..08 and separate L-09 sessions. Further diagnostic attempts require explicit selection, within 98 total attempts and USD 236 reserved.",
-  "allocationRevision": 10,
-  "allocationReason": "Allocation 10 preserves 88 attempts and USD 186 reserved. The continuation is capped at USD 50 across all provider routes, ten USD 5 reservations through 98 attempts and USD 236 cumulatively. The remaining prior allowance is included.",
+  "failurePolicy": "Keep every failed/crashed reservation and artifact. No refunds, ledger reset or automatic paid retries. Ten initial sessions cover L-01..08 and separate L-09 sessions. Further diagnostic attempts require explicit selection, within 102 total attempts and USD 256 reserved.",
+  "allocationRevision": 11,
+  "allocationReason": "Allocation 11 adds USD 20 to the USD 50 continuation from 88 attempts and USD 186. All 96 prior reservations (USD 226) stand. The continuation permits USD 70 across provider routes, with USD 5 per selection and a USD 256 cumulative ceiling.",
   "acceptanceRevision": 2,
-  "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-usd50",
+  "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-plus-usd20",
   "backendReasoningEffort": "low"
 }

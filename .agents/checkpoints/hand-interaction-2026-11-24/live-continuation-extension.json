@@ -1,0 +1,992 @@
+{
+  "baseAttempts": 96,
+  "baseReservedUsd": 226,
+  "addedCapUsd": 20,
+  "continuationCapUsd": 70,
+  "cumulativeReservedUsd": 231,
+  "reservations": [
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-3934fdcc27",
+      "reservedUsd": 5,
+      "allocationRevision": 11,
+      "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-plus-usd20"
+    }
+  ],
+  "reviews": [
+    {
+      "attempt": 97,
+      "mode": "L-02",
+      "artifact": "gptlive-acceptance-3934fdcc27",
+      "automatedPassed": false,
+      "error": "Timed out: all recognition checks and completed native review",
+      "sourceManifestSha256": "4b157cc25efd20fb3083945531368d185de0f3ffc180405276fde2717bf43812",
+      "sourceChangedDuringRun": [],
+      "proposalInput": {
+        "sha256": "3511cc70533f00dbccb33f62c6483556fa694dc94e61cb2e22468c9abe49a4d1",
+        "intended": "Propose one task, but wait for preparation and acceptance. When my left index is stretched with its other four fingers bent, and my right thumb is stretched with its other four fingers bent in the same frame, reproduce that two hand pattern once. I demonstrate the pattern and judge the digital result; you reproduce it. One action total. Use default settings.",
+        "speechDurationMs": 23405,
+        "firstNativeVoiceMs": 25941,
+        "wordsDuringInput": [
+          {
+            "ms": 1612,
+            "channel": "input_transcript",
+            "words": " Propose"
+          },
+          {
+            "ms": 1748,
+            "channel": "input_transcript",
+            "words": " one"
+          },
+          {
+            "ms": 2369,
+            "channel": "input_transcript",
+            "words": " task"
+          },
+          {
+            "ms": 3005,
+            "channel": "input_transcript",
+            "words": ", but"
+          },
+          {
+            "ms": 3180,
+            "channel": "input_transcript",
+            "words": " wait"
+          },
+          {
+            "ms": 3365,
+            "channel": "input_transcript",
+            "words": " for"
+          },
+          {
+            "ms": 4003,
+            "channel": "input_transcript",
+            "words": " preparation"
+          },
+          {
+            "ms": 4192,
+            "channel": "input_transcript",
+            "words": " and"
+          },
+          {
+            "ms": 4757,
+            "channel": "input_transcript",
+            "words": " acceptance"
+          },
+          {
+            "ms": 5960,
+            "channel": "input_transcript",
+            "words": ". When my"
+          },
+          {
+            "ms": 6363,
+            "channel": "input_transcript",
+            "words": " left"
+          },
+          {
+            "ms": 6762,
+            "channel": "input_transcript",
+            "words": " index is"
+          },
+          {
+            "ms": 7204,
+            "channel": "input_transcript",
+            "words": " stretched"
+          },
+          {
+            "ms": 7430,
+            "channel": "input_transcript",
+            "words": " with"
+          },
+          {
+            "ms": 7612,
+            "channel": "input_transcript",
+            "words": " its"
+          },
+          {
+            "ms": 7831,
+            "channel": "input_transcript",
+            "words": " other"
+          },
+          {
+            "ms": 7964,
+            "channel": "input_transcript",
+            "words": " four"
+          },
+          {
+            "ms": 8322,
+            "channel": "input_transcript",
+            "words": " fingers"
+          },
+          {
+            "ms": 8997,
+            "channel": "input_transcript",
+            "words": " bent"
+          },
+          {
+            "ms": 9448,
+            "channel": "input_transcript",
+            "words": " and"
+          },
+          {
+            "ms": 9630,
+            "channel": "input_transcript",
+            "words": " my"
+          },
+          {
+            "ms": 9814,
+            "channel": "input_transcript",
+            "words": " right"
+          },
+          {
+            "ms": 10018,
+            "channel": "input_transcript",
+            "words": " thumb"
+          },
+          {
+            "ms": 10198,
+            "channel": "input_transcript",
+            "words": " is"
+          },
+          {
+            "ms": 10624,
+            "channel": "input_transcript",
+            "words": " stretched"
+          },
+          {
+            "ms": 10847,
+            "channel": "input_transcript",
+            "words": " with"
+          },
+          {
+            "ms": 11028,
+            "channel": "input_transcript",
+            "words": " its"
+          },
+          {
+            "ms": 11208,
+            "channel": "input_transcript",
+            "words": " other"
+          },
+          {
+            "ms": 11346,
+            "channel": "input_transcript",
+            "words": " four"
+          },
+          {
+            "ms": 11822,
+            "channel": "input_transcript",
+            "words": " fingers"
+          },
+          {
+            "ms": 12057,
+            "channel": "input_transcript",
+            "words": " bent"
+          },
+          {
+            "ms": 12146,
+            "channel": "input_transcript",
+            "words": " in the"
+          },
+          {
+            "ms": 12595,
+            "channel": "input_transcript",
+            "words": " same"
+          },
+          {
+            "ms": 12943,
+            "channel": "input_transcript",
+            "words": " frame"
+          },
+          {
+            "ms": 13990,
+            "channel": "input_transcript",
+            "words": ", reproduce"
+          },
+          {
+            "ms": 14205,
+            "channel": "input_transcript",
+            "words": " that"
+          },
+          {
+            "ms": 14338,
+            "channel": "input_transcript",
+            "words": " two"
+          },
+          {
+            "ms": 14741,
+            "channel": "input_transcript",
+            "words": "-hand"
+          },
+          {
+            "ms": 15196,
+            "channel": "input_transcript",
+            "words": " pattern"
+          },
+          {
+            "ms": 15563,
+            "channel": "input_transcript",
+            "words": " once"
+          },
+          {
+            "ms": 16524,
+            "channel": "input_transcript",
+            "words": " I"
+          },
+          {
+            "ms": 17234,
+            "channel": "input_transcript",
+            "words": " demonstrate"
+          },
+          {
+            "ms": 17412,
+            "channel": "input_transcript",
+            "words": " the"
+          },
+          {
+            "ms": 17593,
+            "channel": "input_transcript",
+            "words": " pattern"
+          },
+          {
+            "ms": 17724,
+            "channel": "input_transcript",
+            "words": " and"
+          },
+          {
+            "ms": 18187,
+            "channel": "input_transcript",
+            "words": " judge the"
+          },
+          {
+            "ms": 18578,
+            "channel": "input_transcript",
+            "words": " digital"
+          },
+          {
+            "ms": 19178,
+            "channel": "input_transcript",
+            "words": " result"
+          },
+          {
+            "ms": 19537,
+            "channel": "input_transcript",
+            "words": ". You"
+          },
+          {
+            "ms": 20417,
+            "channel": "input_transcript",
+            "words": " reproduce"
+          },
+          {
+            "ms": 20556,
+            "channel": "input_transcript",
+            "words": " it"
+          },
+          {
+            "ms": 21595,
+            "channel": "input_transcript",
+            "words": ". One"
+          },
+          {
+            "ms": 21734,
+            "channel": "input_transcript",
+            "words": " action"
+          },
+          {
+            "ms": 22366,
+            "channel": "input_transcript",
+            "words": " total"
+          },
+          {
+            "ms": 23345,
+            "channel": "input_transcript",
+            "words": ". Use"
+          }
+        ]
+      },
+      "captions": " I can watch for that exact two-hand pattern and reproduce it once, but first I'd just need your actual demonstration and acceptance, so, please show it when you're ready. The proposal is saved and not active. Please demonstrate your left hand with the thumb bent, index straight, and the other three bent, and your right hand with only the thumb straight. Then, we'll review before you accept, okay? Preparation’s complete, so after you accept, show the pose again and judge my single digital imitation. Success is whether you say it matched, limit is one action total, one action total, and the task only runs once after a fresh matching cue. Shall we start?",
+      "admitted": [
+        {
+          "id": "f57c9c73-4f08-4a8a-a58f-928e0e32d111",
+          "text": "Propose one task, but wait for preparation and acceptance. When my left index is stretched with its other four fingers bent and my right thumb is stretched with its other four fingers bent in the same frame, reproduce that two-hand pattern once I demonstrate the pattern and judge the digital result. You reproduce it. One action total. Use default settings"
+        },
+        {
+          "id": "99542f9e-703d-402d-953e-400f5f398b39",
+          "text": "Mm-mm"
+        }
+      ],
+      "capturedNative": [
+        {
+          "id": "0e773142-210f-4286-ae23-870b65401256",
+          "words": "I can watch for that exact two-hand pattern and reproduce it once, but first I'd just need your actual demonstration and acceptance, so, please show it when you're ready. The proposal is saved and not active. Please demonstrate your left hand with the thumb bent, index straight, and the other three bent, and your right hand with only the thumb straight. Then, we'll review before you accept, okay?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "3c72136c-6e6e-4f50-a5c1-236b35283dfa",
+          "words": "Preparation’s complete, so after",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "49317e03-ed09-4faf-820b-d291f0b5fa1b",
+          "words": "you accept, show the pose again and judge my single digital imitation. Success is whether you say it matched, limit is one action total, one action total, and the task only runs once after a fresh matching cue. Shall we start?",
+          "complete": true,
+          "association": "NONE"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "ae853c9627f3473c3df245808c5a75f5cbd5c578133d37454167ed56ae79aa08",
+            "duration": 105.0,
+            "segments": [
+              {
+                "start": 27.89,
+                "end": 35.25,
+                "text": " I can watch for that exact two-hand pattern and reproduce it once, but first I just need",
+                "logprob": -0.21090150267506638
+              },
+              {
+                "start": 35.25,
+                "end": 41.61,
+                "text": " your actual demonstration and acceptance, so please show it when you're ready.",
+                "logprob": -0.21090150267506638
+              },
+              {
+                "start": 41.61,
+                "end": 43.91,
+                "text": " The proposal is saved and not active.",
+                "logprob": -0.21090150267506638
+              },
+              {
+                "start": 43.91,
+                "end": 48.69,
+                "text": " Please demonstrate your left hand with the thumb bent, index straight, and the other three",
+                "logprob": -0.21090150267506638
+              },
+              {
+                "start": 48.69,
+                "end": 52.73,
+                "text": " bent, and your right hand with only the thumb straight.",
+                "logprob": -0.21090150267506638
+              },
+              {
+                "start": 52.73,
+                "end": 64.72,
+                "text": " Then we'll review before you accept, okay?",
+                "logprob": -0.21090150267506638
+              },
+              {
+                "start": 64.72,
+                "end": 69.3,
+                "text": " Preparation is complete, so after you accept, show the pose again and judge my single digital",
+                "logprob": -0.2841468337756484
+              },
+              {
+                "start": 69.3,
+                "end": 71.32,
+                "text": " limitation.",
+                "logprob": -0.2841468337756484
+              },
+              {
+                "start": 71.32,
+                "end": 77.12,
+                "text": " Success is whether you say it matched, limit is one action total, one action total, and the",
+                "logprob": -0.2841468337756484
+              },
+              {
+                "start": 77.12,
+                "end": 81.4,
+                "text": " task only runs once after a fresh matching cue.",
+                "logprob": -0.2841468337756484
+              },
+              {
+                "start": 81.4,
+                "end": 89.4,
+                "text": " Shall we start?",
+                "logprob": -0.2841468337756484
+              }
+            ]
+          }
+        ]
+      },
+      "observedImages": [],
+      "renderChecks": [],
+      "proposal": {
+        "goal": "Reproduce the two-hand pattern digitally once.",
+        "humanRole": "Demonstrate the pose for preparation, accept the task, then show it again and judge the digital result.",
+        "agentRole": "Reproduce the two-hand pose digitally once on a fresh cue after acceptance.",
+        "success": "You judge whether the digital pose matches.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pose",
+            "minConfidence": 0,
+            "handPose": {
+              "schemaVersion": 1,
+              "hands": [
+                {
+                  "handedness": "left",
+                  "all": [
+                    {
+                      "finger": "thumb",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "index",
+                      "operator": "eq",
+                      "value": "straight"
+                    },
+                    {
+                      "finger": "middle",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "ring",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "little",
+                      "operator": "eq",
+                      "value": "bent"
+                    }
+                  ]
+                },
+                {
+                  "handedness": "right",
+                  "all": [
+                    {
+                      "finger": "thumb",
+                      "operator": "eq",
+                      "value": "straight"
+                    },
+                    {
+                      "finger": "index",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "middle",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "ring",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "little",
+                      "operator": "eq",
+                      "value": "bent"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Reproduce the two-hand pattern digitally once.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pose",
+              "action": "Show one simultaneous digital pose: left index and right thumb straight, all other fingers bent.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPose": {
+                "schemaVersion": 1,
+                "hands": [
+                  {
+                    "handedness": "left",
+                    "all": [
+                      {
+                        "finger": "thumb",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "index",
+                        "operator": "eq",
+                        "value": "straight"
+                      },
+                      {
+                        "finger": "middle",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "ring",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "little",
+                        "operator": "eq",
+                        "value": "bent"
+                      }
+                    ]
+                  },
+                  {
+                    "handedness": "right",
+                    "all": [
+                      {
+                        "finger": "thumb",
+                        "operator": "eq",
+                        "value": "straight"
+                      },
+                      {
+                        "finger": "index",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "middle",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "ring",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "little",
+                        "operator": "eq",
+                        "value": "bent"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "phase": "CONFIGURATION",
+      "actions": null,
+      "outcome": null,
+      "checkpoints": [
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        }
+      ],
+      "directCommand": null,
+      "controlDeliveries": [],
+      "physicalAudibility": "NOT_RUN",
+      "verdict": "FAIL — required proposal review was spoken across an intervening input turn and lacked a completed review receipt. Consent, execution and independent rendering were not reached.",
+      "openingFinding": "First audible output was 2.54 seconds after the original stimulus speech ended. The two-hand proposal matched the visitor request and no unrelated task was introduced.",
+      "reviewOccasion": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+      "reviewDelivery": [
+        {
+          "serverMs": 1795552904298,
+          "phase": "announcement_committed",
+          "type": null,
+          "revision": "60a7058603c26935fbfa55568aaa2f2fe4a5044a9811dc97dcee78f91c42ece8",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 23,
+          "contentBytes": 0,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552904804,
+          "phase": "send",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 24,
+          "contentBytes": 199,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552905563,
+          "phase": "ack",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 25,
+          "contentBytes": 199,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552905563,
+          "phase": "send",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 26,
+          "contentBytes": 440,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552906170,
+          "phase": "ack",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 27,
+          "contentBytes": 440,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552906170,
+          "phase": "send",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 28,
+          "contentBytes": 458,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552907376,
+          "phase": "ack",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 29,
+          "contentBytes": 458,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552907376,
+          "phase": "send",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 30,
+          "contentBytes": 221,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552907988,
+          "phase": "ack",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 31,
+          "contentBytes": 221,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552907988,
+          "phase": "send",
+          "type": "session.commentary.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 32,
+          "contentBytes": 210,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552908941,
+          "phase": "ack",
+          "type": "session.commentary.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 33,
+          "contentBytes": 210,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552914654,
+          "phase": "task_narration_withdrawn",
+          "type": "session.commentary.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 38,
+          "contentBytes": 210,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552914654,
+          "phase": "send",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 39,
+          "contentBytes": 393,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        },
+        {
+          "serverMs": 1795552915359,
+          "phase": "ack",
+          "type": "session.thinking.append",
+          "revision": "53723ca50d8e384ea9e5633fff1304d3e0fe4afeed7dcbc11c780d50ede26722",
+          "sourceId": "2a5ca874-d82f-4130-b669-4cf83b0fb5b7",
+          "sequence": 40,
+          "contentBytes": 393,
+          "sourceIds": [
+            "2a5ca874-d82f-4130-b669-4cf83b0fb5b7"
+          ]
+        }
+      ],
+      "reviewCaptureTimeline": [
+        {
+          "id": "3c72136c-6e6e-4f50-a5c1-236b35283dfa",
+          "createdDate": "2026-11-24T20:41:50.792811Z",
+          "type": "resp.behaviour_plan",
+          "payload": "{\"speech\":\"Preparation’s complete, so after\"}",
+          "provenance": {
+            "origin": "NATIVE",
+            "sessionId": "8c365cfa-fbb7-4507-869c-8127eea3cb17",
+            "epoch": "fd88b119-bad5-4983-802e-595886f5f8e6",
+            "segmentId": "bc9c8193-4834-3302-a1ff-fbd88ef15bae",
+            "association": "NONE",
+            "intentIds": [],
+            "complete": false,
+            "playbackConfirmed": null
+          }
+        },
+        {
+          "id": "99542f9e-703d-402d-953e-400f5f398b39",
+          "createdDate": "2026-11-24T20:41:54.322021Z",
+          "type": "obs.user_utterance",
+          "payload": "Mm-mm",
+          "provenance": null
+        },
+        {
+          "id": "49317e03-ed09-4faf-820b-d291f0b5fa1b",
+          "createdDate": "2026-11-24T20:42:08.641361Z",
+          "type": "resp.behaviour_plan",
+          "payload": "{\"speech\":\"you accept, show the pose again and judge my single digital imitation. Success is whether you say it matched, limit is one action total, one action total, and the task only runs once after a fresh matching cue. Shall we start?\"}",
+          "provenance": {
+            "origin": "NATIVE",
+            "sessionId": "8c365cfa-fbb7-4507-869c-8127eea3cb17",
+            "epoch": "fd88b119-bad5-4983-802e-595886f5f8e6",
+            "segmentId": "b9448371-30fe-3247-a3ca-04e60b8baefd",
+            "association": "NONE",
+            "intentIds": [],
+            "complete": true,
+            "playbackConfirmed": null
+          }
+        }
+      ],
+      "reviewFinding": "The backend reached READY with the exact preparation evidence. GPT-Live sent the input caption Mm-mm during its own review. The partial opening was persisted, the new visitor turn was admitted, and the review occasion was withdrawn before the remaining sentence was captured. The independent recording runs through the final question. Only posepropose was played. An actual visitor did not supply or withhold consent in this test.",
+      "finalCockpitSha256": "471227cb06074ad7ca942ab501d8432f0c13ae650301e47de3edfee0de97d86f",
+      "preparationEvidence": {
+        "0": {
+          "observed": "2026-11-24T20:41:44.191Z",
+          "eventId": "obs.hand.pose:2026-11-24T20:41:44.191Z"
+        }
+      },
+      "transitions": [
+        {
+          "operation": "PROPOSE",
+          "at": "2026-11-24T20:41:22.518047800Z",
+          "run": "none",
+          "taskOutcome": "not_established",
+          "phase": "PREPARATION",
+          "beforePhase": "CONVERSATION",
+          "revision": "1",
+          "actions": "0",
+          "source": "history:1",
+          "sourcePosition": 1,
+          "eventType": "obs.user_utterance"
+        },
+        {
+          "operation": "PREPARATION_EVIDENCE",
+          "at": "2026-11-24T20:41:44.237682600Z",
+          "run": "none",
+          "taskOutcome": "not_established",
+          "phase": "READY",
+          "beforePhase": "PREPARATION",
+          "revision": "1",
+          "actions": "0",
+          "source": "history:5",
+          "sourcePosition": 5,
+          "eventType": "obs.hand.pose",
+          "observed": "2026-11-24T20:41:44.191Z"
+        }
+      ],
+      "renderStatus": "Not reached in this paid selection. Matching, stale, delayed and absent renderer evidence covered offline.",
+      "sourceRevision": "2e1b46aedab8e4c2360ec27afc3a3a4399471c48",
+      "artifactsSha256": {
+        "journey.json": "c34cd8ec1654cd34394bd9882c25ad9c7dd0689d3083d49454ffb725393e01ed",
+        "audio-review.json": "f11c032c96e4f7d9f80ad5d92f1c62c4bfb7dbd90a3288f6795a8f8afa5dbed6",
+        "source.json": "4b157cc25efd20fb3083945531368d185de0f3ffc180405276fde2717bf43812"
+      },
+      "interruptionEvidence": {
+        "providerCaption": {
+          "type": "session.input_transcript.delta",
+          "event_id": "event_EnrcnFOBxbcfpClmWAaQO",
+          "delta": " Mm-mm",
+          "start_ms": 62400,
+          "end_ms": 62600,
+          "at": 71539.79999999888
+        },
+        "receipt": {
+          "type": "session.input_transcript.delta",
+          "sequence": 782,
+          "serverMs": 1795552910719,
+          "eventId": "event_EnrcnFOBxbcfpClmWAaQO",
+          "clientEventId": null
+        },
+        "audioBuckets": [
+          {
+            "serverMs": 1795552908379,
+            "endServerMs": 1795552909317,
+            "inputSamples": 24000,
+            "outputSamples": 24000,
+            "voicedInputSamples": 0,
+            "voicedOutputSamples": 960,
+            "inputPeakRms": 0,
+            "outputPeakRms": 2418
+          },
+          {
+            "serverMs": 1795552909380,
+            "endServerMs": 1795552910374,
+            "inputSamples": 24000,
+            "outputSamples": 24000,
+            "voicedInputSamples": 0,
+            "voicedOutputSamples": 18720,
+            "inputPeakRms": 0,
+            "outputPeakRms": 6179
+          },
+          {
+            "serverMs": 1795552910396,
+            "endServerMs": 1795552911379,
+            "inputSamples": 28800,
+            "outputSamples": 24000,
+            "voicedInputSamples": 0,
+            "voicedOutputSamples": 16320,
+            "inputPeakRms": 0,
+            "outputPeakRms": 5528
+          },
+          {
+            "serverMs": 1795552911524,
+            "endServerMs": 1795552912387,
+            "inputSamples": 24000,
+            "outputSamples": 24000,
+            "voicedInputSamples": 0,
+            "voicedOutputSamples": 18720,
+            "inputPeakRms": 0,
+            "outputPeakRms": 4667
+          },
+          {
+            "serverMs": 1795552912529,
+            "endServerMs": 1795552913380,
+            "inputSamples": 24000,
+            "outputSamples": 24000,
+            "voicedInputSamples": 0,
+            "voicedOutputSamples": 16320,
+            "inputPeakRms": 0,
+            "outputPeakRms": 3830
+          }
+        ],
+        "lastVoicedInputBucketEndMs": 1795552870918,
+        "reviewBoundaryFragments": [
+          {
+            "type": "session.output_transcript.delta",
+            "event_id": "event_EnrcmlARdzUm2JGyAq2G2",
+            "delta": " Preparation’s",
+            "start_ms": 60800,
+            "end_ms": 61000,
+            "at": 69927.5
+          },
+          {
+            "type": "session.output_transcript.delta",
+            "event_id": "event_EnrcmUz2bQ5nwWIDKhDBB",
+            "delta": " complete",
+            "start_ms": 61400,
+            "end_ms": 61600,
+            "at": 70488.40000000037
+          },
+          {
+            "type": "session.output_transcript.delta",
+            "event_id": "event_EnrcnMeuvNOxJ6nyahWdY",
+            "delta": ",",
+            "start_ms": 61800,
+            "end_ms": 62000,
+            "at": 71007.09999999963
+          },
+          {
+            "type": "session.output_transcript.delta",
+            "event_id": "event_Enrcn2H3h7w8MPgEU6FjV",
+            "delta": " so",
+            "start_ms": 62000,
+            "end_ms": 62200,
+            "at": 71256.59999999963
+          },
+          {
+            "type": "session.output_transcript.delta",
+            "event_id": "event_EnrcnZvR60qc1eycgHNl1",
+            "delta": " after",
+            "start_ms": 62200,
+            "end_ms": 62400,
+            "at": 71348.19999999925
+          },
+          {
+            "type": "session.input_transcript.delta",
+            "event_id": "event_EnrcnFOBxbcfpClmWAaQO",
+            "delta": " Mm-mm",
+            "start_ms": 62400,
+            "end_ms": 62600,
+            "at": 71539.79999999888
+          },
+          {
+            "type": "session.output_transcript.delta",
+            "event_id": "event_EnrcoCHBShtxzgVSyEMil",
+            "delta": " you",
+            "start_ms": 62400,
+            "end_ms": 62600,
+            "at": 71675.79999999888
+          }
+        ],
+        "segmenterReplay": "Replayed the five assistant fragments and the Mm-mm input with their original provider media offsets and relative browser receipt times. A 200 ms silent input control and a voiced input control each closed the partial assistant segment as INCOMPLETE/user_interrupted."
+      }
+    }
+  ]
+}

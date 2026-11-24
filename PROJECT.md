@@ -100,7 +100,12 @@ and regulation diagnostics remain future work.
   passed the full L-03 geometry journey with a deliberate consent repair. The
   last L-02 review separated finished preparation and fresh cues. An invented
   opening task and a display claim before receipt of the renderer fact kept
-  L-02 open. The ledger stands at 96/$226, with $10 of the $50 continuation left.
+  L-02 open. At 96/$226, the owner increased the continuation limit to $70
+  and the cumulative ceiling to $256.
+  Attempt 97 waited for the full original request and got the pose right.
+  An unscripted input split the spoken proposal review. The task stayed
+  inactive and the urgent renderer receipt was verified offline only.
+  The ledger has 97 entries/$231 reserved, leaving $25 available.
   [Results](.agents/HAND_INTERACTION_RESULTS.md) ·
   [Restoring the latest budget checkpoint](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 
