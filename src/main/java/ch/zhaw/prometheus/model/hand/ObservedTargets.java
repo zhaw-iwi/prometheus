@@ -93,10 +93,17 @@ public final class ObservedTargets {
     public static String selectedContext(Storage storage,String payload,Instant now){
         if(!storage.containsKey(SELECTED))return "";
         try{
-            var ref=TargetRef.parse(storage.get(SELECTED));var target=require(storage,ref,now);
+            var ref=TargetRef.parse(storage.get(SELECTED));
             var source=JsonParser.parseString(payload).getAsJsonObject();
-            if(!ObservationEvidence.fresh(ObservationEvidence.observed(source),now,TTL_SECONDS,0)
-                    ||source.getAsJsonArray("targets").asList().stream().map(JsonElement::getAsJsonObject).noneMatch(t->HandScene.ref(t).equals(ref)))return "";
+            if(!ObservationEvidence.fresh(ObservationEvidence.observed(source),now,TTL_SECONDS,0))return "";
+            if(source.getAsJsonArray("targets").asList().stream().map(JsonElement::getAsJsonObject).noneMatch(t->HandScene.ref(t).equals(ref))){
+                var latest=storage.get(KEY);
+                if(latest==null || !Objects.equals(source.get("observationId"),latest.getAsJsonObject().get("observationId"))
+                        || !Objects.equals(source.get("ts"),latest.getAsJsonObject().get("ts"))
+                        || !ref.frame().equals(SpatialFrame.parse(source.get("frame"))))return "";
+                return "The previous selection is absent from this scene. Pointing at it again needs a fresh selection.\n";
+            }
+            var target=require(storage,ref,now);
             var binding=binding(storage,ref,now);boolean mapped=false;
             if(!binding.get("destination").isJsonNull())try{
                 mapped="virtual".equals(HandScene.requireConfigured(storage,TargetRef.parse(binding.get("destination")),now).get("type").getAsString());

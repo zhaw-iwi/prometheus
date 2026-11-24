@@ -150,6 +150,9 @@ class CoordinationVoiceUnitTest {
         assertTrue(instructions.contains("explicitly reviewed visible-count alternative"));
         assertTrue(instructions.contains("Review ready proposals in at most 55 words"));
         assertTrue(instructions.contains("Leave its name, cue and action open"));
+        assertTrue(instructions.contains("Point in eight directions without a target"));
+        assertTrue(instructions.contains("Show finite sequences/counts on request"));
+        assertTrue(instructions.contains("For a repeat point"));
         f.storage().put(ch.zhaw.prometheus.model.behaviour.SensoryRemarks.CORRECTION, new com.google.gson.JsonPrimitive(true));
         assertDoesNotThrow(() -> new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().instructions(f.agent),
                 "Social limits and optional correction guidance must fit the existing instruction budget");

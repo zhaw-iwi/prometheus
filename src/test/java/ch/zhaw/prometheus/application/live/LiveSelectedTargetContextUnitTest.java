@@ -67,4 +67,18 @@ class LiveSelectedTargetContextUnitTest {
         assertFalse(item(later).text().contains("New visitor"), "The old scene must not borrow a new generation's label");
         append(reappeared, later);assertTrue(item(later).text().contains("New visitor"));
     }
+    @Test void onlyTheFreshRemovalFrameWithdrawsTheSelectionInQuietContext() {
+        append(capture(now, true), now);bind("Visitor", true, now);var before=project(now);
+        var removalAt=now.plusMillis(500);var removed=append(capture(removalAt, false), removalAt);
+        var item=item(removalAt);
+        assertTrue(item.text().contains("previous selection is absent"));assertFalse(item.text().contains("Visitor"));
+        var delivery=new LiveContextDelivery(before);delivery.ready();
+        var updates=delivery.plan(project(removalAt), List.of()).commands().stream()
+                .filter(c->c.content().contains("previous selection is absent")).toList();
+        assertEquals(1,updates.size());assertEquals("session.thinking.append",updates.getFirst().type());
+        assertEquals(removed.getId(),updates.getFirst().sourceId());
+        assertFalse(item(removalAt.plusSeconds(3)).text().contains("previous selection is absent"));
+        var later=now.plusSeconds(1);capture(later, true);bind("New visitor", true, later);
+        assertFalse(item(later).text().contains("previous selection is absent"));
+    }
 }

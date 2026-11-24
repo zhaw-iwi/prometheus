@@ -70,11 +70,11 @@ public final class AgentCapabilityDescription {
     private static String meaning(String key, AgentInteractionProfile profile) {
         if(ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(profile)) {
             if(key.equals("obs.hand.pose")&&ch.zhaw.prometheus.model.hand.HandFeatures.inputSequences(profile))return "Bends 0 straight/1 bent/null unknown; ordered cues/counts need known fingers; no visibility/contact proof.";
-            if(key.equals("obs.scene.targets"))return "Temporary person/cup/bottle/book boxes; no identity/depth. Output needs mapped counterpart.";
+            if(key.equals("obs.scene.targets"))return "Person/cup/bottle/book tracks; no identity/depth. Target points need mapping.";
             if(key.equals("obs.hand.pointing"))return "Projected direction/target; ambiguity unresolved.";
             if(key.equals("obs.hand.pose"))return "Bends: 0 straight,1 bent,null unknown; projected geometry, no visibility/contact proof.";
             if(key.equals("obs.hand.signs"))return "Fist/peace/halt/thumbs up/down/index up/shaka/horns/middle finger/OK ring; no consent/geometric score.";
-            if(key.equals("motion.handAction"))return "Digital signs/poses/geometry; eight robot directions or registered targets."+(ch.zhaw.prometheus.model.hand.HandFeatures.outputSequences(profile)?" Finite sequences/counting.":"");
+            if(key.equals("motion.handAction"))return "Show signs/custom finger poses/geometry. Point in eight directions without a target, or at a mapped target."+(ch.zhaw.prometheus.model.hand.HandFeatures.outputSequences(profile)?" Show finite sequences/counts on request.":"");
         }
         if(ch.zhaw.prometheus.model.hand.HandFeatures.targets(profile)&&key.equals("obs.hand.pointing"))return "Camera-plane direction and registered region selection; no room depth or intent.";
         if(ch.zhaw.prometheus.model.hand.HandFeatures.geometry(profile)) {

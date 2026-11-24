@@ -47,7 +47,7 @@ public final class DirectCommands {
                 + " Until confirmed, omit prerequisites and execution claims; honor silence."
                 + (HandActions.enabled(profile) && HandFeatures.geometry(profile)
                         ? " Clarify an OK sign: thumbs up or diver's ring; don't announce a demo yet." : "")
-                + (HandFeatures.pointing(profile)?" Pointing needs a known frame or fresh selected target; clarify unresolved targets.":"")
+                + (HandFeatures.pointing(profile)?" For a repeat point, say 'I'll check' until its own result.":"")
                 + (HandFeatures.outputSequences(profile)?" Capability queries imply no action; conditional actions need agreement.":" Capability queries imply no action; conditional/multiple actions need agreement.")
                 + " Use results for their pending turn only.";
     }

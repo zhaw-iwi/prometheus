@@ -25,6 +25,7 @@ public final class LiveCommandResult {
         String meaning = switch (status) {
             case "ACCEPTED" -> "Accepted output plan: " + acceptedPlan(receipt) + ". "
                     + ("HAND_POSE".equals(receipt.get("kind").getAsString()) ? "Immediate pose; no demonstration needed. " : "")
+                    + ("POINT".equals(receipt.get("kind").getAsString()) ? "One point only. A repeat needs its own result. " : "")
                     + (receipt.has("renderedEvent") ? "Digital renderer confirmed this pose." : "Rendering/physical execution unconfirmed.");
             case "CONFLICT" -> "Not performed: pending task output conflicts. Ask whether to resolve or pause it; no task change made.";
             case "UNSUPPORTED" -> "Not performed: unsupported output. Offer a declared alternative.";

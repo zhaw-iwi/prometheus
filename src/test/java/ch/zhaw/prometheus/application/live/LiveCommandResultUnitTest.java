@@ -87,6 +87,7 @@ class LiveCommandResultUnitTest {
             var result = LiveCommandResult.current(agent, now, source.getId()::equals);
             var facts = result.facts();
             assertTrue(facts.contains("Accepted output plan: " + kind + "."));
+            if ("POINT".equals(kind)) assertTrue(facts.contains("A repeat needs its own result."));
             assertTrue(facts.contains("Rendering/physical execution unconfirmed"));
             assertTrue(facts.contains("No new speaking occasion"));
             assertTrue(facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 380);
