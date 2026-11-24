@@ -45,8 +45,10 @@ public class LiveSmokeConfiguration {
                     String captured = data.get("capturedSpeech").getAsString();
                     boolean armed = data.has("responsePurpose") && "ARMING".equals(data.get("responsePurpose").getAsString())
                             && captured.equals("The task is armed. I am waiting for a fresh one-two-three sequence.");
-                    result.addProperty("verdict", armed || captured.equals("First fixture observation.") ? "MATCH"
-                            : captured.equals("Incorrect fixture observation.") ? "AMBIGUOUS" : "UNRELATED");
+                    boolean acknowledged = data.has("responsePurpose") && "CONTRIBUTION".equals(data.get("responsePurpose").getAsString())
+                            && !data.has("exactRequiredSpeech") && List.of("Got it.", "I saw all three.").contains(captured);
+                    result.addProperty("verdict", armed || acknowledged || captured.equals("First fixture observation.") ? "MATCH"
+                            : captured.equals("Incorrect fixture observation.") || captured.equals("ready ready") ? "AMBIGUOUS" : "UNRELATED");
                     return result.toString();
                 }
                 if (request.purpose() == InferencePurpose.EXTRACTION && prompt.contains("Supported trigger fields")

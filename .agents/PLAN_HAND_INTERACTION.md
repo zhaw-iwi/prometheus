@@ -856,3 +856,10 @@ of the $100 continuation. The ordering, consent and backend action count passed.
 One speaking instruction produced repeated “Ready” in the native output. The
 once-only contribution failed and the held pose was untested. The ledger closes
 at 108/$286. See the [results](HAND_INTERACTION_RESULTS.md).
+
+Allocation 15 adds $20 after entry 108, for a $120 continuation and a
+$306 cumulative ceiling. Each open journey reserves $5. The ordinary L-07
+visitor asks for one acknowledgement in the agent's own words. Judge the
+whole post-cue response against that agreement and check a continued hold of
+three before waiting for speech completion. The separate literal rehearsal
+retains the dictated “Ready” request. Prior paid trials keep their verdicts.

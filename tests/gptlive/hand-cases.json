@@ -23,6 +23,7 @@
   "personshow": "Point at the selected person labelled Visitor with your right hand.",
   "personrepeat": "Point at that same Visitor again.",
   "inputpropose": "Propose an ordered right hand cue: one, two, then three stretched fingers, with the others bent. First recognize my demonstration and wait for acceptance. I have not chosen your response yet.",
+  "inputacknowledge": "After I accept and show the whole sequence again, let me know once that you saw it, in your own words. I show the counts and judge your response. One action total. Use default timing.",
   "inputclarify": "Say Ready once after I accept and repeat that whole sequence. I show the counts and judge your response. You only say Ready. One action total, default timing.",
   "outputcount": "Count one through five on your right hand, extending thumb, then index, middle, ring and little finger in order. Hold each count for half a second.",
   "outputrepeat": "Count one through five on your right hand again, in the same order, holding each count for one second.",

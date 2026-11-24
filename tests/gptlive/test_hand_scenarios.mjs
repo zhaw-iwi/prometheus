@@ -1,7 +1,7 @@
 // Harness-only regression: this is not provider, detector or application acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {runHandScenario,requireReadyContribution,demonstrateCount,paceHandReceipts} from './hand_scenarios.mjs';
+import {runHandScenario,requireReadyContribution,requireAcknowledgement,demonstrateCount,paceHandReceipts} from './hand_scenarios.mjs';
 
 test('queued count captures respect the receipt limit across successive poses',async()=>{
   const captured=[0,318,374,722,924,1230,1302],latency=[148,56,37,56,71,72,28];
@@ -94,6 +94,17 @@ test('completion without a fresh native requested word cannot pass the spoken jo
   const prior=event('old','Ready.');
   for(const output of [event('new','Task complete.'),event('new',undefined),event('new','Ready.','SYNTHESIZED'),event('new','Ready.','NATIVE',false)])
     assert.throws(()=>requireReadyContribution([prior,output],['old']),/fresh complete native Ready/);
+  assert.throws(()=>requireReadyContribution([event('one','ready ready'),event('two','ready')],[]),/fresh complete native Ready/);
   requireReadyContribution([prior,event('new','Ready.')],['old']);
   assert.throws(()=>requireReadyContribution([event('one','Ready.'),event('two','Ready.')],[]),/fresh complete native Ready/);
+});
+
+test('ordinary cue accepts a captured paraphrase and checks the whole native response',()=>{
+  const response={purpose:'CONTRIBUTION',status:'CAPTURED',segment:'cue'};
+  const segment=speech=>({segment:'cue',complete:true,speech});
+  for(const words of ['Got it.','I saw all three.'])requireAcknowledgement([segment(words)],response);
+  requireAcknowledgement([segment('I saw'),{...segment('all three.'),segment:'tail'}],response);
+  for(const words of [['ready ready','ready'],['I saw all three. I saw all three.']])
+    assert.throws(()=>requireAcknowledgement(words.map(segment),response),/Repeated/);
+  assert.throws(()=>requireAcknowledgement([segment('Got it.')],{...response,segment:'old'}),/No captured/);
 });

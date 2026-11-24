@@ -3,8 +3,8 @@
   "authorized": true,
   "authorization": "hand-interaction-2026-11-23-usd50",
   "dated": "2026-11-23",
-  "maximumAttempts": 108,
-  "maximumReservedUsd": 286,
+  "maximumAttempts": 112,
+  "maximumReservedUsd": 306,
   "reserveUsdPerAttempt": 5,
   "models": {
     "backend": "gpt-6.2-sol",
@@ -48,10 +48,10 @@
   },
   "stimulus": "Locally synthesized Windows speech, 24kHz mono PCM. Controlled sensor/scene observations; real provider interpretation, speech and capture. No provider synthesis or grading.",
   "rubric": "Accept different wording that communicates the agreed meaning and gives the visitor a correct next step. Require a literal spoken line only when the visitor explicitly specifies its wording. Review complete captured replies and received native audio, plus synchronized visible output. Wrong sign, side, direction, target, order, roles, terms, count, renewed consent after activation, premature execution, false cancellation, denial or completion claim fails. Missing evidence is INCONCLUSIVE. GPT-Live strict silence is unsupported by owner decision 2026-11-24; truthful optional native speech is allowed. No backend playback approval, buffering, muting or replacement TTS may make Live pass. Text/Continuous strict silence is verified separately. Sensor fixtures do not prove camera accuracy; digital receipts do not prove physical actuation. Preserve revision-1 failures; require new revision-2 evidence.",
-  "failurePolicy": "Keep every reservation, including failures. Allocation 14 permits one L-07 verification. A retry requires new authorization.",
-  "allocationRevision": 14,
-  "allocationReason": "Allocation 14 authorizes one L-07 verification after 107 entries and USD 281 reserved. The continuation cap is USD 100 and the cumulative cap is USD 286.",
+  "failurePolicy": "Keep every reservation, including failures. Allocation 15 permits up to four individually selected open journeys. Review each result before selecting the next.",
+  "allocationRevision": 15,
+  "allocationReason": "Allocation 15 adds USD 20 after 108 entries and USD 286 reserved. The continuation cap is USD 120 and the cumulative cap is USD 306.",
   "acceptanceRevision": 2,
-  "extensionAuthorization": "hand-interaction-2026-11-24-l07-verification-usd5",
+  "extensionAuthorization": "hand-interaction-2026-11-24-workflow-usd20",
   "backendReasoningEffort": "low"
 }

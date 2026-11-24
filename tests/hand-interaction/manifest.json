@@ -4,8 +4,8 @@
   "baselineRevision": "025697df95ea1e1d4b62cfad9a7550a1d88e9a26",
   "budget": {
     "authorization": "hand-interaction-2026-11-23-usd50",
-    "maximumReservedUsd": 286,
-    "maximumAttempts": 108,
+    "maximumReservedUsd": 306,
+    "maximumAttempts": 112,
     "reserveUsdPerAttempt": 5,
     "ledger": "target/hand-interaction-budget.json",
     "includes": [
@@ -16,8 +16,8 @@
       "grading"
     ],
     "pricingVerified": true,
-    "allocationRevision": 14,
-    "extensionAuthorization": "hand-interaction-2026-11-24-l07-verification-usd5"
+    "allocationRevision": 15,
+    "extensionAuthorization": "hand-interaction-2026-11-24-workflow-usd20"
   },
   "baselineCeilings": {
     "realProviderRequests": 0,
@@ -111,7 +111,7 @@
         "HI-09"
       ],
       "fixture": {
-        "steps": "Propose right-hand one, two, three while leaving the response explicitly unspecified; clarify Ready once, human judgement and one action; prepare/accept; show an incomplete/wrong sequence then a valid one; hold the last pose."
+        "steps": "Propose right-hand one, two, three while leaving the response explicitly unspecified; request one acknowledgement in the agent's own words, with human judgement and one action; prepare/accept; show an incomplete/wrong sequence then a valid one; hold the last pose."
       },
       "expected": "Spoken terms retain order/limits; inspectable progress; only full sequence spends one action; holding the final pose does not repeat it.",
       "providerReady": true

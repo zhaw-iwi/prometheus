@@ -6,7 +6,9 @@ import {openValerianSession} from './fixtures/valerian-session.mjs';
 import {runHandScenario} from '../gptlive/hand_scenarios.mjs';
 import {armingReady} from '../gptlive/commanding_evidence.mjs';
 
-for(const delayed of [false,true])test(`L-07 fixture rehearsal through native delivery with ${delayed?'slow':'normal'} receipts`,async({page,context,request},info)=>{
+for(const variant of ['ordinary','ordinary-slow','literal','literal-repeated'])test(`L-07 fixture rehearsal through native delivery with ${variant}`,async({page,context,request},info)=>{
+  const delayed=variant==='ordinary-slow',literal=variant.startsWith('literal'),repeated=variant==='literal-repeated',report={};
+  const spoken=repeated?'ready ready':literal?'ready':delayed?'Got it.':'I saw all three.';
   test.skip(!process.env.PROMETHEUS_ADMIN_TOKEN||process.env.PROMETHEUS_LIVE_EXPECT_ENABLED!=='true','Use the disposable fixture runner');
   const admin={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
   const code=Math.random().toString(36).slice(2,7).toUpperCase();
@@ -23,12 +25,12 @@ for(const delayed of [false,true])test(`L-07 fixture rehearsal through native de
   const check={eventType:'obs.hand.sequence',minConfidence:0,handSequence:{schemaVersion:1,steps:[1,2,3].map(count=>({kind:'count',count,hands:'right'})),dwellMs:300,maximumGapMs:5000,maximumDurationMs:120000}};
   const partial={goal:'React once to the fresh sequence after acceptance.',humanRole:'Show the right-hand one-two-three sequence.',agentRole:'',success:'',
     questions:['What should I do on the fresh sequence?'],checks:[check],dialogueLimit:4,reactions:null};
-  const agreement={...partial,questions:[],humanRole:'Demonstrate, accept, repeat and judge the response.',agentRole:'Say only ready once.',
-    success:'The visitor judges whether the robot said only ready once.',reactions:{goal:partial.goal,maxActions:1,sessionBound:true,firstAction:'ON_CUE',
-      rules:[{...check,action:'Say exactly: "ready"',effect:'ACT',samples:1,cooldownSeconds:3}]}};
+  const agreement={...partial,questions:[],humanRole:'Demonstrate, accept, repeat and judge the response.',agentRole:literal?'Say only ready once.':'Acknowledge seeing the whole sequence once in your own words.',
+    success:'The visitor judges whether the agreed spoken response was given once.',reactions:{goal:partial.goal,maxActions:1,sessionBound:true,firstAction:'ON_CUE',
+      rules:[{...check,action:literal?'Say exactly: "ready"':'Briefly acknowledge recognizing the full sequence.',effect:'ACT',samples:1,cooldownSeconds:3}]}};
   const lines=['What should I do on the fresh sequence?','Please demonstrate one, two, then three fingers on your right hand.',
     'You demonstrated the sequence. After acceptance I will respond once to a fresh sequence. You judge the result. Shall we start?',
-    'The task is armed. I am waiting for a fresh one-two-three sequence.','ready'];
+    'The task is armed. I am waiting for a fresh one-two-three sequence.',spoken];
   const checkpoints=[],frames=[],competingSpeech=[];
   // Attempt 106's six HTTP durations for the valid preparation demonstration.
   const slowPreparationMs=[274,459,1730,1442,88,1384];
@@ -55,9 +57,9 @@ for(const delayed of [false,true])test(`L-07 fixture rehearsal through native de
     await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
     providerId=(await provider()).providerId;
     await fixture('commentary/'+providerId,lines);
-    await fixture('hand-output',{speech:'ready'});
-    await runHandScenario('L-07',{
-      memory,history,checkpoint,wait,
+    await fixture('hand-output',{speech:literal?'ready':'I recognized the sequence.'});
+    const scenario=runHandScenario('L-07',{
+      memory,history,checkpoint,wait,report,literalSequence:literal,
       zero:async()=>expect((await memory())['task.actions']??0).toBe(0),
       observe:async(type,sample)=>{
         const started=Date.now();
@@ -84,23 +86,30 @@ for(const delayed of [false,true])test(`L-07 fixture rehearsal through native de
         const s=await memory();expect(s['coordination.agreement']).toEqual(agreement);expect(s['task.actions']).toBe(0);
       },
       complete:async()=>{
+        if(repeated){
+          await expect.poll(async()=>(await memory())['task.phase']).toBe('UNCERTAIN');
+          throw Error('Task stopped with UNCERTAIN');
+        }
         await expect.poll(async()=>(await memory())['task.response']?.status).toBe('CAPTURED');
         const state=await memory();expect(state['task.phase']).toBe('FINISHING');
         const p=await provider(),id=state['task.response'].id;
         const command=p.commands.map(JSON.parse).filter(e=>e.type==='session.commentary.append'&&e.content.includes(id));
-        expect(command).toHaveLength(1);expect(command[0].content).toContain('Say this exact line once, then listen: "ready"');
-        const caption=p.captions.map(JSON.parse).find(e=>e.type==='session.output_transcript.delta'&&e.delta==='ready');
+        expect(command).toHaveLength(1);expect(command[0].content).toContain(literal?'Say this exact line once, then listen: "ready"':'Convey this committed result with equivalent meaning');
+        const caption=p.captions.map(JSON.parse).find(e=>e.type==='session.output_transcript.delta'&&e.delta===spoken);
         expect(caption).toBeTruthy();
         await page.evaluate(c=>{__nativeReceive(c);__nativeGain.gain.value=.15;},caption);
         await wait(700);await page.evaluate(()=>{__nativeGain.gain.value=0;});
         await expect.poll(async()=>(await memory())['coordination.delivery']?.status).toBe('PLAYBACK_CONFIRMED');
       }
     });
-    const final=await memory();expect(final['task.phase']).toBe('COMPLETED');expect(final['task.actions']).toBe(1);
+    if(repeated)await expect(scenario).rejects.toThrow('Task stopped with UNCERTAIN');
+    else await scenario;
+    const final=await memory();expect(final['task.phase']).toBe(repeated?'UNCERTAIN':'COMPLETED');expect(final['task.actions']).toBe(1);
     const heard=(await provider()).captions.map(JSON.parse).filter(e=>e.type==='session.output_transcript.delta').map(e=>e.delta);
+    expect(report.heldFinalPose).toEqual({before:1,after:1});expect(report.sequenceSpeech.map(s=>s.speech)).toEqual([spoken]);
     expect(heard).toEqual(lines);expect(competingSpeech).toEqual([]);
     expect(new Set(frames.map(f=>f.index)).size).toBe(frames.length);if(delayed)expect(slowPreparationMs).toHaveLength(0);
-    writeFileSync(info.outputPath('l07-fixture-evidence.json'),JSON.stringify({checkpoints,frames,heard,delivery:final['coordination.delivery'],actions:final['task.actions']},null,2));
+    writeFileSync(info.outputPath('l07-fixture-evidence.json'),JSON.stringify({variant,report,checkpoints,frames,heard,delivery:final['coordination.delivery'],actions:final['task.actions']},null,2));
   }finally{
     await page.close();await request.delete('/__live-fixture/hand-output');await request.delete('/__live-fixture/coordination-proposal');await request.delete(path,{headers});
   }

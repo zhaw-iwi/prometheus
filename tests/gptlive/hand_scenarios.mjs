@@ -52,11 +52,27 @@ export async function demonstrateCount(make,{dwellMs,maximumGapMs},deliver,wait,
   if(error)throw error;
   if(now()<=last)await wait(1);
 }
+function contributionSegments(events,beforeIds){
+  return events.filter(e=>!beforeIds.includes(e.id)&&e.type==='resp.behaviour_plan'&&e.provenance?.origin==='NATIVE')
+    .map(e=>({segment:e.provenance.segmentId,complete:e.provenance.complete,speech:JSON.parse(e.payload).speech?.trim()}));
+}
 export function requireReadyContribution(events,beforeIds){
-  const heard=events.filter(e=>!beforeIds.includes(e.id)&&e.type==='resp.behaviour_plan'
-    &&e.provenance?.origin==='NATIVE'&&e.provenance.complete
-    &&/^ready[.!?]?$/i.test(JSON.parse(e.payload).speech?.trim()||''));
-  assert.equal(heard.length,1,'Expected one fresh complete native Ready contribution');
+  const heard=contributionSegments(events,beforeIds);
+  assert.ok(heard.length===1&&heard[0].complete&&/^ready[.!?]?$/i.test(heard[0].speech||''),
+    'Expected one fresh complete native Ready contribution across the whole response');
+}
+export function requireAcknowledgement(segments,response){
+  assert.ok(segments.length&&segments.every(s=>s.complete&&s.speech),'Missing complete native acknowledgement');
+  assert.ok(response?.purpose==='CONTRIBUTION'&&response.status==='CAPTURED'&&response.segment
+    &&segments.some(s=>s.segment===response.segment),'No captured response for this cue');
+  // Complete native segments can split a sentence. Preserve all of them for semantic/audio review.
+  const words=segments.map(s=>s.speech).join(' ').toLowerCase().match(/[\p{L}\p{N}]+/gu)||[];
+  assert.ok(words.length,'Empty native acknowledgement');
+  for(let size=1;size<=words.length/2;size++){
+    if(words.length%size===0&&words.every((word,index)=>word===words[index%size])){
+      assert.fail('Repeated native acknowledgement');
+    }
+  }
 }
 const conditions=(draft,key,verify)=>{assert.equal(draft.checks.length,1);assert.equal(draft.reactions.rules.length,1);verify(draft.checks[0][key]);verify(draft.reactions.rules[0][key]);};
 
@@ -112,14 +128,36 @@ export async function runHandScenario(mode,c){
     const cup=await bind('cup-a','My cup',0);ambiguous=false;await wait(750);
     await propose('cuppropose',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,cup)));await prepare(f.point,'obs.hand.pointing');await negative(()=>f.point('left'),'obs.hand.pointing');await finish(f.point,'obs.hand.pointing');
     const visitor=await bind('visitor','Visitor',1);await command('personshow','ACCEPTED',{kind:'point',verify:m=>{const a=actionOf(m);assert.deepEqual(a.target,visitor);assert.deepEqual(a.resolved.position,{x:-3,y:2,z:0});}});
-    person=false;await wait(3500);await command('personrepeat','CLARIFY',{});
+    person=false;
+    const removedAt=Date.now();
+    await wait(3500);
+    const sceneWithoutVisitor=await until('fresh captured scene after removing Visitor',async()=>{
+      const current=(await memory())['hand.scene.observed.v1'];
+      if(!current||Date.parse(current.ts)<removedAt||Date.now()-Date.parse(current.ts)>=3000)return null;
+      return current.targets.some(t=>t.id===cup.id)&&!current.targets.some(t=>t.id===visitor.id)?current:null;
+    });
+    report.removedPersonScene={observationId:sceneWithoutVisitor.observationId,capturedAt:sceneWithoutVisitor.ts,
+      removed:visitor,remaining:sceneWithoutVisitor.targets.map(t=>t.id)};
+    await command('personrepeat','CLARIFY',{});
   }else if(mode==='L-07'){
-    const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}),{clarification:'inputclarify',requireClarification:true});
+    const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}),{clarification:c.literalSequence?'inputclarify':'inputacknowledge',requireClarification:true});
     const sequence=draft.checks[0].handSequence;
     const deliver=paceHandReceipts(sample=>observe('obs.hand.pose',sample),wait);
     const counts=async values=>{for(const n of values)await demonstrateCount(()=>f.count(n),sequence,deliver,wait);await checkpoint('counts-'+values.join('-'));};
     await counts([1,3]);assert.deepEqual((await memory())['coordination.evidence'],{});await zero();await counts([1,2,3]);await ready();await accept();
-    await counts([1,3]);await zero();const before=(await c.history()).map(e=>e.id);await counts([1,2,3]);await complete();requireReadyContribution(await c.history(),before);await counts([3]);assert.equal((await memory())['task.actions'],1);
+    await counts([1,3]);await zero();const before=(await c.history()).map(e=>e.id);
+    await counts([1,2,3]);
+    const beforeHold=(await memory())['task.actions'];
+    await counts([3]);
+    const afterHold=(await memory())['task.actions'];
+    report.heldFinalPose={before:beforeHold,after:afterHold};
+    assert.equal(beforeHold,1);assert.equal(afterHold,1);
+    // The hold must be observed even when speech later ends UNCERTAIN.
+    try{await complete();}finally{
+      report.sequenceSpeech=contributionSegments(await c.history(),before);
+    }
+    if(c.literalSequence)requireReadyContribution(await c.history(),before);
+    else requireAcknowledgement(report.sequenceSpeech,(await memory())['task.response']);
   }else if(mode==='L-08'){
     const sequence=async(name,n,hold,stopAt=null)=>{const previousEvent=(await memory())['hand.execution.v1']?.id??null;
       const frames=c.sequenceFrames(name,n,{stopAt,previousEvent});const [turn]=await Promise.all([command(name,'ACCEPTED',{verify:m=>countOutput(actionOf(m),n,hold)}),frames]);
