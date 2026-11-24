@@ -614,7 +614,10 @@ backend assertion. These checks add no paid-provider attempts.
 For each journey predeclare the semantic rubric before running: wrong sign, hand,
 direction, target, step order, task terms or action count fails; repeated consent
 demands, premature execution, unsupported completion claims and false capability
-denials fail. Ordinary paraphrases are allowed. Review the complete relevant
+denials fail. Judge ordinary speech by what the visitor understands and can do next.
+For a request to acknowledge a cue, “Got it” and “I saw it” can both fulfill the
+agreement. For “only say Ready once,” the word and count are part of the action.
+Clarification, review and arming in that same journey allow paraphrases. Review the complete relevant
 captured speech/audio and visible output, not a convenient substring or a regex
 alone. Missing evidence is INCONCLUSIVE, not PASS. A failed journey remains in the
 record after a corrected retest.

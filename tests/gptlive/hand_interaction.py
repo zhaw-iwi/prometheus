@@ -26,9 +26,9 @@ def manifest():
         raise ValueError('Unreviewed hand mode acceptance contract')
     budget = data['budget']
     if (budget.get('authorization') != 'hand-interaction-2026-11-23-usd50'
-            or budget.get('maximumReservedUsd') != 281 or budget.get('maximumAttempts') != 107
-            or budget.get('extensionAuthorization') != 'hand-interaction-2026-11-24-l07-usd5'
-            or budget.get('reserveUsdPerAttempt') != 5 or budget.get('allocationRevision') != 13):
+            or budget.get('maximumReservedUsd') != 286 or budget.get('maximumAttempts') != 108
+            or budget.get('extensionAuthorization') != 'hand-interaction-2026-11-24-l07-verification-usd5'
+            or budget.get('reserveUsdPerAttempt') != 5 or budget.get('allocationRevision') != 14):
         raise ValueError('Unreviewed hand interaction budget')
     if any(not case.get('milestones') or not case.get('expected') for case in data['journeys']):
         raise ValueError('Journey requires milestone and outcome evidence')
