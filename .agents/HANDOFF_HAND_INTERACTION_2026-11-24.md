@@ -2,7 +2,7 @@
 
 HI-01 through HI-11 are complete. HI-12 remains open. The historical implementation
 checkpoint was `82d12bc7`. The latest findings and reservations are in
-[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l07.json)
+[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l07-verification.json)
 and the final section of [the results](HAND_INTERACTION_RESULTS.md).
 
 ## Start here
@@ -110,8 +110,15 @@ The [attempt record](checkpoints/hand-interaction-2026-11-24/live-continuation-l
 closes the allocation at 107/$281 with zero available.
 The full local L-07 rehearsal subsequently passed with normal and delayed
 receipts. It uses the paid count driver and checks the exact instruction,
-browser playback and held pose with a scripted provider. The next paid
-selection, if authorized, is one real-provider L-07 verification.
+browser playback and held pose with a scripted provider.
+
+Attempt 108 completed clarification, preparation, explicit consent and both
+sequence checks with the real provider. The correct sequence spent one action.
+The bridge sent the spoken contribution once, and Live repeated “Ready.”
+The task entered UNCERTAIN before the held-three check. Accept natural wording
+for the workflow. Here the visitor had explicitly requested one spoken word
+once. The L-07 verification used the full $100 continuation. See the
+[results](HAND_INTERACTION_RESULTS.md) for the recorded speech and next step.
 
 ## Findings carried into this continuation
 
@@ -147,9 +154,9 @@ tests. These results are historical evidence, not tests run on the new device.
 
 ## Carry the spending history across devices
 
-Allocation 13 adds $5 for one L-07 selection after entry 106. Across backend
-inference and GPT-Live, the continuation ceiling is $95 from attempt 89.
-The cumulative ceiling is 107 entries and $281.
+Allocation 14 added $5 for one L-07 verification after entry 107. Across backend
+inference and GPT-Live, all $100 of the continuation from attempt 89 is reserved.
+The cumulative ledger has 108 entries and $286 reserved.
 Obtain fresh owner authorization before increasing it. Invoices are unavailable.
 
 Restore historical reservations before any paid selection. The helper verifies the

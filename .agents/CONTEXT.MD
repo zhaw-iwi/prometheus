@@ -148,8 +148,11 @@ the exact-line retest at 106 stopped during preparation on a capture gap.
 L-08 completed direct counting and Stop at 105, then timed out on preparation.
 The capture-gap fix was verified offline. In 107, L-07 armed and rejected the
 wrong order. The five-frame admission limit then stopped the correct sequence.
-The driver now paces receipts and passes both timing replays offline. The
-$95 continuation is fully reserved at 107 entries/$281 cumulatively.
+Receipt pacing held through the valid cue in attempt 108. Live clarified the
+response and reviewed the agreement accurately. Wrong order spent zero actions
+and the valid sequence spent one. Live repeated the requested “Ready” after one
+speaking instruction. The task ended UNCERTAIN before the held-pose check.
+The $100 continuation is fully reserved at 108 entries/$286 cumulatively.
 See `.agents/HAND_INTERACTION_RESULTS.md` for individual outcomes. Isolated tests
 use GPT-6.2 Sol (low) and GPT-Live-1.1. Measured billing is unavailable.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,

@@ -3,7 +3,801 @@
   "baseReservedUsd": 281,
   "addedCapUsd": 5,
   "continuationCapUsd": 100,
-  "cumulativeReservedUsd": 281,
-  "reservations": [],
-  "reviews": []
+  "cumulativeReservedUsd": 286,
+  "reservations": [
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-129230f279",
+      "reservedUsd": 5,
+      "allocationRevision": 14,
+      "extensionAuthorization": "hand-interaction-2026-11-24-l07-verification-usd5"
+    }
+  ],
+  "reviews": [
+    {
+      "attempt": 108,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-129230f279",
+      "verdict": "FAIL",
+      "finding": "The ordinary dialogue identified the missing response, reviewed the demonstrated order and obtained explicit consent. Wrong order spent zero actions. The valid post-consent sequence spent one. The bridge sent one contribution commentary for that action. Live repeated Ready, violating the explicit once-only quantity. The first complete segment contained ready ready. The task became UNCERTAIN and never reached the held-three check.",
+      "automatedPassed": false,
+      "error": "Task stopped with UNCERTAIN",
+      "sourceRevision": "d04e3232fa3931250c220048790051ff60561a54",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "495c7b20d167ad96c8f9984200c66e67426e73f74738bf71548a6c884f76caf1",
+      "journeySha256": "78dc59b8f302cc4d35a83298b92107354c737d2295591b55b640016e748e7ef6",
+      "spoken": " We’ve saved your idea: right hand one, two, three with others bent; you’ll show all three before accepting. What would you like me to do when I recognize the full sequence after you accept? Thanks; you show the sequence; I’ll recognize it, say “ready” once after you accept. The proposal is saved and not active. Please demonstrate 1 straight fingers on right hand then 2 straight fingers on right hand then 3 straight fingers on right hand for recognition. We will review the terms before acceptance. I saw you show one, two, then three; you’ll hold each count till I recognize it, and judge whether I only said “ready” once. I’ll wait for the full sequence after acceptance and say only that word once. One action total; after you accept, we’ll wait for a fresh sequence. Shall we start? I heard you. Start confirmed; I’m waiting for a fresh cue: 1 straight fingers on right hand then 2 straight fingers on right hand then 3 straight fingers on right hand. ready ready ready",
+      "admitted": [
+        {
+          "id": "7d16de50-714a-4e55-b654-d4ac2fca4b6f",
+          "text": "Propose an ordered right-hand cue: one, two, then three stretched fingers, with the others bent. First recognize my demonstration and wait for acceptance I have not chosen your response yet"
+        },
+        {
+          "id": "50812829-616f-4b04-93cf-b75566c3e9d4",
+          "text": "Stay ready once after I accept and repeat that whole sequence. I show the counts and judge your response. You only say ready. One action total. Default timing"
+        },
+        {
+          "id": "2226d07e-b7e2-4cb8-bb7a-9728caa5f00e",
+          "text": "I accept the current proposal"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "21311500-fb92-4545-916b-7bdb038b6c58",
+          "speech": "We’ve saved your idea: right hand one, two, three with others bent; you’ll show all three before accepting. What would you like me to do when I recognize the full sequence after you accept?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "6cd661cc-0e3c-429a-856f-41585af1a519",
+          "speech": "Thanks; you show the sequence; I’ll recognize it, say “ready” once after you accept. The proposal is saved and not active. Please demonstrate 1 straight fingers on right hand then 2 straight fingers on right hand then 3 straight fingers on right hand for recognition. We will review the terms before acceptance.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "7218d6e6-a315-4bb0-bb90-d4e9bdbc5a7f",
+          "speech": "I saw you show one, two, then three; you’ll hold each count till I recognize it, and judge whether I only said “ready” once. I’ll wait for the full sequence after acceptance and say only that word once. One action total; after you accept, we’ll wait for a fresh sequence. Shall we start?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "8cfd3072-26f9-4e87-aaba-d7c4d29adeaf",
+          "speech": "I heard you. Start confirmed; I’m waiting for a fresh cue: 1 straight fingers on right hand then 2 straight fingers on right hand then 3 straight fingers on right hand.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "a191b387-ee06-40d7-a590-55a9880ed782",
+          "speech": "ready ready",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "e3745f7e-c91e-4579-a349-0d1ad4451939",
+          "speech": "ready",
+          "complete": true,
+          "association": "NONE"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "d22cf9da0421ddc687acfa3f871b9e3bbfa53090cc6456230d1a8c1201d16da3",
+            "duration": 155.22,
+            "segments": [
+              {
+                "start": 30.93,
+                "end": 35.73,
+                "text": " We've saved your idea, right hand, one, two, three with others bent.",
+                "logprob": -0.18285777772727765
+              },
+              {
+                "start": 35.73,
+                "end": 38.33,
+                "text": " You'll show all three before accepting.",
+                "logprob": -0.18285777772727765
+              },
+              {
+                "start": 38.33,
+                "end": 68.46,
+                "text": " What would you like me to do when I recognize the full sequence after you accept?",
+                "logprob": -0.18285777772727765
+              },
+              {
+                "start": 68.46,
+                "end": 74.06,
+                "text": " Thanks, you show the sequence, I'll recognize it, say ready once after you accept.",
+                "logprob": -0.18285777772727765
+              },
+              {
+                "start": 74.06,
+                "end": 76.46,
+                "text": " The proposal is saved and not active.",
+                "logprob": -0.18285777772727765
+              },
+              {
+                "start": 76.46,
+                "end": 82.06,
+                "text": " Please demonstrate one straight fingers on right hand, then two straight fingers on right hand,",
+                "logprob": -0.18285777772727765
+              },
+              {
+                "start": 82.06,
+                "end": 85.86,
+                "text": " then three straight fingers on right hand, four recognition.",
+                "logprob": -0.18285777772727765
+              },
+              {
+                "start": 85.86,
+                "end": 96.97,
+                "text": " we will review the terms before acceptance.",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 96.97,
+                "end": 99.61,
+                "text": " I saw you show one, two, then three.",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 99.61,
+                "end": 101.93,
+                "text": " You'll hold each count till I recognize it,",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 101.93,
+                "end": 104.57,
+                "text": " and judge whether I only said ready once.",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 104.57,
+                "end": 107.13,
+                "text": " I'll wait for the full sequence after acceptance,",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 107.13,
+                "end": 109.21,
+                "text": " and say only that word once.",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 109.21,
+                "end": 110.57,
+                "text": " One action total.",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 110.57,
+                "end": 113.45,
+                "text": " After you accept, we'll wait for a fresh sequence.",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 113.45,
+                "end": 114.17,
+                "text": " Shall we start?",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 124.28,
+                "end": 124.92,
+                "text": " I heard you.",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 126.12,
+                "end": 127.16,
+                "text": " Start confirmed.",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 127.16,
+                "end": 128.68,
+                "text": " I'm waiting for a fresh cue.",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 128.68,
+                "end": 130.6,
+                "text": " One straight fingers on right hand,",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 130.6,
+                "end": 132.92,
+                "text": " then two straight fingers on right hand,",
+                "logprob": -0.16099763490535596
+              },
+              {
+                "start": 132.92,
+                "end": 145.28,
+                "text": " and then three straight fingers on right hand.",
+                "logprob": -0.35945022583007813
+              },
+              {
+                "start": 145.28,
+                "end": 146.28,
+                "text": " Ready.",
+                "logprob": -0.35945022583007813
+              },
+              {
+                "start": 146.28,
+                "end": 147.28,
+                "text": " Ready.",
+                "logprob": -0.35945022583007813
+              },
+              {
+                "start": 147.28,
+                "end": 148.28,
+                "text": " Ready.",
+                "logprob": -0.35945022583007813
+              },
+              {
+                "start": 148.28,
+                "end": 153.96,
+                "text": " ready",
+                "logprob": -0.7994060218334198
+              }
+            ]
+          }
+        ]
+      },
+      "images": [],
+      "renderChecks": [],
+      "phase": "UNCERTAIN",
+      "actions": 1,
+      "outcome": "LIMIT_REACHED",
+      "proposal": {
+        "goal": "Say “ready” once after acceptance and a fresh right-hand sequence of one, two, then three straight fingers, with all other fingers bent at each step.",
+        "humanRole": "Hold each count until recognized. Demonstrate the full sequence before accepting, then repeat it and judge the response.",
+        "agentRole": "Wait for the full sequence after acceptance, then say only the agreed word once. Pause if Live is lost.",
+        "success": "The user judges whether the only response was “ready,” said once after the full post-acceptance sequence.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.sequence",
+            "minConfidence": 0,
+            "handSequence": {
+              "schemaVersion": 1,
+              "steps": [
+                {
+                  "kind": "count",
+                  "count": 1,
+                  "hands": "right"
+                },
+                {
+                  "kind": "count",
+                  "count": 2,
+                  "hands": "right"
+                },
+                {
+                  "kind": "count",
+                  "count": 3,
+                  "hands": "right"
+                }
+              ],
+              "dwellMs": 300,
+              "maximumGapMs": 5000,
+              "maximumDurationMs": 120000
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Say “ready” once after acceptance and a fresh right-hand sequence of one, two, then three straight fingers, with all other fingers bent at each step.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.sequence",
+              "action": "Say exactly: \"ready\"",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handSequence": {
+                "schemaVersion": 1,
+                "steps": [
+                  {
+                    "kind": "count",
+                    "count": 1,
+                    "hands": "right"
+                  },
+                  {
+                    "kind": "count",
+                    "count": 2,
+                    "hands": "right"
+                  },
+                  {
+                    "kind": "count",
+                    "count": 3,
+                    "hands": "right"
+                  }
+                ],
+                "dwellMs": 300,
+                "maximumGapMs": 5000,
+                "maximumDurationMs": 120000
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "checkpoints": [
+        {
+          "name": "clarification-question-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "counts-1-3",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "counts-1-2-3",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T22:40:43.890Z",
+              "eventId": "obs.hand.pose:2026-11-24T22:40:43.890Z"
+            }
+          },
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "prepared",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T22:40:43.890Z",
+              "eventId": "obs.hand.pose:2026-11-24T22:40:43.890Z"
+            }
+          },
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "counts-1-3",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T22:40:43.890Z",
+              "eventId": "obs.hand.pose:2026-11-24T22:40:43.890Z"
+            }
+          },
+          "phase": "RUNNING",
+          "actions": 0
+        },
+        {
+          "name": "counts-1-2-3",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T22:40:43.890Z",
+              "eventId": "obs.hand.pose:2026-11-24T22:40:43.890Z"
+            }
+          },
+          "phase": "FINISHING",
+          "actions": 1
+        }
+      ],
+      "silentInputReceipts": [],
+      "commands": [],
+      "stimuli": [
+        {
+          "name": "inputpropose",
+          "sha256": "07dd935655dfb02af1cc13985ff6d0297a37b7aa190a3b0464c33d93b29fc56f"
+        },
+        {
+          "name": "inputclarify",
+          "sha256": "63cea6d9ebc0c5ce90aa60453d0e2541ce87cc90b4c8457b2bc87e1f78426644"
+        },
+        {
+          "name": "accept",
+          "sha256": "82b42c3422335ce04c02cb3f65c2aeec63c0c9ab6380badac08d0c2ad7a9895e"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": "RUNNING",
+      "receiptTimings": [
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-1",
+          "capturedAt": "2026-11-24T22:40:41.841Z",
+          "startedAt": 1795560041841,
+          "finishedAt": 1795560041944
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-2",
+          "capturedAt": "2026-11-24T22:40:42.155Z",
+          "startedAt": 1795560042155,
+          "finishedAt": 1795560042244
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-3",
+          "capturedAt": "2026-11-24T22:40:42.244Z",
+          "startedAt": 1795560042244,
+          "finishedAt": 1795560042464
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-4",
+          "capturedAt": "2026-11-24T22:40:42.557Z",
+          "startedAt": 1795560042557,
+          "finishedAt": 1795560042655
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-5",
+          "capturedAt": "2026-11-24T22:40:42.843Z",
+          "startedAt": 1795560042843,
+          "finishedAt": 1795560042937
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-6",
+          "capturedAt": "2026-11-24T22:40:43.148Z",
+          "startedAt": 1795560043148,
+          "finishedAt": 1795560043214
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-7",
+          "capturedAt": "2026-11-24T22:40:43.215Z",
+          "startedAt": 1795560043246,
+          "finishedAt": 1795560043295
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-8",
+          "capturedAt": "2026-11-24T22:40:43.521Z",
+          "startedAt": 1795560043522,
+          "finishedAt": 1795560043584
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-9",
+          "capturedAt": "2026-11-24T22:40:43.584Z",
+          "startedAt": 1795560043661,
+          "finishedAt": 1795560043739
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-10",
+          "capturedAt": "2026-11-24T22:40:43.890Z",
+          "startedAt": 1795560043938,
+          "finishedAt": 1795560044012
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-11",
+          "capturedAt": "2026-11-24T22:41:30.800Z",
+          "startedAt": 1795560090800,
+          "finishedAt": 1795560090851
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-12",
+          "capturedAt": "2026-11-24T22:41:31.115Z",
+          "startedAt": 1795560091115,
+          "finishedAt": 1795560091167
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-13",
+          "capturedAt": "2026-11-24T22:41:31.167Z",
+          "startedAt": 1795560091167,
+          "finishedAt": 1795560091224
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-14",
+          "capturedAt": "2026-11-24T22:41:31.474Z",
+          "startedAt": 1795560091474,
+          "finishedAt": 1795560091518
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-15",
+          "capturedAt": "2026-11-24T22:41:31.616Z",
+          "startedAt": 1795560091616,
+          "finishedAt": 1795560091671
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-16",
+          "capturedAt": "2026-11-24T22:41:31.923Z",
+          "startedAt": 1795560091923,
+          "finishedAt": 1795560091965
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-17",
+          "capturedAt": "2026-11-24T22:41:31.966Z",
+          "startedAt": 1795560092174,
+          "finishedAt": 1795560092301
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-18",
+          "capturedAt": "2026-11-24T22:41:32.295Z",
+          "startedAt": 1795560092301,
+          "finishedAt": 1795560092401
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-19",
+          "capturedAt": "2026-11-24T22:41:32.401Z",
+          "startedAt": 1795560092530,
+          "finishedAt": 1795560092574
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-20",
+          "capturedAt": "2026-11-24T22:41:32.701Z",
+          "startedAt": 1795560092701,
+          "finishedAt": 1795560094316
+        }
+      ],
+      "sequenceProgress": [
+        {
+          "checkpoint": "counts-1-3",
+          "progress": {
+            "prep-0": {
+              "epoch": "2026-11-24T22:40:11.158662600Z",
+              "contract": "f0549ddc78b8eae9d3c8bba32046f8e788a884070329bb6ceead24305fb33ba0",
+              "total": 3,
+              "maximumDurationMs": 120000,
+              "maximumGapMs": 5000,
+              "index": 0,
+              "status": "wrong_step",
+              "process": "999d9473-77ca-4c6b-927d-a5df85f068ac",
+              "ordinal": 4,
+              "capture": "hand-live-fixture/hand-live-4",
+              "lastAt": "2026-11-24T22:40:42.557Z",
+              "source": {
+                "source": "hand-live-fixture",
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "hands": {
+                "right": "right-track"
+              }
+            }
+          }
+        },
+        {
+          "checkpoint": "counts-1-2-3",
+          "progress": {
+            "prep-0": {
+              "epoch": "2026-11-24T22:40:11.158662600Z",
+              "contract": "f0549ddc78b8eae9d3c8bba32046f8e788a884070329bb6ceead24305fb33ba0",
+              "total": 3,
+              "maximumDurationMs": 120000,
+              "maximumGapMs": 5000,
+              "index": 3,
+              "status": "complete",
+              "process": "999d9473-77ca-4c6b-927d-a5df85f068ac",
+              "ordinal": 10,
+              "capture": "hand-live-fixture/hand-live-10",
+              "lastAt": "2026-11-24T22:40:43.890Z",
+              "source": {
+                "source": "hand-live-fixture",
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "hands": {
+                "right": "right-track"
+              },
+              "startedAt": "2026-11-24T22:40:42.843Z",
+              "progressAt": "2026-11-24T22:40:43.890Z",
+              "completeCapture": "hand-live-fixture/hand-live-10"
+            }
+          }
+        },
+        {
+          "checkpoint": "counts-1-3",
+          "progress": {
+            "run-0": {
+              "epoch": "982a240b-ff35-4046-9753-aaf752b7f695",
+              "contract": "f0549ddc78b8eae9d3c8bba32046f8e788a884070329bb6ceead24305fb33ba0",
+              "total": 3,
+              "maximumDurationMs": 120000,
+              "maximumGapMs": 5000,
+              "index": 0,
+              "status": "wrong_step",
+              "process": "999d9473-77ca-4c6b-927d-a5df85f068ac",
+              "ordinal": 14,
+              "capture": "hand-live-fixture/hand-live-14",
+              "lastAt": "2026-11-24T22:41:31.474Z",
+              "source": {
+                "source": "hand-live-fixture",
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "hands": {
+                "right": "right-track"
+              }
+            }
+          }
+        },
+        {
+          "checkpoint": "counts-1-2-3",
+          "progress": {
+            "run-0": {
+              "epoch": "982a240b-ff35-4046-9753-aaf752b7f695",
+              "contract": "f0549ddc78b8eae9d3c8bba32046f8e788a884070329bb6ceead24305fb33ba0",
+              "total": 3,
+              "maximumDurationMs": 120000,
+              "maximumGapMs": 5000,
+              "index": 3,
+              "status": "complete",
+              "process": "999d9473-77ca-4c6b-927d-a5df85f068ac",
+              "ordinal": 20,
+              "capture": "hand-live-fixture/hand-live-20",
+              "lastAt": "2026-11-24T22:41:32.701Z",
+              "source": {
+                "source": "hand-live-fixture",
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "hands": {
+                "right": "right-track"
+              },
+              "startedAt": "2026-11-24T22:41:31.616Z",
+              "progressAt": "2026-11-24T22:41:32.701Z",
+              "completeCapture": "hand-live-fixture/hand-live-20"
+            }
+          }
+        }
+      ],
+      "response": {
+        "id": "e63d6e01-858f-48eb-8fa8-d238e0ede03b",
+        "session": "9a9b6dc4-b579-4946-af86-17e9639d7f89",
+        "epoch": "15a7eed4-6318-41f5-a687-9dcf47d6cf16",
+        "revision": 4,
+        "status": "UNCERTAIN",
+        "facts": "Say this exact line once, then listen: \"ready\"",
+        "created": "2026-11-24T22:41:34.295490800Z",
+        "deadline": "2026-11-24T22:42:19.295490800Z",
+        "purpose": "CONTRIBUTION",
+        "exactSpeech": "ready",
+        "unrelatedRemaining": 1,
+        "segment": "df0d3347-4514-35d4-b445-334dda8ff0a2",
+        "speechOffset": 0
+      },
+      "delivery": {
+        "id": "e63d6e01-858f-48eb-8fa8-d238e0ede03b",
+        "session": "9a9b6dc4-b579-4946-af86-17e9639d7f89",
+        "epoch": "15a7eed4-6318-41f5-a687-9dcf47d6cf16",
+        "revision": 4,
+        "deadline": "2026-11-24T22:42:34.295490800Z",
+        "status": "UNCERTAIN",
+        "reason": "response_uncertain",
+        "ended": "2026-11-24T22:41:44.570082600Z"
+      },
+      "contributionContext": [
+        {
+          "serverMs": 1795560094315,
+          "phase": "announcement_committed",
+          "type": null,
+          "revision": "bf0a74cc67dad55c9173747f22953a4a039f8a4c087e7a90f5f965dd994880aa",
+          "sourceId": "e63d6e01-858f-48eb-8fa8-d238e0ede03b",
+          "sequence": 101,
+          "contentBytes": 0,
+          "sourceIds": [
+            "e63d6e01-858f-48eb-8fa8-d238e0ede03b"
+          ]
+        },
+        {
+          "serverMs": 1795560095786,
+          "phase": "send",
+          "type": "session.commentary.append",
+          "revision": "eff1d83a052553d4ff8cb7fcc6fd75af3ba259fd8f8c5d9eca85460ae4f96b8e",
+          "sourceId": "e63d6e01-858f-48eb-8fa8-d238e0ede03b",
+          "sequence": 106,
+          "contentBytes": 164,
+          "sourceIds": [
+            "e63d6e01-858f-48eb-8fa8-d238e0ede03b"
+          ]
+        },
+        {
+          "serverMs": 1795560096380,
+          "phase": "ack",
+          "type": "session.commentary.append",
+          "revision": "eff1d83a052553d4ff8cb7fcc6fd75af3ba259fd8f8c5d9eca85460ae4f96b8e",
+          "sourceId": "e63d6e01-858f-48eb-8fa8-d238e0ede03b",
+          "sequence": 107,
+          "contentBytes": 164,
+          "sourceIds": [
+            "e63d6e01-858f-48eb-8fa8-d238e0ede03b"
+          ]
+        }
+      ],
+      "contributionCaptions": [
+        {
+          "type": "session.output_transcript.delta",
+          "event_id": "event_EntUgEQMz4kXFDzuQiWSH",
+          "delta": " ready",
+          "start_ms": 142000,
+          "end_ms": 142200,
+          "at": 154292.69999999925
+        },
+        {
+          "type": "session.output_transcript.delta",
+          "event_id": "event_EntUiDw6imeeusKJFHD1n",
+          "delta": " ready",
+          "start_ms": 144400,
+          "end_ms": 144600,
+          "at": 156666.80000000075
+        },
+        {
+          "type": "session.output_transcript.delta",
+          "event_id": "event_EntUnK4YtJo6lvhRkNlD3",
+          "delta": " ready",
+          "start_ms": 149000,
+          "end_ms": 149200,
+          "at": 161250.69999999925
+        }
+      ],
+      "heldFinalPose": "NOT_REACHED",
+      "backendResponseCheck": {
+        "responseId": "e63d6e01-858f-48eb-8fa8-d238e0ede03b",
+        "revision": 4,
+        "segmentId": "df0d3347-4514-35d4-b445-334dda8ff0a2",
+        "verdict": "AMBIGUOUS"
+      },
+      "backendReportedTokens": 28423,
+      "backendRequests": 5,
+      "providerUsageSeconds": 153,
+      "runtime": {
+        "inputSeconds": 29.1685,
+        "textBytes": 58870,
+        "exhausted": null,
+        "rtcElapsedSeconds": 161.04959999999963
+      },
+      "reviewScope": "The clarification, review and arming communicated the agreed next step. The final requested contribution explicitly limited the word and the repetition count.",
+      "localAudioFinding": "The 155.22-second recording independently transcribed repeated Ready. Local ASR has four occurrences at the end and the provider has three separately timed caption deltas. Both show repetition.",
+      "sourceCockpitScreenshotSha256": "2c21b831db5b496855bec74351a3a2a689f27466114d229a8b9aba69792a4d76"
+    }
+  ]
 }

@@ -850,3 +850,9 @@ See the [latest reviewed results](HAND_INTERACTION_RESULTS.md).
 Allocation 13 authorized one L-07 selection. At 107/$281, all $95 of the
 continuation is reserved. L-07 reached arming and wrong-order rejection, then
 stopped at the frame admission limit. Receipt pacing is verified offline.
+
+Allocation 14 authorized one L-07 verification. Attempt 108 used the last $5
+of the $100 continuation. The ordering, consent and backend action count passed.
+One speaking instruction produced repeated “Ready” in the native output. The
+once-only contribution failed and the held pose was untested. The ledger closes
+at 108/$286. See the [results](HAND_INTERACTION_RESULTS.md).

@@ -1925,3 +1925,36 @@ The targeted run (`3ac1d36662`) passed both rehearsals, the successful and
 lost-playback cases, and three fixture tests. The paid ledger remains at
 107/$281. The test is in `tests/playwright/valerian-input-sequence.spec.mjs`
 and can be selected with the browser title filter `L-07 fixture rehearsal`.
+
+### L-07 verification with natural wording accepted
+
+**108, L-07, FAIL** (`129230f279`, revision `d04e3232`). Live asked what to
+do after seeing the sequence. The visitor chose “Ready” once. Live asked for
+the demonstration, reviewed what it had seen, obtained explicit consent and
+said it was waiting for a fresh cue. These turns communicated the next step.
+The visitor's agreement supplied the word and count for the final contribution.
+
+All 20 supplied hand frames were admitted. The post-consent one-three sequence
+spent zero actions. The fresh right-hand one-two-three spent one. The bridge
+sent one contribution commentary for that action, and the provider acknowledged
+it. The provider then captioned three “ready” utterances, separated by 2.4 and
+4.6 seconds on its media clock. The stored native segments were “ready ready”
+and “ready”. Local transcription of the full 155.22-second received recording
+also found repetition, with four occurrences. Both sources establish repetition
+in the received digital output. Physical audio was untested.
+The response check returned AMBIGUOUS for the first segment. The task stopped
+as UNCERTAIN before the held-three check.
+
+For the ordinary sequence workflow, use a visitor request such as “Let me know
+once when you see the whole sequence.” One natural acknowledgement after the
+correct cue fulfills that request. Clarification, consent, rejection of wrong
+cues and the action count remain observable throughout. Keep the original
+once-only “Ready” trial as evidence about a visitor who dictates specific
+speech. The trace does not establish why the model repeated the word.
+
+The [attempt record](checkpoints/hand-interaction-2026-11-24/live-continuation-l07-verification.json)
+contains the agreement, sequence progress, contribution send and acknowledgement,
+caption timestamps, audio transcription and response verdict. Allocation 14
+closed at **108 reservations/$286 cumulatively**. The continuation has reserved
+**$100 of $100**. Actual billing is unavailable. HI-12 remains open with L-04
+through L-08 outstanding.
