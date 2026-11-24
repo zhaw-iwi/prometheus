@@ -22,20 +22,29 @@ public final class DirectCommands {
         public Request(Intent intent, String kind, String value, boolean silent) { this(intent, kind, value, silent, "right_hand"); }
     }
     public record Result(BehaviourPlan plan, String status) {}
+    public static final String OK_CHOICE = "Do you mean a thumbs up or a diver's OK ring?";
+    private static final java.util.regex.Pattern OK_SIGN = java.util.regex.Pattern.compile(
+            "(?i)\\b(?:ok(?:ay)?|o\\.k\\.?)\\s+(?:(?:hand|finger)\\s+)?(?:sign|gesture|symbol)\\b"
+            + "|\\b(?:show|make|do)\\s+(?:me\\s+)?(?:an?\\s+|the\\s+)?ok(?:ay)?[.?!\\s]*$");
+    private static final java.util.regex.Pattern OK_SHAPE = java.util.regex.Pattern.compile(
+            "(?i)\\b(?:thumbs?[ -]?up|diver(?:['’]s|s)?|ring|circle|loop)\\b");
     private DirectCommands() {}
 
     public static boolean enabled(AgentInteractionProfile profile) {
         return profile != null && profile.getProfileTags().stream().anyMatch(TAGS::contains);
     }
     public static String voiceGuidance(AgentInteractionProfile profile) {
+        return voiceGuidance(profile, "");
+    }
+    public static String voiceGuidance(AgentInteractionProfile profile, String phaseGuidance) {
         if (!enabled(profile)) return "";
         // Live already supplies the capability-aware profile as its own section.
         return (profile.isCapabilityAwareness() ? "Direct output requests:" : " " + capabilities(profile))
-                + " Supported immediate demos are independent of finished tasks/limits; no agreement or second consent."
+                + (phaseGuidance.isBlank() ? " Supported immediate demos are independent of finished tasks/limits; no agreement or second consent."
                 + (HandFeatures.poses(profile) && HandActions.enabled(profile)
-                        ? " Explicit signs/poses need no sensor reading or restart."
-                        : " Explicit supported signs need no sensor reading or restart.")
-                + " Hear the full request; honor silence, else acknowledge once without claiming execution."
+                        ? " For a specified pose, never ask the person to demonstrate it."
+                        : " Explicit supported signs need no sensor reading or restart.") : " " + phaseGuidance)
+                + " Until confirmed, omit prerequisites and execution claims; honor silence."
                 + (HandActions.enabled(profile) && HandFeatures.geometry(profile)
                         ? " Clarify an OK sign: thumbs up or diver's ring; don't announce a demo yet." : "")
                 + (HandFeatures.pointing(profile)?" Pointing needs a known frame or fresh selected target; clarify unresolved targets.":"")
@@ -134,7 +143,11 @@ public final class DirectCommands {
         if (handled(storage, history)) return new Result(BehaviourPlan.fromJson("{}"), "DUPLICATE");
         String status, words;
         boolean action = false;
-        if (request.intent() == Intent.CAPABILITY) { status = "CAPABILITY"; words = capabilities(profile); }
+        boolean shapeChoice = HandFeatures.geometry(profile)
+                && (request.intent() == Intent.ACTION || request.intent() == Intent.CLARIFY)
+                && OK_SIGN.matcher(event.getPayload()).find() && !OK_SHAPE.matcher(event.getPayload()).find();
+        if (shapeChoice) { status = "CLARIFY"; words = OK_CHOICE; }
+        else if (request.intent() == Intent.CAPABILITY) { status = "CAPABILITY"; words = capabilities(profile); }
         else if (request.intent() == Intent.CLARIFY) { status = "CLARIFY"; words = "Which action or target do you mean?"; }
         else if (request.intent() == Intent.UNSUPPORTED || !allows(profile, request)) {
             status = "UNSUPPORTED"; words = "That action is not available here. " + capabilities(profile);
@@ -166,7 +179,10 @@ public final class DirectCommands {
         var receipt = new JsonObject(); receipt.addProperty("sourcePosition", event.sourcePosition()); receipt.addProperty("status", status);
         receipt.addProperty("silent", request.silent()); receipt.addProperty("kind", request.kind()); receipt.addProperty("value", request.value());
         if ("HAND_SIGN".equals(request.kind()) && HandSignObservation.SIGNS.contains(request.value())) receipt.addProperty("effector", request.effector());
-        if(grounded!=null)receipt.add("handAction",grounded.deepCopy());
+        if (shapeChoice) {
+            receipt.addProperty("clarification", "ok_shape");
+            receipt.add("kind", JsonNull.INSTANCE); receipt.add("value", JsonNull.INSTANCE); receipt.remove("effector");
+        } else if(grounded!=null)receipt.add("handAction",grounded.deepCopy());
         // Accepted/published plans are not execution receipts. Keep only bounded identity/result data here.
         storage.put(LAST, receipt);
         var handled = storage.containsKey(HISTORY) ? storage.get(HISTORY).getAsJsonArray().deepCopy() : new JsonArray();
@@ -182,6 +198,41 @@ public final class DirectCommands {
                 || !update.get(taskField).isJsonNull() || !update.get("reply").isJsonObject() || !update.getAsJsonObject("reply").isEmpty())
             throw new IllegalArgumentException("A direct request cannot modify a task or carry competing output");
         storage.put(TaskMemory.REPLY, evaluate(request, profile, storage, history, silentMode).plan().toJsonObject());
+        return true;
+    }
+    /** Bind the current direct pose to the published event before its database UUID is assigned. */
+    public static void publishedPose(Storage storage, Event event, ch.zhaw.prometheus.model.policy.ExternalSpeech voice) {
+        if (voice == null || !storage.containsKey(LAST)) return;
+        var receipt = storage.get(LAST).getAsJsonObject();
+        if (!new JsonPrimitive("HAND_POSE").equals(receipt.get("kind"))
+                || !new JsonPrimitive("ACCEPTED").equals(receipt.get("status")) || receipt.has("posePosition")
+                || receipt.get("sourcePosition").getAsLong() + 1 != event.sourcePosition()) return;
+        var motion = BehaviourPlan.fromJson(event.getPayload()).getMotion();
+        if (motion == null || !motion.isJsonObject() || !receipt.get("handAction").equals(motion.getAsJsonObject().get("handAction"))) return;
+        var bound = receipt.deepCopy();
+        bound.addProperty("posePosition", event.sourcePosition());
+        bound.addProperty("poseSession", voice.sessionId().toString());
+        bound.addProperty("poseEpoch", voice.epoch().toString());
+        storage.put(LAST, bound);
+    }
+    /** A digital rendering observation cannot dispatch motion, spend an action or advance the task. */
+    public static boolean renderedPose(Storage storage, EventHistory history, UUID eventId,
+            ch.zhaw.prometheus.model.policy.ExternalSpeech voice, java.time.Instant now) {
+        if (voice == null || !storage.containsKey(LAST)) return false;
+        var receipt = storage.get(LAST).getAsJsonObject();
+        if (!receipt.has("posePosition") || receipt.has("renderedEvent")
+                || !voice.sessionId().toString().equals(receipt.get("poseSession").getAsString())
+                || !voice.epoch().toString().equals(receipt.get("poseEpoch").getAsString())) return false;
+        var events = history.toList();
+        var pose = events.stream().filter(e -> eventId.equals(e.getId())).findFirst().orElse(null);
+        var user = events.stream().filter(e -> Event.TYPE_USER_UTTERANCE.equals(e.getType())).reduce((a,b) -> b).orElse(null);
+        if (pose == null || user == null || user.getCreatedDate() == null || now.isBefore(user.getCreatedDate())
+                || !now.isBefore(user.getCreatedDate().plusSeconds(30))
+                || !Objects.equals(pose.sourcePosition(), receipt.get("posePosition").getAsLong())
+                || !Objects.equals(user.sourcePosition(), receipt.get("sourcePosition").getAsLong())) return false;
+        var rendered = receipt.deepCopy();
+        rendered.addProperty("renderedEvent", eventId.toString());
+        storage.put(LAST, rendered);
         return true;
     }
     public static String capabilities(AgentInteractionProfile profile) {

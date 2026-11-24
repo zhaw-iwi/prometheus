@@ -806,3 +806,17 @@ reservation/provider call. Only two further $5 selections remain under allocatio
 remain failed or inconclusive. Full evidence and the offline regression results
 are in `HAND_INTERACTION_RESULTS.md`. HI-12 stays incomplete; speech ownership,
 capture, consent, semantic delivery and target expiry requirements are unchanged.
+
+### Current-turn Live diagnosis and continuation allocation
+
+The owner capped this continuation at $50. Allocation 10 starts at the immutable
+88 attempts and $186 reserved. Each attempt reserves $5 across all provider routes.
+Ten attempts reach 98 entries and $236 cumulatively. The previous unused allowance
+is included in the $50 cap. Any increase requires fresh owner approval.
+
+Use L-02 to compare the direct pose result with the native reply after task
+completion. Retain the source event ID, provider append send/ACK times, clock
+uncertainty, individual caption fragments, native audio onset and the observed
+digital pose. A replay on a different device cannot establish ordering in attempt 84.
+For incomplete consent, inspect the full local PCM, outgoing track and admitted
+transcript independently. A fresh explicit reply may follow one repair question.

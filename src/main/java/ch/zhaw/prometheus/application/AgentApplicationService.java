@@ -292,9 +292,18 @@ public class AgentApplicationService {
         if(body!=null&&body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>1024)throw new IllegalArgumentException("Receipt exceeds 1 KiB");
         return serialized(agentID,()->persistenceTurn(()->{
             var found=findAgent(agentID);if(found.isEmpty())return Optional.empty();var agent=found.get();
+            var request = body == null ? null : com.google.gson.JsonParser.parseString(body).getAsJsonObject();
+            if (request != null && new com.google.gson.JsonPrimitive("POSE_RENDERED").equals(request.get("operation"))) {
+                if (!request.keySet().equals(java.util.Set.of("operation", "eventId")))
+                    throw new IllegalArgumentException("Invalid pose rendering receipt");
+                boolean changed = agent.renderedPose(UUID.fromString(ch.zhaw.prometheus.model.hand.HandSignObservation.text(request.get("eventId"))),
+                        speechOwnership == null ? null : speechOwnership.current(agent), java.time.Instant.now());
+                if (changed) persistAndPublishMonitor(agent);
+                return Optional.of("{}");
+            }
             boolean sceneChanged=refreshScene(agent);
             String before=java.util.Objects.toString(agent.getStorage().get(ch.zhaw.prometheus.model.hand.HandExecution.KEY));
-            var result=agent.handExecution(body==null?null:com.google.gson.JsonParser.parseString(body).getAsJsonObject(),speechOwnership==null?null:speechOwnership.current(agent),java.time.Instant.now());
+            var result=agent.handExecution(request,speechOwnership==null?null:speechOwnership.current(agent),java.time.Instant.now());
             if(before.equals(java.util.Objects.toString(agent.getStorage().get(ch.zhaw.prometheus.model.hand.HandExecution.KEY)))){
                 if(sceneChanged)persistAndPublishMonitor(agent);
                 return Optional.of(result.toString());

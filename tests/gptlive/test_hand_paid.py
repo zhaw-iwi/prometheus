@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import subprocess
-from hand_paid import PLAN, EXTENSION, SECOND_EXTENSION, THIRD_EXTENSION, validate, reserve, history, available_budget
+from hand_paid import PLAN, EXTENSION, SECOND_EXTENSION, THIRD_EXTENSION, CONTINUATION, validate, reserve, history, available_budget, checkpoint_history, restore_checkpoint
 
 
 class HandPaidBudgetTest(unittest.TestCase):
@@ -35,43 +35,32 @@ class HandPaidBudgetTest(unittest.TestCase):
             changed = copy.deepcopy(plan); changed[key] = value
             with self.assertRaises(ValueError): validate(changed, 'gpt-6.2-sol')
 
-    def test_all_88_prior_reservations_survive_and_five_dollar_runs_stop_before_200(self):
+    def test_all_88_prior_reservations_survive_and_continuation_stops_at_50(self):
         with tempfile.TemporaryDirectory() as directory:
             ledger = Path(directory) / 'hand.json'
-            old={'authorization':'hand-interaction-2026-11-23-usd50','reservedUsd':186,
-                 'attempts':[{'mode':'L-01','artifact':str(Path(directory)/str(i)),
-                              'reservedUsd':4 if i < 3 else 2} for i in range(22)]}
-            old['attempts'].extend({'mode':'L-08','artifact':str(Path(directory)/str(i)),
-                                    'reservedUsd':2,'allocationRevision':4,'extensionAuthorization':EXTENSION} for i in range(22,28))
-            old['attempts'].extend({'mode':'L-07','artifact':str(Path(directory)/str(i)),
-                                    'reservedUsd':1,'allocationRevision':5,'extensionAuthorization':EXTENSION} for i in range(28,36))
-            old['attempts'].extend({'mode':'L-07','artifact':str(Path(directory)/str(i)),
-                                    'reservedUsd':1,'allocationRevision':6,'extensionAuthorization':SECOND_EXTENSION} for i in range(36,66))
-            old['attempts'].extend({'mode':'L-07','artifact':str(Path(directory)/str(i)),
-                                    'reservedUsd':1,'allocationRevision':7,'extensionAuthorization':THIRD_EXTENSION} for i in range(66,74))
-            old['attempts'].extend({'mode':'L-07','artifact':str(Path(directory)/str(i)),
-                                    'reservedUsd':7,'allocationRevision':8,'extensionAuthorization':THIRD_EXTENSION} for i in range(74,78))
-            old['attempts'].extend({'mode':'L-07','artifact':str(Path(directory)/str(i)),
-                                    'reservedUsd':5,'allocationRevision':9,'extensionAuthorization':THIRD_EXTENSION} for i in range(78,88))
+            old = checkpoint_history()
+            self.assertEqual(old, restore_checkpoint(ledger))
             shortened=copy.deepcopy(old)
             shortened['attempts'].pop(); shortened['reservedUsd']-=5
             ledger.write_text(json.dumps(shortened),encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'Invalid hand ledger'): reserve('L-02', directory, ledger)
             self.assertEqual(shortened,json.loads(ledger.read_text(encoding='utf-8')))
             ledger.write_text(json.dumps(old),encoding='utf-8')
-            for i in range(2):
-                self.assertEqual(186+5*(i+1), reserve('L-02', Path(directory) / str(i+88), ledger)['reservedUsd'])
+            for i in range(len(old['attempts']), 98):
+                self.assertEqual(186+5*(i-87), reserve('L-02', Path(directory) / str(i+1), ledger)['reservedUsd'])
             with self.assertRaisesRegex(ValueError, 'exhausted'): reserve('L-02', directory, ledger)
             data=history(ledger)
-            self.assertEqual(196, data['reservedUsd'])
-            self.assertEqual(old['attempts'],data['attempts'][:88])
+            self.assertEqual(236, data['reservedUsd'])
+            self.assertEqual(old['attempts'], data['attempts'][:len(old['attempts'])])
+            self.assertEqual(data, restore_checkpoint(ledger))
             self.assertTrue(all(a['extensionAuthorization']==EXTENSION for a in data['attempts'][22:36]))
             reduced=copy.deepcopy(data)
             reduced['attempts'][0]['reservedUsd']=2; reduced['reservedUsd']-=2
             ledger.write_text(json.dumps(reduced),encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'Invalid hand ledger'): history(ledger)
             self.assertTrue(all(a['extensionAuthorization']==SECOND_EXTENSION for a in data['attempts'][36:66]))
-            self.assertTrue(all(a['extensionAuthorization']==THIRD_EXTENSION for a in data['attempts'][66:]))
+            self.assertTrue(all(a['extensionAuthorization']==THIRD_EXTENSION for a in data['attempts'][66:88]))
+            self.assertTrue(all(a['extensionAuthorization']==CONTINUATION for a in data['attempts'][88:]))
             del data['attempts'][36]['extensionAuthorization']
             ledger.write_text(json.dumps(data),encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'Invalid hand ledger'): history(ledger)

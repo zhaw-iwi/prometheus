@@ -40,6 +40,12 @@ class CoordinationModelAgreementUnitTest {
         assertEquals("PREPARATION", CoordinationMemory.stage(f.storage()));
         assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));assertFalse(f.storage().containsKey(TaskMemory.ACTIONS));
     }
+    @Test void armingRefersToTheReviewedPoseWithoutRecitingItsMatchingPredicates() throws Exception {
+        var saved = CoordinationAgreement.parse(canonical());
+        String facts = CoordinationUpdateAction.armingFacts(saved.reactions());
+        assertEquals("Task accepted and armed. Confirm once that you are waiting for the agreed two-hand pose as a fresh cue.", facts);
+        assertEquals(canonical(), saved.json());
+    }
     @Test void canonicalAgreementsRemainUnchanged() throws Exception {
         for (var value : List.of(canonical(), CoordinationAgentUnitTest.dialogue(), CoordinationAgentUnitTest.sensor(true)))
             assertEquals(CoordinationAgreement.parse(value).json(), CoordinationAgreement.fromModel(value).json());

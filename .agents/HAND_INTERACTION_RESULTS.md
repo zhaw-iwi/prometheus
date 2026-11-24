@@ -1511,3 +1511,92 @@ complete proposal reviews; complete provider capture of explicit acceptance; and
 full person/item stale-target coverage. Consent, capture, semantic delivery and
 target expiry guards remain intact. Further unchanged retries would not establish
 reliability. Keep HI-12 open and retain the accepted speech-ownership architecture.
+
+### Current-turn Live investigation (2026-11-24)
+
+Attempt 84's original raw directory was absent on this device. Its curated
+captions and backend output establish the contradiction but contain no comparable
+timestamps for the command result and speech. The new driver retains each
+command's source event ID, delivery send and provider ACK times, caption event
+IDs, actual browser audio onset and a bracket from the application clock.
+Provider acknowledgements establish receipt of context. Captions and playback
+allow an ordering of observations, not access to a model's internal decision time.
+
+- **89, L-02, semantic FAIL** (`4a7ac79a07`). All backend and visual assertions
+  passed. Both inspected hand configurations matched the ten requested finger
+  values. The direct pose's published event received a distinct digital rendering
+  acknowledgement. The first native caption arrived on the server 2,556 ms
+  before the accepted-result send. The first observed audible onset was 843–915 ms
+  before that send. The result was acknowledged 617 ms after send. Live had
+  already begun treating the imperative as feedback on the closed task and the
+  captured reply went on to offer a restart. The initial proposal reply also
+  invited acceptance before preparation. The later review completed. The full
+  137.28-second recording was reviewed using local ASR alongside captions, task
+  state and the two inspected render images.
+- The local Windows en-US voice here is Microsoft Zira. Local ASR recovered
+  “I accept the current proposal” both from the 24 kHz source and from a
+  separate browser-to-browser WebRTC recording. The source has 60,828 samples
+  and 745.5 ms below the harness's speech threshold at the end. In attempt 89,
+  outgoing packets increased by 128 on the same enabled track and the provider
+  delivered the complete phrase. The original Microsoft David PCM hash differs.
+  The cause of the older provider truncations remains unknown.
+
+- **90, L-02, semantic FAIL** (`818f7ba694`). The complete local stimulus played on the enabled
+  outgoing track (+133 packets). Provider ingress ended at “I accept the current.” Native
+  speech claimed acceptance, then correctly reported the inactive proposal and
+  asked the person to say “Start now.” The backend kept the task inactive with
+  zero actions until that fresh explicit reply. The unchanged proposal then
+  armed. Live twice confirmed waiting for the cue in the same capture, the
+  semantic verifier returned AMBIGUOUS, and the task paused with zero actions.
+  This run never reached the post-task command. The full recording and captions
+  were reviewed. The arming response now refers once to an already-reviewed hand
+  pose and its fresh cue. The saved predicate and verification rules are retained.
+- **91, L-03, full journey INCONCLUSIVE** (`9968b10128`). On the ambiguous OK
+  request Live asked which of the two shapes the person meant. The backend
+  recorded CLARIFY and issued zero motion. After explicit clarification it
+  issued exactly one right-hand diver’s ring. The screenshot, native captions
+  and complete 133.44-second recording support those two command outcomes.
+  Their first captions reached the server 3,854 ms and 1,101 ms respectively
+  before the corresponding result was sent. Later, the preparation request was
+  stored as incomplete with an ambiguous association. Zero task actions were
+  spent. The final proposal review and selected deliberate consent fragment
+  were never reached. The natural fragment in attempt 90 is the paid evidence
+  for the repair.
+- **92, L-02, direct command PASS, full journey semantic FAIL** (`31986cb419`).
+  The task executed once. On the subsequent independent request, Live offered to
+  show the correct simultaneous left-index/right-thumb pose. Its first caption
+  reached the server 3,494 ms before the backend sent acceptance. Browser playback
+  began 3,017–3,025 ms before send. The same user-turn ID then received separate
+  accepted and digitally rendered acknowledgements. The renderer showed the
+  requested finger configuration in both images and the direct command spent
+  zero task actions. The full 133.08-second recording, captions, stored terms
+  and render images were reviewed. Local ASR was indistinct on the final clause
+  of the direct reply. The captured caption specified the other fingers bent.
+  The final proposal review was brief and captured, but described already
+  completed preparation as future work. Arming was confirmed twice. The backend
+  verifier accepted arming on this run. Preserve the spoken failures separately
+  from the successful task and independent command.
+
+The recorded implementation reproductions failed before the fixes for
+unqualified OK and incomplete consent. An ambiguous interpreted direct command
+now withholds motion and identifies the two choices. A partial acceptance
+retains the draft, lets a pending review finish, and asks once for fresh explicit
+consent. Only a fresh holding frame for the matching published direct pose can
+report digital rendering. History previews and task poses do not confirm a
+direct command. Reviews compact repeated complete clauses before projection and
+use a single copy of task terms. The saved agreement remains authoritative.
+
+Across attempts 89–92 the continuation reserved $20 of its $50 limit, including
+all backend and native calls. The ledger stands at 92 attempts/$206 cumulatively.
+Six reservations ($30) remain. The result is encouraging for direct requests but
+one corrected reply cannot establish a success rate. Next isolate the competing
+spontaneous and backend-requested arming replies, and whether completed
+preparation is conveyed in the final review. Capture the first audible segment
+and verified control-fact delivery for each. Keep the complete-delivery and fresh
+consent checks. Broader acceptance, including L-06, and physical trials remain open.
+
+Offline verification on this checkout passed 376 focused Java tests in 30
+suites, 48 local-MySQL tests, six browser cases, 45 Python tests, 17 Node
+tests, nine schema examples and Maven packaging. The browser cases covered
+native voice during blocked backend work, Stop, completion and lost playback
+receipts, and strict silent hand actions in Text and Continuous.

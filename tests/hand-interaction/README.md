@@ -288,7 +288,7 @@ geometry is covered by the sign/pose renderer evidence. Continuous includes a
 spoken positive control before its silent windows.
 
 Use `tests/gptlive/run_acceptance.py --database-properties <loopback-properties>
---hand-interaction L-01 --paid-core hand-live` with `OPENAI_MODEL=gpt-5.6-luna`.
+--hand-interaction L-01 --paid-core hand-live` with `OPENAI_MODEL=gpt-6.2-sol`.
 Selections L-01 through L-09 are explicit individual attempts; the L-09 comparison
 session uses `--hand-comparison` first. Run the existing local-database and browser
 preflight before spending a reservation. Do not mix paid selections with mocked
@@ -296,18 +296,22 @@ browser/Java selections. Keep the existing developer model configuration unchang
 
 The enforced plan is `tests/gptlive/hand-paid-plan.json`. Its separate persistent
 ledger is `target/hand-interaction-budget.json`; never reset it or refund a failed
-attempt. Current allocation revision 3 permits 22 attempts/$50 reserved within the owner's $50 cap,
-retaining the first three $4 reservations and using $2 for later attempts.
-Each attempt permits at most one six-minute native session, 36 backend requests,
-80,000 UTF-8 request bytes, 2,048 completion tokens per call and twelve visitor
-turns. The overall watchdog is 390 seconds. Paid synthesis and grading are disabled.
+attempt. Allocation 10 preserves the 88-attempt/$186 original checkpoint and reserves
+$5 for each new selection, including the backend and Live. Its maximum is 98
+attempts/$236. Restore the latest committed ledger using the
+[handoff](../../.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
+Each attempt permits one six-minute native session, ten backend requests, 80,000
+UTF-8 bytes per request, 2,048 completion tokens per call and twelve visitor
+turns. The overall watchdog is 390 seconds. Stimulus generation and grading are local.
 Generate the labelled visitor audio with `python tests/gptlive/prepare_hand_audio.py`;
 regenerate it after this revision, since old silence-request clips fail preflight.
 This uses local Windows SAPI, not a provider. Controlled sensor fixtures do not
 establish camera accuracy. Every paid run records source hashes and complete
 received native audio, including audio suppressed by browser playback.
-The acceptance stimulus is now the short phrase "Start now."; preserve earlier
-attempts with their original clip hashes. PCM reaches the browser as lossless
+The full acceptance stimulus says “I accept the current proposal.” If its
+admitted transcript is truncated, wait for the inactive-proposal repair, then
+provide fresh explicit consent. L-03 can deliberately exercise a fragment with
+`--hand-consent-repair`. PCM reaches the browser as lossless
 base64 rather than a large array of JSON numbers, avoiding expensive automation
 serialization. The harness test verifies a complete 45-second PCM round trip,
 browser polling and the unchanged input-audio budget.
@@ -327,8 +331,7 @@ ordered renderer images, durable terms/actions and scoped completion evidence.
 Revision-1 failed attempts remain failed under their original rubric. Every new
 report records revision 2; L-09 requires a comparison from the same revision.
 HI-12 is incomplete until L-01..09 and M-01/M-02 pass; see the project results.
-The current local ledger has exhausted its 22 attempts/$50 reserved allowance.
-This is a conservative reservation ceiling, not a measured invoice total.
+The handoff records the current spend reservations. Actual invoice totals are unavailable.
 
 Physical operator checklist (all NOT RUN): ten named signs on each hand; custom
 one/two-hand patterns and occlusion; mirrored preview and all pointing directions;

@@ -41,6 +41,8 @@ def main():
     parser.add_argument('--hand-interaction', choices=hand_interaction.SELECTIONS,
                         help='Dedicated hand contracts/baseline; staged Live journeys fail closed until implemented')
     parser.add_argument('--hand-comparison', action='store_true', help='Run the separate L-09 comparison-agent session')
+    parser.add_argument('--hand-consent-repair', action='store_true',
+                        help='Add a deliberately unfinished spoken acceptance before the normal L-03 acceptance')
     parser.add_argument('--java-tests', default='LiveCockpitSmokeIntegrationTest', help='Comma-separated Maven test names, all, or none')
     parser.add_argument('--browser', action='store_true', help='Run real-app smoke enabled and disabled, then focused UI regressions')
     parser.add_argument('--embodiment', action='store_true', help='Robot browser regression or real-provider persisted-plan rendering smoke')
@@ -65,6 +67,8 @@ def main():
     commanding = args.paid_core in commanding_preflight.MODES
     hand = args.paid_core == 'hand-live'
     hand_mode = 'L-09-comparison' if args.hand_comparison else args.hand_interaction
+    if args.hand_consent_repair and (not hand or hand_mode != 'L-03'):
+        parser.error('--hand-consent-repair requires the paid L-03 hand journey')
     if args.commanding_retests and args.paid_core not in ('commanding-hp2','commanding-hp3'):
         parser.error('--commanding-retests only authorizes commanding-hp2 or commanding-hp3')
     if args.commanding_hp3_retest and args.paid_core != 'commanding-hp3':
@@ -275,6 +279,7 @@ def main():
                     env['OPENAI_ROUTES_' + purpose + '_TIMEOUT_MS'] = '30000'
             if hand:
                 env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS=str(plan['limits']['backendRequests']), PROMETHEUS_PROVIDER_MAX_TOKENS='250000',
+                    PROMETHEUS_HAND_CONSENT_REPAIR='true' if args.hand_consent_repair else 'false',
                     PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
                     PROMETHEUS_PROVIDER_MAX_SPEECH_CALLS='0', OPENAI_MAX_COMPLETION_TOKENS='2048',
                     OPENAI_REQUEST_TIMEOUT_MS='30000', PROMETHEUS_LIVE_MODEL=plan['models']['live'],

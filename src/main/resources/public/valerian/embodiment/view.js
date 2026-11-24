@@ -4,6 +4,7 @@ const preference='valerian.behaviourView';
 const state=new EmbodimentState();
 let root,stage,canvas,status,summary,display,renderer,loading,frame,resizeObserver;
 let mode='details',failed=false,disposed=false;
+let poseRendered=null;
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 function stored() {try{return localStorage.getItem(preference)==='robot'?'robot':'details';}catch{return 'details';}}
 function visible() {return mode==='robot'&&!failed&&!document.hidden&&stage?.getClientRects().length>0;}
@@ -40,6 +41,9 @@ function draw(now=performance.now()) {
   if(!renderer||disposed)return;
   const sample=state.sample(now);stage.dataset.animating=String(sample.active);
   renderer.draw(sample,now);
+  if (poseRendered && visible() && sample.active && sample.handPhase==='holding' && sample.pose?.action?.kind==='pose') {
+    const report=poseRendered; poseRendered=null; report();
+  }
   // Expose the normalized pose actually submitted to WebGL, alongside animation state.
   stage.dataset.handSign=sample.pose?.sign||'';
   stage.dataset.handPhase=sample.handPhase||'';
@@ -101,14 +105,15 @@ function init() {
   document.addEventListener('visibilitychange',refresh);reduced.addEventListener('change',refresh);
   window.addEventListener('storage',storage);caption();setMode(stored(),false);
 }
-function receive(plan,options) {
+function receive(plan,options={}) {
   if(disposed)return;
   // No delayed replay while loading the renderer or hidden behind another tab.
   state.visible=visible()&&!!renderer;state.reduced=reduced.matches;
   state.receive(plan,options,performance.now());
+  if (!options.preserveNonSpeech) poseRendered=state.started!==null && !options.fromHistory ? options.poseRendered : null;
   if(root){caption();draw();stop();if(visible()&&state.pose&&!reduced.matches)frame=requestAnimationFrame(loop);}
 }
-function clear() {state.clear();stop();if(root){caption();draw();}}
+function clear() {poseRendered=null;state.clear();stop();if(root){caption();draw();}}
 function settle() {state.settle();draw();}
 // Explicit diagnostic capture: redraw and read the same submitted GPU frame.
 function snapshot(){

@@ -9,7 +9,11 @@ public final class LiveContextDelivery {
     public static final int MAX_APPEND_BYTES = 480; // Conservatively below the provider's 500-token limit.
     public record Narration(UUID sourceId, String text) {}
     public record Command(String type, String content, String delegationId, UUID sourceId, String revision,
-            String evidenceType, Instant expiresAt, boolean interruptible, boolean currentOnly) {
+            String evidenceType, Instant expiresAt, boolean interruptible, boolean currentOnly, String commandStatus) {
+        public Command(String type, String content, String delegationId, UUID sourceId, String revision,
+                String evidenceType, Instant expiresAt, boolean interruptible, boolean currentOnly) {
+            this(type, content, delegationId, sourceId, revision, evidenceType, expiresAt, interruptible, currentOnly, null);
+        }
         public Command(String type, String content, String delegationId, UUID sourceId, String revision,
                 String evidenceType, Instant expiresAt, boolean interruptible) {
             this(type, content, delegationId, sourceId, revision, evidenceType, expiresAt, interruptible, false);
@@ -50,6 +54,15 @@ public final class LiveContextDelivery {
         String revision = current.revision();
         var continuation = current.activity() == null ? null : current.activity().continuation();
         UUID currentSource = continuation != null && continuation.currentOnly() ? continuation.id() : null;
+        if (!Objects.equals(current.commandResult(), delivered.commandResult())) {
+            var result = current.commandResult();
+            String facts = result == null
+                    ? "No pending direct-command result. Earlier completed commands and task agreements are unchanged."
+                    : result.facts();
+            commands.add(new Command("session.thinking.append", "Silent context only. " + facts,
+                    null, result == null ? null : result.source(), revision, null, null, false, false,
+                    result == null ? "WITHDRAWN" : result.status()));
+        }
         // Opening belongs only to a new voice session. Dynamic sections must also be withdrawn.
         var sections = new LinkedHashSet<>(List.of("voice", "policy", "taskVoice", "state", "capabilities"));
         sections.addAll(new TreeSet<>(current.guidance().keySet()));
@@ -59,11 +72,9 @@ public final class LiveContextDelivery {
             int start = commands.size();
             String value = current.guidance().getOrDefault(section, "");
             if (!value.equals(delivered.guidance().getOrDefault(section, "")))
-                add(commands, section.equals("commandResult") || section.equals("state") && current.activity() != null ? "thinking" : "instructions", "CURRENT " + section.toUpperCase(Locale.ROOT)
+                add(commands, section.equals("state") && current.activity() != null ? "thinking" : "instructions", "CURRENT " + section.toUpperCase(Locale.ROOT)
                         + " replaces only the earlier " + section + " section.\n"
-                        + (value.isBlank() ? section.equals("commandResult")
-                            ? "No pending direct-command result for this visitor turn. Earlier completed commands and task agreements are unchanged. No reply requested."
-                            : "This section no longer applies." : value), null, null, revision);
+                        + (value.isBlank() ? "This section no longer applies." : value), null, null, revision);
             if (currentSource != null && Set.of("state", "taskVoice").contains(section))
                 scope(commands, start, currentSource);
         }
@@ -150,7 +161,7 @@ public final class LiveContextDelivery {
             var items = new ArrayList<>(current.items().stream().filter(item -> !deferred.contains(item.type())).toList());
             items.addAll(delivered.items().stream().filter(item -> deferred.contains(item.type())).toList());
             delivered = new LiveContextSnapshot(current.agentId(), current.epoch(), current.revision(), current.builtAt(),
-                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance(), current.userSilenceMs(), current.activity(), current.filterIsolatedInputActivity(), current.pendingAcknowledgements(), current.assistantSilenceMs());
+                    current.statePath(), current.instructions(), items, current.omitted(), current.guidance(), current.userSilenceMs(), current.activity(), current.filterIsolatedInputActivity(), current.pendingAcknowledgements(), current.assistantSilenceMs(), current.commandResult());
         }
         return delivered;
     }

@@ -141,11 +141,11 @@ public class LiveAgentContextService {
                             .map(event -> new ch.zhaw.prometheus.application.live.LiveContextDelivery.Narration(event.getId(),
                                     ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()).getSpeech()))
                             .filter(value -> value.sourceId() != null && value.text() != null && !value.text().isBlank()).toList();
-                    String command = transcriptSegments == null || !ownership.taskWorkAllowed(id, owner) ? ""
-                            : ch.zhaw.prometheus.application.live.LiveCommandResult.facts(agent, java.time.Instant.now(), eventId ->
+                    var command = transcriptSegments == null || !ownership.taskWorkAllowed(id, owner) ? null
+                            : ch.zhaw.prometheus.application.live.LiveCommandResult.current(agent, java.time.Instant.now(), eventId ->
                                 transcriptSegments.existsByAgent_IdAndSessionIdAndEpochAndEventIdAndSpeakerAndStatus(
                                         id, owner.sessionId(), owner.epoch(), eventId, "USER", "COMPLETE"));
-                    return new Update(command.isEmpty() ? projection.project(agent) : projection.project(agent, command), narrations);
+                    return new Update(command == null ? projection.project(agent) : projection.project(agent, command), narrations);
                 }));
     }
 }

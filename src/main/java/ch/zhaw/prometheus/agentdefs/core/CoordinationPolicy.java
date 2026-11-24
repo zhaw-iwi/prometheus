@@ -34,6 +34,11 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 && !(storage().containsKey(TaskResponse.KEY) && TaskResponse.captured(storage(), TaskResponse.owner(storage())));
     }
     @Override public boolean hasDraft() { return storage().containsKey(CoordinationMemory.DRAFT); }
+    @Override public String liveDirectCommandGuidance() {
+        return "REFLECTION".equals(CoordinationMemory.stage(storage()))
+                ? "Treat 'show' or 'stretch' as a new demo, even for the same pose. Acknowledge the request once or let the robot respond. Discuss feedback or restart only if asked."
+                : "";
+    }
     @Override public String statusPhase() {
         String stage = CoordinationMemory.stage(storage());
         return "EXECUTION".equals(stage) ? TaskMemory.phase(storage()) : stage;
@@ -51,12 +56,12 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "Never complete a partial task request. "
                 + "Describe proposals only. Contribute solely on the current identified occasion. "
                 + "During preparation/proposal, never preview task content, including sample jokes. Say 'the line you supplied' only for user-supplied text. "
-                + "Before confirmed control facts, never say checking, waiting for backend, done, started, restarted or returned. "
+                + "Only confirm acceptance, start or completion on its speaking occasion. Partial consent leaves a proposal inactive. "
                 + "Omit implementation details. Answer unrelated questions and explicitly requested capability examples. "
                 + "Conversation preserves history and the agent. "
                 + "Proposals need acceptance; preparation needs observed evidence, never verbal claims. "
                 + "Review ready proposals in at most 55 words, preserving distinct terms, preparation, limits and acceptance question. "
-                + "Preparation holds until proposal/session changes. READY needs acceptance, not repeated preparation; execution needs a fresh post-acceptance cue. "
+                + "Preparation holds until proposal/session changes. In READY, acknowledge hearing the person. A fresh cue follows arming. "
                 + "Each dialogue-task step needs backend confirmation. "
                 + "ON_CUE needs a fresh cue; recognition failure is no cue. Explain recognition/action limits. "
                 + "Reflection reports evidence/user experience, not learning, feelings or physical proof. Exhaustion/cancellation is not success; revisions need agreement. "
@@ -134,7 +139,10 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                         || (supportOnly || response.has("proposalReview") && response.get("proposalReview").getAsBoolean())
                             && CoreTaskVoice.freshEnding(event, parts, Instant.parse(response.get("created").getAsString()), now))
                     || !now.isBefore(Instant.parse(response.get("expires").getAsString())))) return changed;
-        response.addProperty("consumed", true); storage().put(CoreTaskVoice.RESPONSE, response); return true;
+        response.addProperty("consumed", true); storage().put(CoreTaskVoice.RESPONSE, response);
+        if (response.has("repairAfterReview") && CoordinationMemory.ready(storage()))
+            CoordinationAcceptance.repair(storage(), owner);
+        return true;
     }
     @Override public LiveActivityContext liveActivityContext() {
         var context = CoordinationDelivery.withPlayback(storage(),
@@ -181,13 +189,13 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                     && CoordinationMemory.ready(storage) && !ch.zhaw.prometheus.model.coordination.CoordinationSupport.blockedDraft(storage)) {
                 var proposal = CoordinationMemory.agreement(storage, CoordinationMemory.DRAFT);
                 review = ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.liveProposalReview(proposal);
-                if (CoreTaskVoice.bytes(review + "\n" + CoordinationMemory.controls(storage)) > 3900) {
+                if (CoreTaskVoice.bytes(ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.spokenProposalReview(proposal)
+                        + "\n" + CoordinationMemory.controls(storage)) > 3900) {
                     navigationReview = true;
                     review = "The proposal is saved and preparation is complete. Review the full roles, success terms and conditions in the cockpit task details before accepting. "
                             + CoordinationMemory.voiceNavigation(storage) + " This proposal is not active. Shall we start?";
                 }
-                if (!review.isBlank() && (proposal.reactions() == null
-                        || CoreTaskVoice.bytes(review) > LiveActivityContext.Continuation.MAX_FACTS_BYTES)) facts = CoordinationMemory.controls(storage);
+                if (!review.isBlank()) facts = navigationReview ? CoordinationMemory.voiceNavigation(storage) : CoordinationMemory.controls(storage);
             }
             if (!review.isBlank()) {
                 boolean longReview = CoreTaskVoice.bytes(review) > LiveActivityContext.Continuation.MAX_FACTS_BYTES;

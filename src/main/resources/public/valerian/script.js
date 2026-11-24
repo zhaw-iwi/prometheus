@@ -2725,7 +2725,8 @@ function renderBehaviourPlan(plan, options = {}) {
   }
   const capabilities = resolveInteractionCapabilities(state.agentInfo?.interactionProfile);
   const sequence=plan.motion?.handAction?.action?.kind==='sequence'&&!!options.eventId;
-  const connection=sequence?captureConnection():null,owner=sequence?crypto.randomUUID():null;
+  const pose=plan.motion?.handAction?.action?.kind==='pose'&&options.eventId&&liveVoice.ui?.client?.busy;
+  const connection=sequence||pose?captureConnection():null,owner=sequence?crypto.randomUUID():null;
   const sequenceRequest=sequence?async(operation,step)=>{
     if(!currentConnection(connection)&&operation!=='CANCEL')throw new Error('Changed agent scope');
     const response=await fetch(`/demo/agents/${connection.agentId}/hand-execution`,{method:'POST',headers:{'Content-Type':'application/json','X-Prometheus-Access-Code':connection.code},body:JSON.stringify({eventId:options.eventId,owner,operation,step}),keepalive:operation==='CANCEL',signal:AbortSignal.timeout(5000)});
@@ -2734,6 +2735,12 @@ function renderBehaviourPlan(plan, options = {}) {
   }:null;
   globalThis.ValerianEmbodiment?.receive(plan, { ...options,
     sequenceRequest,
+    poseRendered: pose ? () => {
+      if (currentConnection(connection)) void fetch(`/demo/agents/${connection.agentId}/hand-execution`, {
+        method:'POST', headers:{'Content-Type':'application/json','X-Prometheus-Access-Code':connection.code},
+        body:JSON.stringify({eventId:options.eventId,operation:'POSE_RENDERED'}),signal:AbortSignal.timeout(5000)
+      }).catch(() => {}); // Lost evidence leaves rendering unconfirmed.
+    } : null,
     modalities: capabilities.fallbackAll ? null : capabilities.supportedBehaviourModalities,
     profileTags: state.agentInfo?.interactionProfile?.profileTags || [] });
   if (!options.preserveNonSpeech) resetBehaviourPanels();

@@ -9,10 +9,11 @@ import {openValerianSession} from '../playwright/fixtures/valerian-session.mjs';
 import {synchronizeEmbodimentFrame} from '../playwright/fixtures/embodiment-frame.mjs';
 import {trialCapture} from './trial_capture.mjs';
 import {handBudgetCapture} from './hand_budget_capture.mjs';
-import {playHandStimulus,handReplyObserved} from './hand_audio_input.mjs';
+import {playHandStimulus,handReplyObserved,outboundHandAudio} from './hand_audio_input.mjs';
 import {startObservationPumps} from './hand_observation_pump.mjs';
 import {armingReady,speechLatency,conversationLatency,compareConversations} from './commanding_evidence.mjs';
 import {runHandScenario} from './hand_scenarios.mjs';
+import {commandTiming} from './hand_command_timing.mjs';
 
 const [permission,output]=process.argv.slice(2),mode=process.env.PROMETHEUS_HAND_MODE;
 const base=process.env.PROMETHEUS_BASE_URL,ledger=process.env.PROMETHEUS_HAND_BUDGET_LEDGER;
@@ -21,7 +22,8 @@ if(permission!=='--allow-paid-provider'||!output||!/^L-0[1-9](-comparison)?$/.te
     ||!['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname))throw Error('Use the isolated authorized hand runner');
 const plan=JSON.parse(fs.readFileSync(process.env.PROMETHEUS_HAND_PAID_PLAN)),reservation=JSON.parse(fs.readFileSync(ledger));
 assert.equal(reservation.authorization,'hand-interaction-2026-11-23-usd50');
-assert.ok(reservation.attempts.length<=90&&reservation.reservedUsd<=200);
+assert.ok(reservation.attempts.length<=98&&reservation.reservedUsd<=236
+  &&reservation.attempts.slice(88).reduce((sum,a)=>sum+a.reservedUsd,0)<=50);
 const directory=path.dirname(path.resolve(output));
 assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===5&&a.allocationRevision===plan.allocationRevision&&a.extensionAuthorization===plan.extensionAuthorization&&path.resolve(a.artifact)===directory));
 fs.writeFileSync(path.join(directory,'provider-attempt.started'),new Date().toISOString(),{flag:'wx'});
@@ -39,6 +41,11 @@ async function api(route,method='GET',body,headers=scoped){check();const respons
   if(!response.ok)throw Error(`${method} ${route}: HTTP ${response.status}`);return response.status===204?null:response.json();}
 const memory=async()=>Object.fromEntries((await api(agentPath+'/storage')).map(e=>[e.key,JSON.parse(e.value)]));
 const history=async()=>api(agentPath+'/live/history');
+const contextTraces=new Map(),providerEvents=new Map();
+function retainDiagnostics(status){
+  for(const e of status?.context?.recent||[])if(e.phase.startsWith('command_'))contextTraces.set(e.sequence,e);
+  for(const e of status?.recent||[])if(e.eventId&&e.type==='session.output_transcript.delta')providerEvents.set(e.eventId,e);
+}
 async function until(label,read,ms=45000){const deadline=Date.now()+ms;while(Date.now()<deadline){check();
   if(!closing&&handle){assert.equal(await page.getByTestId('gptlive-status').textContent(),'Active','Native transport stopped');
     assert.equal(await page.evaluate(()=>__handBudget.exhausted),null,'Native budget exceeded');}
@@ -51,8 +58,14 @@ async function say(name,{reply=true}={}){
   const turn={name,intendedInput:clips[name],beforeIds:before.map(e=>e.id),beforeAgreement:prior['coordination.agreement'],
     beforeActions:prior['task.actions'],beforeCommandCount:prior['command.handledTurns']?.length||0,index:await page.evaluate(()=>__trial.events.length)};
   report.turns.push(turn);const clip=stimulus.clips[name],bytes=fs.readFileSync(path.join('target/hand-interaction-audio',clip.file));
+  turn.clock=await page.evaluate(async()=>{
+    const sent=performance.now(), response=await fetch('/runtime/clock',{cache:'no-store'});
+    const {serverTimeMs}=await response.json();return {sent,received:performance.now(),serverTimeMs};
+  });
   assert.equal(clip.text,clips[name]);assert.equal(createHash('sha256').update(bytes).digest('hex'),clip.sha256);console.log('Visitor: '+name);
+  if(name.startsWith('accept'))turn.outboundBefore=await page.evaluate(outboundHandAudio);
   turn.input=await page.evaluate(playHandStimulus,{pcmBase64:bytes.toString('base64'),name});
+  if(name.startsWith('accept'))turn.outboundAfter=await page.evaluate(outboundHandAudio);
   await until('durable user '+name,async()=>(await history()).some(e=>!turn.beforeIds.includes(e.id)&&e.type==='obs.user_utterance'));
   if(reply){await page.waitForFunction(handReplyObserved,{index:turn.index,startMs:turn.input.startMs},{timeout:35000});await quiet();}
   await updateTurn(turn);if(reply)assert.ok(Number.isFinite(turn.latency.speechEndToOutputMs),'Native audio missing');console.log('Reply: '+turn.spoken);return turn;
@@ -66,14 +79,16 @@ async function render(name,kind){await page.waitForFunction(kind=>document.query
 const plans=events=>events.filter(e=>e.type==='resp.behaviour_plan').map(e=>({id:e.id,...JSON.parse(e.payload)}));
 async function command(name,status,{kind,verify}={}){
   const turn=await say(name,{reply:status!=='ACCEPTED'});
-  await until('command '+name,async()=>(await memory())['command.handledTurns']?.length===turn.beforeCommandCount+1);
+  const receipt=await until('command '+name,async()=>{const m=await memory();
+    return m['command.handledTurns']?.length===turn.beforeCommandCount+1 ? m['command.lastResult'] : null;});
+  const source=(await history())[receipt.sourcePosition];assert.equal(source.type,'obs.user_utterance');assert.ok(!turn.beforeIds.includes(source.id));
+  turn.commandSource={id:source.id,position:receipt.sourcePosition};
   // A visual command permits, but does not require, a spoken acknowledgement.
   // Leave time for its confirmed result to reach Live before the next visitor turn.
   if(status==='ACCEPTED')await wait(8000);await quiet();await updateTurn(turn);
-  const receipt=turn.memory['command.lastResult'];assert.equal(receipt.status,status);assert.equal(receipt.silent,false,'Live stimulus does not request strict silence');
+  assert.equal(receipt.status,status);assert.equal(receipt.silent,false,'Live stimulus does not request strict silence');
   assert.deepEqual(turn.memory['coordination.agreement'],turn.beforeAgreement,'Direct command mutated agreement');assert.equal(turn.memory['task.actions'],turn.beforeActions,'Direct command spent task budget');
-  const all=await history(),source=all[receipt.sourcePosition];assert.equal(source.type,'obs.user_utterance');assert.ok(!turn.beforeIds.includes(source.id));
-  turn.commandSource={id:source.id,position:receipt.sourcePosition};const produced=plans(all.slice(receipt.sourcePosition+1)).filter(p=>p.motion?.handAction||p.motion?.handSign);
+  const all=await history();const produced=plans(all.slice(receipt.sourcePosition+1)).filter(p=>p.motion?.handAction||p.motion?.handSign);
   if(status==='ACCEPTED'){assert.equal(produced.length,1,'One canonical hand output');assert.ok(!produced[0].speech,'Competing Speech');verify?.(produced[0].motion);turn.action=produced[0];if(kind)await render(name,kind);}
   else assert.equal(produced.length,0,'Unaccepted command produced output');return turn;
 }
@@ -101,7 +116,25 @@ async function propose(name,verify,{clarification,requireClarification=false}={}
   await until('completed preparation request',async()=>{const response=(await memory())['core.task.response'];return response?.id===request.id&&response.consumed;});
   await quiet();await checkpoint('preparation-request-completed');return draft;}
 async function ready(){await until('all recognition checks and completed native review',async()=>{const m=await memory(),review=m['core.task.response'];return Object.keys(m['coordination.evidence']||{}).length===m['coordination.draft'].checks.length&&review?.proposalReview&&review.consumed;});await quiet();await checkpoint('prepared');}
-async function accept(){await say('accept');const m=await until('accepted and confirmed arming',async()=>{const m=await memory();return m['coordination.agreement']&&armingReady(m,Date.now())?m:null;});
+async function waitForConsentRepair(){
+  const m=await until('one completed consent repair',async()=>{
+    const current=await memory(),repair=current['core.task.response'];return repair?.consentRepair&&repair.consumed?current:null;
+  });
+  assert.ok(!m['coordination.agreement']);assert.equal(m['task.actions']||0,0);
+  assert.deepEqual(m['coordination.draft'],report.proposal);await checkpoint('incomplete consent repaired');
+}
+async function accept(){
+  if(process.env.PROMETHEUS_HAND_CONSENT_REPAIR==='true'){
+    assert.equal(mode,'L-03');report.deliberateConsentFragment=true;
+    await say('acceptfragment');await waitForConsentRepair();
+  }
+  const turn=await say('accept');
+  const admitted=turn.history.filter(e=>e.type==='obs.user_utterance');
+  if(admitted.length===1 && /^(?:i accept|accept) the(?: current| saved)?[.!]?$/i.test(admitted[0].payload.trim())){
+    await waitForConsentRepair();
+    await say('acceptrepair');
+  }
+  const m=await until('accepted and confirmed arming',async()=>{const m=await memory();return m['coordination.agreement']&&armingReady(m,Date.now())?m:null;});
   assert.equal(m['task.actions'],0);assert.deepEqual(m['coordination.agreement'],report.proposal);report.accepted=m;}
 async function complete(){await until('one complete contribution',async()=>{const m=await memory();if(['UNCERTAIN','PAUSED'].includes(m['task.phase']))throw Error('Task stopped with '+m['task.phase']);return m['task.phase']==='COMPLETED'&&m['task.actions']===1;},55000);await wait(8000);await quiet();return checkpoint('completed');}
 async function zero(){assert.equal((await memory())['task.actions']||0,0,'Nonmatching evidence spent an action');}
@@ -138,6 +171,7 @@ try{
     await context.route(url,route=>route.fulfill({body:'',contentType:'application/javascript'}));
   await context.addInitScript({content:`(${trialCapture.toString()})();(${handBudgetCapture.toString()})(${JSON.stringify(plan.limits)});`});page=await context.newPage();page.setDefaultTimeout(30000);
   page.on('pageerror',error=>report.browserErrors.push(error.message));page.on('response',async response=>{if(!response.url().startsWith(base))return;const url=new URL(response.url());
+    if(url.pathname.endsWith('/updates') && response.ok())await response.json().then(data=>retainDiagnostics(data.status)).catch(()=>{});
     if(/acknowledge|speech-synthesis|speech-approvals|behaviours\/.*\/speech|playback-cues|hand-execution/.test(url.pathname))report.network.push({path:url.pathname,status:response.status(),method:response.request().method()});
     if(url.pathname.endsWith('/live/sessions')&&response.status()===201)handle=(await response.json()).handle;});
   const code=Math.random().toString(36).slice(2,7).toUpperCase(),definition=mode==='L-09-comparison'?'core.live_multimodal':'core.coordination';
@@ -159,6 +193,10 @@ finally{
     report.diagnostics=await page.evaluate(async()=>(await import('/live/diagnostics.js')).liveDiagnostics.snapshot()).catch(()=>null);
     await page.screenshot({path:path.join(directory,'final-cockpit.png')}).catch(()=>{});}
   if(agentPath){report.finalStorage=await memory().catch(()=>null);report.history=await history().catch(()=>null);if(handle)report.finalSession=await api(`${agentPath}/live/sessions/${handle}`).catch(()=>null);}
+  retainDiagnostics(report.finalSession);
+  for(const turn of report.turns.filter(t=>t.commandSource || t.name==='poseshow')){
+    turn.commandTiming=commandTiming(turn,[...contextTraces.values()],providerEvents);
+  }
   await browser?.close();report.finishedAt=new Date().toISOString();fs.writeFileSync(output,JSON.stringify(report,null,2));
   console.log(report.automatedPassed?'Hand assertions passed; complete speech/audio/visual review required.':'Hand journey failed: '+report.error);
 }

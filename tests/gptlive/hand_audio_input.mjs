@@ -1,5 +1,15 @@
 // Run in the browser. Compact transfer avoids a CDP object per PCM byte, which
 // can stall the page long enough to expire the production Live status poll.
+export async function outboundHandAudio() {
+  const peer=globalThis.__handBudget.peers[0],mic=globalThis.__trial.mic;
+  const sender=peer?.getSenders().find(s=>s.track?.id===mic?.id);
+  if(!sender)return {trackMatched:false};
+  const stats=[...(await sender.getStats()).values()];
+  const rtp=stats.find(s=>s.type==='outbound-rtp'&&s.kind==='audio');
+  const source=stats.find(s=>s.type==='media-source'&&s.trackIdentifier===mic.id);
+  return {trackMatched:true,enabled:mic.enabled,readyState:mic.readyState,ssrc:rtp?.ssrc,
+    packetsSent:rtp?.packetsSent,bytesSent:rtp?.bytesSent,totalAudioEnergy:source?.totalAudioEnergy};
+}
 export function handReplyObserved({index,startMs}) {
   const events=globalThis.__trial.events.slice(index);
   return events.some(e=>e.type==='session.output_transcript.delta'&&e.delta?.trim())
@@ -17,5 +27,6 @@ export async function playHandStimulus({pcmBase64,name}) {
   const at=performance.now();__trial.mark('input_start',{name});
   await new Promise(resolve=>{source.onended=resolve;source.start();});
   const speechEndMs=at+last/24;__trial.mark('input_end',{name,speechEndMs});
-  return {startMs:at,speechEndMs,bufferEndMs:performance.now()};
+  return {startMs:at,speechEndMs,bufferEndMs:performance.now(),sampleRate:24000,
+    samples:samples.length,tailSilenceMs:(samples.length-1-last)/24,micEnabledAtEnd:__trial.mic?.enabled};
 }

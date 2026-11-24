@@ -2802,8 +2802,13 @@ Live receives positive digital-output guidance from the declared capabilities,
 including scoped saved instances with general capability awareness disabled.
 Quiet command results are admitted only for the current completed native user
 turn in the same session/epoch, expire after 30 seconds, and are omitted at
-session startup. They are pending-answer facts, not new speaking occasions or
-rendering/physical receipts. Text and Continuous retain their canonical speech
+session startup. An accepted direct pose requires no user demonstration. When
+the visible digital renderer draws its holding phase, it can submit
+`{"operation":"POSE_RENDERED","eventId":"<behaviour event UUID>"}` to the scoped
+`POST /demo/agents/{agentId}/hand-execution` endpoint. A matching current pose,
+voice owner and user turn allow the backend to report digital rendering to Live.
+Without that evidence, the command result establishes plan acceptance only.
+Source-linked quiet updates create no additional speaking occasion. Text and Continuous retain their canonical speech
 routes; Live has no competing ordinary synthesis. Actual model wording and
 silence were checked in the recorded provider journeys; this small synthetic
 sample does not establish physical audibility or general reliability.

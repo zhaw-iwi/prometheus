@@ -14,6 +14,8 @@ public interface ExternalVoicePolicy {
     default LiveActivityContext liveActivityContext() { return null; }
     /** Spoken waiting acknowledgments are permitted by default; false requests silent waiting in guidance only. */
     default boolean livePendingAcknowledgements() { return true; }
+    /** Current-phase wording for immediate output requests, installed before the next visitor turn. */
+    default String liveDirectCommandGuidance() { return ""; }
     /** Application-specific waiting guidance; prompt permission only, never evidence that work ran. */
     default String livePendingGuidance() {
         return livePendingAcknowledgements() ? "You may acknowledge immediately while work is pending."

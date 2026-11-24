@@ -1,0 +1,2102 @@
+{
+  "schema": "hand-interaction-live-continuation-v1",
+  "baseAttempts": 88,
+  "baseReservedUsd": 186,
+  "continuationCapUsd": 50,
+  "cumulativeReservedUsd": 206,
+  "reservations": [
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-4a7ac79a07",
+      "reservedUsd": 5,
+      "allocationRevision": 10,
+      "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-usd50"
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-818f7ba694",
+      "reservedUsd": 5,
+      "allocationRevision": 10,
+      "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-usd50"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-9968b10128",
+      "reservedUsd": 5,
+      "allocationRevision": 10,
+      "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-usd50"
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-31986cb419",
+      "reservedUsd": 5,
+      "allocationRevision": 10,
+      "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-usd50"
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": 89,
+      "mode": "L-02",
+      "artifact": "gptlive-acceptance-4a7ac79a07",
+      "automatedPassed": true,
+      "error": null,
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "ae103b2ff5743ea6fea7538d00df60118f60e1438d51ed0cb36107ecc27a6f30",
+      "captions": " I’ll propose: one action, you demonstrate that exact two-hand pattern, and I reproduce it once when seen. You judge. Ready to accept? The proposal is saved and not active. Please demonstrate the left hand with only the index straight and the right hand with only the thumb straight, and we’ll review the terms before acceptance. Understood. You’ll demonstrate, accept, then show it again; I reproduce it once; you judge. Start? Yep, still waiting. Nice—now we wait for a fresh matching pose. Got it, waiting for your fresh cue. I’m watching for that pose. If you'd like changes after that run, we can tweak them. That pattern was recognized and used. How did the digital reproduction look to you? I caught that as the same pattern, but that task already finished. If you like, we can restart or set a new trigger. How did you feel it went?",
+      "localReceivedAudio": [
+        {
+          "file": "native-output-0.webm",
+          "sha256": "f7bfccfce2597c5292b0f2a549fc92a80de279530b238f3dd4771cc61d0210fa",
+          "seconds": 137.28,
+          "transcript": "I'll propose, one action, you demonstrate that exact two-hand pattern, and I reproduce it once when seen. You judge, ready to accept? The proposal is saved and not active. Please demonstrate the left hand with only the index straight and the right hand with only the thumb straight, and we'll review the terms before acceptance. Understood. you'll demonstrate accept then show it again I reproduce it once you judge start yep still waiting nice now we wait for a fresh matching pose got it waiting for your fresh cue I'm watching for that pose if you'd like changes after that run we can tweak them that pattern was recognized and used how did the digital reproduction look to you. I caught that as the same pattern, but that task already finished. If you like, we can restart or set a new trigger. How did you feel it went?"
+        }
+      ],
+      "admitted": [
+        "Propose one task, but wait for preparation and acceptance. When my left index is stretched with its other four fingers bent and my right thumb is stretched with its other four fingers bent in the same frame, reproduce that two-hand pattern once. I demonstrate the pattern and judge the digital result; you reproduce it. One action total. Use default settings",
+        "I accept the current proposal",
+        "Stretch your left index and bend the other four left fingers. At the same time, stretch your right thumb and bend the other four right fingers"
+      ],
+      "verifiedImages": [
+        {
+          "file": "task-L-02.png",
+          "sha256": "8cc29ab65fa410a9cc8310cb543ec5801541923656d4b1225c567ea30d1224ce"
+        },
+        {
+          "file": "poseshow.png",
+          "sha256": "94464b635ea860ba52b86ae50e782f8de9f7a1f8ebfa6be927f586b6e0ab57a8"
+        }
+      ],
+      "phase": "COMPLETED",
+      "actions": 1,
+      "checkpoints": [
+        "preparation-request-completed",
+        "prepared",
+        "completed",
+        "final"
+      ],
+      "commands": [
+        {
+          "name": "poseshow",
+          "source": "8e1cf324-8978-4f33-af96-f4096b74c940",
+          "result": {
+            "sourcePosition": 19,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "HAND_POSE",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "pose",
+                "hands": [
+                  {
+                    "side": "left",
+                    "fingers": {
+                      "thumb": 1,
+                      "index": 0,
+                      "middle": 1,
+                      "ring": 1,
+                      "little": 1
+                    }
+                  },
+                  {
+                    "side": "right",
+                    "fingers": {
+                      "thumb": 0,
+                      "index": 1,
+                      "middle": 1,
+                      "ring": 1,
+                      "little": 1
+                    }
+                  }
+                ]
+              }
+            },
+            "posePosition": 20,
+            "poseSession": "4daa7120-7da8-4f64-bd5a-4cd15c80b3a1",
+            "poseEpoch": "8c1e1d99-54de-4fa5-898b-87b5474de5c8",
+            "renderedEvent": "cd7dc341-9785-486b-8411-fd59dbe7c2de"
+          },
+          "delivery": [
+            {
+              "serverMs": 1795545797437,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "ae714e79d88aeaa6c1def833ddb05752692dee08d35526972f838ccce4e1ede1",
+              "sourceId": "8e1cf324-8978-4f33-af96-f4096b74c940",
+              "sequence": 104,
+              "contentBytes": 293,
+              "sourceIds": [
+                "8e1cf324-8978-4f33-af96-f4096b74c940"
+              ]
+            },
+            {
+              "serverMs": 1795545798054,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "ae714e79d88aeaa6c1def833ddb05752692dee08d35526972f838ccce4e1ede1",
+              "sourceId": "8e1cf324-8978-4f33-af96-f4096b74c940",
+              "sequence": 105,
+              "contentBytes": 293,
+              "sourceIds": [
+                "8e1cf324-8978-4f33-af96-f4096b74c940"
+              ]
+            },
+            {
+              "serverMs": 1795545803184,
+              "phase": "command_rendered_send",
+              "type": "session.thinking.append",
+              "revision": "ce7f5848e70ca54cf1cc55b7f49fa8c5b0ac8713dca9e202a907b8e9af7e7018",
+              "sourceId": "8e1cf324-8978-4f33-af96-f4096b74c940",
+              "sequence": 110,
+              "contentBytes": 289,
+              "sourceIds": [
+                "8e1cf324-8978-4f33-af96-f4096b74c940"
+              ]
+            },
+            {
+              "serverMs": 1795545803735,
+              "phase": "command_rendered_ack",
+              "type": "session.thinking.append",
+              "revision": "ce7f5848e70ca54cf1cc55b7f49fa8c5b0ac8713dca9e202a907b8e9af7e7018",
+              "sourceId": "8e1cf324-8978-4f33-af96-f4096b74c940",
+              "sequence": 111,
+              "contentBytes": 289,
+              "sourceIds": [
+                "8e1cf324-8978-4f33-af96-f4096b74c940"
+              ]
+            }
+          ],
+          "observations": [
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " I caught",
+              "eventId": "event_Enpm2nT7gIoyBSBI5FrI6",
+              "browserMs": 138911.1000000001,
+              "serverRangeMs": [
+                1795545794823.1252,
+                1795545794895.1748
+              ],
+              "sidebandReceiptMs": 1795545794881,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " that",
+              "eventId": "event_Enpm2OkZD2cNPBTZeKdCO",
+              "browserMs": 139135.30000000005,
+              "serverRangeMs": [
+                1795545795047.3027,
+                1795545795119.3972
+              ],
+              "sidebandReceiptMs": 1795545795067,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " as",
+              "eventId": "event_Enpm2TbTlXFJBK16WCrXL",
+              "browserMs": 139295.1000000001,
+              "serverRangeMs": [
+                1795545795207.087,
+                1795545795279.2131
+              ],
+              "sidebandReceiptMs": 1795545795271,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " the",
+              "eventId": "event_Enpm2ZAKp6Vcj8rn7QmSS",
+              "browserMs": 139525.1000000001,
+              "serverRangeMs": [
+                1795545795437.064,
+                1795545795509.236
+              ],
+              "sidebandReceiptMs": 1795545795493,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " same",
+              "eventId": "event_Enpm2gDZSG6yBALPFhBP8",
+              "browserMs": 139780.6000000001,
+              "serverRangeMs": [
+                1795545795692.5383,
+                1795545795764.7617
+              ],
+              "sidebandReceiptMs": 1795545795716,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " pattern",
+              "eventId": "event_Enpm391KqDFodU2BHsJUf",
+              "browserMs": 139897.40000000014,
+              "serverRangeMs": [
+                1795545795809.3264,
+                1795545795881.5732
+              ],
+              "sidebandReceiptMs": 1795545795864,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": ",",
+              "eventId": "event_Enpm3pO1ziU6am2ffyHCc",
+              "browserMs": 140466.30000000005,
+              "serverRangeMs": [
+                1795545796378.1697,
+                1795545796450.5303
+              ],
+              "sidebandReceiptMs": 1795545796456,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 140609.69999999995,
+              "serverRangeMs": [
+                1795545796521.5554,
+                1795545796593.9443
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " but",
+              "eventId": "event_Enpm3NJ4w5Fw4qGPMi4tk",
+              "browserMs": 140685.1000000001,
+              "serverRangeMs": [
+                1795545796596.948,
+                1795545796669.352
+              ],
+              "sidebandReceiptMs": 1795545796668,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 140809.5,
+              "serverRangeMs": [
+                1795545796721.3354,
+                1795545796793.7644
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " that",
+              "eventId": "event_Enpm4JoQqMQBiEWqg8sMi",
+              "browserMs": 140999,
+              "serverRangeMs": [
+                1795545796910.8164,
+                1795545796983.2834
+              ],
+              "sidebandReceiptMs": 1795545796895,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 141049.80000000005,
+              "serverRangeMs": [
+                1795545796961.6113,
+                1795545797034.0886
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " task",
+              "eventId": "event_Enpm4TGfxtBLfowQ4GSpX",
+              "browserMs": 141086.1000000001,
+              "serverRangeMs": [
+                1795545796997.9077,
+                1795545797070.3923
+              ],
+              "sidebandReceiptMs": 1795545797016,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 141453.5,
+              "serverRangeMs": [
+                1795545797365.271,
+                1795545797437.8289
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "undetermined"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " already",
+              "eventId": "event_Enpm41oJpuK5R2UFDmBG1",
+              "browserMs": 141523.40000000014,
+              "serverRangeMs": [
+                1795545797435.1638,
+                1795545797507.7358
+              ],
+              "sidebandReceiptMs": 1795545797430,
+              "observed": "undetermined"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " finished",
+              "eventId": "event_Enpm52eJbUQOZkWyfGfaV",
+              "browserMs": 141932.1000000001,
+              "serverRangeMs": [
+                1795545797843.8232,
+                1795545797916.4768
+              ],
+              "sidebandReceiptMs": 1795545797838,
+              "observed": "undetermined"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": ".",
+              "eventId": "event_Enpm5KPgMWEq3gpLVH6Kc",
+              "browserMs": 142536.5,
+              "serverRangeMs": [
+                1795545798448.1626,
+                1795545798520.9373
+              ],
+              "sidebandReceiptMs": 1795545798483,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 142849.6000000001,
+              "serverRangeMs": [
+                1795545798761.2314,
+                1795545798834.0686
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " If you",
+              "eventId": "event_Enpm6RPX9X0mH09jrCL3C",
+              "browserMs": 142861.40000000014,
+              "serverRangeMs": [
+                1795545798773.03,
+                1795545798845.8696
+              ],
+              "sidebandReceiptMs": 1795545798847,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " like",
+              "eventId": "event_Enpm6B9InMEQFpnoUMxRX",
+              "browserMs": 143063.40000000014,
+              "serverRangeMs": [
+                1795545798975.01,
+                1795545799047.8896
+              ],
+              "sidebandReceiptMs": 1795545799043,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 143209.5,
+              "serverRangeMs": [
+                1795545799121.0955,
+                1795545799194.0044
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": ", we",
+              "eventId": "event_Enpm6BTDAdkwFKXGCRynf",
+              "browserMs": 143227.90000000014,
+              "serverRangeMs": [
+                1795545799139.4934,
+                1795545799212.4062
+              ],
+              "sidebandReceiptMs": 1795545799203,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " can",
+              "eventId": "event_Enpm6J7Hp0d5sK3Q7amod",
+              "browserMs": 143465.5,
+              "serverRangeMs": [
+                1795545799377.0698,
+                1795545799450.03
+              ],
+              "sidebandReceiptMs": 1795545799430,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " restart",
+              "eventId": "event_Enpm6VHtD8Vv4jdfVN6qw",
+              "browserMs": 143650.69999999995,
+              "serverRangeMs": [
+                1795545799562.2512,
+                1795545799635.2485
+              ],
+              "sidebandReceiptMs": 1795545799617,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 143689.69999999995,
+              "serverRangeMs": [
+                1795545799601.2473,
+                1795545799674.2524
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 143989.5,
+              "serverRangeMs": [
+                1795545799901.0173,
+                1795545799974.0825
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " or",
+              "eventId": "event_Enpm7yzt5EENMCTSg3DP5",
+              "browserMs": 144280.30000000005,
+              "serverRangeMs": [
+                1795545800191.7883,
+                1795545800264.9116
+              ],
+              "sidebandReceiptMs": 1795545800261,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 144469.90000000014,
+              "serverRangeMs": [
+                1795545800381.3691,
+                1795545800454.5305
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " set",
+              "eventId": "event_Enpm7FNdLBKqvSEe7hDHT",
+              "browserMs": 144483,
+              "serverRangeMs": [
+                1795545800394.468,
+                1795545800467.6318
+              ],
+              "sidebandReceiptMs": 1795545800458,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 144570.30000000005,
+              "serverRangeMs": [
+                1795545800481.7593,
+                1795545800554.9407
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " a new",
+              "eventId": "event_Enpm7OTCIvbCxRrndroSs",
+              "browserMs": 144688.5,
+              "serverRangeMs": [
+                1795545800599.9475,
+                1795545800673.1523
+              ],
+              "sidebandReceiptMs": 1795545800664,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " trigger",
+              "eventId": "event_Enpm8SqcyRbLo4okvbv6r",
+              "browserMs": 144832,
+              "serverRangeMs": [
+                1795545800743.433,
+                1795545800816.6667
+              ],
+              "sidebandReceiptMs": 1795545800819,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 144930,
+              "serverRangeMs": [
+                1795545800841.4233,
+                1795545800914.6765
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 145090,
+              "serverRangeMs": [
+                1795545801001.4072,
+                1795545801074.6926
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": ".",
+              "eventId": "event_Enpm8WXqANx3Ac5bdnNH4",
+              "browserMs": 145317.1000000001,
+              "serverRangeMs": [
+                1795545801228.4846,
+                1795545801301.8154
+              ],
+              "sidebandReceiptMs": 1795545801315,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 145571.1000000001,
+              "serverRangeMs": [
+                1795545801482.4592,
+                1795545801555.8408
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 145816,
+              "serverRangeMs": [
+                1795545801727.3347,
+                1795545801800.7651
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " How",
+              "eventId": "event_Enpm9zrThsnRf45SEHjfV",
+              "browserMs": 146249.80000000005,
+              "serverRangeMs": [
+                1795545802161.0913,
+                1795545802234.6086
+              ],
+              "sidebandReceiptMs": 1795545802219,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 146485.40000000014,
+              "serverRangeMs": [
+                1795545802396.6677,
+                1795545802470.232
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " did",
+              "eventId": "event_Enpm9W2oKLajoW44qzOqF",
+              "browserMs": 146688.40000000014,
+              "serverRangeMs": [
+                1795545802599.6475,
+                1795545802673.2522
+              ],
+              "sidebandReceiptMs": 1795545802683,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " you",
+              "eventId": "event_EnpmAr6td77NzIPeprJFj",
+              "browserMs": 146900.19999999995,
+              "serverRangeMs": [
+                1795545802811.4263,
+                1795545802885.0735
+              ],
+              "sidebandReceiptMs": 1795545802866,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " feel",
+              "eventId": "event_EnpmAQ7yf5knRmM9ff5rj",
+              "browserMs": 147039.90000000014,
+              "serverRangeMs": [
+                1795545802951.1123,
+                1795545803024.7874
+              ],
+              "sidebandReceiptMs": 1795545803013,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " it",
+              "eventId": "event_EnpmAREO4LrjZOa17mlRL",
+              "browserMs": 147326.80000000005,
+              "serverRangeMs": [
+                1795545803237.9836,
+                1795545803311.7163
+              ],
+              "sidebandReceiptMs": 1795545803287,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " went",
+              "eventId": "event_EnpmAxx76UZYwp8LBCCO1",
+              "browserMs": 147562.19999999995,
+              "serverRangeMs": [
+                1795545803473.36,
+                1795545803547.1396
+              ],
+              "sidebandReceiptMs": 1795545803523,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": "?",
+              "eventId": "event_EnpmAhGQd88QdoJKwHOz1",
+              "browserMs": 147687,
+              "serverRangeMs": [
+                1795545803598.1477,
+                1795545803671.9521
+              ],
+              "sidebandReceiptMs": 1795545803667,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 148040.30000000005,
+              "serverRangeMs": [
+                1795545803951.4124,
+                1795545804025.2876
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 148551.19999999995,
+              "serverRangeMs": [
+                1795545804462.2612,
+                1795545804536.2385
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            }
+          ]
+        }
+      ],
+      "acceptanceAudio": [
+        {
+          "name": "accept",
+          "intendedInput": "I accept the current proposal.",
+          "input": {
+            "startMs": 87384.80000000005,
+            "speechEndMs": 89173.75833333338,
+            "bufferEndMs": 90297.1000000001,
+            "sampleRate": 24000,
+            "samples": 60828,
+            "tailSilenceMs": 745.5,
+            "micEnabledAtEnd": true
+          },
+          "outboundBefore": {
+            "trackMatched": true,
+            "enabled": true,
+            "readyState": "live",
+            "ssrc": 439836183,
+            "packetsSent": 1213,
+            "bytesSent": 84924,
+            "totalAudioEnergy": 3.4837893200228827
+          },
+          "outboundAfter": {
+            "trackMatched": true,
+            "enabled": true,
+            "readyState": "live",
+            "ssrc": 439836183,
+            "packetsSent": 1341,
+            "bytesSent": 93186,
+            "totalAudioEnergy": 3.8297861833754245
+          }
+        }
+      ],
+      "semanticVerdict": "FAIL",
+      "semanticFinding": "Native reply treated a fully specified new command as feedback and offered a restart. Backend, both digital outputs and the later review passed.",
+      "renderChecks": [
+        {
+          "name": "task-L-02",
+          "irisPixels": 1407,
+          "glError": 0
+        },
+        {
+          "name": "poseshow",
+          "irisPixels": 1407,
+          "glError": 0
+        }
+      ],
+      "capturedNative": [
+        {
+          "id": "29c86b49-64fe-480d-9512-1deac5c6921b",
+          "speech": "I’ll propose: one action, you demonstrate that exact two-hand pattern, and I reproduce it once when seen. You judge. Ready to accept?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "d5b493f9-c7b6-497a-bceb-60c6d0e51e15",
+          "speech": "The proposal is saved and not active. Please demonstrate the left hand with only the index straight and the right hand with only the thumb straight, and we’ll review the terms before acceptance.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "0984e4d1-34e8-4600-b229-96d286de0185",
+          "speech": "Understood. You’ll demonstrate, accept, then show it again; I reproduce it once; you judge. Start?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "4c908936-6ca1-4c46-a057-c7ade08d7166",
+          "speech": "Yep,",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "c08c1104-acaa-4a93-ab6c-739a05390ad8",
+          "speech": "still",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "f78addb6-778a-452e-8604-4472e21da278",
+          "speech": "waiting",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "8ca0c7c9-3764-4e12-864c-fde0211c96ad",
+          "speech": ".",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "f1e0c7c6-1e62-4ec2-b28f-72286d3888b9",
+          "speech": "Nice—now we wait for a fresh matching pose. Got it, waiting for your fresh cue. I’m watching for that pose.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "84454d18-2ce4-4b2c-a5ff-ff8d16bf5403",
+          "speech": "If you'd like changes after that run, we can tweak them.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "add54cf4-071c-4065-a368-e15a46908479",
+          "speech": "That pattern was recognized and used. How did the digital reproduction look to you?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "f544d41b-29d6-455f-acaf-55f69dad140e",
+          "speech": "I caught that as the same pattern, but that task already finished. If you like, we can restart or set a new trigger. How did you feel it went?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "deliberateConsentFragmentPlayed": false
+    },
+    {
+      "attempt": 90,
+      "mode": "L-02",
+      "artifact": "gptlive-acceptance-818f7ba694",
+      "automatedPassed": false,
+      "error": "Timed out: accepted and confirmed arming",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "c0897afdf5e6973cd35659c74b4e9187cb5b97af2ff34171add94e7f35192be3",
+      "captions": " I can propose that, but we'll wait to act until you've prepared and said it's accepted. When your left index is straight with the other four bent, and your right thumb is straight with the other four bent in the same frame, I'd show that same two-hand pattern once. The proposal is saved and not active; please demonstrate that exact left-hand and distinct right-hand pattern for recognition, and we'll review the terms before acceptance. Go ahead when ready. You demonstrate the pose for preparation, show it again after acceptance, and judge the digital result; I'll wait for acceptance, then on a fresh matching cue, reproduce that pose once. Preparation is complete, this proposal isn't active yet, and we're waiting for your acceptance; start accepts these terms, and then we'll wait for a fresh cue. Shall we start? Mm-hmm. Okay. We’ve got your acceptance; now we wait for a fresh matching cue to show the pose once. The proposal is still inactive; if you accept it, please say \"Start now.\" Agreed; I'm waiting for that exact pose as a fresh cue. I'm still waiting for that exact pose as a fresh cue.",
+      "localReceivedAudio": [
+        {
+          "file": "native-output-0.webm",
+          "sha256": "9ad4dc37723d94a5c65ee1452c29d9a3322fac79b5bdc0853728819050f99e61",
+          "seconds": 170.34,
+          "transcript": "I can propose that, but we'll wait to act until you've prepared and said it's accepted. When your left index is straight with the other four bent and your right thumb is straight with the other four bent in the same frame, I'd show that same two hand pattern once. The proposal is saved and not active. Please demonstrate that exact left hand and distinct right hand pattern for recognition, and we'll review the terms before acceptance. Go ahead when ready. To demonstrate the pose for preparation, show it again after acceptance and judge the digital result. I'll wait for acceptance, then on a fresh matching cue, reproduce that pose once. Preparation is complete, this proposal isn't active yet, and we're waiting for your acceptance. Start accepts these terms, and then we'll wait for a fresh cue. Shall we start? Okay, we've got your acceptance, now we wait for a fresh matching cue to show the pose once. The proposal is still inactive. If you accept it, please say start now. Agreed. I'm waiting for that exact pose as a fresh cue. I'm still waiting for that exact pose as a fresh cue."
+        }
+      ],
+      "admitted": [
+        "Propose one task, but wait for preparation and acceptance. When my left index is stretched with its other four fingers bent and my right thumb is stretched with its other four fingers bent in the same frame, reproduce that two-hand pattern once. I demonstrate the pattern and judge the digital result; you reproduce it One action total. Use default settings",
+        "I accept the current",
+        "Start now"
+      ],
+      "verifiedImages": [],
+      "phase": "PAUSED",
+      "actions": 0,
+      "checkpoints": [
+        "preparation-request-completed",
+        "prepared",
+        "incomplete consent repaired"
+      ],
+      "commands": [],
+      "acceptanceAudio": [
+        {
+          "name": "accept",
+          "intendedInput": "I accept the current proposal.",
+          "input": {
+            "startMs": 97911.6000000001,
+            "speechEndMs": 99700.55833333342,
+            "bufferEndMs": 100644,
+            "sampleRate": 24000,
+            "samples": 60828,
+            "tailSilenceMs": 745.5,
+            "micEnabledAtEnd": true
+          },
+          "outboundBefore": {
+            "trackMatched": true,
+            "enabled": true,
+            "readyState": "live",
+            "ssrc": 202366558,
+            "packetsSent": 1219,
+            "bytesSent": 85102,
+            "totalAudioEnergy": 3.528390993600513
+          },
+          "outboundAfter": {
+            "trackMatched": true,
+            "enabled": true,
+            "readyState": "live",
+            "ssrc": 202366558,
+            "packetsSent": 1352,
+            "bytesSent": 93381,
+            "totalAudioEnergy": 3.865345612405541
+          }
+        },
+        {
+          "name": "acceptrepair",
+          "intendedInput": "Start now.",
+          "input": {
+            "startMs": 117540.69999999972,
+            "speechEndMs": 118322.11666666639,
+            "bufferEndMs": 119081.6000000001,
+            "sampleRate": 24000,
+            "samples": 36468,
+            "tailSilenceMs": 738.0416666666666,
+            "micEnabledAtEnd": true
+          },
+          "outboundBefore": {
+            "trackMatched": true,
+            "enabled": true,
+            "readyState": "live",
+            "ssrc": 202366558,
+            "packetsSent": 1352,
+            "bytesSent": 93381,
+            "totalAudioEnergy": 3.865345612405541
+          },
+          "outboundAfter": {
+            "trackMatched": true,
+            "enabled": true,
+            "readyState": "live",
+            "ssrc": 202366558,
+            "packetsSent": 1431,
+            "bytesSent": 97571,
+            "totalAudioEnergy": 4.025108013407953
+          }
+        }
+      ],
+      "semanticVerdict": "FAIL",
+      "semanticFinding": "Native reply claimed acceptance before repair and repeated the arming acknowledgement. The backend required fresh explicit consent, then paused after an ambiguous arming delivery.",
+      "renderChecks": [],
+      "capturedNative": [
+        {
+          "id": "b3174449-d49c-4ea4-bf19-a1c828c089fd",
+          "speech": "I can propose that, but we'll wait to act until you've prepared and said it's accepted. When your left index is straight with the other four bent, and your right thumb is straight with the other four bent in the same frame, I'd show that same two-hand pattern once. The proposal is saved and not active; please demonstrate that exact left-hand and distinct right-hand pattern for recognition, and we'll review the terms before acceptance. Go ahead when ready.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "afec6d40-ed6b-4b5e-9373-f2e553d91859",
+          "speech": "You demonstrate the pose for preparation, show it again after acceptance, and judge the digital result; I'll wait for acceptance, then on a fresh matching cue, reproduce that pose once. Preparation is complete, this proposal isn't active yet, and we're waiting for your acceptance; start accepts these terms, and then we'll wait for a fresh cue. Shall we start?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "45fc23bd-77ed-4fea-85f4-5bcc7cbe7206",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "cb575619-e76c-4a00-b50d-415274968a2d",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "d109a745-3269-4b60-b972-89d2883edba5",
+          "speech": "Okay. We’ve got your acceptance; now we wait for a fresh matching cue to show the pose once.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "f2ef961d-4dcb-46b9-9be8-b12254a2eb46",
+          "speech": "The proposal is still inactive; if you accept it, please say \"Start now.\"",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "9c6a3ca6-337a-4603-96fd-c940b71fe7d9",
+          "speech": "Agreed; I'm waiting for that exact pose as a fresh cue. I'm still waiting for that exact pose as a fresh cue.",
+          "complete": true,
+          "association": "NONE"
+        }
+      ],
+      "deliberateConsentFragmentPlayed": false
+    },
+    {
+      "attempt": 91,
+      "mode": "L-03",
+      "artifact": "gptlive-acceptance-9968b10128",
+      "automatedPassed": false,
+      "error": "Timed out: completed preparation request",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "a49c0a771bd59c0c816d5a1ddad68a753756ea0fd602e4b77f0db8950fcb7853",
+      "captions": " Do you mean thumbs up or that diver's ring gesture? Got it. I’ll show that diver’s OK ring with my right hand. You demonstrate that hand pose and judge; once prepared and accepted, I’ll show a right-hand diver’s OK ring when your normalized thumb–index gap goes below 0.18 with the other three fingers stretched, default timing, one action total; the proposal is saved and not active, so please demonstrate your right hand with middle, ring, and little fingers straight and thumb–index tips closer than 0.18 for recognition, and then we’ll review the terms before acceptance. ",
+      "localReceivedAudio": [
+        {
+          "file": "native-output-0.webm",
+          "sha256": "d25db201c7b4202d1786833edce0084f4398b7eeb4be90aa2c709dad257fdc8e",
+          "seconds": 133.44,
+          "transcript": "Do you mean thumbs up, or that divers ring gesture? Got it. I'll show that divers okay ring with my right hand. You demonstrate that hand pose and judge. Once prepared and accepted, I'll show a right hand divers okay ring when your normalized thumb index gap goes below 0.18 with the other three fingers stretched. Default timing, one action total, the proposal is saved and not active, so please demonstrate your right hand with middle, ring, and little fingers straight, and thumb index tips closer than 0.18 for recognition, and then we'll review the terms before acceptance."
+        }
+      ],
+      "admitted": [
+        "Show me an OK sign",
+        "I mean the diver's OK ring. Close the thumb and index into a loop and stretch the other three fingers. Show that ring with your right hand",
+        "Propose one task. After preparation and acceptance, show a right-hand diver's ring when my normalized right thumb index gap is below 0.18 and my other three fingers are stretched. I demonstrate and judge. You display. One action total. Default timing"
+      ],
+      "verifiedImages": [
+        {
+          "file": "ringshow.png",
+          "sha256": "f1763f511d986cfe5fb01149a6696689bc762f7d0fc2dae602cd16ccab5e3c9f"
+        }
+      ],
+      "phase": "CONFIGURATION",
+      "actions": 0,
+      "checkpoints": [],
+      "commands": [
+        {
+          "name": "ringambiguous",
+          "source": "4314d7f2-67b3-4a7c-923d-7bd2bc47d213",
+          "result": {
+            "sourcePosition": 1,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": null,
+            "value": null,
+            "clarification": "ok_shape"
+          },
+          "delivery": [
+            {
+              "serverMs": 1795546786796,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "1d554b6c71d9b3338b518be0eab333c9dd36796d572b772b12b399f633f5a0af",
+              "sourceId": "4314d7f2-67b3-4a7c-923d-7bd2bc47d213",
+              "sequence": 2,
+              "contentBytes": 238,
+              "sourceIds": [
+                "4314d7f2-67b3-4a7c-923d-7bd2bc47d213"
+              ]
+            },
+            {
+              "serverMs": 1795546787403,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "1d554b6c71d9b3338b518be0eab333c9dd36796d572b772b12b399f633f5a0af",
+              "sourceId": "4314d7f2-67b3-4a7c-923d-7bd2bc47d213",
+              "sequence": 3,
+              "contentBytes": 238,
+              "sourceIds": [
+                "4314d7f2-67b3-4a7c-923d-7bd2bc47d213"
+              ]
+            }
+          ],
+          "observations": [
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " Do you",
+              "eventId": "event_Enq1yjRDHn7RYzMGWkBGj",
+              "browserMs": 13523.80000000028,
+              "serverRangeMs": [
+                1795546782827.8074,
+                1795546782956.8926
+              ],
+              "sidebandReceiptMs": 1795546782942,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 13752.100000000093,
+              "serverRangeMs": [
+                1795546783056.0845,
+                1795546783185.2156
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " mean",
+              "eventId": "event_Enq1ySpbCN0FhII0srthy",
+              "browserMs": 13752.30000000028,
+              "serverRangeMs": [
+                1795546783056.2844,
+                1795546783185.4155
+              ],
+              "sidebandReceiptMs": 1795546783163,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " thumbs",
+              "eventId": "event_Enq1yUIKXZeWFo2Hio7oZ",
+              "browserMs": 13933.80000000028,
+              "serverRangeMs": [
+                1795546783237.7664,
+                1795546783366.9336
+              ],
+              "sidebandReceiptMs": 1795546783328,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 14415.700000000186,
+              "serverRangeMs": [
+                1795546783719.618,
+                1795546783848.8818
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " up",
+              "eventId": "event_Enq1zw6MaCw93yPuxTnbc",
+              "browserMs": 14416.700000000186,
+              "serverRangeMs": [
+                1795546783720.618,
+                1795546783849.8818
+              ],
+              "sidebandReceiptMs": 1795546783808,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " or",
+              "eventId": "event_Enq1zupbgdmBs1jHMDOWQ",
+              "browserMs": 14792.900000000373,
+              "serverRangeMs": [
+                1795546784096.7803,
+                1795546784226.1194
+              ],
+              "sidebandReceiptMs": 1795546784248,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 15255.200000000186,
+              "serverRangeMs": [
+                1795546784559.0342,
+                1795546784688.4656
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " that",
+              "eventId": "event_Enq20uLJOx5QRJaYpdYHq",
+              "browserMs": 15346.700000000186,
+              "serverRangeMs": [
+                1795546784650.525,
+                1795546784779.9749
+              ],
+              "sidebandReceiptMs": 1795546784798,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " diver",
+              "eventId": "event_Enq20oGXTiRMEGYzILyUU",
+              "browserMs": 15682,
+              "serverRangeMs": [
+                1795546784985.7915,
+                1795546785115.3083
+              ],
+              "sidebandReceiptMs": 1795546784946,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": "'s",
+              "eventId": "event_Enq20yYFDRdo3di2oMQth",
+              "browserMs": 15912,
+              "serverRangeMs": [
+                1795546785215.7683,
+                1795546785345.3315
+              ],
+              "sidebandReceiptMs": 1795546785368,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " ring",
+              "eventId": "event_Enq20IwfPgsTe8jYoL8pn",
+              "browserMs": 16108.30000000028,
+              "serverRangeMs": [
+                1795546785412.0488,
+                1795546785541.6511
+              ],
+              "sidebandReceiptMs": 1795546785519,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 16259.200000000186,
+              "serverRangeMs": [
+                1795546785562.9336,
+                1795546785692.5662
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " gesture?",
+              "eventId": "event_Enq21fxSW04EMJxFTKH9V",
+              "browserMs": 16495.80000000028,
+              "serverRangeMs": [
+                1795546785799.51,
+                1795546785929.19
+              ],
+              "sidebandReceiptMs": 1795546785945,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 17449.900000000373,
+              "serverRangeMs": [
+                1795546786753.5146,
+                1795546786883.385
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "undetermined"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 17740.200000000186,
+              "serverRangeMs": [
+                1795546787043.7856,
+                1795546787173.714
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "undetermined"
+            }
+          ]
+        },
+        {
+          "name": "ringshow",
+          "source": "5ddb85a9-dd30-4f0f-ad72-5ac8b4caaa01",
+          "result": {
+            "sourcePosition": 3,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "HAND_SIGN",
+            "value": "ok_ring",
+            "effector": "right_hand"
+          },
+          "delivery": [
+            {
+              "serverMs": 1795546804583,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "78eb9b28d0d672e4cbed86a09471142fdd231c7e54d1539ea464859b8b2bed1a",
+              "sourceId": "5ddb85a9-dd30-4f0f-ad72-5ac8b4caaa01",
+              "sequence": 10,
+              "contentBytes": 260,
+              "sourceIds": [
+                "5ddb85a9-dd30-4f0f-ad72-5ac8b4caaa01"
+              ]
+            },
+            {
+              "serverMs": 1795546805354,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "78eb9b28d0d672e4cbed86a09471142fdd231c7e54d1539ea464859b8b2bed1a",
+              "sourceId": "5ddb85a9-dd30-4f0f-ad72-5ac8b4caaa01",
+              "sequence": 11,
+              "contentBytes": 260,
+              "sourceIds": [
+                "5ddb85a9-dd30-4f0f-ad72-5ac8b4caaa01"
+              ]
+            }
+          ],
+          "observations": [
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " Got it",
+              "eventId": "event_Enq2Iqz2P71UKw4oIWPmp",
+              "browserMs": 34082,
+              "serverRangeMs": [
+                1795546803379.267,
+                1795546803518.433
+              ],
+              "sidebandReceiptMs": 1795546803482,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": ".",
+              "eventId": "event_Enq2IvcWmLLRtWCJrkQFa",
+              "browserMs": 34350.10000000009,
+              "serverRangeMs": [
+                1795546803647.3403,
+                1795546803786.56
+              ],
+              "sidebandReceiptMs": 1795546803711,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 34442.90000000037,
+              "serverRangeMs": [
+                1795546803740.1309,
+                1795546803879.3691
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " I’ll",
+              "eventId": "event_Enq2JFF7E8hycYcTCCSS5",
+              "browserMs": 34534.200000000186,
+              "serverRangeMs": [
+                1795546803831.4216,
+                1795546803970.6785
+              ],
+              "sidebandReceiptMs": 1795546804074,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " show",
+              "eventId": "event_Enq2JVVYJUIuIdgSNCRcc",
+              "browserMs": 34671.90000000037,
+              "serverRangeMs": [
+                1795546803969.108,
+                1795546804108.392
+              ],
+              "sidebandReceiptMs": 1795546804080,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " that",
+              "eventId": "event_Enq2JUM49OXkdvWXqXPLC",
+              "browserMs": 34898.40000000037,
+              "serverRangeMs": [
+                1795546804195.5852,
+                1795546804334.9148
+              ],
+              "sidebandReceiptMs": 1795546804319,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " diver’s",
+              "eventId": "event_Enq2JtvrzfSGPArAfKjQP",
+              "browserMs": 35088.60000000009,
+              "serverRangeMs": [
+                1795546804385.7664,
+                1795546804525.134
+              ],
+              "sidebandReceiptMs": 1795546804517,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 35159.10000000009,
+              "serverRangeMs": [
+                1795546804456.2593,
+                1795546804595.641
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "undetermined"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 35405.40000000037,
+              "serverRangeMs": [
+                1795546804702.5347,
+                1795546804841.9653
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "undetermined"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " OK",
+              "eventId": "event_Enq2K2gHIqZx1UgPHhnw7",
+              "browserMs": 35690.40000000037,
+              "serverRangeMs": [
+                1795546804987.506,
+                1795546805126.994
+              ],
+              "sidebandReceiptMs": 1795546805095,
+              "observed": "undetermined"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 35779.80000000028,
+              "serverRangeMs": [
+                1795546805076.8972,
+                1795546805216.403
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "undetermined"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " ring",
+              "eventId": "event_Enq2KxYho1k6xnXnE6XSU",
+              "browserMs": 36061.30000000028,
+              "serverRangeMs": [
+                1795546805358.3691,
+                1795546805497.9312
+              ],
+              "sidebandReceiptMs": 1795546805507,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 36268.5,
+              "serverRangeMs": [
+                1795546805565.5483,
+                1795546805705.1519
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 36453.10000000009,
+              "serverRangeMs": [
+                1795546805750.13,
+                1795546805889.7705
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " with my",
+              "eventId": "event_Enq2LA5GvA3QsuK6cEsTa",
+              "browserMs": 36657.5,
+              "serverRangeMs": [
+                1795546805954.5095,
+                1795546806094.1907
+              ],
+              "sidebandReceiptMs": 1795546806112,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " right",
+              "eventId": "event_Enq2LH5Vs2ItqUx1bC97f",
+              "browserMs": 36821.40000000037,
+              "serverRangeMs": [
+                1795546806118.393,
+                1795546806258.107
+              ],
+              "sidebandReceiptMs": 1795546806266,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " hand",
+              "eventId": "event_Enq2Ltjlokiu4TqEA1R1z",
+              "browserMs": 37075.40000000037,
+              "serverRangeMs": [
+                1795546806372.3674,
+                1795546806512.1326
+              ],
+              "sidebandReceiptMs": 1795546806509,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 37238.60000000009,
+              "serverRangeMs": [
+                1795546806535.5515,
+                1795546806675.3489
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 37378.5,
+              "serverRangeMs": [
+                1795546806675.4373,
+                1795546806815.263
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": ".",
+              "eventId": "event_Enq2M7UIB2wWRIj4L9Q2x",
+              "browserMs": 37399.5,
+              "serverRangeMs": [
+                1795546806696.4353,
+                1795546806836.265
+              ],
+              "sidebandReceiptMs": 1795546806843,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 37799.700000000186,
+              "serverRangeMs": [
+                1795546807096.5952,
+                1795546807236.505
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            }
+          ]
+        }
+      ],
+      "acceptanceAudio": [],
+      "semanticVerdict": "INCONCLUSIVE",
+      "semanticFinding": "The two direct commands passed native, backend and digital checks. An incomplete, ambiguously associated preparation request blocked the subsequent journey before a final review or consent.",
+      "renderChecks": [
+        {
+          "name": "ringshow",
+          "irisPixels": 1422,
+          "glError": 0
+        }
+      ],
+      "capturedNative": [
+        {
+          "id": "e761a159-55f2-4b27-88f8-444229104577",
+          "speech": "Do you mean thumbs up or that diver's ring gesture?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "e19e675d-e2f5-437c-a449-d872ab1c4ac3",
+          "speech": "Got it. I’ll show that diver’s OK ring with my right hand.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "d1c466d7-1060-4500-8805-803c8ecfbe21",
+          "speech": "You demonstrate that hand pose and judge; once prepared and accepted, I’ll show a right-hand diver’s OK ring when your normalized thumb–index gap goes below 0.18 with the other three fingers stretched, default timing, one action total; the proposal is saved and not active, so please demonstrate your right hand with middle, ring, and little fingers straight and thumb–index tips closer than 0.18 for recognition, and then we’ll review the terms before acceptance.",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "deliberateConsentFragmentPlayed": false
+    },
+    {
+      "attempt": 92,
+      "mode": "L-02",
+      "artifact": "gptlive-acceptance-31986cb419",
+      "automatedPassed": true,
+      "error": null,
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "a49c0a771bd59c0c816d5a1ddad68a753756ea0fd602e4b77f0db8950fcb7853",
+      "captions": " We could I understand: default settings, one action total, and you’ll demonstrate and judge; may I treat your demonstration as preparation, then show one matching reproduction only after you accept? The proposal is saved and not active; please demonstrate your left hand with thumb bent, index straight, and the others bent, plus a distinct right hand with thumb straight and the others bent for recognition; we’ll review the terms before acceptance. You’ll demonstrate both hands together to prepare, judge the result, and after you accept I’ll wait for a fresh matching cue, then reproduce the two-hand pattern once; shall we start? I Got it—started; I’ll wait for your fresh matching cue. Task accepted and armed; I’m waiting for the agreed two-hand pose as a fresh cue. Noted. Sure—I'll show one simultaneous pose with my left index and right thumb stretched, others bent.",
+      "localReceivedAudio": [
+        {
+          "file": "native-output-0.webm",
+          "sha256": "ba4a4647ec71d2efa2cd66fa650f768b433a312af0e4d3050c252672ffb8509f",
+          "seconds": 133.08,
+          "transcript": "We could, I understand, default settings, one action total, and you'll demonstrate in judge, may I treat your demonstration as preparation, then show one matching reproduction only after you accept? The proposal is saved and not active. Please demonstrate your left hand with thumb bent, index straight, and the other's bent, plus a distinct right hand with thumb straight and the other's bend for recognition. We'll review the terms before acceptance. You'll demonstrate both hands together to prepare. Judge the result, and after you accept, I'll wait for a fresh matching cue, then reproduce the two hand pattern once. Shall we start? I... got it. Start it. I'll wait for your fresh matching cue. Task accepted and armed. I'm waiting for the agreed two hand pose as a fresh cue. Noted. Sure, I'll show one simultaneous pose with my left index and right thumb stretched. there's."
+        }
+      ],
+      "admitted": [
+        "Propose one task, but wait for preparation and acceptance When my left index is stretched with its other four fingers bent and my right thumb is stretched with its other four fingers bent in the same frame, reproduce that two-hand pattern once. I demonstrate the pattern and judge the digital result. You reproduce it One action total. Use default settings",
+        "accept the currentproposal",
+        "Stretch your left index and bend the other four left fingers. At the same time stretch your right thumb and bend the other four right fingers"
+      ],
+      "verifiedImages": [
+        {
+          "file": "task-L-02.png",
+          "sha256": "88c763a178c8158ba79c3bf47a374256c5ecfb4f120e699e1c2c88888ae644b1"
+        },
+        {
+          "file": "poseshow.png",
+          "sha256": "8cc29ab65fa410a9cc8310cb543ec5801541923656d4b1225c567ea30d1224ce"
+        }
+      ],
+      "phase": "COMPLETED",
+      "actions": 1,
+      "checkpoints": [
+        "preparation-request-completed",
+        "prepared",
+        "completed",
+        "final"
+      ],
+      "commands": [
+        {
+          "name": "poseshow",
+          "source": "3b201efb-3544-4c55-8036-eddc2d563340",
+          "result": {
+            "sourcePosition": 15,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "HAND_POSE",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "pose",
+                "hands": [
+                  {
+                    "side": "left",
+                    "fingers": {
+                      "thumb": 1,
+                      "index": 0,
+                      "middle": 1,
+                      "ring": 1,
+                      "little": 1
+                    }
+                  },
+                  {
+                    "side": "right",
+                    "fingers": {
+                      "thumb": 0,
+                      "index": 1,
+                      "middle": 1,
+                      "ring": 1,
+                      "little": 1
+                    }
+                  }
+                ]
+              }
+            },
+            "posePosition": 16,
+            "poseSession": "78d97adb-2e31-46e0-a483-6217c82c0939",
+            "poseEpoch": "0a7ceed7-df56-4e45-be8f-50f144aac153",
+            "renderedEvent": "5e71fca1-ee66-4eb2-9112-fcd2248ad8e0"
+          },
+          "delivery": [
+            {
+              "serverMs": 1795547108315,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "e76b1d409f5e9e8929f887f80d05219033db4109d467a4d94ab0dca579a1380e",
+              "sourceId": "3b201efb-3544-4c55-8036-eddc2d563340",
+              "sequence": 97,
+              "contentBytes": 293,
+              "sourceIds": [
+                "3b201efb-3544-4c55-8036-eddc2d563340"
+              ]
+            },
+            {
+              "serverMs": 1795547108983,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "e76b1d409f5e9e8929f887f80d05219033db4109d467a4d94ab0dca579a1380e",
+              "sourceId": "3b201efb-3544-4c55-8036-eddc2d563340",
+              "sequence": 98,
+              "contentBytes": 293,
+              "sourceIds": [
+                "3b201efb-3544-4c55-8036-eddc2d563340"
+              ]
+            },
+            {
+              "serverMs": 1795547113764,
+              "phase": "command_rendered_send",
+              "type": "session.thinking.append",
+              "revision": "a685db1af2c429408d702f90b2abf20a664ff2339f92feb750fdcdf716aad20e",
+              "sourceId": "3b201efb-3544-4c55-8036-eddc2d563340",
+              "sequence": 103,
+              "contentBytes": 289,
+              "sourceIds": [
+                "3b201efb-3544-4c55-8036-eddc2d563340"
+              ]
+            },
+            {
+              "serverMs": 1795547114450,
+              "phase": "command_rendered_ack",
+              "type": "session.thinking.append",
+              "revision": "a685db1af2c429408d702f90b2abf20a664ff2339f92feb750fdcdf716aad20e",
+              "sourceId": "3b201efb-3544-4c55-8036-eddc2d563340",
+              "sequence": 104,
+              "contentBytes": 289,
+              "sourceIds": [
+                "3b201efb-3544-4c55-8036-eddc2d563340"
+              ]
+            }
+          ],
+          "observations": [
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " Sure—",
+              "eventId": "event_Enq7AfnClQERr8Wt9G5y9",
+              "browserMs": 126232.8999999999,
+              "serverRangeMs": [
+                1795547104782.4663,
+                1795547104790.3335
+              ],
+              "sidebandReceiptMs": 1795547104821,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": "I'll",
+              "eventId": "event_Enq7Ab50f8TtiNDhhdR0T",
+              "browserMs": 126412.3999999999,
+              "serverRangeMs": [
+                1795547104961.9485,
+                1795547104969.8513
+              ],
+              "sidebandReceiptMs": 1795547104977,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 126740.6000000001,
+              "serverRangeMs": [
+                1795547105290.1157,
+                1795547105298.0845
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " show",
+              "eventId": "event_Enq7AewpNn8qwcXzKNtp6",
+              "browserMs": 126840.20000000019,
+              "serverRangeMs": [
+                1795547105389.7058,
+                1795547105397.694
+              ],
+              "sidebandReceiptMs": 1795547105407,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " one",
+              "eventId": "event_Enq7Amr0y0kejHXZnuhWH",
+              "browserMs": 127014.30000000028,
+              "serverRangeMs": [
+                1795547105563.7883,
+                1795547105571.8118
+              ],
+              "sidebandReceiptMs": 1795547105582,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 127080.70000000019,
+              "serverRangeMs": [
+                1795547105630.1816,
+                1795547105638.2183
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " simultaneous",
+              "eventId": "event_Enq7BvFwnL2uLLTruHul0",
+              "browserMs": 127214.80000000028,
+              "serverRangeMs": [
+                1795547105764.2683,
+                1795547105772.3318
+              ],
+              "sidebandReceiptMs": 1795547105780,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " pose",
+              "eventId": "event_Enq7BpSx4CWNPPHG2FkIk",
+              "browserMs": 128037.70000000019,
+              "serverRangeMs": [
+                1795547106587.086,
+                1795547106595.314
+              ],
+              "sidebandReceiptMs": 1795547106602,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 128280.70000000019,
+              "serverRangeMs": [
+                1795547106830.0615,
+                1795547106838.3384
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " with",
+              "eventId": "event_Enq7Cy3jb6in8UACKdDq1",
+              "browserMs": 128640.8999999999,
+              "serverRangeMs": [
+                1795547107190.2256,
+                1795547107198.5742
+              ],
+              "sidebandReceiptMs": 1795547107207,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 128680.70000000019,
+              "serverRangeMs": [
+                1795547107230.0217,
+                1795547107238.3782
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " my",
+              "eventId": "event_Enq7Cqo6qd16vJcNhBMQE",
+              "browserMs": 128828.80000000028,
+              "serverRangeMs": [
+                1795547107378.107,
+                1795547107386.4932
+              ],
+              "sidebandReceiptMs": 1795547107395,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " left",
+              "eventId": "event_Enq7C0J7tiyXEb0k2vHD5",
+              "browserMs": 129020.80000000028,
+              "serverRangeMs": [
+                1795547107570.0876,
+                1795547107578.5125
+              ],
+              "sidebandReceiptMs": 1795547107588,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 129100.80000000028,
+              "serverRangeMs": [
+                1795547107650.0798,
+                1795547107658.5203
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " index",
+              "eventId": "event_Enq7DHspv1fcvV8X7Kg1K",
+              "browserMs": 129198.8999999999,
+              "serverRangeMs": [
+                1795547107748.1697,
+                1795547107756.6301
+              ],
+              "sidebandReceiptMs": 1795547107765,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 129320.70000000019,
+              "serverRangeMs": [
+                1795547107869.9575,
+                1795547107878.4424
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 129903.1000000001,
+              "serverRangeMs": [
+                1795547108452.2996,
+                1795547108460.9006
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "undetermined"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " and",
+              "eventId": "event_Enq7DdUjaNNBvEJOlhxV7",
+              "browserMs": 129903.6000000001,
+              "serverRangeMs": [
+                1795547108452.7996,
+                1795547108461.4006
+              ],
+              "sidebandReceiptMs": 1795547108450,
+              "observed": "undetermined"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " right",
+              "eventId": "event_Enq7DFKB1gkucVhKSCTov",
+              "browserMs": 130137.3999999999,
+              "serverRangeMs": [
+                1795547108686.576,
+                1795547108695.2239
+              ],
+              "sidebandReceiptMs": 1795547108656,
+              "observed": "undetermined"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " thumb",
+              "eventId": "event_Enq7EUlmo01vcZLapEwwT",
+              "browserMs": 130275.8999999999,
+              "serverRangeMs": [
+                1795547108825.062,
+                1795547108833.7378
+              ],
+              "sidebandReceiptMs": 1795547108826,
+              "observed": "undetermined"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 130362.1000000001,
+              "serverRangeMs": [
+                1795547108911.2537,
+                1795547108919.9465
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "undetermined"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " stretched,",
+              "eventId": "event_Enq7EBrNB8JwVBtEJ211C",
+              "browserMs": 130451.5,
+              "serverRangeMs": [
+                1795547109000.6445,
+                1795547109009.3555
+              ],
+              "sidebandReceiptMs": 1795547108982,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 130818.80000000028,
+              "serverRangeMs": [
+                1795547109367.908,
+                1795547109376.6921
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 131200.3999999999,
+              "serverRangeMs": [
+                1795547109749.4697,
+                1795547109758.33
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " others",
+              "eventId": "event_Enq7FVXYwsDhqBs1WLngm",
+              "browserMs": 131441.6000000001,
+              "serverRangeMs": [
+                1795547109990.6458,
+                1795547109999.5544
+              ],
+              "sidebandReceiptMs": 1795547110004,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " bent.",
+              "eventId": "event_Enq7FY5cfhmNdSyX46h82",
+              "browserMs": 131743.2000000002,
+              "serverRangeMs": [
+                1795547110292.2153,
+                1795547110301.1846
+              ],
+              "sidebandReceiptMs": 1795547110316,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "output_voice",
+              "browserMs": 132000.80000000028,
+              "serverRangeMs": [
+                1795547110549.7898,
+                1795547110558.8103
+              ],
+              "sidebandReceiptMs": null,
+              "observed": "observed_after_result_ack"
+            }
+          ]
+        }
+      ],
+      "acceptanceAudio": [
+        {
+          "name": "accept",
+          "intendedInput": "I accept the current proposal.",
+          "input": {
+            "startMs": 83440.30000000028,
+            "speechEndMs": 85229.25833333361,
+            "bufferEndMs": 86194.80000000028,
+            "sampleRate": 24000,
+            "samples": 60828,
+            "tailSilenceMs": 745.5,
+            "micEnabledAtEnd": true
+          },
+          "outboundBefore": {
+            "trackMatched": true,
+            "enabled": true,
+            "readyState": "live",
+            "ssrc": 2914486051,
+            "packetsSent": 1215,
+            "bytesSent": 84924,
+            "totalAudioEnergy": 3.4837893200228827
+          },
+          "outboundAfter": {
+            "trackMatched": true,
+            "enabled": true,
+            "readyState": "live",
+            "ssrc": 2914486051,
+            "packetsSent": 1345,
+            "bytesSent": 93186,
+            "totalAudioEnergy": 3.8297861833754245
+          }
+        }
+      ],
+      "semanticVerdict": "FAIL",
+      "semanticFinding": "Independent direct pose passed. The captured final review described completed preparation as a future step and arming was confirmed twice. Backend and both digital poses passed.",
+      "renderChecks": [
+        {
+          "name": "task-L-02",
+          "irisPixels": 1407,
+          "glError": 0
+        },
+        {
+          "name": "poseshow",
+          "irisPixels": 1407,
+          "glError": 0
+        }
+      ],
+      "capturedNative": [
+        {
+          "id": "7ddf1647-2768-4de3-aa33-3af7b85fb78c",
+          "speech": "We could",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "0df38c6e-74a3-46c8-a6bc-df6f03d439a7",
+          "speech": "I understand: default settings, one action total, and you’ll demonstrate and judge; may I treat your demonstration as preparation, then show one matching reproduction only after you accept? The proposal is saved and not active; please demonstrate your left hand with thumb bent, index straight, and the others bent, plus a distinct right hand with thumb straight and the others bent for recognition; we’ll review the terms before acceptance.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "ca1bc0d6-ab61-489e-b362-da8cbba621c2",
+          "speech": "You’ll demonstrate both hands together to prepare, judge the result, and after you accept I’ll wait for a fresh matching cue, then reproduce the two-hand pattern once; shall we start?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "7576d47a-0a11-4412-9bcd-8734c884055f",
+          "speech": "I",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "4cb13139-37ba-4840-85de-5e138f6759ec",
+          "speech": "Got it—started; I’ll wait for your fresh matching cue. Task accepted and armed; I’m waiting for the agreed two-hand pose as a fresh cue.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "b6ba5ea1-b34f-436d-959a-b8a89a7cad36",
+          "speech": "Noted.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "0e58a0a2-1fe3-4820-af8a-297c40db8945",
+          "speech": "Sure—I'll show one simultaneous pose with my left index and right thumb stretched, others bent.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "deliberateConsentFragmentPlayed": false
+    }
+  ],
+  "audioInputCheck": {
+    "voice": "Microsoft Zira Desktop - English (United States)",
+    "source": {
+      "file": "accept.pcm",
+      "text": "I accept the current proposal.",
+      "bytes": 121656,
+      "sha256": "82b42c3422335ce04c02cb3f65c2aeec63c0c9ab6380badac08d0c2ad7a9895e",
+      "seconds": 2.5345
+    },
+    "sampleRate": 24000,
+    "localSourceTranscript": "I accept the current proposal.",
+    "localReceiverTranscript": "I accept the current proposal.",
+    "receiverRecordingSha256": "d1d4ce4044cefe73c7d7a863a10908c63006232c617a900a4c98c68f0f1ecdb2",
+    "loopback": {
+      "input": {
+        "startMs": 164.10000000009313,
+        "speechEndMs": 1953.0583333334264,
+        "bufferEndMs": 2698.2999999998137,
+        "sampleRate": 24000,
+        "samples": 60828,
+        "tailSilenceMs": 745.5,
+        "micEnabledAtEnd": true
+      },
+      "before": {
+        "trackMatched": true,
+        "enabled": true,
+        "readyState": "live",
+        "ssrc": 332827772,
+        "packetsSent": 0,
+        "bytesSent": 0,
+        "totalAudioEnergy": 0
+      },
+      "after": {
+        "trackMatched": true,
+        "enabled": true,
+        "readyState": "live",
+        "ssrc": 332827772,
+        "packetsSent": 126,
+        "bytesSent": 8140,
+        "totalAudioEnergy": 0.303979145533688
+      }
+    },
+    "scope": "Local browser peer connection. Sender stats document transport activity only. The original attempt 85/86 PCM was unavailable."
+  }
+}

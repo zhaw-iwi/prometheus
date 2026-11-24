@@ -3,6 +3,19 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 import {playHandStimulus,handReplyObserved} from './hand_audio_input.mjs';
+import {commandTiming} from './hand_command_timing.mjs';
+
+test('only exact-turn send and ACK bracket each observed fragment, retaining overlap',()=>{
+  const turn={commandSource:{id:'pose-turn'},clock:{sent:100,received:104,serverTimeMs:1000},
+    events:[110,121,132].map(at=>({at,type:'session.output_transcript.delta',delta:'word',event_id:'e'+at}))};
+  const traces=[{sourceId:'old',phase:'command_accepted_ack',serverMs:999,sequence:1},
+    {sourceId:'pose-turn',phase:'command_accepted_send',serverMs:1015,sequence:2},
+    {sourceId:'pose-turn',phase:'command_accepted_ack',serverMs:1021,sequence:3}];
+  const timing=commandTiming(turn,traces,new Map());
+  assert.equal(timing.delivery.length,2);
+  assert.deepEqual(timing.observations.map(e=>e.observed),['observed_before_result_sent','undetermined','observed_after_result_ack']);
+  assert.ok(commandTiming(turn,[],new Map()).observations.every(e=>e.observed==='undetermined'));
+});
 
 test('a caption or received audio alone cannot finish waiting for native playback',()=>{
   globalThis.__trial={events:[{type:'output_voice',at:10},{type:'session.output_transcript.delta',delta:'Old reply',at:11}]};

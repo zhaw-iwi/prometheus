@@ -24,28 +24,29 @@ class LiveCommandResultUnitTest {
     }
     @Test void onlyTheCurrentAdmittedTurnCanSupplyFactsAndReconnectCannotReplayThem() {
         var source = command("ACCEPTED",false);
-        var facts = LiveCommandResult.facts(agent, now, source.getId()::equals);
+        var result = LiveCommandResult.current(agent, now, source.getId()::equals);
+        var facts = result.facts();
         assertTrue(facts.contains(source.getId().toString())); assertTrue(facts.contains("HAND_SIGN rock"));
         assertTrue(facts.contains("unconfirmed"));
-        assertEquals("",LiveCommandResult.facts(agent, now, id -> false));
-        assertEquals("",LiveCommandResult.facts(agent, now.plusSeconds(30), id -> true));
-        assertEquals("",LiveCommandResult.facts(agent, now.minusSeconds(1), id -> true));
+        assertNull(LiveCommandResult.current(agent, now, id -> false));
+        assertNull(LiveCommandResult.current(agent, now.plusSeconds(30), id -> true));
+        assertNull(LiveCommandResult.current(agent, now.minusSeconds(1), id -> true));
         agent.getEventHistory().appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE,"user","Stop that"));
-        assertEquals("",LiveCommandResult.facts(agent, now,id -> true));
+        assertNull(LiveCommandResult.current(agent, now,id -> true));
     }
     @Test void silentConflictAndUnsupportedFactsCannotClaimSuccess() {
         for (var status : List.of("CONFLICT","UNSUPPORTED","CLARIFY")) {
-            command(status,true); var facts = LiveCommandResult.facts(agent,now,id -> true);
+            command(status,true); var facts = LiveCommandResult.current(agent,now,id -> true).facts();
             assertTrue(facts.contains("Not performed")); assertTrue(facts.contains("Explicit silence: do not speak"));
             assertTrue(facts.contains("No new speaking occasion"));
         }
-        agent.reset(); assertEquals("",LiveCommandResult.facts(agent,now,id -> true));
+        agent.reset(); assertNull(LiveCommandResult.current(agent,now,id -> true));
     }
     @Test void unresolvedTargetsReceiveCurrentTurnClarificationWithoutALegacySignSubstitution() {
         var source=command("CLARIFY",false);
         var receipt=storage.get(DirectCommands.LAST).getAsJsonObject();
         receipt.add("kind",JsonNull.INSTANCE);receipt.add("value",JsonNull.INSTANCE);storage.put(DirectCommands.LAST,receipt);
-        var saved=receipt.deepCopy();var facts=LiveCommandResult.facts(agent,now,source.getId()::equals);
+        var saved=receipt.deepCopy();var facts=LiveCommandResult.current(agent,now,source.getId()::equals).facts();
         assertTrue(facts.contains("Not performed"));assertTrue(facts.contains("action or target"));
         assertFalse(facts.contains("sign/gesture"));assertTrue(facts.contains("No new speaking occasion"));
         assertTrue(facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=380);
@@ -57,7 +58,7 @@ class LiveCommandResultUnitTest {
         var initial = projection.project(agent);
         assertFalse(initial.instructions().contains("COMMAND RESULT for"));
         var delivery = new LiveContextDelivery(initial); delivery.ready();
-        var current = projection.project(agent,LiveCommandResult.facts(agent,now,id -> true));
+        var current = projection.project(agent,LiveCommandResult.current(agent,now,id -> true));
         var batch = delivery.plan(current,List.of());
         assertFalse(batch.commands().isEmpty());
         assertTrue(batch.commands().stream().allMatch(c -> c.type().equals("session.thinking.append")));
@@ -83,16 +84,41 @@ class LiveCommandResultUnitTest {
             storage.put(DirectCommands.LAST, receipt);
             var saved = receipt.deepCopy();
             var initial = projection.project(agent);var delivery = new LiveContextDelivery(initial);delivery.ready();
-            var facts = LiveCommandResult.facts(agent, now, source.getId()::equals);
+            var result = LiveCommandResult.current(agent, now, source.getId()::equals);
+            var facts = result.facts();
             assertTrue(facts.contains("Accepted output plan: " + kind + "."));
             assertTrue(facts.contains("Rendering/physical execution unconfirmed"));
             assertTrue(facts.contains("No new speaking occasion"));
             assertTrue(facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 380);
-            var current = projection.project(agent, facts);var batch = delivery.plan(current,List.of());
-            assertFalse(batch.commands().isEmpty());
+            var current = projection.project(agent, result);var batch = delivery.plan(current,List.of());
+            assertEquals(source.getId(), batch.commands().getFirst().sourceId());
+            assertEquals("ACCEPTED", batch.commands().getFirst().commandStatus());
             assertTrue(batch.commands().stream().allMatch(c -> c.type().equals("session.thinking.append")));
             delivery.acknowledged(batch, Set.of());assertTrue(delivery.plan(current,List.of()).commands().isEmpty());
             assertEquals(saved, storage.get(DirectCommands.LAST));
         }
+    }
+
+    @Test void onlyTheCurrentPublishedPoseAndVoiceOwnerCanConfirmDigitalRendering() {
+        var source = command("ACCEPTED", false);
+        var receipt = storage.get(DirectCommands.LAST).getAsJsonObject();
+        var hand = ch.zhaw.prometheus.model.hand.HandActions.pose(fixtures.behaviour.ComposedHandFixture.output());
+        receipt.addProperty("kind", "HAND_POSE"); receipt.add("handAction", hand);
+        var history = agent.getEventHistory();
+        var plan = history.appendEvent(Event.response(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, Event.ACTOR_ASSISTANT,
+                "{\"motion\":{\"handAction\":" + hand + "}}"));
+        var id = UUID.randomUUID();
+        ReflectionTestUtils.setField(plan, "id", id);
+        var owner = new ch.zhaw.prometheus.model.policy.ExternalSpeech(UUID.randomUUID(), agent.executionEpoch());
+        DirectCommands.publishedPose(storage, plan, owner);
+        assertFalse(DirectCommands.renderedPose(storage, history, source.getId(), owner, now));
+        assertFalse(DirectCommands.renderedPose(storage, history, id, null, now));
+        assertFalse(DirectCommands.renderedPose(storage, history, id, owner, now.plusSeconds(30)));
+        assertEquals("ACCEPTED", LiveCommandResult.current(agent, now, source.getId()::equals).status());
+        assertTrue(DirectCommands.renderedPose(storage, history, id, owner, now));
+        assertFalse(DirectCommands.renderedPose(storage, history, id, owner, now));
+        var confirmed = LiveCommandResult.current(agent, now, source.getId()::equals);
+        assertEquals("RENDERED", confirmed.status()); assertEquals(source.getId(), confirmed.source());
+        assertTrue(confirmed.facts().contains("Digital renderer confirmed this pose."));
     }
 }

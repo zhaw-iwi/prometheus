@@ -3,6 +3,8 @@
   "activities": "What small activities can we do together? Please answer briefly.",
   "planning": "How can you help me plan something? Give a short answer.",
   "accept": "I accept the current proposal.",
+  "acceptrepair": "Start now.",
+  "acceptfragment": "I accept the current",
   "signcapabilities": "Briefly describe your communication signs, custom finger poses, pointing, and finite hand sequences.",
   "signshow": "Show a thumbs up with your right hand.",
   "signrepeat": "Show a thumbs up with your right hand again.",

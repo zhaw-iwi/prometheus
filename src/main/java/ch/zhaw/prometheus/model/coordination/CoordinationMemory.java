@@ -160,6 +160,14 @@ public final class CoordinationMemory {
     }
     /** Voice navigation is a projection; executable terms remain in facts()/Storage in full. */
     public static String voiceFacts(Storage storage) {
+        if ("REFLECTION".equals(stage(storage))) {
+            var finished = agreement(storage, AGREEMENT);
+            return "No active task. Finished agreement goal: " + (finished == null ? "none" : finished.goal())
+                    + ". Recorded outcome: " + TaskMemory.text(storage, OUTCOME, "not established")
+                    + ". Actions spent: " + TaskMemory.text(storage, TaskMemory.ACTIONS, "0")
+                    + (storage.containsKey(LAST_CUE) ? ". Last accepted cue: rule " + storage.get(LAST_CUE).getAsJsonObject().get("rule").getAsInt() : "")
+                    + ". The user can make new immediate requests.";
+        }
         String full = facts(storage);
         return full.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 2600 ? full : voiceNavigation(storage);
     }

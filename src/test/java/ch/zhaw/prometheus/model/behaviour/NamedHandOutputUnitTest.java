@@ -11,6 +11,20 @@ import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import ch.zhaw.prometheus.model.task.*;
 
 class NamedHandOutputUnitTest {
+    @Test void anUnqualifiedOkaySignCannotAuthorizeEitherInterpretation() {
+        var agent = new ch.zhaw.prometheus.agentdefs.core.CoordinationAgent().createAgent();
+        for (String choice : List.of("ok_ring", "thumbs_up")) {
+            var request = new DirectCommands.Request(DirectCommands.Intent.ACTION, "HAND_SIGN", choice, false);
+            var history = new EventHistory();
+            history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "Show me an okay sign."));
+            var result = DirectCommands.evaluate(request, agent.getInteractionProfile(), new Storage(), history, false);
+            assertEquals("CLARIFY", result.status());
+            assertNull(result.plan().getMotion());
+            assertTrue(result.plan().getSpeech().contains("thumbs up"));
+            history.appendEvent(Event.observation(Event.TYPE_USER_UTTERANCE, "user", "I mean " + choice.replace('_', ' ')));
+            assertEquals("ACCEPTED", DirectCommands.evaluate(request, agent.getInteractionProfile(), new Storage(), history, false).status());
+        }
+    }
     final AgentInteractionProfile profile = AgentInteractionProfile.of(List.of(), List.of(HandActions.MODALITY), List.of("demo.valerian.coordination"));
     @Test void allSixNamedActionsAndSidesUseTheSameContractWithoutSpendingTaskBudget() {
         for (String sign : HandSignObservation.BASIC_SIGNS) for (String side : HandActions.EFFECTORS) {

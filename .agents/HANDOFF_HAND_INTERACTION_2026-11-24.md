@@ -1,9 +1,9 @@
 # Hand interaction continuation — 2026-11-24
 
-Implementation checkpoint: **`82d12bc7` on `main`**, pushed to `origin/main`.
-HI-01..11 are complete; **HI-12 remains incomplete**. This handoff and its JSON
-checkpoint are committed separately so a fresh checkout can resume without this
-conversation or the old machine's ignored files.
+HI-01 through HI-11 are complete. HI-12 remains open. The historical implementation
+checkpoint was `82d12bc7`. The latest findings and reservations are in
+[`live-continuation.json`](checkpoints/hand-interaction-2026-11-24/live-continuation.json)
+and the final section of [the results](HAND_INTERACTION_RESULTS.md).
 
 ## Start here
 
@@ -13,7 +13,7 @@ pull `main` without discarding local work. Then read:
 
 - `PLAN_HAND_INTERACTION.md`, especially HI-12 acceptance revision 2.
 - `HAND_INTERACTION_RESULTS.md`, the **Third-extension final sweep and checkpoint**
-  section near the end. Earlier passes do not supersede final failures.
+  section and the subsequent **Current-turn Live investigation**.
 - `checkpoints/hand-interaction-2026-11-24/evidence.json`: curated findings for
   attempts 67–88 and final-sweep native captions, local ASR text, admitted user
   turns, backend model outputs, proposals and task outcomes.
@@ -54,7 +54,22 @@ Guide further work with the existing files and neighboring tests:
   `hand_paid.py`, the adjacent tests and `hand-paid-plan.json` own the acceptance
   driver and spending limits. `hand-cases.json` contains the spoken stimuli.
 
-## Remaining work
+## Current result and next diagnostic
+
+Attempt 89 established that Live had begun the incorrect post-task reply before
+the exact-turn result was sent. With phase-specific guidance, 92 answered the
+same imperative correctly while the backend was still working. Attempt 91
+clarified the ambiguous sign and issued one right-hand ring on the next turn.
+Attempt 90 exercised genuine incomplete consent, one inactive-proposal repair,
+and fresh explicit acceptance. The full L-02 and L-03 journeys still have open
+spoken review, arming or capture failures. Before further paid testing, isolate
+the two arming acknowledgements and the future-tense preparation wording after
+completed preparation. The [results](HAND_INTERACTION_RESULTS.md) and portable
+[run evidence](checkpoints/hand-interaction-2026-11-24/live-continuation.json)
+preserve the individual verdicts. Allocation 10 has used four $5 reservations,
+reaching 92 attempts/$206 cumulatively. Six more ($30) fit the owner's cap.
+
+## Findings carried into this continuation
 
 Use the saved failure evidence for an offline reproduction before another paid
 selection. Do not spend the remaining allowance on unchanged retries.
@@ -78,7 +93,7 @@ selection. Do not spend the remaining allowance on unchanged retries.
    target removal, only after relevant repairs. The final L-01..08 are failed or
    inconclusive; L-09 and M-01/M-02 pass. HI-12 cannot be marked complete yet.
 
-Verification already run: 363 Java unit tests (28 suites), 48 local-MySQL tests,
+Historical verification: 363 Java unit tests (28 suites), 48 local-MySQL tests,
 six Playwright cases, 45 Python tests, 16 Node harness tests, nine schema examples
 and packaging. Final paired L-09 native onset comparison passes. Images and full
 received-audio ASR were reviewed; physical microphone/speaker/robot trials were
@@ -88,48 +103,23 @@ tests. These results are historical evidence, not tests run on the new device.
 
 ## Carry the spending history across devices
 
-The cumulative authorization is **$200**: $50 + $20 + $30 + $100. The immutable
-checkpoint contains **88 attempts/$186 reserved**, including failures. **$14 is
-unreserved**, but allocation 9 permits only **two more $5 attempts** (90/$196
-maximum) without a new allocation. Actual invoice totals are unavailable.
+Allocation 10 permits up to $50 of new reservations from attempt 89, including the
+backend and GPT-Live. Each selection reserves $5. The enforced maximum is 98 entries
+and $236 cumulative. The former allocation's unused balance is included in this
+envelope. Obtain fresh owner authorization before increasing it. Invoices are unavailable.
 
-`checkpoints/hand-interaction-2026-11-24/ledger.json` preserves every entry from
-the old `target/hand-interaction-budget.json`. Historical Windows artifact paths
-are identifiers; they do not have to exist on the new device and must not be
-rewritten. The current validator checks this snapshot without provider access.
-The canonical JSON checksum in `evidence.json` is insensitive to Git line endings.
+Restore historical reservations before any paid selection. The helper verifies the
+original canonical checksum and the complete tracked continuation prefix. It only
+creates a missing ledger. A shorter or conflicting local ledger fails closed.
+Historical artifact paths identify the originating run and are retained verbatim.
 
-Restore only a missing local ledger. If one already exists, retain its newer
-entries and verify the checkpoint prefix. This Python snippet runs from the repo
-root and does not call the provider or reserve money:
-
-```python
-import hashlib, json, sys
-from pathlib import Path
-sys.path.insert(0, "tests/gptlive")
-from hand_paid import history
-
-checkpoint = Path(".agents/checkpoints/hand-interaction-2026-11-24")
-saved = history(checkpoint / "ledger.json")
-evidence = json.loads((checkpoint / "evidence.json").read_text(encoding="utf-8"))
-canonical = json.dumps(saved, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-assert hashlib.sha256(canonical.encode()).hexdigest() == evidence["ledgerCanonicalSha256"]
-local = Path("target/hand-interaction-budget.json")
-if local.exists():
-    current = history(local)
-    assert current["attempts"][:88] == saved["attempts"], "Conflicting history: reconcile before spending"
-else:
-    local.parent.mkdir(parents=True, exist_ok=True)
-    with local.open("x", encoding="utf-8") as stream:
-        stream.write((checkpoint / "ledger.json").read_text(encoding="utf-8"))
-current = history(local)
-print(len(current["attempts"]), "attempts;", current["reservedUsd"], "USD reserved")
+```powershell
+python -B -c "import sys; sys.path.insert(0,'tests/gptlive'); from hand_paid import restore_checkpoint; d=restore_checkpoint(); print(len(d['attempts']), d['reservedUsd'])"
 ```
 
-Use one device at a time for paid runs: local ledgers do not synchronize. Before
-switching again, commit the updated budget checkpoint and findings, preserving
-every prior entry. Never restore this 88-entry snapshot over a newer ledger or
-treat the remaining allowance as a separate allocation on each device.
+Use one device at a time and commit new reservations and findings before changing
+devices. Both the original 88-entry ledger and the subsequent reservations are
+needed to restore a missing local ledger.
 
 ## Recreate local prerequisites
 
@@ -189,7 +179,7 @@ offline repair, uses `--hand-interaction L-06 --paid-core hand-live` with the sa
 explicit database-properties argument. Do not mix it with offline Java/browser
 options. L-09 requires a separate `--hand-interaction L-09 --hand-comparison
 --paid-core hand-live` run first on the new device; its baseline pointer/recording
-is local. That pair alone would consume both remaining reservation slots.
+is local. That pair reserves $10. Check the current ledger first.
 
 After each paid run, retain the ledger and all failures, run local audio review,
 inspect full captions, terms, rendered output and receipts, and write a separate

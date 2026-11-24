@@ -116,18 +116,19 @@ persistence, enforces a 64 KiB active hand-state budget and widens event payload
 and Storage-entry columns to TEXT for the declared hand/sequence limits. Large agreements use an
 explicit bounded voice projection; full terms remain authoritative in Storage.
 README documents the database widening and saved-instance adoption.
-HI-12 acceptance is incomplete. The final paired conversation/latency check and
-Text/Continuous silence/native ownership checks pass. Final hand journeys remain
-failed or inconclusive due to native speech contradicting accepted output,
-overlong review capture, truncated provider acceptance captions, and an OK-shape
-interpretation that acts before clarification. Earlier complete pose/counting
-passes do not override those final results. The third-extension checkpoint ends
-at 88 attempts/$186 reserved, with $14 unreserved under the $200 ceiling; allocation
-9 permits two further $5 selections. Final isolated acceptance uses GPT-6.2 Sol
-(low) with GPT-Live-1.1; production settings are unchanged. Completed-task facts,
-partial-proposal guidance, Live speech-intent limits and split sensor context
-were repaired without changing ownership or consent/capture guards. Actual billing
-is unavailable. See `.agents/HAND_INTERACTION_RESULTS.md` for evidence and open work.
+HI-12 acceptance is incomplete. The paired conversation/latency and
+Text/Continuous silence/native ownership checks passed. Timing on attempt 89
+showed native speech already underway before the exact-turn pose result was sent.
+Attempt 90 reproduced truncated consent and the request for fresh confirmation.
+The backend separates command acceptance from digital rendering and withholds
+ambiguous OK motion. Native semantic acceptance remains outstanding. Allocation
+10 permits up to $50 in new reservations from entry 89. The maximum ledger is
+98 entries/$236 inclusive. Attempts 91 and 92 demonstrated correct direct
+OK clarification and post-task pose acknowledgement. Their full journeys
+still have capture or review failures. The latest durable prefix is 92 entries
+and $206 reserved, leaving $30 in the continuation.
+See `.agents/HAND_INTERACTION_RESULTS.md` for individual outcomes. Isolated tests
+use GPT-6.2 Sol (low) and GPT-Live-1.1. Measured billing is unavailable.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,
 preserving immediate native speech without playback approval, buffering or muting.
 Strict silent hand commands/tasks remain a Text/Continuous requirement. Revised

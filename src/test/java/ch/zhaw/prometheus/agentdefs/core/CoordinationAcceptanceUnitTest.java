@@ -8,6 +8,25 @@ import ch.zhaw.prometheus.model.coordination.CoordinationMemory;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 
 class CoordinationAcceptanceUnitTest {
+    @Test void incompleteConsentRequestsOneRepairAndExplicitConsentStillArms() {
+        var fixture = new CoordinationAgentUnitTest();
+        fixture.propose(fixture.sensor(false), fixture.live);
+        clearInvocations(fixture.gateway);
+        fixture.say("I accept the current", fixture.live);
+        assertEquals("READY", CoordinationMemory.stage(fixture.storage()));
+        assertFalse(fixture.storage().containsKey(CoordinationMemory.AGREEMENT));
+        var review = fixture.storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject();
+        assertTrue(review.has("repairAfterReview"));
+        fixture.hear("The proposal is ready. Shall we start?", true, java.time.Instant.now());
+        var repair = fixture.storage().get(CoreTaskVoice.RESPONSE).deepCopy();
+        assertTrue(repair.getAsJsonObject().get("facts").getAsString().contains("Start now"));
+        fixture.say("I accept the current", fixture.live);
+        assertEquals(repair, fixture.storage().get(CoreTaskVoice.RESPONSE));
+        fixture.say("Start now", fixture.live);
+        assertEquals("EXECUTION", CoordinationMemory.stage(fixture.storage()));
+        assertEquals(0, fixture.storage().get(TaskMemory.ACTIONS).getAsInt());
+        verifyNoInteractions(fixture.gateway);
+    }
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
     @Test void combinedProposalCannotOverrideAnExplicitInstructionNotToStart() {
         for (String request : java.util.List.of("Propose an invitation task but do not start yet",

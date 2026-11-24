@@ -141,16 +141,19 @@ final class CoreTaskVoice {
         response(storage, facts, proactive, gateNextCue, runtime, null);
     }
     static void response(Storage storage, String facts, boolean proactive, boolean gateNextCue, PolicyRuntime runtime, String confirmedContext) {
-        if (runtime.externalSpeech() == null) return;
+        response(storage, facts, proactive, gateNextCue, runtime.externalSpeech(), confirmedContext);
+    }
+    static void response(Storage storage, String facts, boolean proactive, boolean gateNextCue, ExternalSpeech owner, String confirmedContext) {
+        if (owner == null) return;
         var value = new JsonObject(); var id = UUID.randomUUID(); Instant now = Instant.now();
         value.addProperty("id", id.toString()); value.addProperty("facts", facts);
         value.addProperty("proactive", proactive); value.addProperty("expires", now.plusSeconds(45).toString());
         value.addProperty("revision", TaskMemory.text(storage, TaskMemory.REVISION, "0"));
-        value.addProperty("session", runtime.externalSpeech().sessionId().toString());
-        value.addProperty("epoch", runtime.externalSpeech().epoch().toString());
+        value.addProperty("session", owner.sessionId().toString());
+        value.addProperty("epoch", owner.epoch().toString());
         value.addProperty("created", now.toString());
         storage.put(RESPONSE, value);
-        if (TaskResponse.accepting(storage) && gateNextCue) TaskResponse.expect(storage, runtime.externalSpeech(), id,
+        if (TaskResponse.accepting(storage) && gateNextCue) TaskResponse.expect(storage, owner, id,
                 confirmedContext == null ? facts(storage, facts) : confirmedContext, now);
         else if (!TaskResponse.accepting(storage) && storage.containsKey(TaskResponse.KEY)) storage.remove(TaskResponse.KEY);
     }

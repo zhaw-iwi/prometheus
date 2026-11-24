@@ -180,6 +180,9 @@ public class Agent {
         if(!ch.zhaw.prometheus.model.hand.HandFeatures.outputSequences(getInteractionProfile()))throw new IllegalArgumentException("Output sequences not declared");
         return request==null?ch.zhaw.prometheus.model.hand.HandExecution.view(storage,now):ch.zhaw.prometheus.model.hand.HandExecution.receipt(storage,getEventHistory(),executionEpoch(),owner,request,now);
     }
+    public boolean renderedPose(UUID eventId, ch.zhaw.prometheus.model.policy.ExternalSpeech owner, java.time.Instant now) {
+        return ch.zhaw.prometheus.model.behaviour.DirectCommands.renderedPose(storage, getEventHistory(), eventId, owner, now);
+    }
     public void interruptHandExecution(String reason){ch.zhaw.prometheus.model.hand.HandExecution.cancel(storage,reason,java.time.Instant.now());}
     public com.google.gson.JsonObject bindHandTarget(com.google.gson.JsonObject request,java.time.Instant now){
         if(!ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile()))throw new IllegalArgumentException("Detected targets not declared");
@@ -507,6 +510,8 @@ public class Agent {
         }
         event.setStatePath(this.currentState.getActiveStatePath());
         event=this.eventHistory.appendEvent(event);
+        if (Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()) && ch.zhaw.prometheus.model.hand.HandFeatures.poses(getInteractionProfile()))
+            ch.zhaw.prometheus.model.behaviour.DirectCommands.publishedPose(storage, event, runtime == null ? null : runtime.externalSpeech());
         if(ch.zhaw.prometheus.model.hand.HandFeatures.outputSequences(getInteractionProfile())){
             if(Event.TYPE_USER_UTTERANCE.equals(event.getType()))interruptHandExecution("new_user_turn");
             if(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType())){

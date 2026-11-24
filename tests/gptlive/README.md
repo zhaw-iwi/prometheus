@@ -5,7 +5,17 @@ For a fresh checkout on another device, use the
 It restores the existing budget history without resetting spending and identifies
 which local credentials, audio and database prerequisites must be recreated.
 
-## Hand acceptance third extension (2026-11-24)
+## Current hand acceptance allocation
+
+Allocation 10 starts with 88 attempts and $186 reserved. This continuation permits
+ten $5 reservations, including backend inference and native Live, with a cumulative
+limit of $236. See the latest hand interaction handoff for the current ledger.
+The L-02 report records command delivery and individual native caption/audio
+observations under each direct turn's `commandTiming`. Clock overlap and missing
+evidence leave ordering undetermined. The local PCM, outgoing RTP counters
+and provider transcript give separate evidence about acceptance wording.
+
+## Hand acceptance third extension (2026-11-24, historical)
 
 The owner approved an additional $100 reservation allocation. Allocation 9
 preserves all **78 attempts/$136** and permits at most **twelve new $5 attempts**

@@ -33,6 +33,17 @@ public class CoordinationUpdateAction extends Action {
         var event = events.toList().getLast(); String text = event.getPayload(); Instant now = Instant.now();
         String revision = TaskMemory.text(storage, TaskMemory.REVISION, "0");
         CoordinationMemory.remove(storage, CoordinationSupport.LIVE_HELP);
+        if (CoordinationAcceptance.incomplete(text) && storage.containsKey(CoordinationMemory.DRAFT)) {
+            if (!CoordinationMemory.ready(storage)) {
+                answerSupport("The proposal is inactive. Complete preparation before accepting it.", runtime);
+            } else if (runtime.externalSpeech() == null) {
+                answer(CoordinationAcceptance.REPAIR, runtime);
+            } else {
+                storage.put(TaskMemory.REPLY, new JsonObject());
+                CoordinationAcceptance.repair(storage, runtime.externalSpeech());
+            }
+            return;
+        }
         // Acoustic completion is not semantic completeness. These clear fragments cannot authorize a change.
         if (CoreTaskVoice.normalize(text).matches("(a|an|the)( dry)?|(please )?(tell me|make it|change it to|can you|i want)( a| an| the)?|(my|the) answer is|i think it is|(meine|die) antwort ist")) {
             answerSupport("Please finish that request.", runtime); return;
@@ -188,6 +199,17 @@ public class CoordinationUpdateAction extends Action {
         commit(operation, proposed, reply, event, now, runtime);
         if (!Set.of("KEEP", "SUPPORT", "STATUS", "REFLECT").contains(operation)) CoordinationRecovery.clear(storage);
     }
+    static String armingFacts(TaskSpec task) {
+        var cues = task.rules().stream().filter(rule -> rule.effect() == TaskSpec.Effect.ACT).toList();
+        if (cues.size() == 1 && cues.getFirst().handPose() != null && cues.getFirst().handPose().versioned()) {
+            var hands = cues.getFirst().handPose().hands();
+            String pose = hands.size() == 2 ? "two-hand pose" : "hand pose";
+            return "Task accepted and armed. Confirm once that you are waiting for the agreed " + pose + " as a fresh cue.";
+        }
+        return "Task accepted and armed. Confirm once that you are waiting for a fresh cue: "
+                + cues.stream().map(TaskSpec.Rule::conditionDescription).collect(java.util.stream.Collectors.joining(", ")) + ".";
+    }
+
     private boolean explicitCueStart(String text, String invitation) {
         var draft = CoordinationMemory.agreement(getStorage(), CoordinationMemory.DRAFT);
         return draft != null && draft.reactions() != null && draft.reactions().firstAction() == TaskSpec.FirstAction.ON_CUE
@@ -401,10 +423,7 @@ public class CoordinationUpdateAction extends Action {
                     + "Refer to the agreed action without quoting it or inventing a supplied literal line, even as a future-tense example. " + proposalNextStep(storage);
             case "REPLACE" -> "A replacement proposal was saved and the earlier task is not executing. Explain the changed terms without performing them. " + CoordinationMemory.proposalPrompt(storage);
             case "START" -> action ? "Task accepted. Give its first agreed contribution now. " + intent(speech)
-                    : "Task accepted and armed. Give one brief confirmation that you are waiting for a fresh cue: "
-                        + accepted.reactions().rules().stream().filter(rule -> rule.effect() == TaskSpec.Effect.ACT)
-                            .map(TaskSpec.Rule::conditionDescription).collect(java.util.stream.Collectors.joining(", "))
-                        + ". Then yield and listen. Preparation is satisfied; the later cue permits the agreed action. No task action has happened yet.";
+                    : armingFacts(accepted.reactions());
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
             case "COMPLETE" -> "The user's completion report ended the task. Reflect on available evidence; this is not independently measured success.";
             case "STOP" -> "The task is stopped, not paused. No further task actions are authorized. The recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".";

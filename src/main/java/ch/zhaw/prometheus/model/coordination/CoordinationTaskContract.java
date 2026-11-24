@@ -51,12 +51,36 @@ public final class CoordinationTaskContract {
                 : proposal.reactions().maxActions() + " actions total. "
                     + (proposal.reactions().firstAction() == ch.zhaw.prometheus.model.task.TaskSpec.FirstAction.ON_CUE
                         ? "After acceptance, wait for a fresh matching cue." : "Acceptance permits the first action.");
-        return "Summarize these proposal facts in at most 55 words, combining repeated facts while preserving every distinct role and success term. Do not perform the task or add an example. "
-                + "Review: " + (proposal.checks().isEmpty() ? "" : "Preparation checks have passed; no further demonstration is needed before acceptance. ")
-                + "Our goal: " + proposal.goal() + " Your role: " + proposal.humanRole()
-                + " My role: " + proposal.agentRole() + " Success means: " + proposal.success()
-                + " Limit: " + limit + CoordinationSocialContract.proposalCondition(proposal)
-                + " This proposal is not active. Shall we start?";
+        var review = new java.util.StringJoiner(" ");
+        var roles = new java.util.LinkedHashSet<String>();
+        var human = reviewTerm(proposal.humanRole(), roles);
+        var agent = reviewTerm(proposal.agentRole(), roles);
+        // Identical clauses can describe different people's duties. Keep both role labels.
+        review.add("You: " + human).add("I: " + agent);
+        var goal = remainingTerm(proposal.goal(), roles);
+        if (!goal.isEmpty()) review.add("Goal: " + goal);
+        var success = remainingTerm(proposal.success(), roles);
+        if (!success.isEmpty()) review.add("Success: " + success);
+        if (!proposal.checks().isEmpty()) review.add("Preparation complete.");
+        return review.add("Limit: " + limit + CoordinationSocialContract.proposalCondition(proposal))
+                .add("This proposal is not active. Shall we start?").toString();
+    }
+    private static String reviewTerm(String text, java.util.Set<String> stated) {
+        var own = new java.util.LinkedHashSet<String>();
+        String term = remainingTerm(text, own);
+        stated.addAll(own);
+        return term;
+    }
+    private static String remainingTerm(String text, java.util.Set<String> stated) {
+        var terms = new java.util.StringJoiner(" ");
+        // Preserve quotations and decimal values. Only remove entire equivalent clauses.
+        String[] clauses = text.matches("(?s).*[\"“”].*") ? new String[]{text}
+                : text.strip().split("(?<=[.!?])\\s+(?=\\p{Lu})");
+        for (String clause : clauses) {
+            String key = clause.strip().replaceFirst("[.!]$", "").replaceAll("\\s+", " ");
+            if (stated.add(key)) terms.add(clause.strip());
+        }
+        return terms.toString();
     }
     public static String currentTurn(Storage storage, String text) {
         return currentTurn(storage, text, null, null);

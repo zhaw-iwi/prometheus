@@ -85,26 +85,19 @@ and regulation diagnostics remain future work.
   ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
   people/items, HI-09 input sequences, HI-10 output sequences/counting and HI-11
   integrated acceptance are complete and pushed; HI-12 real-provider acceptance is
-  incomplete. The owner approved $20 and $30 extensions on 2026-11-24, for a
-  cumulative $100 reservation ceiling, followed by another $100 authorization
-  ($200 cumulative); actual billing is unavailable.
-  Final paired conversation/latency and all mode checks pass. Final hand journeys
-  remain failed/inconclusive: native speech can contradict accepted output,
-  reviews can exceed capture bounds, provider acceptance captions can truncate,
-  and an unqualified OK request acted before clarification. Earlier complete
-  pose/counting passes remain recorded. The checkpoint ends at 88 reservations/
-  $186; $14 is unreserved, with two $5 selections available under allocation 9.
-  Final isolated tests use GPT-6.2 Sol low / GPT-Live-1.1; production settings are
-  unchanged. 363 Java units, 48 local-MySQL tests, six browser cases, 45 Python
-  tests, 16 Node tests, nine schemas and packaging pass. HI-12 remains open.
-  The 2026-11-24 owner decision leaves strict silence
-  unsupported in GPT-Live, preserving independent native speech; Text/Continuous
-  silence is verified. Original failures remain unchanged.
-  The owner authorized sequential implementation,
-  commit/push after each milestone, and now at most $200 cumulative provider spend.
-  No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
-  Another-device continuation, including the preserved 88-entry budget ledger:
-  [.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
+  incomplete. The timing trace on attempt 89 placed the native reply before delivery
+  of the correct post-task pose result. Attempt 90 reproduced a truncated consent
+  transcript. Fresh consent armed the unchanged proposal, but native verification
+  paused execution. See the current results for later selections and separate
+  backend, digital rendering and spoken outcomes.
+  Text/Continuous own backend speech. GPT-Live owns immediate native speech.
+  Strict silence remains unsupported in Live. The owner authorized commit/push
+  and $50 for this continuation, starting at 88 attempts/$186 already reserved.
+  L-03 clarified the ambiguous sign and rendered the explicit ring. Attempt
+  92 handled the post-task pose correctly, but misstated preparation and repeated
+  arming. The ledger stands at 92/$206, with $30 of the $50 continuation left.
+  [Results](.agents/HAND_INTERACTION_RESULTS.md) ·
+  [Restoring the latest budget checkpoint](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 
 - Main synchronization and Live acknowledgement hooks (2026-11-23): merged remote
   main's GLF-01..05, TWC-01..05, robot embodiment and course assets with local hand

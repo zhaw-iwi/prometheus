@@ -63,6 +63,11 @@ public class LiveContextBridgeService {
         Session session = sessions.get(event.owner().sessionId());
         if (session == null || !session.owner.equals(event.owner()) || !session.agent.equals(event.agentId())) return;
         session.delegations.committed(event.outcome());
+        if ("USER".equals(event.outcome().speaker()) && "COMPLETE".equals(event.outcome().status())
+                && event.outcome().eventId() != null) {
+            session.latestUser.set(event.outcome().eventId());
+            session.urgent.set(true);
+        }
         if (!session.clarifications.captured(event.outcome(), event.observedState(), session.currentOccasion.get().id(), clock.millis()))
             session.fail("clarification_queue_full");
         session.request();
@@ -83,6 +88,7 @@ public class LiveContextBridgeService {
         private final ExternalSpeech owner;
         private final LiveContextDelivery delivery;
         private final LiveDelegation delegations = new LiveDelegation();
+        private final AtomicReference<UUID> latestUser = new AtomicReference<>();
         private final Consumer<Command> send;
         private final Consumer<LiveContextSnapshot> applied;
         private final Consumer<String> failure;
@@ -170,7 +176,12 @@ public class LiveContextBridgeService {
                 nextCommitReadAt = clock.millis() + 5000;
                 nextRefreshAt = clock.millis() + 30000;
                 var priorOccasion = currentOccasion.get();
+                var userBeforeRead = latestUser.get();
                 var fresh = contexts.refresh(agent, owner).orElseThrow(() -> new IllegalStateException("Obsolete context owner"));
+                if (!Objects.equals(userBeforeRead, latestUser.get())) {
+                    urgent.set(true);
+                    return;
+                }
                 var activity = fresh.context().activity();
                 playbackCue = activity == null ? null : activity.playbackCue();
                 // A newer post-commit notification must win over the snapshot being read.
@@ -240,14 +251,14 @@ public class LiveContextBridgeService {
                 if (command.sourceId() != null) sources.add(command.sourceId());
                 // Pack compatible factual updates just before transmission. Never carry a
                 // freshness decision across an ACK wait or merge announcements/instructions.
-                while (!queue.isEmpty() && !command.interruptible() && !command.currentOnly() && command.type().equals("session.thinking.append")) {
+                while (!queue.isEmpty() && command.commandStatus() == null && !command.interruptible() && !command.currentOnly() && command.type().equals("session.thinking.append")) {
                     var next = queue.getFirst();
                     // Packing must not carry another obsolete observation across this boundary.
                     if (replacementDue() && next.evidenceType() != null
                             && !Objects.equals(previousEvidence, next.evidenceType())
                             && queue.stream().allMatch(value -> value.evidenceType() != null)) break;
                     String content = command.content() + "\n" + next.content();
-                    if (next.interruptible() || next.currentOnly() || !next.type().equals(command.type()) || !Objects.equals(next.delegationId(), command.delegationId())
+                    if (next.commandStatus() != null || next.interruptible() || next.currentOnly() || !next.type().equals(command.type()) || !Objects.equals(next.delegationId(), command.delegationId())
                             || !next.revision().equals(command.revision()) || next.expiredAt(java.time.Instant.ofEpochMilli(clock.millis()))
                             || content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > LiveContextDelivery.MAX_APPEND_BYTES) break;
                     queue.removeFirst(); previousEvidence = next.evidenceType(); if (next.sourceId() != null) sources.add(next.sourceId());
@@ -296,6 +307,7 @@ public class LiveContextBridgeService {
         private synchronized void trace(String phase, Command command, List<UUID> sources) {
             long sequence = dropped + traces.size() + 1;
             if (traces.size() == 64) { traces.removeFirst(); dropped++; }
+            if (command != null && command.commandStatus() != null) phase = "command_" + command.commandStatus().toLowerCase(Locale.ROOT) + "_" + phase;
             traces.addLast(new Trace(clock.millis(), phase, command == null ? null : command.type(),
                     command == null ? revision : command.revision(), command == null
                             ? (sources.size() == 1 ? sources.getFirst() : null) : command.sourceId(), sequence,

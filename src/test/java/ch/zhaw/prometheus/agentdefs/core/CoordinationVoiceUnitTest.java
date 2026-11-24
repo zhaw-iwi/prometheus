@@ -47,6 +47,11 @@ class CoordinationVoiceUnitTest {
         assertTrue(facts.contains("No active task"));assertTrue(facts.contains("Finished agreement"));
         assertTrue(facts.contains("new immediate requests"));
         assertTrue(facts.contains(proposal.get("goal").getAsString()));
+        assertFalse(facts.contains(proposal.get("humanRole").getAsString()));
+        assertFalse(facts.contains(proposal.get("agentRole").getAsString()));
+        var sections = new ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter().sections(f.agent);
+        assertTrue(sections.get("directCommands").contains("even for the same pose"));
+        assertTrue(CoordinationMemory.facts(f.storage()).contains(proposal.get("humanRole").getAsString()));
         org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any())).thenReturn(
                 DirectCommandAgentsUnitTest.output("coordination", "ACTION", "HAND_SIGN", "thumbs_up", false));
         var result = f.say("Show a right-hand thumbs up", f.live);
@@ -125,7 +130,7 @@ class CoordinationVoiceUnitTest {
         org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any())).thenReturn(f.update("PROPOSE", f.dialogue(), review));
         f.say("Propose an invitation task without starting", f.live);
         var context = f.policy().liveActivityContext();
-        assertTrue(context.continuation().facts().contains("Summarize these proposal facts"));
+        assertTrue(context.continuation().facts().contains("You: "));
         assertFalse(context.facts().contains(f.dialogue().get("agentRole").getAsString()));
         String verifiedFacts = context.continuation().facts();
         for (String key : List.of("goal", "humanRole", "agentRole", "success"))
@@ -245,11 +250,24 @@ class CoordinationVoiceUnitTest {
             assertTrue(request.facts().contains(proposal.get(key).getAsString()));
         }
         assertTrue(context.continuation().facts().contains("3 actions total"));
-        assertTrue(context.continuation().facts().contains("Preparation checks have passed; no further demonstration is needed before acceptance."));
+        assertTrue(context.continuation().facts().contains("Preparation complete."));
         assertTrue(context.continuation().facts().contains("fresh matching cue"));
         assertTrue(context.continuation().facts().contains("This proposal is not active. Shall we start?"));
         assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
         assertFalse(f.storage().containsKey(TaskMemory.ACTIONS));
+    }
+    @Test void compactReviewMentionsRepeatedClausesOnceAndKeepsDistinctConditions() {
+        var proposal = f.sensor(true);
+        proposal.addProperty("agentRole", "Show peace once.");
+        proposal.addProperty("goal", "Show peace once. Keep the left hand folded.");
+        proposal.getAsJsonObject("reactions").add("goal", proposal.get("goal"));
+        proposal.addProperty("success", "Keep the left hand folded. The user judges the sign.");
+        var text = ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.liveProposalReview(
+                ch.zhaw.prometheus.model.coordination.CoordinationAgreement.parse(proposal));
+        assertEquals(text.indexOf("Show peace once"), text.lastIndexOf("Show peace once"));
+        assertEquals(text.indexOf("Keep the left hand folded"), text.lastIndexOf("Keep the left hand folded"));
+        assertTrue(text.contains("Show peace once")); assertTrue(text.contains("Keep the left hand folded"));
+        assertTrue(text.contains("The user judges the sign"));
     }
     @Test void pendingPreparationNamesTheRequiredEvidenceBeforeRequestingAcceptance() {
         f.propose(f.sensor(true), f.live);
