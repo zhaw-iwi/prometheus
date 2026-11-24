@@ -21,9 +21,9 @@ if(permission!=='--allow-paid-provider'||!output||!/^L-0[1-9](-comparison)?$/.te
     ||!['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname))throw Error('Use the isolated authorized hand runner');
 const plan=JSON.parse(fs.readFileSync(process.env.PROMETHEUS_HAND_PAID_PLAN)),reservation=JSON.parse(fs.readFileSync(ledger));
 assert.equal(reservation.authorization,'hand-interaction-2026-11-23-usd50');
-assert.ok(reservation.attempts.length<=22&&reservation.reservedUsd<=50);
+assert.ok(reservation.attempts.length<=36&&reservation.reservedUsd<=70);
 const directory=path.dirname(path.resolve(output));
-assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===2&&a.allocationRevision===plan.allocationRevision&&path.resolve(a.artifact)===directory));
+assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===1&&a.allocationRevision===plan.allocationRevision&&a.extensionAuthorization===plan.extensionAuthorization&&path.resolve(a.artifact)===directory));
 fs.writeFileSync(path.join(directory,'provider-attempt.started'),new Date().toISOString(),{flag:'wx'});
 const clips=JSON.parse(fs.readFileSync(new URL('./hand-cases.json',import.meta.url))),stimulus=JSON.parse(fs.readFileSync('target/hand-interaction-audio/manifest.json'));
 assert.equal(stimulus.providerCalls,0);assert.equal(stimulus.sampleRate,24000);
@@ -79,9 +79,18 @@ async function command(name,status,{kind,verify}={}){
 }
 async function observe(type,payload,{retain=true}={}){const result=await api(agentPath+'/acknowledge?profile=full_plan','POST',{type,actor:'controlled-camera',kind:'observation',payload:JSON.stringify(payload)});
   if(retain)report.observations.push({type,payload,responseEvent:result.responseEvent?.id});return payload;}
-async function propose(name,verify){await say(name);const m=await until('saved draft',async()=>{const m=await memory();return m['coordination.draft']?m:null;});
+async function propose(name,verify,{clarification}={}){await say(name);let m=await until('saved draft',async()=>{const m=await memory();return m['coordination.draft']?m:null;});
+  if(clarification&&m['coordination.draft'].questions.length){
+    const previous=JSON.stringify(m['coordination.draft']);report.clarifications??=[];report.clarifications.push({questions:m['coordination.draft'].questions,input:clarification});
+    await say(clarification);m=await until('clarified draft',async()=>{const next=await memory();return next['coordination.draft']&&JSON.stringify(next['coordination.draft'])!==previous?next:null;});
+  }
   const draft=m['coordination.draft'];assert.deepEqual(draft.questions,[]);assert.ok(draft.checks.length>0,'Recognition preparation required');assert.equal(draft.reactions.maxActions,1);assert.equal(draft.reactions.firstAction,'ON_CUE');
-  assert.ok(!m['coordination.agreement']);assert.ok(!m['task.actions']);verify(draft);report.proposal=structuredClone(draft);return draft;}
+  assert.ok(!m['coordination.agreement']);assert.ok(!m['task.actions']);verify(draft);report.proposal=structuredClone(draft);
+  // The immediate native reply can precede the backend's preparation request.
+  // Let that request finish before supplying the demonstration and its review.
+  const request=m['core.task.response'];assert.ok(request?.supportOnly);
+  await until('completed preparation request',async()=>{const response=(await memory())['core.task.response'];return response?.id===request.id&&response.consumed;});
+  await quiet();await checkpoint('preparation-request-completed');return draft;}
 async function ready(){await until('all recognition checks and completed native review',async()=>{const m=await memory(),review=m['core.task.response'];return Object.keys(m['coordination.evidence']||{}).length===m['coordination.draft'].checks.length&&review?.proposalReview&&review.consumed;});await quiet();await checkpoint('prepared');}
 async function accept(){await say('accept');const m=await until('accepted and confirmed arming',async()=>{const m=await memory();return m['coordination.agreement']&&armingReady(m,Date.now())?m:null;});
   assert.equal(m['task.actions'],0);assert.deepEqual(m['coordination.agreement'],report.proposal);report.accepted=m;}

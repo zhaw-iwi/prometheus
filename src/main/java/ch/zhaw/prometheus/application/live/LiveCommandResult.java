@@ -22,7 +22,7 @@ public final class LiveCommandResult {
         if (!java.util.Objects.equals(user.sourcePosition(), receipt.get("sourcePosition").getAsLong())) return "";
         String status = receipt.get("status").getAsString();
         String meaning = switch (status) {
-            case "ACCEPTED" -> "Accepted output plan: " + receipt.get("kind").getAsString() + " " + receipt.get("value").getAsString() + ". Rendering/physical execution unconfirmed.";
+            case "ACCEPTED" -> "Accepted output plan: " + acceptedPlan(receipt) + ". Rendering/physical execution unconfirmed.";
             case "CONFLICT" -> "Not performed: pending task output conflicts. Ask whether to resolve or pause it; no task change made.";
             case "UNSUPPORTED" -> "Not performed: unsupported output. Offer a declared alternative.";
             case "CLARIFY" -> "Not performed: clarify one supported sign/gesture.";
@@ -32,5 +32,14 @@ public final class LiveCommandResult {
         return meaning.isEmpty() ? "" : "COMMAND RESULT for user turn " + user.getId() + ": " + meaning
                 + (receipt.get("silent").getAsBoolean() ? " Explicit silence: do not speak." : " Use only for that pending answer; no duplicate acknowledgement.")
                 + " No new speaking occasion.";
+    }
+    private static String acceptedPlan(com.google.gson.JsonObject receipt) {
+        String kind = receipt.get("kind").getAsString();
+        // Structured hand commands deliberately have value:null. Keep their full
+        // canonical action in Storage, without overflowing this quiet context delta.
+        return switch (kind) {
+            case "HAND_POSE", "POINT", "HAND_SEQUENCE" -> kind;
+            default -> kind + " " + receipt.get("value").getAsString();
+        };
     }
 }

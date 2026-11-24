@@ -32,6 +32,8 @@ public final class DirectCommands {
         return " " + capabilities(profile)
                 + " One immediate demo needs no body, setup, agreement or second consent."
                 + " Hear the full request; honor silence, else acknowledge once without claiming execution."
+                + (HandActions.enabled(profile) && HandFeatures.geometry(profile)
+                        ? " Clarify an OK sign: thumbs up or diver's ring; don't announce a demo yet." : "")
                 + (HandFeatures.outputSequences(profile)?" Capability queries imply no action; conditional actions need agreement.":" Capability queries imply no action; conditional/multiple actions need agreement.")
                 + " Results concern only their pending turn; never acknowledge twice.";
     }
@@ -66,6 +68,9 @@ public final class DirectCommands {
                         + "For 'show a right-hand thumbs up' return \"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_SIGN\",\"value\":\"thumbs_up\",\"effector\":\"right_hand\",\"silent\":false}. "
                         + "The separate motion.handAction shape is constructed by the backend; never put that shape in a HAND_SIGN command value.\n" : "")
                 + (HandFeatures.poses(profile) && HandActions.enabled(profile) ? "For an immediate custom pose use command kind HAND_POSE, value equal to the complete {kind:pose,hands:[...]} action above, and no effector field. HAND_SIGN also accepts shaka, horns and middle_finger.\n" : "")
+                + (HandFeatures.pointing(profile) ? "For an immediate point, use command intent ACTION, kind POINT, and value equal to the full point action. "
+                        + "Example selected-target fields: \"command\":{\"intent\":\"ACTION\",\"kind\":\"POINT\",\"value\":{\"kind\":\"point\",\"effector\":\"right_hand\",\"target\":<exact selected reference>},\"silent\":false}. "
+                        + "Do not place the requested point in reply.motion or revise a task for this direct request.\n" : "")
                 + (taskEnvelope ? "For ANY non-null command, including CAPABILITY, CLARIFY and UNSUPPORTED, use operation KEEP, task/agreement null, and reply exactly {}. "
                         + "Do not answer the user or add speech, nonVerbal, motion or display inside reply in this branch. The backend constructs all command output. "
                         + "This overrides ordinary KEEP reply instructions, in every speech mode. Example capability fields: "

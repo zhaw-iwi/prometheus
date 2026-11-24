@@ -1,5 +1,19 @@
 # GPT-Live acceptance
 
+## Hand acceptance allocation exhausted (2026-11-24)
+
+The owner approved another $20 for HI-12. All **36 attempts/$70 reservations**
+are now used; no further paid selections are authorized. Actual billing is not
+available. Allocation revision 5 preserved the preceding 28 attempts/$62 and
+reserved eight additional $1 attempts, reducing backend requests from 36 to 14.
+Other caps and model routes stayed unchanged; the conservative bound was
+$0.9587424 per new attempt. Missing, shortened or altered reservation amounts
+fail closed; extension entries retain `hand-interaction-2026-11-24-usd20-extension`.
+Acceptance revision 2 is unchanged. The harness waits for the consumed preparation
+request before demonstrating the cue, uses "I accept the current proposal", and
+allows one predeclared input-sequence clarification without relaxing term checks.
+HI-12 remains incomplete. See [the evidence ledger](../../.agents/HAND_INTERACTION_RESULTS.md).
+
 ## Native conversation independence (GLF-02)
 
 ```powershell

@@ -494,10 +494,20 @@ HI-12 real OpenAI acceptance is still incomplete. Its revised mode contract
 Live hand actions and tasks carry no strict-silence guarantee; empty backend
 speech does not silence Live. No playback approval, buffering, muting or replacement
 TTS is added for this purpose. Strict silence is tested in Text and Continuous.
-Named-sign, custom-pose and conversation/latency Live checks pass, as do the
-Text/Continuous silence and native ownership checks. Ring, pointing and sequence
-Live journeys remain failed or incomplete; the current paid allocation is exhausted.
-Previous failures remain recorded under their original rubric. See [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+Named-sign, custom-pose, directional-pointing, output-sequence and conversation/
+latency journeys have passing Live evidence. Text/Continuous silence and native
+ownership checks also pass. Ring, registered/observed targets and input sequences
+remain incomplete; the final blank-caption capture fix has offline coverage only.
+All 36 attempts/$70 reservations are exhausted, including the owner-approved $20
+extension; actual billing is unavailable. Previous failures remain recorded under
+their original rubric. See [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+
+Hand observations project validated fingertip gaps, spread and camera-plane axes
+into model context; missing or invalid geometry stays unknown. These measurements
+do not establish physical contact or depth. Structured hand-command receipts
+provide bounded quiet Live context without interpreting their null scalar value.
+Whitespace-only input captions cannot interrupt an assistant capture; real voiced
+input and meaningful new user text retain the existing interruption behavior.
 
 Coordination adapts one equivalent model-output encoding before validation: an
 exact typed hand condition in a preparation check or reaction rule, inside

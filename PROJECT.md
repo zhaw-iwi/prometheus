@@ -85,14 +85,17 @@ and regulation diagnostics remain future work.
   ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
   people/items, HI-09 input sequences, HI-10 output sequences/counting and HI-11
   integrated acceptance are complete and pushed; HI-12 real-provider acceptance is
-  incomplete. The current 22-attempt allocation reserves the full $50 ceiling;
-  actual billing is not available. Revised named-sign/custom-pose Live journeys
-  and all mode checks pass, but ring, pointing and sequence acceptance remains
-  failed or incomplete. The 2026-11-24 owner decision leaves strict silence
+  incomplete. All 36 attempts/$70 reservations are exhausted, including the
+  owner-approved $20 extension on 2026-11-24; actual billing is unavailable.
+  Named signs, custom poses, directional pointing, output sequences and
+  conversation/latency have passing Live evidence, and all mode checks pass.
+  Ring, registered/observed targets and input sequences still need complete Live
+  acceptance; the final blank-caption capture fix has offline coverage only.
+  The 2026-11-24 owner decision leaves strict silence
   unsupported in GPT-Live, preserving independent native speech; Text/Continuous
   silence is verified. Original failures remain unchanged.
   The owner authorized sequential implementation,
-  commit/push after each milestone, and at most $50 new cumulative provider spend.
+  commit/push after each milestone, and now at most $70 cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
 - Main synchronization and Live acknowledgement hooks (2026-11-23): merged remote
@@ -10403,3 +10406,38 @@ deployment remain deferred.
 - Evidence and commands: `.agents/HAND_INTERACTION_RESULTS.md`. No deployment,
   remote migration, physical trial or agents-branch integration. The checkpoint
   preserves all failed attempts and the original detector limitations.
+
+
+### HI-12 extension checkpoint: repairs and two further Live passes (2026-11-24)
+
+Continued from main `432da24e` under the owner-approved additional $20. HI-12
+remains **INCOMPLETE**. The 36-attempt/$70 reservation ceiling is exhausted;
+actual invoice billing is unavailable and further paid selections fail closed.
+All previous ledger entries and verdicts remain. New complete Live passes cover
+L-04 directional pointing and L-08 output sequences; earlier L-01/L-02/L-09
+passes remain evidence for their recorded source. L-03, L-05, L-06 and L-07 still
+require complete provider acceptance on the final source.
+
+Fixed null scalar access in structured hand-command Live context, preserved
+validated relational geometry in hand observation prompts, and prevented blank
+provider input captions from falsely interrupting native assistant capture.
+Strengthened existing model guidance for direct versus task envelopes, human
+cue versus robot output, observed versus virtual target references, and PROPOSE
+clarification of incomplete drafts. Consent, preparation, freshness, native
+speech ownership and strict public validation remain unchanged. The final shared
+capture fix has offline coverage only. The test harness now finishes preparation
+support before demonstrating a cue, uses an explicit acceptance sentence, and
+allows one predeclared count clarification with unchanged terms assertions.
+
+Final verification: 232 unit tests, 46 isolated loopback-MySQL integration tests,
+six Playwright cases, 45 Python tests, three Node scenario/observation-pump tests,
+nine schema examples, package and diff checks passed. Reviewed browser evidence
+includes silent Text/Continuous counts and native confirmed/uncertain delivery.
+One earlier intermittent German acceptance integration failure is retained;
+its focused and final full reruns passed. Three blank-caption regression cases
+failed before the fix and passed afterward. Paid reviews retain complete native
+captions/audio, synchronized output, source manifests and failed reservations.
+No deployment, agents integration, remote DB work or physical trials.
+
+Exact per-attempt outcomes, artifact paths, usage, source limits and remaining
+retests: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).

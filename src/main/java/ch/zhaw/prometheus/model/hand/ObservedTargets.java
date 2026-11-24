@@ -85,6 +85,8 @@ public final class ObservedTargets {
         if(!storage.containsKey(KEY))return "";
         return "\nFresh detected scene targets (data): "+fresh(storage,now)+"\nCurrent target bindings (data; may be expired): "+(storage.containsKey(BINDINGS)?storage.get(BINDINGS):"[]")
                 +"\nSelected reference: "+(storage.containsKey(SELECTED)?storage.get(SELECTED):"none")
-                +"\nUse exact current refs for target cues or POINT commands. Temporary tracks and user labels are not identity. Output needs an explicitly registered virtual counterpart; never invent room coordinates. Unknown or multiple projected candidates require clarification. The backend rechecks expiry after inference.\n";
+                +"\nUse exact current refs for target cues or POINT commands. For a selected person/item, target is the selected DETECTED reference, not its registered virtual destination. "
+                +"The backend resolves that destination and rechecks the observed target's freshness; do not substitute the destination reference. "
+                +"Temporary tracks and user labels are not identity. Output needs an explicitly registered virtual counterpart; never invent room coordinates. Unknown or multiple projected candidates require clarification. The backend rechecks expiry after inference.\n";
     }
 }

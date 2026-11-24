@@ -132,6 +132,8 @@ public record HandPoseCondition(String handedness, List<Comparison> all, Integer
                 + "Each pose rule has exactly eventType, handPose, action, effect, minConfidence, samples, cooldownSeconds. "
                 + "Put the versioned condition directly in handPose; OMIT scalar field, operator and value from the rule. "
                 + "Checks have exactly eventType, handPose, minConfidence. "
+                + "Both preparation checks and reaction conditions describe the human cue. Keep the same requested cue constraints in each; "
+                + "describe the robot's different output pose or counting sequence in the rule's action text, never as extra hands in the input condition. "
                 + "Use named obs.hand.signs for shaka, horns and middle_finger with minConfidence 0. Their geometric extension/opposed-thumb "
                 + "classification differs from mean joint bend; do not translate those names into numeric pose masks. Geometry has no calibrated score.\n";
     }

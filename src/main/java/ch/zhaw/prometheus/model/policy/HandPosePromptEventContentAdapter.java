@@ -7,6 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import ch.zhaw.prometheus.model.event.Event;
 import ch.zhaw.prometheus.model.hand.FingerState;
+import ch.zhaw.prometheus.model.hand.HandGeometry;
 
 /** Render bounded numeric pose data and known state labels, never arbitrary client text. */
 public class HandPosePromptEventContentAdapter implements PromptEventContentAdapter {
@@ -37,11 +38,49 @@ public class HandPosePromptEventContentAdapter implements PromptEventContentAdap
                     text.append(finger).append('=').append(available(fingers == null ? null : fingers.get(finger))
                             && state != null ? state.label() : "unknown").append(' ');
                 }
+                text.append(geometry(hand));
             }
             return text.append("Hidden fingers may be inferred; handedness is not identity. No named sign or intent is established.").toString();
         } catch (RuntimeException invalid) {
             return "Hand pose unknown: unavailable or invalid finger readings.";
         }
+    }
+
+    private static String geometry(com.google.gson.JsonObject hand) {
+        try {
+            if (!Set.of("left", "right", "unknown").contains(hand.get("handedness").getAsString()))
+                throw new IllegalArgumentException();
+            for (String finger : HandGeometry.FINGERS) {
+                var value = hand.getAsJsonObject("fingers").get(finger);
+                if (value == null || !value.isJsonNull() && !available(value)) throw new IllegalArgumentException();
+            }
+            var geometry = hand.getAsJsonObject("geometry");
+            HandGeometry.validate(geometry);
+            HandGeometry.validateEvidence(hand);
+            var text = new StringBuilder("Projected geometry (not physical contact/depth): ");
+            for (String map : List.of("tipDistances", "spreads")) {
+                text.append(map.equals("tipDistances") ? "tip gap / palm size: " : "spread angle / 180 degrees: ");
+                for (int i = 0; i < HandGeometry.FINGERS.size(); i++) {
+                    for (int j = i + 1; j < HandGeometry.FINGERS.size(); j++) {
+                        String pair = HandGeometry.FINGERS.get(i) + "_" + HandGeometry.FINGERS.get(j);
+                        text.append(pair).append('=').append(geometryNumber(geometry.getAsJsonObject(map).get(pair))).append(' ');
+                    }
+                }
+            }
+            text.append("Axes (unmirrored camera x-right/y-down): ");
+            for (String axis : List.of("palm_normal", "index_axis", "thumb_axis")) {
+                var value = geometry.getAsJsonObject("axes").get(axis);
+                text.append(axis).append('=').append(value.isJsonNull() ? "unknown"
+                        : "(" + geometryNumber(value.getAsJsonObject().get("x")) + ","
+                            + geometryNumber(value.getAsJsonObject().get("y")) + ")").append(' ');
+            }
+            return text.toString();
+        } catch (RuntimeException invalid) {
+            return "Projected geometry: unknown. ";
+        }
+    }
+    private static String geometryNumber(JsonElement value) {
+        return value.isJsonNull() ? "unknown" : String.format(Locale.ROOT, "%.3f", value.getAsDouble());
     }
 
     private static String value(JsonElement value) {

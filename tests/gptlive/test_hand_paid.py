@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import subprocess
-from hand_paid import PLAN, validate, reserve, history, available_budget
+from hand_paid import PLAN, EXTENSION, validate, reserve, history, available_budget
 
 
 class HandPaidBudgetTest(unittest.TestCase):
@@ -20,28 +20,52 @@ class HandPaidBudgetTest(unittest.TestCase):
 
     def test_current_priced_routes_fit_the_reserve_and_changed_bounds_fail_closed(self):
         plan = json.loads(PLAN.read_text(encoding='utf-8'))
-        self.assertLess(validate(plan, 'gpt-5.6-luna'), 2)
+        self.assertLess(validate(plan, 'gpt-5.6-luna'), 1)
         for revision in (None, 1, 3):
             changed = copy.deepcopy(plan); changed['acceptanceRevision'] = revision
             with self.assertRaisesRegex(ValueError, 'acceptance revision 2'): validate(changed, 'gpt-5.6-luna')
         for section, key, value in [('limits', 'sessions', 2), ('limits', 'outputSpeechCalls', 1),
-                                    ('limits', 'sessionSeconds', 600), ('pricing', 'liveUsdPerMinute', .01),
+                                    ('limits', 'sessionSeconds', 600), ('limits', 'backendRequests', 36), ('pricing', 'liveUsdPerMinute', .01),
                                     ('models', 'backend', 'unpriced')]:
             changed = copy.deepcopy(plan); changed[section][key] = value
             with self.assertRaises(ValueError): validate(changed, 'gpt-5.6-luna')
         with self.assertRaises(ValueError): validate(plan, 'unpriced')
+        for key, value in [('maximumReservedUsd', 72), ('maximumAttempts', 37),
+                           ('extensionAuthorization', None), ('allocationRevision', 3)]:
+            changed = copy.deepcopy(plan); changed[key] = value
+            with self.assertRaises(ValueError): validate(changed, 'gpt-5.6-luna')
 
-    def test_failed_legacy_reservations_survive_and_revised_allocation_stops_at_50(self):
+    def test_all_28_prior_reservations_survive_and_tighter_allocation_stops_at_70(self):
         with tempfile.TemporaryDirectory() as directory:
             ledger = Path(directory) / 'hand.json'
-            old={'authorization':'hand-interaction-2026-11-23-usd50','reservedUsd':12,
-                 'attempts':[{'mode':'L-01','artifact':str(Path(directory)/str(i)),'reservedUsd':4} for i in range(3)]}
+            old={'authorization':'hand-interaction-2026-11-23-usd50','reservedUsd':62,
+                 'attempts':[{'mode':'L-01','artifact':str(Path(directory)/str(i)),
+                              'reservedUsd':4 if i < 3 else 2} for i in range(22)]}
+            old['attempts'].extend({'mode':'L-08','artifact':str(Path(directory)/str(i)),
+                                    'reservedUsd':2,'allocationRevision':4,'extensionAuthorization':EXTENSION} for i in range(22,28))
             ledger.write_text(json.dumps(old),encoding='utf-8')
-            for i in range(19):
-                self.assertEqual(12+(i + 1) * 2, reserve('L-02', Path(directory) / str(i+3), ledger)['reservedUsd'])
+            for i in range(8):
+                self.assertEqual(62+i+1, reserve('L-02', Path(directory) / str(i+28), ledger)['reservedUsd'])
             with self.assertRaisesRegex(ValueError, 'exhausted'): reserve('L-02', directory, ledger)
-            self.assertEqual(50, history(ledger)['reservedUsd'])
-            self.assertEqual(old['attempts'],history(ledger)['attempts'][:3])
+            data=history(ledger)
+            self.assertEqual(70, data['reservedUsd'])
+            self.assertEqual(old['attempts'],data['attempts'][:28])
+            self.assertTrue(all(a['extensionAuthorization']==EXTENSION for a in data['attempts'][22:]))
+            reduced=copy.deepcopy(data)
+            reduced['attempts'][0]['reservedUsd']=2; reduced['reservedUsd']-=2
+            ledger.write_text(json.dumps(reduced),encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'Invalid hand ledger'): history(ledger)
+            del data['attempts'][22]['extensionAuthorization']
+            ledger.write_text(json.dumps(data),encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'Invalid hand ledger'): history(ledger)
+
+    def test_missing_history_cannot_reopen_the_authorized_envelope(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ledger=Path(directory)/'missing.json'
+            with self.assertRaisesRegex(ValueError, 'ledger is missing'): reserve('L-01', directory, ledger)
+            self.assertFalse(ledger.exists())
+            ledger.write_text(json.dumps({'authorization':'hand-interaction-2026-11-23-usd50','attempts':[],'reservedUsd':0}),encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'Invalid hand ledger'): reserve('L-01', directory, ledger)
 
     def test_foreign_corrupted_and_locked_ledgers_are_never_reset(self):
         with tempfile.TemporaryDirectory() as directory:

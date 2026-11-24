@@ -274,7 +274,7 @@ def main():
                     env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
                     env['OPENAI_ROUTES_' + purpose + '_TIMEOUT_MS'] = '30000'
             if hand:
-                env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='36', PROMETHEUS_PROVIDER_MAX_TOKENS='250000',
+                env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS=str(plan['limits']['backendRequests']), PROMETHEUS_PROVIDER_MAX_TOKENS='250000',
                     PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
                     PROMETHEUS_PROVIDER_MAX_SPEECH_CALLS='0', OPENAI_MAX_COMPLETION_TOKENS='2048',
                     OPENAI_REQUEST_TIMEOUT_MS='30000', PROMETHEUS_LIVE_MODEL='gpt-live-1')

@@ -66,6 +66,8 @@ public final class CoordinationTaskContract {
         var revisionBase = CoordinationMemory.agreement(storage, storage.containsKey(CoordinationMemory.DRAFT)
                 ? CoordinationMemory.DRAFT : CoordinationMemory.AGREEMENT);
         if (revisionBase != null && revisionBase.complete()) data.add("protectedRevisionTerms", revisionBase.protectedTerms());
+        if (revisionBase != null && !revisionBase.complete())
+            data.add("unansweredProposalQuestions", revisionBase.json().get("questions"));
         if (TaskMemory.active(storage) && agreement != null && agreement.reactions() == null) {
             data.addProperty("remainingDialogueContributions", Math.max(0, agreement.dialogueLimit()
                     - Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0"))));
@@ -85,6 +87,8 @@ public final class CoordinationTaskContract {
                 + "Current perception is background evidence, not a request to narrate it. "
                 + "When currentStage is REFLECTION, a user report about the completed task uses REFLECT, not COMPLETE; "
                 + "COMPLETE is only for a task still in execution. Keep the report as the user's assessment, not a measured outcome. "
+                + "When unansweredProposalQuestions is present, use PROPOSE to fill the incomplete draft from the user's clarification. "
+                + "Preserve the requested cues, limits and preparation; resolving a question is not REPLACE or START. "
                 + "For a response-content/style PROPOSE revision, copy protectedRevisionTerms exactly into the revised agreement. "
                 + "In particular do not rewrite humanRole or success to mention the new response: those fixed strings require explicit REPLACE consent. "
                 + "If STEP is appropriate, reply.speech contains only that agreed contribution for the current turn. "

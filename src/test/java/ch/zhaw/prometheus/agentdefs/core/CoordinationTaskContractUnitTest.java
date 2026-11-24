@@ -10,6 +10,29 @@ import ch.zhaw.prometheus.model.task.TaskResponse;
 import ch.zhaw.prometheus.model.event.SpeechProvenance;
 
 class CoordinationTaskContractUnitTest {
+    @Test void openCountClarificationRefinesTheProposalWithoutReplacingOrStartingIt() {
+        var f = new CoordinationAgentUnitTest();
+        var partial = fixtures.behaviour.HandSequenceFixture.agreement(fixtures.behaviour.HandSequenceFixture.counts("right", 1, 2, 3));
+        partial.getAsJsonArray("questions").add("Is Ready the only acknowledgement?");
+        f.propose(partial, f.text);
+        var resolved = partial.deepCopy(); resolved.add("questions", new JsonArray());
+        resolved.addProperty("success", "The human judges one Ready response after the accepted full sequence.");
+        clearInvocations(f.gateway);
+        f.turn("PROPOSE", resolved, "Only say Ready once. I judge your response. Keep the counts and preparation.", f.text);
+        var request = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+        verify(f.gateway).infer(request.capture());
+        String current = request.getValue().messages().getLast().getContent();
+        var data = JsonParser.parseString(current.substring(current.lastIndexOf('\n') + 1)).getAsJsonObject();
+        assertEquals(partial.get("questions"), data.get("unansweredProposalQuestions"));
+        assertFalse(data.has("protectedRevisionTerms"));
+        assertEquals(resolved, f.storage().get(CoordinationMemory.DRAFT));
+        assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
+        assertEquals("PREPARATION", CoordinationMemory.stage(f.storage()));
+        assertEquals("0", TaskMemory.text(f.storage(), TaskMemory.ACTIONS, "0"));
+        f.start(f.text);
+        assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
+        assertEquals(resolved, f.storage().get(CoordinationMemory.DRAFT));
+    }
     @Test void feedbackContextSelectsTheDeliveredContributionInsteadOfLaterHelpOrUnheardDrafts() {
         var f = new CoordinationAgentUnitTest(); f.propose(f.dialogue(), f.live); f.start(f.live);
         String prefix = "Earlier preface. ", question = "What has keys, space but no room, and enter but no way inside?";

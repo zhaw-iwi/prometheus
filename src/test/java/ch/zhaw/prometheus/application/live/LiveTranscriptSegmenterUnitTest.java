@@ -116,6 +116,31 @@ class LiveTranscriptSegmenterUnitTest {
         assertEquals(Closure.INCOMPLETE, overlap.getFirst().closure());
         assertEquals("user_interrupted", overlap.getFirst().reason());
     }
+    @Test void whitespaceInputCaptionCannotInterruptAnObservedAssistantResponse() {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);
+        capture.fragment(fragment("ready", Speaker.ASSISTANT, 100200, 100400, 1000, "ready."));
+        capture.audio(Speaker.ASSISTANT, 2400, true, 1000);
+        for (int i = 1; i <= 6; i++) capture.audio(Speaker.ASSISTANT, 2400, false, 1000 + i * 100);
+        assertTrue(capture.fragment(fragment("blank-input", Speaker.USER, 101000, 101200, 1600, " ")).isEmpty());
+        assertTrue(capture.hasOpenSegment(Speaker.ASSISTANT));
+        for (int i = 7; i <= 24; i++) capture.audio(Speaker.ASSISTANT, 2400, false, 1000 + i * 100);
+        var result = capture.poll(3400);
+        assertEquals(1, result.size()); assertEquals("ready.", result.getFirst().text());
+        assertEquals(Closure.COMPLETE, result.getFirst().closure());
+        assertEquals("observed_silence", result.getFirst().reason());
+    }
+    @ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void whitespaceCannotHideASubsequentRealInterruption(boolean acoustic) {
+        var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);
+        capture.fragment(fragment("reply", Speaker.ASSISTANT, 1000, 1400, 1000, "Speaking."));
+        capture.audio(Speaker.ASSISTANT, 2400, true, 1000);
+        assertTrue(capture.fragment(fragment("blank", Speaker.USER, 1500, 1600, 1100, " \n")).isEmpty());
+        var boundary = acoustic ? capture.userActivity(1200)
+                : capture.fragment(fragment("spoken", Speaker.USER, 1600, 1700, 1200, "Stop"));
+        assertEquals(1, boundary.size());
+        assertEquals(Closure.INCOMPLETE, boundary.getFirst().closure());
+        assertEquals("user_interrupted", boundary.getFirst().reason());
+    }
     @Test void assistantAssemblyKeepsCoverageCloseAndOriginalOpenTimeLimits() {
         var capture = new LiveTranscriptSegmenter(UUID.randomUUID(), 2000, 2400);
         capture.fragment(fragment("gap", Speaker.ASSISTANT, 0, 100, 1000, "Partial."));

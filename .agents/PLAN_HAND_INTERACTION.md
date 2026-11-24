@@ -2,13 +2,14 @@
 
 Prepared: 2026-11-23. Baseline: main `025697df`.
 Status: **HI-01 through HI-11 COMPLETE; HI-12 INCOMPLETE**.
-The current paid allocation is exhausted; required Live retests remain open.
+The owner-authorized $20 extension is exhausted: 36 attempts/$70 reserved;
+required Live retests remain open. Actual billing is unavailable.
 HI-12 acceptance revision 2: owner decision of 2026-11-24 preserves native Live speech independence.
 Development branch: `main`; deployment branch: `agents`.
 
 The owner authorized sequential implementation on 2026-11-23: complete and verify
 one milestone, commit and push it to main, then continue to the next. The new
-OpenAI allowance is a cumulative hard cap of $50 including failures, backend
+OpenAI allowance was $50 and is now $70 with the 2026-11-24 extension, including failures, backend
 inference, native audio, synthesis and grading. Use a separate bounded ledger;
 previous exhausted authorizations do not carry forward. No deployment or physical
 robot acceptance is authorized or implied. See `HAND_INTERACTION_RESULTS.md` for
@@ -553,6 +554,12 @@ Allocation revision 3 (2026-11-24) uses the remaining $2 buffer for one further
 attempt: at most 22 attempts/$50 reserved, preserving every prior entry. Current
 official prices were rechecked unchanged; the $1.9153 per-attempt ceiling and all
 technical limits remain unchanged. This stays within the owner's original cap.
+Allocation revision 4 (2026-11-24) follows the owner's explicit $20 extension:
+ten additional $2 attempts, at most 32 attempts/$70 cumulatively. All first 22
+reservations remain unchanged; per-attempt caps and acceptance revision 2 remain.
+Allocation revision 5 subsequently lowered future backend calls to 14 and future
+reservations to $1, preserving the preceding 28 attempts/$62. Its 36-attempt/$70
+ceiling is now exhausted; see the dated history below and the evidence ledger.
 Plan one initial attempt per journey; L-09 needs separate Coordination
 and comparison-agent sessions. Diagnostic repeats count as attempts. Preserve all
 failed reservations and artifacts, including on crash. Current `paid_budget.py`
@@ -698,3 +705,40 @@ required retests are in `HAND_INTERACTION_RESULTS.md`. All 22 reservations/$50 o
 allocation 3 are used (not a measured invoice total). The runner refuses further
 paid selections. HI-12 is not complete, and this checkpoint does not change its
 exit criteria or authorize another allocation. Preserve the ledger and evidence.
+
+### Owner-authorized extension (2026-11-24)
+
+The owner approved another $20 after the 22-attempt/$50 checkpoint. Allocation
+revision 4 preserves all prior reservations and permits ten additional $2
+attempts: at most 32 attempts/$70 cumulatively. Original authorization and ledger
+identity remain unchanged; each extension entry records the additional approval.
+Per-attempt caps, priced models and acceptance revision 2 are unchanged. Failed
+or inconclusive attempts still consume their full reservation.
+
+### Tighter future allocations within the same $70 cap
+
+Allocation revision 5 preserves all 28 attempts/$62 reserved so far. Future
+attempts are limited to 14 backend requests instead of 36; all other technical
+limits and both models remain unchanged. The conservative bound is
+`14 * ((80000+2048)*0.2*2.5 + 2048*1.2)/1000000 + 7*0.05 = $0.9587424`.
+Eight further $1 reservations fit the remaining $8, for at most 36 attempts/$70.
+No earlier reservation is refunded or reused. The runner reads this lower call
+limit from the validated plan; missing or shortened ledgers fail closed.
+Observed earlier runs used at most ten backend calls, so this retains some
+headroom while reducing the amount at risk per attempt.
+
+The acceptance stimulus is now "I accept the current proposal." after a provider
+transcribed "Start now" as only "now". The backend correctly refused to activate
+from that fragment. Prior failures remain unchanged; the same acceptance and
+fresh-cue requirements apply to the clearer utterance.
+
+### Extension checkpoint (2026-11-24)
+
+All 36 attempts/$70 reservations are used; further paid selections reject before
+provider access. L-04 and L-08 now have complete revision-2 passes, alongside the
+earlier L-01, L-02 and paired L-09 evidence. L-03, L-05, L-06 and L-07 still need
+complete provider acceptance. Final offline regressions pass, including M-01/M-02
+and native confirmed/uncertain delivery; the last blank-caption interruption fix
+has not been retested with the provider. Keep HI-12 **INCOMPLETE** and preserve all
+prior verdicts. Exact fixes, artifacts, verification and required retests are in
+`HAND_INTERACTION_RESULTS.md`; this checkpoint authorizes no further allocation.

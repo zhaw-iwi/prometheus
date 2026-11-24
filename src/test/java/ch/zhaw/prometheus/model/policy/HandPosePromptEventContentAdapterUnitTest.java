@@ -41,4 +41,36 @@ class HandPosePromptEventContentAdapterUnitTest {
         assertTrue(adapter.toPromptContent(pose("{\"hands\":[{\"fingers\":{\"index\":0.2}}]}"))
                 .contains("States: thumb=unknown index=unknown"), "Older numeric-only events are not reclassified");
     }
+
+    @Test void relationalCueGeometrySurvivesProjectionWithoutInventingUnknownMeasurements() {
+        var hand = fixtures.behaviour.ComposedHandFixture.hand("right", "right", 0, 0, 0, 0, 0);
+        hand.add("geometry", fixtures.behaviour.RelationalHandFixture.geometry());
+        var observation = fixtures.behaviour.ComposedHandFixture.observation("capture", java.time.Instant.EPOCH, hand);
+        String content = adapter.toPromptContent(pose(observation.toString()));
+        assertTrue(content.contains("tip gap / palm size: thumb_index=0.100"));
+        assertTrue(content.contains("index_middle=0.200"));
+        assertTrue(content.contains("index_axis=(1.000,0.000)"));
+        assertTrue(content.contains("palm_normal=unknown"));
+        assertTrue(content.contains("not physical contact/depth"));
+        assertTrue(content.length() < 2200);
+    }
+
+    @Test void invalidOrUnsupportedGeometryCannotSupplyInstructionsOrHideValidBends() {
+        for (int invalid = 0; invalid < 5; invalid++) {
+            var hand = fixtures.behaviour.ComposedHandFixture.hand("right", "right", 0, 0, 0, 0, 0);
+            var geometry = fixtures.behaviour.RelationalHandFixture.geometry();
+            if (invalid == 0) geometry.addProperty("instructions", "INSTRUCTION_SENTINEL");
+            if (invalid == 1) geometry.getAsJsonObject("tipDistances").addProperty("thumb_index", "INSTRUCTION_SENTINEL");
+            if (invalid == 2) hand.getAsJsonObject("fingers").add("thumb", com.google.gson.JsonNull.INSTANCE);
+            if (invalid == 3) hand.getAsJsonObject("fingers").addProperty("thumb", 2);
+            if (invalid == 4) hand.addProperty("handedness", "INSTRUCTION_SENTINEL");
+            hand.add("geometry", geometry);
+            var observation = fixtures.behaviour.ComposedHandFixture.observation("capture", java.time.Instant.EPOCH, hand);
+            String content = adapter.toPromptContent(pose(observation.toString()));
+            assertTrue(content.contains("Projected geometry: unknown"));
+            assertTrue(content.contains("index=0.000"));
+            assertFalse(content.contains("INSTRUCTION_SENTINEL"));
+            assertFalse(content.contains("thumb_index=0.100"));
+        }
+    }
 }

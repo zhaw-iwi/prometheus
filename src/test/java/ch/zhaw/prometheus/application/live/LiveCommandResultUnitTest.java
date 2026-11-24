@@ -58,4 +58,31 @@ class LiveCommandResultUnitTest {
         assertTrue(withdrawal.commands().stream().anyMatch(c -> c.content().contains("Earlier completed commands and task agreements are unchanged")));
         assertTrue(withdrawal.commands().stream().noneMatch(c -> c.content().contains("no longer applies")));
     }
+    @Test void structuredHandReceiptsWithNullScalarValueRemainBoundedQuietContext() {
+        var projection = new LiveContextProjection(new PromptMessageAssembler(),new LiveVoicePolicyAdapter(),Clock.fixed(now,ZoneOffset.UTC));
+        for (String kind : List.of("HAND_POSE", "POINT", "HAND_SEQUENCE")) {
+            var source = command("ACCEPTED", false);
+            var receipt = storage.get(DirectCommands.LAST).getAsJsonObject();
+            receipt.addProperty("kind", kind);receipt.add("value", JsonNull.INSTANCE);
+            // Full structured payloads must not be copied into the 380-byte delta.
+            receipt.add("handAction", ch.zhaw.prometheus.model.hand.HandActions.pose(switch (kind) {
+                case "HAND_POSE" -> fixtures.behaviour.ComposedHandFixture.output();
+                case "POINT" -> fixtures.behaviour.PointingFixture.action("left");
+                default -> fixtures.behaviour.OutputSequenceFixture.counting(1, 10, 500);
+            }));
+            storage.put(DirectCommands.LAST, receipt);
+            var saved = receipt.deepCopy();
+            var initial = projection.project(agent);var delivery = new LiveContextDelivery(initial);delivery.ready();
+            var facts = LiveCommandResult.facts(agent, now, source.getId()::equals);
+            assertTrue(facts.contains("Accepted output plan: " + kind + "."));
+            assertTrue(facts.contains("Rendering/physical execution unconfirmed"));
+            assertTrue(facts.contains("No new speaking occasion"));
+            assertTrue(facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 380);
+            var current = projection.project(agent, facts);var batch = delivery.plan(current,List.of());
+            assertFalse(batch.commands().isEmpty());
+            assertTrue(batch.commands().stream().allMatch(c -> c.type().equals("session.thinking.append")));
+            delivery.acknowledged(batch, Set.of());assertTrue(delivery.plan(current,List.of()).commands().isEmpty());
+            assertEquals(saved, storage.get(DirectCommands.LAST));
+        }
+    }
 }

@@ -79,11 +79,13 @@ public final class LiveTranscriptSegmenter {
         Track assistant = tracks.get(Speaker.ASSISTANT);
         // Input captions stream after the corresponding audio. A tail of the already
         // open user turn can arrive after native speech begins; it is not a new turn.
-        long previousUserEnd = track.fragments.stream().map(Fragment::endMs).filter(java.util.Objects::nonNull)
+        // Provider padding is not a human turn. Actual voiced input still takes
+        // the independent userActivity path, even before meaningful captions arrive.
+        long previousUserEnd = track.fragments.stream().filter(f -> !f.text().isBlank()).map(Fragment::endMs).filter(java.util.Objects::nonNull)
                 .max(Long::compare).orElse(Long.MIN_VALUE);
-        boolean freshUserTurn = track.fragments.isEmpty() || validTime && previousUserEnd != Long.MIN_VALUE
+        boolean freshUserTurn = track.fragments.stream().allMatch(f -> f.text().isBlank()) || validTime && previousUserEnd != Long.MIN_VALUE
                 && fragment.startMs() - previousUserEnd >= userSilenceMs;
-        if (userInputAllowed && fragment.speaker() == Speaker.USER && validTime && freshUserTurn
+        if (userInputAllowed && fragment.speaker() == Speaker.USER && !fragment.text().isBlank() && validTime && freshUserTurn
                 && !assistant.fragments.isEmpty()) {
             long first = assistant.fragments.stream().map(Fragment::startMs).filter(java.util.Objects::nonNull).min(Long::compare).orElse(Long.MAX_VALUE);
             long end = assistant.fragments.stream().map(Fragment::endMs).filter(java.util.Objects::nonNull).max(Long::compare).orElse(Long.MAX_VALUE);

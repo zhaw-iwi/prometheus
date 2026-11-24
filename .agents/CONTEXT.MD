@@ -83,7 +83,8 @@ inside that string so event history stays inspectable.
 
 Current work is `.agents/PLAN_HAND_INTERACTION.md`: sequential HI-01 through
 HI-12 implementation, commit and push after each verified milestone, authorized
-on 2026-11-23. The new cumulative provider cap is $50 including failures and all
+on 2026-11-23. The cumulative provider cap is $70 after the owner-approved $20 extension on
+2026-11-24, including failures and all
 provider modalities; use its separate ledger, not the exhausted historical
 budgets below. New hand contracts are specifications until their implementing
 milestone. HI-02 enables six per-hand named-sign inputs for new Coordination
@@ -110,10 +111,13 @@ persistence, enforces a 64 KiB active hand-state budget and widens event payload
 and Storage-entry columns to TEXT for the declared hand/sequence limits. Large agreements use an
 explicit bounded voice projection; full terms remain authoritative in Storage.
 README documents the database widening and saved-instance adoption.
-HI-12 acceptance is incomplete. Revision-2 named signs and custom poses pass live
-review; Text/Continuous silence and native ownership checks pass. Ring, pointing
-and sequence journeys still have failed or incomplete provider evidence. The
-22-attempt allocation reserves the full $50 ceiling (not measured billing); see
+HI-12 acceptance is incomplete. Revision-2 named signs, custom poses, directional
+pointing, output sequences and conversation/latency have passing Live evidence;
+Text/Continuous silence and native ownership checks pass. Ring, registered and
+observed targets, and input sequences still need complete provider acceptance.
+The final blank-caption interruption fix has offline coverage only. All 36
+attempts/$70 reservations are exhausted, including the owner-approved extension;
+actual billing is unavailable and further paid selections fail closed. See
 `.agents/HAND_INTERACTION_RESULTS.md` for exact outcomes and required retests.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,
 preserving immediate native speech without playback approval, buffering or muting.

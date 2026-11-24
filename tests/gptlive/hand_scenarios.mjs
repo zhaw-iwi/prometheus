@@ -70,7 +70,7 @@ export async function runHandScenario(mode,c){
     const visitor=await bind('visitor','Visitor',1);await command('personshow','ACCEPTED',{kind:'point',verify:m=>{const a=actionOf(m);assert.deepEqual(a.target,visitor);assert.deepEqual(a.resolved.position,{x:-3,y:2,z:0});}});
     person=false;await wait(3500);await command('personrepeat','CLARIFY',{});
   }else if(mode==='L-07'){
-    const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}));
+    const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}),{clarification:'inputclarify'});
     const dwell=draft.checks[0].handSequence.dwellMs;
     const counts=async values=>{for(const n of values){const start=Date.now();do{await emit(()=>f.count(n));await wait(250);}while(Date.now()-start<dwell+500);}await checkpoint('counts-'+values.join('-'));};
     await counts([1,3]);assert.deepEqual((await memory())['coordination.evidence'],{});await zero();await counts([1,2,3]);await ready();await accept();
