@@ -1908,3 +1908,20 @@ The [attempt record](checkpoints/hand-interaction-2026-11-24/live-continuation-l
 retains the original and replay timings, task evidence, transcripts and
 reservation. Allocation 13 closed at **107 entries and $281 cumulatively
 reserved**. The continuation has reserved **$95 of $95**. HI-12 remains open.
+
+### L-07 rehearsal with local provider fixtures
+
+The production application, browser and disposable MySQL database completed
+the L-07 scenario with normal HTTP receipts and with the six slow preparation
+receipts recorded in attempt 106. Both rehearsals used the same count driver
+as paid acceptance. They exercised the clarification question, demonstration,
+review and explicit acceptance. The wrong order spent zero actions. The fresh
+one-two-three cue sent one exact “ready” instruction to the synthetic provider.
+The application confirmed browser playback before completing, and holding three
+left the action count at one. The provider supplied a scripted caption and a
+test audio signal. GPT-Live's own spoken response still requires a paid run.
+
+The targeted run (`3ac1d36662`) passed both rehearsals, the successful and
+lost-playback cases, and three fixture tests. The paid ledger remains at
+107/$281. The test is in `tests/playwright/valerian-input-sequence.spec.mjs`
+and can be selected with the browser title filter `L-07 fixture rehearsal`.

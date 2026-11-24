@@ -108,6 +108,10 @@ at the five-frame admission limit. Receipt pacing passed offline replays of
 107 and 106. The final spoken line and held-pose check still need Live evidence.
 The [attempt record](checkpoints/hand-interaction-2026-11-24/live-continuation-l07.json)
 closes the allocation at 107/$281 with zero available.
+The full local L-07 rehearsal subsequently passed with normal and delayed
+receipts. It uses the paid count driver and checks the exact instruction,
+browser playback and held pose with a scripted provider. The next paid
+selection, if authorized, is one real-provider L-07 verification.
 
 ## Findings carried into this continuation
 

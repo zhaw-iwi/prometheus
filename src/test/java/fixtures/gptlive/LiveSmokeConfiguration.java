@@ -43,7 +43,9 @@ public class LiveSmokeConfiguration {
                     var result = new JsonObject();
                     for (var field : List.of("responseId", "revision", "segmentId")) result.add(field, data.get(field));
                     String captured = data.get("capturedSpeech").getAsString();
-                    result.addProperty("verdict", captured.equals("First fixture observation.") ? "MATCH"
+                    boolean armed = data.has("responsePurpose") && "ARMING".equals(data.get("responsePurpose").getAsString())
+                            && captured.equals("The task is armed. I am waiting for a fresh one-two-three sequence.");
+                    result.addProperty("verdict", armed || captured.equals("First fixture observation.") ? "MATCH"
                             : captured.equals("Incorrect fixture observation.") ? "AMBIGUOUS" : "UNRELATED");
                     return result.toString();
                 }
@@ -186,7 +188,9 @@ public class LiveSmokeConfiguration {
                                 || call.activity.contains("Coordination stage: FINISHING")
                                 ? "First fixture observation." : call.activity.contains("Confirmed RPS phase: INTRO")
                                 ? "Show one hand. One, two, three." : "The round is ready.";
-                        String candidate = call.rejectFirst.compareAndSet(true, false) ? "Incorrect fixture observation." : spoken;
+                        String scripted = call.commentary.poll();
+                        String candidate = call.rejectFirst.compareAndSet(true, false) ? "Incorrect fixture observation."
+                                : scripted != null ? scripted : spoken;
                         audio.schedule(() -> speak(id, "ASSISTANT", candidate, null), 50, TimeUnit.MILLISECONDS);
                     }
                 }
@@ -244,6 +248,7 @@ public class LiveSmokeConfiguration {
             public final java.util.concurrent.atomic.AtomicBoolean rejectFirst = new java.util.concurrent.atomic.AtomicBoolean();
             public final List<JsonObject> sent = new CopyOnWriteArrayList<>();
             public final List<JsonObject> captions = new CopyOnWriteArrayList<>();
+            public final Queue<String> commentary = new ConcurrentLinkedQueue<>();
             final AtomicInteger sequence = new AtomicInteger();
         }
     }
@@ -302,6 +307,9 @@ public class LiveSmokeConfiguration {
                     "maximum", pool.getMaximumPoolSize());
         }
         public record Speech(String speaker, String text, String receipt) {}
+        @PostMapping("/__live-fixture/commentary/{id}") public void commentary(@PathVariable String id, @RequestBody List<String> lines) {
+            provider.calls.get(id).commentary.addAll(lines);
+        }
         @PostMapping("/__live-fixture/event/{id}") public void event(@PathVariable String id, @RequestBody String event) {
             provider.calls.get(id).receive.accept(com.google.gson.JsonParser.parseString(event).getAsJsonObject());
         }
