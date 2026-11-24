@@ -10,6 +10,12 @@ import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 /** Describe existing task forms honestly; this is not a game engine or a new protocol. */
 public final class CoordinationTaskContract {
+    // Split only an explicitly labelled preparation duty followed by a separate imperative.
+    // Keep conditions, quotations and unrecognised role descriptions intact.
+    private static final java.util.regex.Pattern PREPARATION_DUTY = java.util.regex.Pattern.compile(
+            "^demonstrate ([^,;.!?\"“”]+?) (?:for|during) preparation[,;]\\s+"
+                    + "((?:(?:and|then)\\s+)*(?:accept|repeat|show|give|provide|judge|assess|evaluate|report)\\b.*)$",
+            java.util.regex.Pattern.CASE_INSENSITIVE);
     public static final String FEEDBACK_GUIDANCE = """
             For answer feedback, evaluate the answer against the previous HEARD task question and ALL its defining clues.
             Ordinary help/perception replies are not that question. A related answer that fits only some clues is not correct.
@@ -55,13 +61,20 @@ public final class CoordinationTaskContract {
         var roles = new java.util.LinkedHashSet<String>();
         var human = reviewTerm(proposal.humanRole(), roles);
         var agent = reviewTerm(proposal.agentRole(), roles);
+        if (!proposal.checks().isEmpty()) {
+            review.add("Preparation complete.");
+            var duty = PREPARATION_DUTY.matcher(human);
+            if (duty.matches()) {
+                review.add("Your role in that check was to demonstrate " + duty.group(1) + ".");
+                human = duty.group(2);
+            } else review.add("Describe the preparation you observed in the past tense.");
+        }
         // Identical clauses can describe different people's duties. Keep both role labels.
         review.add("You: " + human).add("I: " + agent);
         var goal = remainingTerm(proposal.goal(), roles);
         if (!goal.isEmpty()) review.add("Goal: " + goal);
         var success = remainingTerm(proposal.success(), roles);
         if (!success.isEmpty()) review.add("Success: " + success);
-        if (!proposal.checks().isEmpty()) review.add("Preparation complete.");
         return review.add("Limit: " + limit + CoordinationSocialContract.proposalCondition(proposal))
                 .add("This proposal is not active. Shall we start?").toString();
     }

@@ -26,7 +26,7 @@ final class CoordinationAcceptance {
         if (text.contains("?") || text.stripLeading().matches("[\"'“‘].*")) return false;
         return CoreTaskVoice.normalize(text).matches("(yes |okay |ok )?(please )?"
                 + "((lets|let) start( it| the task| the saved proposal)?( now)?|start( it| the task| the saved proposal)?( now)?|"
-                + "run (it|the task|the saved proposal)|i accept( the (current|saved) proposal)?|accept the (current|saved) proposal)"
+                + "run (it|the task|the saved proposal)|i accept( the (current|saved) ?proposal)?|accept the (current|saved) ?proposal)"
                 + "|(ja )?(bitte )?(jetzt )?(starten|starten wir|lass uns starten|los gehts)( jetzt)?");
     }
     static boolean incomplete(String text) {

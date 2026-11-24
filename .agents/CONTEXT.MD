@@ -125,8 +125,12 @@ ambiguous OK motion. Native semantic acceptance remains outstanding. Allocation
 10 permits up to $50 in new reservations from entry 89. The maximum ledger is
 98 entries/$236 inclusive. Attempts 91 and 92 demonstrated correct direct
 OK clarification and post-task pose acknowledgement. Their full journeys
-still have capture or review failures. The latest durable prefix is 92 entries
-and $206 reserved, leaving $30 in the continuation.
+still have capture or review failures. Attempt 93 delivered a past-tense review
+and one arming confirmation, but its consent repair included unsupported gesture
+narration. Attempt 94 passed L-03 with deliberate incomplete consent and a
+subsequent fresh acceptance. Attempt 96 correctly reviewed preparation and
+armed once. Its invented opening task and early claim of digital display keep
+L-02 open. The ledger has 96 entries and $226 reserved, leaving $10 in the continuation.
 See `.agents/HAND_INTERACTION_RESULTS.md` for individual outcomes. Isolated tests
 use GPT-6.2 Sol (low) and GPT-Live-1.1. Measured billing is unavailable.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,

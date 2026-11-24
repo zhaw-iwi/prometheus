@@ -4,22 +4,58 @@ export function commandTiming(turn, traces, diagnostics) {
   const source=turn.commandSource?.id;
   const delivery=source ? traces.filter(e=>e.sourceId===source && /^command_.*_(send|ack)$/.test(e.phase))
     .sort((a,b)=>a.sequence-b.sequence) : [];
-  const sends=delivery.filter(e=>e.phase.endsWith('_send'));
-  const acks=delivery.filter(e=>e.phase.endsWith('_ack'));
-  const events=turn.events||[];
-  const {sent,received,serverTimeMs}=turn.clock||{};
+  return {source,delivery,observations:observations(turn.events||[],turn.clock,diagnostics,
+    delivery.find(e=>e.phase.endsWith('_send'))?.serverMs,delivery.find(e=>e.phase.endsWith('_ack'))?.serverMs)};
+}
+
+function observations(events,clock,diagnostics,sendMs,ackMs) {
+  const {sent,received,serverTimeMs}=clock||{};
   const clockValid=Number.isFinite(sent)&&Number.isFinite(received)&&Number.isFinite(serverTimeMs)
     &&received>=sent&&received-sent<=1000;
-  const observations=events.filter(e=>e.type==='output_voice'||(e.type==='session.output_transcript.delta'&&e.delta?.trim())).map(e=>{
+  return events.filter(e=>e.type==='output_voice'||(e.type==='session.output_transcript.delta'&&e.delta?.trim())).map(e=>{
     const provider=diagnostics.get(e.event_id);
     const error=1+Math.max(Math.abs(e.at-sent),Math.abs(e.at-received))*.0001;
     const earliest=clockValid?serverTimeMs+e.at-received-error:null;
     const latest=clockValid?serverTimeMs+e.at-sent+error:null;
     let observed='undetermined';
-    if(sends.length && latest!==null && latest<sends[0].serverMs) observed='observed_before_result_sent';
-    else if(acks.length && earliest!==null && earliest>acks[0].serverMs) observed='observed_after_result_ack';
+    if(Number.isFinite(sendMs) && latest!==null && latest<sendMs) observed='observed_before_result_sent';
+    else if(Number.isFinite(ackMs) && earliest!==null && earliest>ackMs) observed='observed_after_result_ack';
     return {type:e.type,delta:e.delta,eventId:e.event_id,browserMs:e.at,serverRangeMs:[earliest,latest],
       sidebandReceiptMs:provider?.serverMs??null,observed};
   });
-  return {source,delivery,observations};
+}
+
+// Reusable against the original journey.json. A time window is evidence of ordering,
+// not an attribution of a native sentence to an internal model decision.
+export function controlTimings(report) {
+  const server=report.diagnostics?.sessions?.find(s=>s.handle===report.finalSession?.handle)?.server;
+  const traces=new Map(), diagnostics=new Map(), occasions=new Map();
+  for(const status of [server,report.finalSession]) {
+    for(const e of status?.context?.recent||[]) traces.set(e.sequence,e);
+    for(const e of status?.recent||[]) if(e.eventId && e.type==='session.output_transcript.delta') diagnostics.set(e.eventId,e);
+  }
+  const turns=report.turns.filter(t=>Number.isFinite(t.clock?.serverTimeMs));
+  const memories=[...report.checkpoints.map(c=>c.memory),...report.turns.map(t=>t.memory),report.accepted,report.finalStorage];
+  for(const memory of memories) {
+    const r=memory?.['core.task.response'], task=memory?.['task.response'];
+    const arming=r?.id && r.id===task?.id && task.purpose==='ARMING';
+    const draft=memory?.['coordination.draft'];
+    const review=r?.proposalReview && draft?.questions?.length===0
+      && draft.checks.length===Object.keys(memory['coordination.evidence']||{}).length;
+    if(!r?.id || !(review || arming || r.consentRepair)) continue;
+    const purpose=arming?'arming':r.consentRepair?'consent_repair':'proposal_review';
+    occasions.set(r.id,{id:r.id,purpose,createdMs:Date.parse(r.created),expiresMs:Date.parse(r.expires)});
+  }
+  return [...occasions.values()].sort((a,b)=>a.createdMs-b.createdMs).map(occasion=>{
+    const own=[...traces.values()].filter(e=>e.sourceId===occasion.id).sort((a,b)=>a.sequence-b.sequence);
+    const commentary=own.filter(e=>e.type==='session.commentary.append');
+    const send=commentary.find(e=>e.phase==='send'), ack=commentary.find(e=>e.phase==='ack');
+    const turn=turns.findLast(t=>t.clock.serverTimeMs<=occasion.createdMs);
+    const end=Math.min(occasion.expiresMs,turns.find(t=>t.clock.serverTimeMs>occasion.createdMs)?.clock.serverTimeMs??Infinity,
+      commentary.find(e=>e.phase==='task_narration_withdrawn')?.serverMs??Infinity);
+    const start=occasion.purpose!=='proposal_review' && turn ? turn.clock.serverTimeMs : occasion.createdMs;
+    const samples=observations(report.browser||[],turn?.clock,diagnostics,send?.serverMs,ack?.serverMs)
+      .filter(e=>e.serverRangeMs[0]!==null && e.serverRangeMs[1]>=start && e.serverRangeMs[0]<=end);
+    return {...occasion,windowMs:[start,end],clock:turn?.clock,delivery:own,observations:samples};
+  });
 }

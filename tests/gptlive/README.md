@@ -15,6 +15,14 @@ observations under each direct turn's `commandTiming`. Clock overlap and missing
 evidence leave ordering undetermined. The local PCM, outgoing RTP counters
 and provider transcript give separate evidence about acceptance wording.
 
+`controlTimings` in the journey report joins the saved review, consent-repair and arming occasion
+IDs to their actual context sends and acknowledgements, caption fragments, and
+audible browser activity. Review windows begin at backend creation. Repair and arming
+windows include the preceding user turn so an early confirmation stays visible.
+Each window ends at withdrawal, expiry or the next turn. Missing timestamps and
+overlapping browser clock brackets leave the ordering uncertain. The same
+`controlTimings(report)` export can inspect an older full `journey.json` offline.
+
 ## Hand acceptance third extension (2026-11-24, historical)
 
 The owner approved an additional $100 reservation allocation. Allocation 9

@@ -95,7 +95,12 @@ and regulation diagnostics remain future work.
   and $50 for this continuation, starting at 88 attempts/$186 already reserved.
   L-03 clarified the ambiguous sign and rendered the explicit ring. Attempt
   92 handled the post-task pose correctly, but misstated preparation and repeated
-  arming. The ledger stands at 92/$206, with $30 of the $50 continuation left.
+  arming. Attempt 93 delivered the past-tense review and one arming confirmation.
+  Its incomplete-consent reply still narrated an unsupported gesture. Attempt 94
+  passed the full L-03 geometry journey with a deliberate consent repair. The
+  last L-02 review separated finished preparation and fresh cues. An invented
+  opening task and a display claim before receipt of the renderer fact kept
+  L-02 open. The ledger stands at 96/$226, with $10 of the $50 continuation left.
   [Results](.agents/HAND_INTERACTION_RESULTS.md) ·
   [Restoring the latest budget checkpoint](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 

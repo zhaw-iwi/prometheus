@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 import {playHandStimulus,handReplyObserved} from './hand_audio_input.mjs';
-import {commandTiming} from './hand_command_timing.mjs';
+import {commandTiming,controlTimings} from './hand_command_timing.mjs';
 
 test('only exact-turn send and ACK bracket each observed fragment, retaining overlap',()=>{
   const turn={commandSource:{id:'pose-turn'},clock:{sent:100,received:104,serverTimeMs:1000},
@@ -15,6 +15,20 @@ test('only exact-turn send and ACK bracket each observed fragment, retaining ove
   assert.equal(timing.delivery.length,2);
   assert.deepEqual(timing.observations.map(e=>e.observed),['observed_before_result_sent','undetermined','observed_after_result_ack']);
   assert.ok(commandTiming(turn,[],new Map()).observations.every(e=>e.observed==='undetermined'));
+});
+
+test('arming joins its comment by occasion ID and brackets both replies, including one before commit',()=>{
+  const at=ms=>new Date(ms).toISOString();
+  const memory={'core.task.response':{id:'arm',created:at(1020),expires:at(2000)},'task.response':{id:'arm',purpose:'ARMING'}};
+  const append=(sequence,phase,serverMs,sourceId)=>({sequence,sourceId,phase,serverMs,type:'session.commentary.append'});
+  const report={checkpoints:[],turns:[{clock:{sent:100,received:102,serverTimeMs:1000},memory}],
+    browser:[111,145,250].map(at=>({at,type:'output_voice'})),finalSession:{handle:'s',context:{recent:[]}},
+    diagnostics:{sessions:[{handle:'s',server:{context:{recent:[append(1,'send',1001,'other'),
+      append(2,'send',1030,'arm'),append(3,'ack',1035,'arm'),append(4,'task_narration_withdrawn',1100,'arm')]}}}]}};
+  const [r]=controlTimings(report);
+  assert.equal(r.purpose,'arming');assert.deepEqual(r.windowMs,[1000,1100]);
+  assert.deepEqual(r.observations.map(e=>e.observed),['observed_before_result_sent','observed_after_result_ack']);
+  assert.deepEqual(r.delivery.map(e=>e.sequence),[2,3,4]);
 });
 
 test('a caption or received audio alone cannot finish waiting for native playback',()=>{

@@ -61,13 +61,23 @@ the exact-turn result was sent. With phase-specific guidance, 92 answered the
 same imperative correctly while the backend was still working. Attempt 91
 clarified the ambiguous sign and issued one right-hand ring on the next turn.
 Attempt 90 exercised genuine incomplete consent, one inactive-proposal repair,
-and fresh explicit acceptance. The full L-02 and L-03 journeys still have open
-spoken review, arming or capture failures. Before further paid testing, isolate
-the two arming acknowledgements and the future-tense preparation wording after
-completed preparation. The [results](HAND_INTERACTION_RESULTS.md) and portable
+and fresh explicit acceptance. The original 92 traces place “started” before
+the backend created the arming occasion and the second acknowledgement after
+the commentary send. In 93, preparation was reviewed in the past tense and
+arming was confirmed once. An unsupported motion claim during consent repair
+failed the full journey. Attempt 94 passed L-03, including a deliberate repair,
+fresh explicit consent, a rejected near miss and a single digital ring.
+Attempt 95 left the tense of one preparation duty unclear. Attempt 96 separated
+it from the remaining duties and confirmed arming once, but introduced an
+unrequested task in the opening reply. Live also claimed digital display
+between receipt of the rendering observation by the application and delivery
+of that fact to Live. Inspect those two boundaries offline before a new paid
+selection. Full L-02 remains open. Historical failures retain their verdicts.
+The [results](HAND_INTERACTION_RESULTS.md) and portable
 [run evidence](checkpoints/hand-interaction-2026-11-24/live-continuation.json)
-preserve the individual verdicts. Allocation 10 has used four $5 reservations,
-reaching 92 attempts/$206 cumulatively. Six more ($30) fit the owner's cap.
+preserve the individual verdicts and the review, repair and arming timelines.
+Allocation 10 has used eight $5 reservations, reaching 96 attempts/$226
+cumulatively. Two more ($10) fit the owner's cap.
 
 ## Findings carried into this continuation
 

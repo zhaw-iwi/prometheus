@@ -1600,3 +1600,94 @@ suites, 48 local-MySQL tests, six browser cases, 45 Python tests, 17 Node
 tests, nine schema examples and Maven packaging. The browser cases covered
 native voice during blocked backend work, Stop, completion and lost playback
 receipts, and strict silent hand actions in Text and Continuous.
+
+### Preparation review and arming timing
+
+Reconstruction from the original raw journeys found exactly one identified
+arming commentary send in each of attempts 90 and 92. In 92, the server received
+the first “started” caption 2,319 ms before the backend created the arming
+occasion and 3,993 ms before its commentary send. It received “Task” at the start
+of the second confirmation 753 ms after send and 1 ms before the provider ACK.
+The assembled capture's semantic check used the suffix at offset 55. Acceptance
+of that suffix explains how the backend could proceed while the person still
+heard two confirmations. In 90, the first “Ag” of “Agreed” arrived 2,966 ms
+before the send and “I'm still” arrived 840 ms after ACK. The verifier judged
+that complete repeated capture ambiguous.
+
+The first review caption also preceded its speaking instruction, by 796 ms in 90
+and 148 ms in 92. Both reviews had already received several quiet appends. In 92
+the first terms projected included “Demonstrate both hands together for
+preparation” and the completed-preparation statement came later. These are
+observed delivery boundaries. They do not identify a provider generation event.
+Attempt 92's joined “accept the currentproposal” took a 2.1-second START
+inference. The deterministic path now recognizes the full joined phrase,
+preserving negation, the partial-consent repair and the preparation requirement.
+
+- **93, L-02, review and arming PASS; full journey semantic FAIL**
+  (`eb8fd72142`). The first review caption reached the server 811 ms before the
+  commentary send. Live said “I saw you show that pattern,” described the fresh
+  post-acceptance cue, one digital reproduction and the user's judgement, and
+  asked to start. After the provider again admitted “I accept the current,” the
+  proposal stayed inactive. Live echoed part of the visitor's consent and said
+  “Tiny digital thumbs twitch.” No matching motion was issued. “Tiny” arrived
+  1,167 ms before the repair commentary send. The actual repair correctly asked
+  once for “Start now.” Following that fresh reply, “I heard” arrived 885 ms
+  before the arming commentary send and “Start” 698 ms after send. The user
+  heard one arming confirmation. The backend accepted the complete capture,
+  executed the task once, and the independent pose later rendered correctly.
+  The complete 141.18-second local audio transcription, native captions, two
+  images and renderer receipt were reviewed. Preparation and consent remained
+  separate, and the premature gesture narration remains a spoken failure.
+- **94, L-03, PASS** (`b4da83bd47`). “OK” elicited two choices and zero motion.
+  The explicit right-hand diver's ring produced one matching output. A near
+  miss did not satisfy recognition or execute the task. The review reported
+  completed preparation, the fresh right-hand cue, roles, the visitor's
+  judgement and the one-action limit. On the deliberately incomplete phrase
+  Live acknowledged hearing the visitor, then asked for fresh consent once.
+  The unchanged proposal stayed inactive with zero actions. The full explicit
+  acceptance armed it and a fresh matching cue produced one right-hand ring.
+  The “started” caption came 1,270 ms after arming was committed and 315 ms
+  after the first quiet update was acknowledged, although 357 ms before the
+  commentary send. The visitor heard one start confirmation. The complete
+  147.72-second local transcription and both right-hand render images were
+  reviewed. Nonlexical backchannels and a brief aside added no task terms or
+  motion claims. The capture used for arming was complete.
+- **95, L-02, review clarity INCONCLUSIVE** (`05796994ce`). Live gave one
+  arming confirmation following complete consent, and correctly treated the
+  post-task pose as an independent request. Both digital images matched the
+  two-hand pattern. In the full 135.42-second recording the review first said
+  “I saw you demonstrate,” then “You demonstrate to prepare.” It did not
+  expressly request a second demonstration, but left the status of that duty
+  unclear. The saved human role combined demonstration, consent, a fresh cue
+  and judgement in one imperative. The spoken projection now separates an
+  explicitly labelled completed preparation clause from the remaining duties.
+  Conditional and unrecognised descriptions retain their original wording.
+  The full saved agreement remains available and unchanged.
+- **96, L-02, review and arming PASS; full journey semantic FAIL**
+  (`0d939998ec`). Live said “Preparation’s done. Your role was to demonstrate
+  the pose,” then identified the new matching cue, the user's judgement and the
+  one-action limit. It acknowledged hearing complete consent and confirmed
+  arming once. The task and the independent direct pose both matched all ten
+  requested finger states. The opening proposal reply, however, introduced a
+  “laugh on cue” task absent from both the admitted request and the saved terms.
+  On the direct turn the renderer's matching POSE_RENDERED arrived at the
+  application at 20:40:45.668 CET. The server received Live's “shown” caption
+  at 20:40:47.469. The bridge sent the rendered fact at 20:40:50.826 and
+  received its ACK at 20:40:51.345. The display had occurred, but Live had
+  received only the earlier acceptance result when it made the claim.
+  The paired images, native captions and complete 148.68-second local audio
+  review were inspected. Local ASR produced repeated words at the tail without
+  matching output captions. Two input noise fragments were also admitted;
+  neither added a task action.
+
+The reproducible open boundaries are the early proposal reply and delivery of
+the renderer receipt. Trace a proposal's initial words against the durable user
+turn and saved proposal, and measure the renderer receipt-to-Live delay before
+another paid selection. L-03 now has a complete pass. L-02 and HI-12 remain
+open. Attempts 93–96 reserved $20. Total use under the $50 continuation is $40,
+with 96 entries/$226 cumulatively and $10 remaining. Actual billing is unavailable.
+
+Verification passed 315 focused Java tests, 48 isolated local-MySQL cases, six
+Playwright cases, 18 Node tests, 45 Python tests, nine schema examples and Maven
+packaging. The source manifests recorded no changes during any of the four paid
+runs. The original reservations and earlier recorded verdicts were preserved.

@@ -8,6 +8,18 @@ import ch.zhaw.prometheus.model.coordination.CoordinationMemory;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 
 class CoordinationAcceptanceUnitTest {
+    @Test void joinedFinalWordsStillRequireTheEntireExplicitProposalAcceptance() {
+        var f = new CoordinationAgentUnitTest();
+        f.propose(f.sensor(false), f.live);
+        clearInvocations(f.gateway);
+        f.say("accept the currentproposal", f.live);
+        assertEquals("EXECUTION", CoordinationMemory.stage(f.storage()));
+        assertEquals(0, f.storage().get(TaskMemory.ACTIONS).getAsInt());
+        verifyNoInteractions(f.gateway);
+        for (var fragment : java.util.List.of("accept the current", "accept the currentpro", "accept the currentproposal?",
+                "don't accept the currentproposal", "accept the currentproposal later"))
+            assertFalse(CoordinationAcceptance.explicit(fragment));
+    }
     @Test void incompleteConsentRequestsOneRepairAndExplicitConsentStillArms() {
         var fixture = new CoordinationAgentUnitTest();
         fixture.propose(fixture.sensor(false), fixture.live);
@@ -20,6 +32,10 @@ class CoordinationAcceptanceUnitTest {
         fixture.hear("The proposal is ready. Shall we start?", true, java.time.Instant.now());
         var repair = fixture.storage().get(CoreTaskVoice.RESPONSE).deepCopy();
         assertTrue(repair.getAsJsonObject().get("facts").getAsString().contains("Start now"));
+        var context = fixture.policy().liveActivityContext();
+        assertTrue(context.continuation().selfContained());
+        assertTrue(context.facts().contains("No task motion was issued"));
+        assertFalse(context.facts().contains("Start accepts these terms"));
         fixture.say("I accept the current", fixture.live);
         assertEquals(repair, fixture.storage().get(CoreTaskVoice.RESPONSE));
         fixture.say("Start now", fixture.live);

@@ -54,14 +54,14 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "Use 'you' for human duties/preparation/consent, 'I' for agent duties; never swap. "
                 + "Give confirmed task/support responses once, then listen. Keep persona asides for ordinary conversation. "
                 + "Never complete a partial task request. "
-                + "Describe proposals only. Contribute solely on the current identified occasion. "
+                + "Acknowledge a proposed task briefly. Its saved terms and next step follow. "
                 + "During preparation/proposal, never preview task content, including sample jokes. Say 'the line you supplied' only for user-supplied text. "
                 + "Only confirm acceptance, start or completion on its speaking occasion. Partial consent leaves a proposal inactive. "
                 + "Omit implementation details. Answer unrelated questions and explicitly requested capability examples. "
                 + "Conversation preserves history and the agent. "
                 + "Proposals need acceptance; preparation needs observed evidence, never verbal claims. "
                 + "Review ready proposals in at most 55 words, preserving distinct terms, preparation, limits and acceptance question. "
-                + "Preparation holds until proposal/session changes. In READY, acknowledge hearing the person. A fresh cue follows arming. "
+                + "Preparation holds until proposal/session changes. On consent, 'I heard you' suffices until the confirmed start. "
                 + "Each dialogue-task step needs backend confirmation. "
                 + "ON_CUE needs a fresh cue; recognition failure is no cue. Explain recognition/action limits. "
                 + "Reflection reports evidence/user experience, not learning, feelings or physical proof. Exhaustion/cancellation is not success; revisions need agreement. "
@@ -181,6 +181,8 @@ public class CoordinationPolicy extends CoreTaskPolicy {
         if (current) {
             Instant expires = Instant.parse(response.get("expires").getAsString());
             String responseFacts = response.get("facts").getAsString();
+            if (response.has("consentRepair"))
+                facts = "The visitor's acceptance was incomplete. The proposal is inactive. No task motion was issued.";
             // Support may be paraphrased, but its control facts must remain intact.
             if (supportOnly) responseFacts = "Convey these confirmed facts once, preserving their meaning: " + new com.google.gson.JsonPrimitive(responseFacts);
             String review = "";
@@ -221,6 +223,10 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                             response.get("proactive").getAsBoolean() ? LiveActivityContext.Occasion.PROACTIVE : LiveActivityContext.Occasion.USER_REQUEST,
                             "Respond once to this confirmed coordination update using the current facts.", expires), expires);
         }
+        if ("READY".equals(CoordinationMemory.stage(storage)) && !ch.zhaw.prometheus.model.coordination.CoordinationSupport.blockedDraft(storage))
+            facts = "The proposal is inactive. Let the visitor give consent in their own words. "
+                    + "If you acknowledge hearing them, end there. Leave actions and gestures out of that reply. "
+                    + "Give the start and fresh-cue confirmation on the confirmed start occasion. " + facts;
         var sensory = !TaskMemory.active(storage) && !java.util.Set.of("PAUSED", "FINISHING", "UNCERTAIN").contains(TaskMemory.phase(storage)) ? SensoryRemarks.context(storage, now) : null;
         if (sensory != null && CoreTaskVoice.bytes(facts + "\n" + sensory.facts()) <= 4000)
             return new LiveActivityContext(facts + "\n" + sensory.facts(), sensory.continuation(), sensory.refreshAt());

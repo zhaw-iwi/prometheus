@@ -820,3 +820,10 @@ uncertainty, individual caption fragments, native audio onset and the observed
 digital pose. A replay on a different device cannot establish ordering in attempt 84.
 For incomplete consent, inspect the full local PCM, outgoing track and admitted
 transcript independently. A fresh explicit reply may follow one repair question.
+
+The saved review, consent repair and arming occasion IDs now also link quiet
+context delivery, commentary, native captions and browser audio. Attempt 93
+showed one correct arming confirmation and a review in the past tense. Attempt
+94 passed the full L-03 geometry journey with the deliberate incomplete consent
+turn. Consult the [latest results](HAND_INTERACTION_RESULTS.md) and the tracked
+continuation ledger before selecting another paid journey.

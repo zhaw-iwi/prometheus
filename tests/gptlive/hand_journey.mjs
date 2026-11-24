@@ -13,7 +13,7 @@ import {playHandStimulus,handReplyObserved,outboundHandAudio} from './hand_audio
 import {startObservationPumps} from './hand_observation_pump.mjs';
 import {armingReady,speechLatency,conversationLatency,compareConversations} from './commanding_evidence.mjs';
 import {runHandScenario} from './hand_scenarios.mjs';
-import {commandTiming} from './hand_command_timing.mjs';
+import {commandTiming,controlTimings} from './hand_command_timing.mjs';
 
 const [permission,output]=process.argv.slice(2),mode=process.env.PROMETHEUS_HAND_MODE;
 const base=process.env.PROMETHEUS_BASE_URL,ledger=process.env.PROMETHEUS_HAND_BUDGET_LEDGER;
@@ -197,6 +197,7 @@ finally{
   for(const turn of report.turns.filter(t=>t.commandSource || t.name==='poseshow')){
     turn.commandTiming=commandTiming(turn,[...contextTraces.values()],providerEvents);
   }
+  report.controlTimings=controlTimings(report);
   await browser?.close();report.finishedAt=new Date().toISOString();fs.writeFileSync(output,JSON.stringify(report,null,2));
   console.log(report.automatedPassed?'Hand assertions passed; complete speech/audio/visual review required.':'Hand journey failed: '+report.error);
 }

@@ -250,7 +250,7 @@ class CoordinationVoiceUnitTest {
             assertTrue(request.facts().contains(proposal.get(key).getAsString()));
         }
         assertTrue(context.continuation().facts().contains("3 actions total"));
-        assertTrue(context.continuation().facts().contains("Preparation complete."));
+        assertTrue(context.continuation().facts().startsWith("Preparation complete."));
         assertTrue(context.continuation().facts().contains("fresh matching cue"));
         assertTrue(context.continuation().facts().contains("This proposal is not active. Shall we start?"));
         assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
@@ -268,6 +268,20 @@ class CoordinationVoiceUnitTest {
         assertEquals(text.indexOf("Keep the left hand folded"), text.lastIndexOf("Keep the left hand folded"));
         assertTrue(text.contains("Show peace once")); assertTrue(text.contains("Keep the left hand folded"));
         assertTrue(text.contains("The user judges the sign"));
+    }
+    @Test void preparedReviewSeparatesTheCompletedDutyFromConsentFreshCueAndJudgement() {
+        var saved = f.sensor(true);
+        saved.addProperty("humanRole", "Demonstrate the pattern for preparation, accept the proposal, then show it again and judge the digital result.");
+        var agreement = ch.zhaw.prometheus.model.coordination.CoordinationAgreement.parse(saved);
+        var review = ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.liveProposalReview(agreement);
+        assertTrue(review.startsWith("Preparation complete. Your role in that check was to demonstrate the pattern."));
+        assertTrue(review.contains("You: accept the proposal, then show it again and judge the digital result."));
+        assertEquals(saved.get("humanRole").getAsString(), agreement.humanRole());
+
+        saved.addProperty("humanRole", "Demonstrate the pattern for preparation, only if the operator agrees.");
+        var conditional = ch.zhaw.prometheus.model.coordination.CoordinationAgreement.parse(saved);
+        assertTrue(ch.zhaw.prometheus.model.coordination.CoordinationTaskContract.liveProposalReview(conditional)
+                .contains("You: " + conditional.humanRole()));
     }
     @Test void pendingPreparationNamesTheRequiredEvidenceBeforeRequestingAcceptance() {
         f.propose(f.sensor(true), f.live);
