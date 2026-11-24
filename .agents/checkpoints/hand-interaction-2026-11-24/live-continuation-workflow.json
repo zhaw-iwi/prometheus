@@ -3,11 +3,18 @@
   "baseReservedUsd": 286,
   "addedCapUsd": 20,
   "continuationCapUsd": 120,
-  "cumulativeReservedUsd": 291,
+  "cumulativeReservedUsd": 296,
   "reservations": [
     {
       "mode": "L-07",
       "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-269f10254a",
+      "reservedUsd": 5,
+      "allocationRevision": 15,
+      "extensionAuthorization": "hand-interaction-2026-11-24-workflow-usd20"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-4cefe89c74",
       "reservedUsd": 5,
       "allocationRevision": 15,
       "extensionAuthorization": "hand-interaction-2026-11-24-workflow-usd20"
@@ -512,6 +519,362 @@
       "acknowledgementInputStartMs": 35893.5,
       "acknowledgementInputEndMs": 48967.333333333336,
       "workflowVerdict": "PASS for consent, cue recognition, spoken contribution and hold"
+    },
+    {
+      "attempt": 110,
+      "mode": "L-06",
+      "artifact": "gptlive-acceptance-4cefe89c74",
+      "verdict": "INCONCLUSIVE",
+      "finding": "Ambiguous cup returned CLARIFY with zero motion, and the saved proposal bound the selected cup. Live gave a complete preparation instruction. The visitor transcript was split and contained words from quiet context; the saved human role added silently. A subsequent KEEP left no current supportOnly response in storage. The driver required that transient object and stopped before the demonstration or either Visitor command. No target-removal result.",
+      "automatedPassed": false,
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(request?.supportOnly)\n",
+      "sourceRevision": "352c72c3d66cf7a2b8a16f933a3429922c547847",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "d7b2507e26dd3624f55a500af0eebc7bfa6cafd8ef6c995839c5836127a01fcc",
+      "journeySha256": "17db83ee7336e764e56af452348459f10c5446c28028d9cb8ea00a093b76ffd1",
+      "spoken": " அது எந்த கோப்பை? I'm not sure which cup you mean. Can you point it out or describe it? Mm-hmm. Mm-hmm. Mm-hmm. Once Mm-hmm. Sure. Mm-hmm. One-shot task seems fine; what counts as “demonstrate”—pointing at your cup or something else? The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition; we’ll review terms before acceptance.",
+      "admitted": [
+        {
+          "id": "22cd5520-d8ff-4f1e-bdd4-312e8688c40f",
+          "text": "Please point your right hand at that cup."
+        },
+        {
+          "id": "39edb52a-b088-44d5-8299-c59202e8a8c8",
+          "text": "Propose one task with default timing after preparation and my acceptance, say ready once when I point at my cup again I demonstrate Silent context only; do and judge. You only say ready"
+        },
+        {
+          "id": "226406fb-062a-445b-b66e-0f1e4c126bfa",
+          "text": ". One action total Silent context only; do"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "6e9b1107-c86c-4cb3-ac4a-6b9165e0281c",
+          "speech": "அது எந்த கோப்பை? I'm not sure which cup you mean. Can you point it out or describe it? Mm-hmm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "1b3b6168-bfe2-4cc4-9996-ffe196e91250",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "1800b18f-74d6-41e4-960c-1e6f6b874881",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "67a2c00e-d0c5-4b14-a44c-63c1e99e5ca1",
+          "speech": "Mm-hmm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "6590f434-95d1-4eac-9726-308ae281d2f6",
+          "speech": "Once",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "3d31efbe-c849-4a47-a0b4-b89ebffec617",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "87761c22-1a5d-439b-9d23-ba3f72b7952b",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "10002050-4fa4-4afc-8b9f-761589ab3567",
+          "speech": "Sure.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "00b27711-68fe-4516-955f-b47d380a2bb0",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "03c05d5a-ef1e-4634-ad1d-eba2945fbe58",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "a7176b61-27b7-4ebf-a364-ac9b3179b134",
+          "speech": "One-shot task seems fine; what counts as “demonstrate”—pointing at your cup or something else?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "d73a21e6-ea38-4e9f-90b8-10f57ccaf554",
+          "speech": "The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition; we’ll review terms before acceptance.",
+          "complete": true,
+          "association": "NONE"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "93fdeb863c46be9a721b813f77077847a1e7caf28c7465f620abb5ee8ab548fb",
+            "duration": 60.48,
+            "segments": [
+              {
+                "start": 9.01,
+                "end": 12.11,
+                "text": " To send your hand, I'm in the cult by.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 12.11,
+                "end": 13.81,
+                "text": " I'm not sure which cup you mean.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 13.81,
+                "end": 15.81,
+                "text": " Can you point it out or describe it?",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 15.81,
+                "end": 22.63,
+                "text": " Mm-hmm.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 22.63,
+                "end": 23.63,
+                "text": " Mm-hmm.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 23.63,
+                "end": 24.63,
+                "text": " Mm-hmm.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 24.63,
+                "end": 25.63,
+                "text": " Mm-hmm.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 25.63,
+                "end": 26.63,
+                "text": " Once.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 26.63,
+                "end": 27.63,
+                "text": " Mm-hmm.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 27.63,
+                "end": 28.63,
+                "text": " Sure.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 28.63,
+                "end": 40.78,
+                "text": " Mm-hmm.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 40.78,
+                "end": 42.78,
+                "text": " One-shot task seems fine.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 42.78,
+                "end": 49.34,
+                "text": " What counts as demonstrate, pointing at your cup or something else?",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 49.34,
+                "end": 51.46,
+                "text": " The proposal is saved and not active.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 51.46,
+                "end": 55.3,
+                "text": " Please demonstrate any hand pointing at the agreed region for recognition.",
+                "logprob": -0.2489489451260634
+              },
+              {
+                "start": 55.3,
+                "end": 57.3,
+                "text": " We'll review terms before acceptance.",
+                "logprob": -0.47833635807037356
+              }
+            ]
+          }
+        ]
+      },
+      "images": [],
+      "renderChecks": [],
+      "phase": "CONFIGURATION",
+      "actions": null,
+      "outcome": null,
+      "proposal": {
+        "goal": "Say “ready” once when the user points at My cup again after preparation and acceptance.",
+        "humanRole": "Silently demonstrate pointing at My cup, accept the proposal, then point at it again and judge the response.",
+        "agentRole": "Give only the agreed spoken response on the fresh pointing cue, with no gesture or follow-up.",
+        "success": "The user judges whether the agent said only “ready,” exactly once, after the fresh pointing cue.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pointing",
+            "minConfidence": 0,
+            "handPoint": {
+              "handedness": "any",
+              "target": {
+                "id": "8d2cd0d9-ccb0-4b29-909e-143dc41e5285:cup-a",
+                "revision": 2,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              }
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Say “ready” once when the user points at My cup again after preparation and acceptance.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pointing",
+              "action": "Say exactly: \"ready\"",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPoint": {
+                "handedness": "any",
+                "target": {
+                  "id": "8d2cd0d9-ccb0-4b29-909e-143dc41e5285:cup-a",
+                  "revision": 2,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "checkpoints": [],
+      "silentInputReceipts": [],
+      "commands": [
+        {
+          "name": "cupambiguous",
+          "result": {
+            "sourcePosition": 22,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": null,
+            "value": null
+          },
+          "source": {
+            "id": "22cd5520-d8ff-4f1e-bdd4-312e8688c40f",
+            "position": 22
+          },
+          "delivery": [
+            {
+              "serverMs": 1795561569498,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "4f86c31244351392cbcb5f93c27fcb8ab3b3240e563cfe7963d1f48ff148e073",
+              "sourceId": "22cd5520-d8ff-4f1e-bdd4-312e8688c40f",
+              "sequence": 9,
+              "contentBytes": 252,
+              "sourceIds": [
+                "22cd5520-d8ff-4f1e-bdd4-312e8688c40f"
+              ]
+            },
+            {
+              "serverMs": 1795561570115,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "4f86c31244351392cbcb5f93c27fcb8ab3b3240e563cfe7963d1f48ff148e073",
+              "sourceId": "22cd5520-d8ff-4f1e-bdd4-312e8688c40f",
+              "sequence": 10,
+              "contentBytes": 252,
+              "sourceIds": [
+                "22cd5520-d8ff-4f1e-bdd4-312e8688c40f"
+              ]
+            }
+          ],
+          "renderer": null
+        }
+      ],
+      "stimuli": [
+        {
+          "name": "cupambiguous",
+          "sha256": "56eaa358c8ff3a31fc0bed511225da54bcecb45936aa306f00dc5526a5308d34"
+        },
+        {
+          "name": "cuppropose",
+          "sha256": "b6623e540d8a9d79d5715a5c4711296eb232eb33229809d4db816f6009030ac6"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": null,
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": null,
+      "response": {},
+      "delivery": null,
+      "backendReportedTokens": 35314,
+      "backendRequests": 3,
+      "providerUsageSeconds": 60,
+      "runtime": {
+        "inputSeconds": 17.694,
+        "textBytes": 40656,
+        "exhausted": null,
+        "rtcElapsedSeconds": 64.371
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 184,
+      "contributionContext": []
     }
   ]
 }
