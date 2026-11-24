@@ -21,7 +21,7 @@ if(permission!=='--allow-paid-provider'||!output||!/^L-0[1-9](-comparison)?$/.te
     ||!['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname))throw Error('Use the isolated authorized hand runner');
 const plan=JSON.parse(fs.readFileSync(process.env.PROMETHEUS_HAND_PAID_PLAN)),reservation=JSON.parse(fs.readFileSync(ledger));
 assert.equal(reservation.authorization,'hand-interaction-2026-11-23-usd50');
-assert.ok(reservation.attempts.length<=36&&reservation.reservedUsd<=70);
+assert.ok(reservation.attempts.length<=66&&reservation.reservedUsd<=100);
 const directory=path.dirname(path.resolve(output));
 assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===1&&a.allocationRevision===plan.allocationRevision&&a.extensionAuthorization===plan.extensionAuthorization&&path.resolve(a.artifact)===directory));
 fs.writeFileSync(path.join(directory,'provider-attempt.started'),new Date().toISOString(),{flag:'wx'});
@@ -30,7 +30,7 @@ assert.equal(stimulus.providerCalls,0);assert.equal(stimulus.sampleRate,24000);
 assert.equal(plan.acceptanceRevision,2,'Use the owner-approved mode boundary');
 const report={mode,plan,acceptanceRevision:plan.acceptanceRevision,startedAt:new Date().toISOString(),automatedPassed:false,semanticReview:'PENDING',
   physicalAudibility:'NOT_RUN',sensorEvidence:'controlled scoped observations; not real-camera accuracy',
-  turns:[],observations:[],checkpoints:[],screenshots:[],renderChecks:[],network:[],browserErrors:[],stimulus};
+  turns:[],observations:[],observationTimings:[],observationTimingsDropped:0,checkpoints:[],screenshots:[],renderChecks:[],network:[],browserErrors:[],stimulus};
 const started=Date.now(),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let browser,page,agentPath,scoped,handle,closing=false,watchdog,pump,mediaSaved=false;
 const check=()=>{if(!closing&&Date.now()-started>390000)throw Error('Journey deadline');};
@@ -77,10 +77,19 @@ async function command(name,status,{kind,verify}={}){
   if(status==='ACCEPTED'){assert.equal(produced.length,1,'One canonical hand output');assert.ok(!produced[0].speech,'Competing Speech');verify?.(produced[0].motion);turn.action=produced[0];if(kind)await render(name,kind);}
   else assert.equal(produced.length,0,'Unaccepted command produced output');return turn;
 }
-async function observe(type,payload,{retain=true}={}){const result=await api(agentPath+'/acknowledge?profile=full_plan','POST',{type,actor:'controlled-camera',kind:'observation',payload:JSON.stringify(payload)});
-  if(retain)report.observations.push({type,payload,responseEvent:result.responseEvent?.id});return payload;}
-async function propose(name,verify,{clarification}={}){await say(name);let m=await until('saved draft',async()=>{const m=await memory();return m['coordination.draft']?m:null;});
+async function observe(type,payload,{retain=true}={}){const startedAt=Date.now();
+  try{const result=await api(agentPath+'/acknowledge?profile=full_plan','POST',{type,actor:'controlled-camera',kind:'observation',payload:JSON.stringify(payload)});
+    if(retain)report.observations.push({type,payload,responseEvent:result.responseEvent?.id});return payload;
+  }finally{if(report.observationTimings.length<2048)report.observationTimings.push({type,id:payload.observationId,capturedAt:payload.ts,startedAt,finishedAt:Date.now()});else report.observationTimingsDropped++;}}
+async function propose(name,verify,{clarification,requireClarification=false}={}){await say(name);let m=await until('saved draft',async()=>{const m=await memory();return m['coordination.draft']?m:null;});
+  assert.ok(!m['coordination.agreement']);assert.equal(m['task.actions']||0,0);
+  if(requireClarification)assert.ok(clarification&&m['coordination.draft'].questions.length,'The unspecified response needs clarification');
   if(clarification&&m['coordination.draft'].questions.length){
+    // A saved partial draft can precede its spoken question. Answer only after
+    // that question has finished, as a person would in this happy path.
+    const question=m['core.task.response'];assert.ok(question?.proposalReview);
+    await until('completed clarification question',async()=>{const response=(await memory())['core.task.response'];return response?.id===question.id&&response.consumed;});
+    await quiet();await checkpoint('clarification-question-completed');
     const previous=JSON.stringify(m['coordination.draft']);report.clarifications??=[];report.clarifications.push({questions:m['coordination.draft'].questions,input:clarification});
     await say(clarification);m=await until('clarified draft',async()=>{const next=await memory();return next['coordination.draft']&&JSON.stringify(next['coordination.draft'])!==previous?next:null;});
   }

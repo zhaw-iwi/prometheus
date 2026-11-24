@@ -66,21 +66,34 @@ class CoordinationAgentIntegrationTest {
     }
     @Test void liveSceneCapturesStayFreshDuringSlowInterpretation() throws Exception { slowPointing(false); }
     @Test void disappearingTargetDuringInterpretationCannotProduceMotion() throws Exception { slowPointing(true); }
+    @Test void freshSceneFrameAllowsProposalAfterPointingSampleExpires() throws Exception { slowPointing(false,true); }
+    @Test void freshSceneFrameCannotReviveADisappearedProposalTarget() throws Exception { slowPointing(true,true); }
     private void slowPointing(boolean disappear) throws Exception {
+        slowPointing(disappear,false);
+    }
+    private void slowPointing(boolean disappear,boolean proposal) throws Exception {
         var scope=create();
+        if(proposal){
+            var saved=agents.findById(scope.id()).orElseThrow();
+            saved.getEventHistory().appendEvent(Event.observation(Event.TYPE_HAND_POINTING,"camera",
+                    fixtures.behaviour.PointingFixture.observation("before-slow-inference","right",Instant.now().minusSeconds(24)).toString()));
+            agents.saveAndFlush(saved);
+        }
         var snapshot=fixtures.behaviour.ObservedTargetsFixture.cup(Instant.now());
         demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_SCENE_TARGETS,"camera",Event.KIND_OBSERVATION,snapshot.toString()),OutputProfile.FULL_PLAN).orElseThrow();
         var target=ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(memory(scope),Instant.now()).getFirst();
         var scene=JsonParser.parseString(demo.configureHandScene(scope.code(),scope.id(),fixtures.behaviour.ObservedTargetsFixture.virtualRequest(0).toString()).orElseThrow()).getAsJsonObject();
         demo.bindHandTarget(scope.code(),scope.id(),fixtures.behaviour.ObservedTargetsFixture.binding(target,scene.getAsJsonArray("targets").get(0).getAsJsonObject()).toString()).orElseThrow();
         var reference=ch.zhaw.prometheus.model.hand.HandScene.ref(target);
+        var agreement=fixtures.behaviour.HandSceneFixture.agreement(target);
         var entered=new java.util.concurrent.CountDownLatch(1);var release=new java.util.concurrent.CountDownLatch(1);
         when(gateway.infer(any())).thenAnswer(call->{
             entered.countDown();assertTrue(release.await(10,java.util.concurrent.TimeUnit.SECONDS));
+            if(proposal)return "{\"operation\":\"PROPOSE\",\"agreement\":"+agreement+",\"reply\":{}}";
             return "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"ACTION\",\"kind\":\"POINT\",\"value\":{\"kind\":\"point\",\"effector\":\"right_hand\",\"target\":"+reference.json()+"},\"silent\":true}}";
         });
         try(var pool=java.util.concurrent.Executors.newFixedThreadPool(2)) {
-            java.util.function.Supplier<Optional<ch.zhaw.prometheus.controllers.views.ResponseView>> request=()->demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_USER_UTTERANCE,"user",Event.KIND_OBSERVATION,"Point at My cup silently"),OutputProfile.FULL_PLAN);
+            java.util.function.Supplier<Optional<ch.zhaw.prometheus.controllers.views.ResponseView>> request=()->demo.acknowledge(scope.code(),scope.id(),new EventRequest(Event.TYPE_USER_UTTERANCE,"user",Event.KIND_OBSERVATION,proposal?"Propose a response to pointing at My cup; wait for preparation and acceptance":"Point at My cup silently"),OutputProfile.FULL_PLAN);
             var command=pool.submit(()->disappear?request.get():new TransactionTemplate(transactions).execute(status->request.get()));
             try {
                 assertTrue(entered.await(5,java.util.concurrent.TimeUnit.SECONDS));
@@ -95,6 +108,15 @@ class CoordinationAgentIntegrationTest {
             assertTrue(command.get(5,java.util.concurrent.TimeUnit.SECONDS).isPresent());
         }
         var saved=memory(scope);
+        if(proposal){
+            assertFalse(saved.containsKey(CoordinationMemory.AGREEMENT));
+            assertEquals("0",TaskMemory.text(saved,TaskMemory.ACTIONS,"0"));
+            assertTrue(agents.findById(scope.id()).orElseThrow().getEventHistory().toList().stream()
+                    .noneMatch(e->Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType())&&e.getPayload().contains("handAction")));
+            if(disappear){assertFalse(saved.containsKey(CoordinationMemory.DRAFT));assertTrue(saved.containsKey("coordination.lastFailure"));}
+            else {assertEquals(agreement,saved.get(CoordinationMemory.DRAFT));assertEquals("PREPARATION",CoordinationMemory.stage(saved));assertEquals(new JsonObject(),CoordinationMemory.evidence(saved));}
+            return;
+        }
         assertEquals(disappear?"CLARIFY":"ACCEPTED",saved.get("command.lastResult").getAsJsonObject().get("status").getAsString());
         if(disappear)assertTrue(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(saved,Instant.now()).isEmpty());
         else assertEquals(reference,ch.zhaw.prometheus.model.hand.HandScene.ref(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(saved,Instant.now()).getFirst()));

@@ -41,6 +41,16 @@ class LiveCommandResultUnitTest {
         }
         agent.reset(); assertEquals("",LiveCommandResult.facts(agent,now,id -> true));
     }
+    @Test void unresolvedTargetsReceiveCurrentTurnClarificationWithoutALegacySignSubstitution() {
+        var source=command("CLARIFY",false);
+        var receipt=storage.get(DirectCommands.LAST).getAsJsonObject();
+        receipt.add("kind",JsonNull.INSTANCE);receipt.add("value",JsonNull.INSTANCE);storage.put(DirectCommands.LAST,receipt);
+        var saved=receipt.deepCopy();var facts=LiveCommandResult.facts(agent,now,source.getId()::equals);
+        assertTrue(facts.contains("Not performed"));assertTrue(facts.contains("action or target"));
+        assertFalse(facts.contains("sign/gesture"));assertTrue(facts.contains("No new speaking occasion"));
+        assertTrue(facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=380);
+        assertEquals(saved,storage.get(DirectCommands.LAST));
+    }
     @Test void factsAreQuietDeduplicatedWithdrawnAndNeverAStartupAnnouncement() {
         command("ACCEPTED",false);
         var projection = new LiveContextProjection(new PromptMessageAssembler(),new LiveVoicePolicyAdapter(),Clock.fixed(now,ZoneOffset.UTC));

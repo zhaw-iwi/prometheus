@@ -18,6 +18,12 @@ function named(action,sign,effector='right_hand'){assert.equal(action.kind,'sign
 function pointing(action,direction,effector){assert.equal(action.kind,'point');assert.equal(action.direction,direction);assert.equal(action.effector,effector);assert.equal(action.frame.space,'robot_local');}
 function countOutput(action,n,hold){assert.equal(action.kind,'sequence');assert.equal(action.steps.length,n);action.steps.forEach((step,i)=>{assert.equal(step.holdMs,hold);outputPose(step.action,[['right',f.fingers.map((_,j)=>j<=i?0:1)]]);});}
 const actionOf=motion=>{assert.equal(motion.handAction.schemaVersion,1);return motion.handAction.action;};
+export function requireReadyContribution(events,beforeIds){
+  const heard=events.filter(e=>!beforeIds.includes(e.id)&&e.type==='resp.behaviour_plan'
+    &&e.provenance?.origin==='NATIVE'&&e.provenance.complete
+    &&/^ready[.!?]?$/i.test(JSON.parse(e.payload).speech?.trim()||''));
+  assert.equal(heard.length,1,'Expected one fresh complete native Ready contribution');
+}
 const conditions=(draft,key,verify)=>{assert.equal(draft.checks.length,1);assert.equal(draft.reactions.rules.length,1);verify(draft.checks[0][key]);verify(draft.reactions.rules[0][key]);};
 
 export async function runHandScenario(mode,c){
@@ -27,11 +33,15 @@ export async function runHandScenario(mode,c){
   const prepare=async(make,type)=>{await emit(make,type);await ready();await zero();await accept();};
   const finish=async(make,type,kind,verify)=>{const before=(await c.history()).map(e=>e.id);
     const cue=await emit(make,type);await observe(type||'obs.hand.pose',cue);assert.equal((await memory())['task.actions'],1);await complete();
-    const outputs=(await c.history()).filter(e=>!before.includes(e.id)&&e.type==='resp.behaviour_plan').map(e=>({id:e.id,...JSON.parse(e.payload)}));
+    const after=await c.history();if(mode==='L-05'||mode==='L-06')requireReadyContribution(after,before);
+    const outputs=after.filter(e=>!before.includes(e.id)&&e.type==='resp.behaviour_plan').map(e=>({id:e.id,...JSON.parse(e.payload)}));
     report.taskOutputs=outputs;if(verify){const hands=outputs.filter(p=>p.motion?.handAction);assert.equal(hands.length,1);verify(actionOf(hands[0].motion));}
     if(kind)await render('task-'+mode,kind); // Native speech is reviewed for meaning, not required to be absent.
   };
-  const framePump=async()=>{await emit(()=>f.point(null),'obs.hand.pointing');await c.runPump(()=>observe('obs.hand.pointing',f.point(null),{retain:false}));};
+  // Like the camera's scene capture, an empty scene keeps frame evidence fresh
+  // independently of the serialized pointing turn; it is never a pointing cue.
+  const framePump=async()=>{await emit(()=>f.point(null),'obs.hand.pointing');await emit(f.emptyScene,'obs.scene.targets');
+    await c.runPump([()=>observe('obs.scene.targets',f.emptyScene(),{retain:false}),()=>observe('obs.hand.pointing',f.point(null),{retain:false})]);};
   if(mode==='L-01'){
     await c.say('signcapabilities');await command('signshow','ACCEPTED',{kind:'thumbs_up',verify:m=>named(actionOf(m),'thumbs_up')});
     await command('signrepeat','ACCEPTED',{kind:'thumbs_up',verify:m=>named(actionOf(m),'thumbs_up')});
@@ -60,7 +70,7 @@ export async function runHandScenario(mode,c){
     await negative(()=>f.point('left'),'obs.hand.pointing');await prepare(f.point,'obs.hand.pointing');await negative(()=>f.point('left'),'obs.hand.pointing');await finish(f.point,'obs.hand.pointing');
     await command('displayshow','ACCEPTED',{kind:'point',verify:m=>{const a=actionOf(m);assert.deepEqual(a.target,target);assert.equal(a.effector,'right_hand');assert.ok(Math.abs(a.resolved.position.x-3.2)<.001);}});
   }else if(mode==='L-06'){
-    let ambiguous=true,person=true;await framePump();await c.stopPump();const scene=await api('/hand-scene','POST',f.sceneConfig(true));report.scene=scene;
+    let ambiguous=true,person=true;await emit(()=>f.point(null),'obs.hand.pointing');const scene=await api('/hand-scene','POST',f.sceneConfig(true));report.scene=scene;
     const fresh=async()=>{await observe('obs.scene.targets',f.targets({ambiguous,person}),{retain:false});};
     await fresh();await c.runPump([fresh,()=>observe('obs.hand.pointing',f.point(null),{retain:false})]);const ambiguousCue=await emit(f.point,'obs.hand.pointing');const pointEvent=(await c.history()).find(e=>e.type==='obs.hand.pointing'&&JSON.parse(e.payload).observationId===ambiguousCue.observationId);assert.equal(JSON.parse(pointEvent.payload).resolution.status,'ambiguous');
     await command('cupambiguous','CLARIFY',{});
@@ -70,11 +80,11 @@ export async function runHandScenario(mode,c){
     const visitor=await bind('visitor','Visitor',1);await command('personshow','ACCEPTED',{kind:'point',verify:m=>{const a=actionOf(m);assert.deepEqual(a.target,visitor);assert.deepEqual(a.resolved.position,{x:-3,y:2,z:0});}});
     person=false;await wait(3500);await command('personrepeat','CLARIFY',{});
   }else if(mode==='L-07'){
-    const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}),{clarification:'inputclarify'});
+    const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}),{clarification:'inputclarify',requireClarification:true});
     const dwell=draft.checks[0].handSequence.dwellMs;
     const counts=async values=>{for(const n of values){const start=Date.now();do{await emit(()=>f.count(n));await wait(250);}while(Date.now()-start<dwell+500);}await checkpoint('counts-'+values.join('-'));};
     await counts([1,3]);assert.deepEqual((await memory())['coordination.evidence'],{});await zero();await counts([1,2,3]);await ready();await accept();
-    await counts([1,3]);await zero();await counts([1,2,3]);await complete();await counts([3]);assert.equal((await memory())['task.actions'],1);
+    await counts([1,3]);await zero();const before=(await c.history()).map(e=>e.id);await counts([1,2,3]);await complete();requireReadyContribution(await c.history(),before);await counts([3]);assert.equal((await memory())['task.actions'],1);
   }else if(mode==='L-08'){
     const sequence=async(name,n,hold,stopAt=null)=>{const previousEvent=(await memory())['hand.execution.v1']?.id??null;
       const frames=c.sequenceFrames(name,n,{stopAt,previousEvent});const [turn]=await Promise.all([command(name,'ACCEPTED',{verify:m=>countOutput(actionOf(m),n,hold)}),frames]);

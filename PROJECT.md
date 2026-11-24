@@ -85,17 +85,18 @@ and regulation diagnostics remain future work.
   ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
   people/items, HI-09 input sequences, HI-10 output sequences/counting and HI-11
   integrated acceptance are complete and pushed; HI-12 real-provider acceptance is
-  incomplete. All 36 attempts/$70 reservations are exhausted, including the
-  owner-approved $20 extension on 2026-11-24; actual billing is unavailable.
-  Named signs, custom poses, directional pointing, output sequences and
-  conversation/latency have passing Live evidence, and all mode checks pass.
-  Ring, registered/observed targets and input sequences still need complete Live
-  acceptance; the final blank-caption capture fix has offline coverage only.
+  incomplete. The owner approved $20 and $30 extensions on 2026-11-24, for a
+  cumulative $100 reservation ceiling; actual billing is unavailable.
+  Latest named signs and paired conversation/latency pass, as do all mode checks.
+  Other earlier passes do not override final native-speech contradictions,
+  clarification errors and invalid START output; person/item acceptance remains
+  incomplete. All 66 reservations/$100 are used and further paid selections fail
+  closed. The original 36-entry/$70 ledger prefix is unchanged.
   The 2026-11-24 owner decision leaves strict silence
   unsupported in GPT-Live, preserving independent native speech; Text/Continuous
   silence is verified. Original failures remain unchanged.
   The owner authorized sequential implementation,
-  commit/push after each milestone, and now at most $70 cumulative provider spend.
+  commit/push after each milestone, and now at most $100 cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
 - Main synchronization and Live acknowledgement hooks (2026-11-23): merged remote
@@ -10441,3 +10442,37 @@ No deployment, agents integration, remote DB work or physical trials.
 
 Exact per-attempt outcomes, artifact paths, usage, source limits and remaining
 retests: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+
+### HI-12 second-extension checkpoint: guarded repairs and final regressions (2026-11-24)
+
+Continued from main `e8e4e8e3` under the additional $30 authorization. All 66
+reservations/$100 are used, with the original 36/$70 entries unchanged and no
+refunds. Further paid selections fail closed. Actual billing is unavailable.
+HI-12 remains **INCOMPLETE**; this checkpoint does not change acceptance criteria.
+
+Fresh passive scenes can establish camera frames during inference without
+becoming cues or reviving expired targets. Native context carries verified
+selected labels/mapping status using the existing scene source and expiry.
+Trusted fresh final sentences can consume support/review occasions inside older
+segments, without bypassing task capture, arming or acceptance. Empty generated
+ACT output now pauses before action spending or completion. Partial-proposal,
+geometry, role and direct-command guidance is clearer; legacy capabilities stay
+bounded. Native speech remains independent and backend nonverbal/task authority
+unchanged. No new playback approval, muting or replacement TTS.
+
+Final latest-source L-01 and matched L-09 pass. Earlier registered-target and
+fully specified input-sequence runs also passed. Complete audio review still
+fails native false refusals of independent pose/point commands, premature OK
+demonstration claims, and partial-sequence terms. Another run rejects invalid
+START output; person/item runs remain inconclusive or fail semantics. Correct
+backend/rendered output is not relabeled as a complete Live pass.
+
+Verification: 342 Java units in 32 suites, then 59 focused command/capability
+tests after the last guidance scoping; 48 isolated local-MySQL tests, six reviewed
+Playwright cases, 45 Python tests, 27 Node tests, nine schema examples, packaging
+and diff checks pass. DB/browser coverage includes the capture/empty-plan repairs;
+later selected-label enrichment has three unit tests, not a claimed DB rerun.
+All 30 new paid attempts have complete local audio review and unchanged source
+manifests during execution. No deployment, agents merge, remote DB work or
+physical trials. Exact failures and required final-source retests remain in
+[.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).

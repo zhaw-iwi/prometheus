@@ -172,6 +172,10 @@ public class Agent {
         if(storage.containsKey(ch.zhaw.prometheus.model.hand.ObservedTargets.KEY))result.add("observed",new com.google.gson.Gson().toJsonTree(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(storage,java.time.Instant.now())));
         return result;
     }
+    public String handTargetContext(String scenePayload,java.time.Instant now){
+        return ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile())
+                ? ch.zhaw.prometheus.model.hand.ObservedTargets.selectedContext(storage,scenePayload,now) : "";
+    }
     public com.google.gson.JsonObject handExecution(com.google.gson.JsonObject request,ch.zhaw.prometheus.model.policy.ExternalSpeech owner,java.time.Instant now){
         if(!ch.zhaw.prometheus.model.hand.HandFeatures.outputSequences(getInteractionProfile()))throw new IllegalArgumentException("Output sequences not declared");
         return request==null?ch.zhaw.prometheus.model.hand.HandExecution.view(storage,now):ch.zhaw.prometheus.model.hand.HandExecution.receipt(storage,getEventHistory(),executionEpoch(),owner,request,now);

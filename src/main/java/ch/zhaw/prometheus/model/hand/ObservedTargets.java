@@ -89,4 +89,21 @@ public final class ObservedTargets {
                 +"The backend resolves that destination and rechecks the observed target's freshness; do not substitute the destination reference. "
                 +"Temporary tracks and user labels are not identity. Output needs an explicitly registered virtual counterpart; never invent room coordinates. Unknown or multiple projected candidates require clarification. The backend rechecks expiry after inference.\n";
     }
+    /** Enrich one fresh scene source with its verified selection, never a new observation or action. */
+    public static String selectedContext(Storage storage,String payload,Instant now){
+        if(!storage.containsKey(SELECTED))return "";
+        try{
+            var ref=TargetRef.parse(storage.get(SELECTED));var target=require(storage,ref,now);
+            var source=JsonParser.parseString(payload).getAsJsonObject();
+            if(!ObservationEvidence.fresh(ObservationEvidence.observed(source),now,TTL_SECONDS,0)
+                    ||source.getAsJsonArray("targets").asList().stream().map(JsonElement::getAsJsonObject).noneMatch(t->HandScene.ref(t).equals(ref)))return "";
+            var binding=binding(storage,ref,now);boolean mapped=false;
+            if(!binding.get("destination").isJsonNull())try{
+                mapped="virtual".equals(HandScene.requireConfigured(storage,TargetRef.parse(binding.get("destination")),now).get("type").getAsString());
+            }catch(IllegalArgumentException unavailable){/* The alias remains known, but its output mapping does not. */}
+            var selected=new JsonObject();selected.add("label",binding.get("label"));selected.add("type",target.get("type"));selected.addProperty("outputMapped",mapped);
+            var facts=new JsonObject();facts.add("selectedTarget",selected);
+            return "Selected scene data: "+facts+". The user label is not personal identity. No action is implied.\n";
+        }catch(RuntimeException unavailable){return "";}
+    }
 }

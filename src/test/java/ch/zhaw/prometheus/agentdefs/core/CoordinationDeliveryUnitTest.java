@@ -106,6 +106,19 @@ class CoordinationDeliveryUnitTest {
         assertEquals("PENDING", TaskResponse.status(f.storage()));
         assertNotNull(f.policy().liveActivityContext().playbackCue());
     }
+    @ParameterizedTest @ValueSource(booleans = {false, true})
+    void emptyGeneratedCueResponsePausesWithoutSpendingOrClaimingCompletion(boolean live) {
+        var runtime = live ? f.live : f.text;
+        var agreement = f.sensor(false);agreement.getAsJsonObject("reactions").addProperty("maxActions", 1);
+        f.propose(agreement, runtime);f.start(runtime);if (live) capture();f.openCueWindow();
+        when(f.gateway.infer(any())).thenReturn("{}");clearInvocations(f.gateway);
+        f.sign("rock", 1, Instant.now(), runtime);
+        assertEquals("PAUSED", TaskMemory.phase(f.storage()));
+        assertEquals(0, f.storage().get(TaskMemory.ACTIONS).getAsInt());
+        assertFalse(f.storage().containsKey(CoordinationDelivery.KEY));
+        f.sign("rock", 1, Instant.now().plusMillis(1), runtime);
+        verify(f.gateway, times(1)).infer(any());
+    }
     @Test void finalSpeechAndHandPlaybackMustBothCompleteInEitherOrder(){
         for(boolean handFirst:new boolean[]{false,true}){
             // Use the existing real Live association/receipt boundary for speech.

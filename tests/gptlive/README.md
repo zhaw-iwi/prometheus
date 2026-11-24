@@ -1,17 +1,31 @@
 # GPT-Live acceptance
 
-## Hand acceptance allocation exhausted (2026-11-24)
+## Hand acceptance second extension (2026-11-24)
 
-The owner approved another $20 for HI-12. All **36 attempts/$70 reservations**
-are now used; no further paid selections are authorized. Actual billing is not
-available. Allocation revision 5 preserved the preceding 28 attempts/$62 and
-reserved eight additional $1 attempts, reducing backend requests from 36 to 14.
-Other caps and model routes stayed unchanged; the conservative bound was
-$0.9587424 per new attempt. Missing, shortened or altered reservation amounts
-fail closed; extension entries retain `hand-interaction-2026-11-24-usd20-extension`.
+The owner approved another $30 after the earlier $20 extension. Allocation 6
+preserves **36 attempts/$70 reservations** and permits at most thirty further $1
+attempts, up to **66 attempts/$100 cumulatively**. Actual billing is unavailable.
+Each attempt retains the 14-request limit, priced models and other technical
+caps, with a conservative bound of $0.9587424. Missing, shortened or altered
+reservation amounts fail closed. Prior entries retain their authorizations;
+new entries use `hand-interaction-2026-11-24-usd30-extension`. No refunds.
+This allocation is now exhausted: **66 attempts/$100 reserved**, original 36/$70
+entries unchanged. Further paid selections reject; the allocation is not renewed
+by rerunning tests or deleting local artifacts.
 Acceptance revision 2 is unchanged. The harness waits for the consumed preparation
 request before demonstrating the cue, uses "I accept the current proposal", and
-allows one predeclared input-sequence clarification without relaxing term checks.
+requires one predeclared input-sequence clarification: first leave the response
+unspecified, then supply Ready once and human judgement. Term checks stay strict.
+The clarification answer waits for the completed native question. Spoken Ready
+journeys also require one fresh complete native Ready event after the execution
+cue; an empty plan or completion narration cannot stand in for that response.
+This assertion supplements the required complete audio and semantic review.
+Shortened local audio retains all required conditions and roles. Direction and
+registered-target fixtures send independent empty-scene captures, like the camera
+pipeline, to establish fresh coordinates during inference without supplying a cue.
+Bounded observation timings record capture/request gaps without changing timestamps.
+Each independent capture pump includes HTTP time in its 500 ms interval and
+permits only one in-flight request per sensor kind.
 HI-12 remains incomplete. See [the evidence ledger](../../.agents/HAND_INTERACTION_RESULTS.md).
 
 ## Native conversation independence (GLF-02)

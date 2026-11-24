@@ -87,6 +87,8 @@ public class LiveContextProjection {
                     : freshness.equals("expired") ? "Current value unknown; previous observation expired."
                     : freshness.equals("unknown") ? "Current value unknown; missing/invalid source age or unreliable detection."
                     : assembler.toPromptMessage(event).getContent();
+            if (Event.TYPE_SCENE_TARGETS.equals(event.getType()) && freshness.equals("fresh"))
+                text = agent.handTargetContext(event.getPayload(), now) + text;
             if (text.isBlank()) continue;
             String key = event.getId() == null ? "unpersisted-" + index : event.getId().toString();
             var ids = event.getId() == null ? List.<UUID>of() : List.of(event.getId());

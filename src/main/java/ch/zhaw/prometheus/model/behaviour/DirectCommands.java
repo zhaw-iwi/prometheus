@@ -29,11 +29,16 @@ public final class DirectCommands {
     }
     public static String voiceGuidance(AgentInteractionProfile profile) {
         if (!enabled(profile)) return "";
-        return " " + capabilities(profile)
-                + " One immediate demo needs no body, setup, agreement or second consent."
+        // Live already supplies the capability-aware profile as its own section.
+        return (profile.isCapabilityAwareness() ? "Direct output requests:" : " " + capabilities(profile))
+                + " One supported, unambiguous immediate demo needs no task agreement or second consent."
+                + (HandFeatures.poses(profile) && HandActions.enabled(profile)
+                        ? " A specified sign/pose needs no sensor reading or task restart."
+                        : " A supported sign needs no sensor reading or task restart.")
                 + " Hear the full request; honor silence, else acknowledge once without claiming execution."
                 + (HandActions.enabled(profile) && HandFeatures.geometry(profile)
                         ? " Clarify an OK sign: thumbs up or diver's ring; don't announce a demo yet." : "")
+                + (HandFeatures.pointing(profile)?" Pointing needs a known frame or fresh selected target. Clarify unresolved targets; never claim movement from a request alone.":"")
                 + (HandFeatures.outputSequences(profile)?" Capability queries imply no action; conditional actions need agreement.":" Capability queries imply no action; conditional/multiple actions need agreement.")
                 + " Results concern only their pending turn; never acknowledge twice.";
     }
@@ -67,7 +72,8 @@ public final class DirectCommands {
                         + "The value MUST be a string; effector is its sibling, never inside value. "
                         + "For 'show a right-hand thumbs up' return \"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_SIGN\",\"value\":\"thumbs_up\",\"effector\":\"right_hand\",\"silent\":false}. "
                         + "The separate motion.handAction shape is constructed by the backend; never put that shape in a HAND_SIGN command value.\n" : "")
-                + (HandFeatures.poses(profile) && HandActions.enabled(profile) ? "For an immediate custom pose use command kind HAND_POSE, value equal to the complete {kind:pose,hands:[...]} action above, and no effector field. HAND_SIGN also accepts shaka, horns and middle_finger.\n" : "")
+                + (HandFeatures.poses(profile) && HandActions.enabled(profile) ? "An explicit finger pose is an immediate HAND_POSE command even in task reflection; do not ask to restart the completed task or obtain a sensor reading. "
+                        + "For an immediate custom pose use command kind HAND_POSE, value equal to the complete {kind:pose,hands:[...]} action above, and no effector field. HAND_SIGN also accepts shaka, horns and middle_finger.\n" : "")
                 + (HandFeatures.pointing(profile) ? "For an immediate point, use command intent ACTION, kind POINT, and value equal to the full point action. "
                         + "Example selected-target fields: \"command\":{\"intent\":\"ACTION\",\"kind\":\"POINT\",\"value\":{\"kind\":\"point\",\"effector\":\"right_hand\",\"target\":<exact selected reference>},\"silent\":false}. "
                         + "Do not place the requested point in reply.motion or revise a task for this direct request.\n" : "")
@@ -129,7 +135,7 @@ public final class DirectCommands {
         String status, words;
         boolean action = false;
         if (request.intent() == Intent.CAPABILITY) { status = "CAPABILITY"; words = capabilities(profile); }
-        else if (request.intent() == Intent.CLARIFY) { status = "CLARIFY"; words = "Which single supported sign or gesture would you like me to show?"; }
+        else if (request.intent() == Intent.CLARIFY) { status = "CLARIFY"; words = "Which action or target do you mean?"; }
         else if (request.intent() == Intent.UNSUPPORTED || !allows(profile, request)) {
             status = "UNSUPPORTED"; words = "That action is not available here. " + capabilities(profile);
         } else if (busy(storage)) {

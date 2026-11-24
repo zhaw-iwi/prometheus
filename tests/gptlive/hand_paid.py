@@ -1,4 +1,4 @@
-"""Separate, fail-closed $50 plus owner-authorized $20 extension. Importing this module never bills."""
+"""Separate, fail-closed $50 plus owner-authorized $20 and $30 extensions. Importing this module never bills."""
 import hashlib
 import json
 import os
@@ -11,6 +11,7 @@ LEDGER = ROOT / 'target/hand-interaction-budget.json'
 MODES = tuple(f'L-{i:02d}' for i in range(1, 10)) + ('L-09-comparison',)
 AUTHORIZATION = 'hand-interaction-2026-11-23-usd50'
 EXTENSION = 'hand-interaction-2026-11-24-usd20-extension'
+SECOND_EXTENSION = 'hand-interaction-2026-11-24-usd30-extension'
 LIMITS = dict(backendRequests=14, requestBytes=80000, inputFramingTokenAllowance=2048,
               completionTokensPerRequest=2048, reportedTokens=250000, sessions=1,
               sessionSeconds=360, journeySeconds=390, visitorTurns=12,
@@ -22,9 +23,9 @@ def validate(plan, model):
     if plan.get('acceptanceRevision') != 2:
         raise ValueError('Use hand acceptance revision 2; preserve earlier failures')
     if (plan.get('schema') != 'hand-paid-plan-v1' or plan.get('authorized') is not True
-            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 36
-            or plan.get('maximumReservedUsd') != 70 or plan.get('reserveUsdPerAttempt') != 1
-            or plan.get('allocationRevision') != 5 or plan.get('extensionAuthorization') != EXTENSION):
+            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 66
+            or plan.get('maximumReservedUsd') != 100 or plan.get('reserveUsdPerAttempt') != 1
+            or plan.get('allocationRevision') != 6 or plan.get('extensionAuthorization') != SECOND_EXTENSION):
         raise ValueError('Unreviewed hand authorization')
     if plan.get('models') != {'backend': 'gpt-5.6-luna', 'live': 'gpt-live-1'} or model != 'gpt-5.6-luna':
         raise ValueError('Unpriced hand model')
@@ -48,20 +49,20 @@ def history(ledger=LEDGER):
     data = json.loads(ledger.read_text(encoding='utf-8'))
     attempts = data.get('attempts')
     if (data.get('authorization') != AUTHORIZATION or not isinstance(attempts, list)
-            or not 28 <= len(attempts) <= 36 or any(a.get('mode') not in MODES
+            or not 36 <= len(attempts) <= 66 or any(a.get('mode') not in MODES
                                        or a.get('reservedUsd') != (4 if i<3 else 2 if i<28 else 1)
                                        or not a.get('artifact')
-                                       or i >= 22 and (a.get('allocationRevision') != (4 if i<28 else 5) or a.get('extensionAuthorization') != EXTENSION)
+                                       or i >= 22 and (a.get('allocationRevision') != (4 if i<28 else 5 if i<36 else 6) or a.get('extensionAuthorization') != (EXTENSION if i<36 else SECOND_EXTENSION))
                                        for i,a in enumerate(attempts))
             or data.get('reservedUsd') != sum(a['reservedUsd'] for a in attempts)
-            or data.get('reservedUsd') > 70):
+            or data.get('reservedUsd') > 100):
         raise ValueError('Invalid hand ledger; never replace or reset it')
     return data
 
 
 def available_budget(mode, ledger=LEDGER):
     data = history(ledger)
-    if mode not in MODES or len(data['attempts']) >= 36 or data['reservedUsd'] + 1 > 70:
+    if mode not in MODES or len(data['attempts']) >= 66 or data['reservedUsd'] + 1 > 100:
         raise ValueError('Hand budget exhausted or invalid selection; no provider call permitted')
     return data
 
@@ -72,7 +73,7 @@ def reserve(mode, artifact, ledger=LEDGER):
     descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     try:
         data = available_budget(mode, ledger)
-        data['attempts'].append({'mode': mode, 'artifact': str(Path(artifact).resolve()), 'reservedUsd': 1, 'allocationRevision': 5, 'extensionAuthorization': EXTENSION})
+        data['attempts'].append({'mode': mode, 'artifact': str(Path(artifact).resolve()), 'reservedUsd': 1, 'allocationRevision': 6, 'extensionAuthorization': SECOND_EXTENSION})
         data['reservedUsd'] += 1
         temporary = ledger.with_suffix('.tmp')
         temporary.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')

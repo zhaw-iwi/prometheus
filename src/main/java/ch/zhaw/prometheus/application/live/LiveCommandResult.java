@@ -25,7 +25,7 @@ public final class LiveCommandResult {
             case "ACCEPTED" -> "Accepted output plan: " + acceptedPlan(receipt) + ". Rendering/physical execution unconfirmed.";
             case "CONFLICT" -> "Not performed: pending task output conflicts. Ask whether to resolve or pause it; no task change made.";
             case "UNSUPPORTED" -> "Not performed: unsupported output. Offer a declared alternative.";
-            case "CLARIFY" -> "Not performed: clarify one supported sign/gesture.";
+            case "CLARIFY" -> "Not performed: the action or target is unresolved and needs clarification. No other action was substituted.";
             case "CAPABILITY" -> "Capability question only; no demonstration requested.";
             default -> "";
         };

@@ -124,8 +124,10 @@ public record HandPoseCondition(String handedness, List<Comparison> all, Integer
     }
 
     public static String coordinationInstructions() {
-        return "\nPose v2 coordination: obs.hand.pose rules use handPose exactly {\"schemaVersion\":1,\"hands\":[{\"handedness\":\"any|left|right\","
+        return "\nPose v2 coordination: obs.hand.pose rules use handPose with base shape {\"schemaVersion\":1,\"hands\":[{\"handedness\":\"any|left|right\","
                 + "\"all\":[{\"finger\":\"thumb|index|middle|ring|little\",\"operator\":\"eq|lt|gt\",\"value\":\"straight|neutral|bent\"}]}]}. "
+                + "When hand geometry is declared, each hand may also contain relations from its input geometry contract. Relations AND all finger comparisons combine in that same hand mask; keep every requested numeric threshold and bend. Do not replace an explicit geometry condition with a named sign. "
+                + "A tip relation does not imply any bend state for its fingers: include only requested bend constraints in all. The rule's action, effect, minConfidence, samples and cooldownSeconds stay outside handPose. "
                 + "Use 1..2 distinct hands and 1..5 distinct finger comparisons per hand. Partial input masks leave other fingers unconstrained. "
                 + "Stretched means straight; bend means bent. eq accepts a state or explicit numeric 0..1; lt/gt only numbers. "
                 + "All hands and fingers must match ONE frame; unknown is never neutral. minConfidence must be 0 (bend is not a confidence score). "

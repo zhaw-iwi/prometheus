@@ -494,12 +494,13 @@ HI-12 real OpenAI acceptance is still incomplete. Its revised mode contract
 Live hand actions and tasks carry no strict-silence guarantee; empty backend
 speech does not silence Live. No playback approval, buffering, muting or replacement
 TTS is added for this purpose. Strict silence is tested in Text and Continuous.
-Named-sign, custom-pose, directional-pointing, output-sequence and conversation/
-latency journeys have passing Live evidence. Text/Continuous silence and native
-ownership checks also pass. Ring, registered/observed targets and input sequences
-remain incomplete; the final blank-caption capture fix has offline coverage only.
-All 36 attempts/$70 reservations are exhausted, including the owner-approved $20
-extension; actual billing is unavailable. Previous failures remain recorded under
+Latest named-sign and conversation/latency journeys pass. Other journeys retain
+earlier passes, but final regressions expose native speech contradicting correct
+pose/point output, ambiguity handling, clarification errors and an invalid START
+response. Person/item acceptance remains incomplete. Text/Continuous silence and
+native ownership checks pass. All 66 reservations/$100 are used after the owner’s
+$20 and $30 extensions; further paid selections fail closed. Actual billing is
+unavailable. Previous failures remain recorded under
 their original rubric. See [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
 Hand observations project validated fingertip gaps, spread and camera-plane axes
@@ -508,6 +509,22 @@ do not establish physical contact or depth. Structured hand-command receipts
 provide bounded quiet Live context without interpreting their null scalar value.
 Whitespace-only input captions cannot interrupt an assistant capture; real voiced
 input and meaningful new user text retain the existing interruption behavior.
+Fresh passive scene captures can establish the current camera frame during slow
+inference; they never supply a pointing cue or renew a stale target. Frame changes
+and the three-second scene expiry still reject. Direct-command clarification
+covers unresolved actions and targets in all modes. Live keeps native speech
+ownership and receives bounded current-turn facts about rejected output.
+Specified sign/pose demonstrations need no sensor reading or completed-task
+restart. Partial sensor proposals retain known checks while an unknown response
+is clarified; acceptance and fresh preparation remain required. A preparation
+acknowledgement may finish within a native utterance that began earlier only when
+trusted capture parts establish a complete new sentence after its occasion.
+Incomplete, mismatched, expired or wrong-session captures remain unconfirmed;
+this never supplies recognition evidence or authorizes a task action.
+Live scene context includes the selected target's user label and whether its
+virtual output mapping is current. The label stays attached to the same scoped
+target generation and scene capture, expires with that capture, and establishes
+no personal identity. Disappearance or a changed generation cannot reuse it.
 
 Coordination adapts one equivalent model-output encoding before validation: an
 exact typed hand condition in a preparation check or reaction rule, inside
@@ -3045,6 +3062,10 @@ Telemetry exports include bounded task readiness changes and content-free
 phase/revision/cue-source correlation. Distinct fixed failure categories separate
 provider failures from invalid task/configuration output. Captions that do not
 establish the response boundary remain visibly unconfirmed in the same footer.
+An empty generated plan for an `ACT` cue pauses through the existing generation
+failure path before spending the action or announcing completion. Further sensor
+samples cannot retry it automatically; explicit resume is required. Silent hand
+actions still carry their requested motion and remain valid.
 The backend stores a draft/active task and exposes its configuration,
 execution and completion phases in the existing state/storage monitor. Spoken
 revisions can propose a replacement. Stop/cancel ends the task; pause preserves

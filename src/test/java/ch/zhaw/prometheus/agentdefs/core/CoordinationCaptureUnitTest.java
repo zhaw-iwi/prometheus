@@ -9,8 +9,44 @@ import ch.zhaw.prometheus.model.coordination.CoordinationMemory;
 import ch.zhaw.prometheus.model.task.TaskMemory;
 import ch.zhaw.prometheus.model.task.TaskResponse;
 import ch.zhaw.prometheus.model.coordination.CoordinationSupport;
+import ch.zhaw.prometheus.model.event.SpeechProvenance;
+import ch.zhaw.prometheus.model.policy.LiveSpeechPart;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 
 class CoordinationCaptureUnitTest {
+    @ParameterizedTest @ValueSource(strings = {"fresh", "review", "old", "split", "mismatch", "future", "unordered", "incomplete", "owner", "expired", "missing"})
+    void preparationAcknowledgementUsesOnlyACompleteFreshSentenceFromTrustedParts(String variant) {
+        var f = new CoordinationAgentUnitTest();var proposal = f.sensor(true);
+        if (variant.equals("review")) { proposal.add("reactions", com.google.gson.JsonNull.INSTANCE);proposal.getAsJsonArray("questions").add("What response should follow the cue?"); }
+        f.propose(proposal, f.live);
+        var response = f.storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject();
+        var boundary = Instant.parse(response.get("created").getAsString());
+        Instant before = boundary.minusMillis(200), after = boundary.plusMillis(200), now = boundary.plusSeconds(1);
+        if (variant.equals("expired")) now = boundary.plusSeconds(46);
+        String prefix = "I can help. ", request = "Please demonstrate the agreed signs before acceptance.";
+        var parts = List.of(new LiveSpeechPart(prefix, before), new LiveSpeechPart(request, after));
+        switch (variant) {
+            case "old" -> parts = List.of(new LiveSpeechPart(prefix, before), new LiveSpeechPart(request, boundary));
+            case "split" -> parts = List.of(new LiveSpeechPart(prefix + "Please ", before), new LiveSpeechPart(request.substring(7), after));
+            case "mismatch" -> parts = List.of(new LiveSpeechPart(prefix, before), new LiveSpeechPart("Different words.", after));
+            case "future" -> parts = List.of(new LiveSpeechPart(prefix, before), new LiveSpeechPart(request, now.plusMillis(1)));
+            case "unordered" -> parts = List.of(new LiveSpeechPart(prefix, after), new LiveSpeechPart(request, before));
+            case "missing" -> parts = List.of();
+        }
+        var event = f.agent.recordExternalSpeech(prefix + request, new SpeechProvenance(SpeechProvenance.Origin.NATIVE,
+                variant.equals("owner") ? UUID.randomUUID() : f.owner.sessionId(), f.owner.epoch(), UUID.randomUUID().toString(),
+                SpeechProvenance.Association.NONE, List.of(), !variant.equals("incomplete")));
+        boolean accepted = variant.equals("fresh") || variant.equals("review");
+        assertEquals(accepted, f.policy().liveSpeechCaptured(event, f.owner, before, now, parts));
+        assertEquals(accepted, f.storage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().has("consumed"));
+        assertEquals(variant.equals("review") ? "COORDINATION" : "PREPARATION", CoordinationMemory.stage(f.storage()));
+        assertTrue(CoordinationMemory.evidence(f.storage()).isEmpty());
+        assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
+        assertFalse(f.storage().containsKey(CoreTaskVoice.SPOKEN_PROMPT));
+        assertFalse(f.storage().containsKey(TaskMemory.ACTIONS));
+    }
     @ParameterizedTest @ValueSource(strings = {"A dry", "Tell me a", "Make it a", "Can you", "My answer is", "I think it is", "Die Antwort ist"})
     void unfinishedInputCannotReviseOrExecuteEvenIfProviderWouldCompleteIt(String fragment) {
         var f = new CoordinationAgentUnitTest(); f.propose(f.sensor(false), f.text); f.start(f.text);

@@ -1,7 +1,7 @@
 // Harness-only regression: this is not provider, detector or application acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {runHandScenario} from './hand_scenarios.mjs';
+import {runHandScenario,requireReadyContribution} from './hand_scenarios.mjs';
 
 function poseJourney({wrongOutput=false}={}) {
   const fingers=['thumb','index','middle','ring','little'];
@@ -40,4 +40,13 @@ test('dropping Live silence does not accept an incorrect finger pose',async()=>{
   const trial=poseJourney({wrongOutput:true});
   await assert.rejects(()=>runHandScenario('L-02',trial.context),/Wrong left index/);
   assert.deepEqual(trial.commands,[]);
+});
+
+test('completion without a fresh native requested word cannot pass the spoken journey',()=>{
+  const event=(id,speech,origin='NATIVE',complete=true)=>({id,type:'resp.behaviour_plan',payload:JSON.stringify({speech}),provenance:{origin,complete}});
+  const prior=event('old','Ready.');
+  for(const output of [event('new','Task complete.'),event('new',undefined),event('new','Ready.','SYNTHESIZED'),event('new','Ready.','NATIVE',false)])
+    assert.throws(()=>requireReadyContribution([prior,output],['old']),/fresh complete native Ready/);
+  requireReadyContribution([prior,event('new','Ready.')],['old']);
+  assert.throws(()=>requireReadyContribution([event('one','Ready.'),event('two','Ready.')],[]),/fresh complete native Ready/);
 });

@@ -20,6 +20,8 @@ public final class CoordinationTaskContract {
     public static final String GUIDANCE = """
 
             Supported interaction contract: sensor rules emit independent reactions; they do not implement a question/answer/feedback loop.
+            In user requests, I/me/my refers to the human and you/your to the agent. Preserve the explicitly assigned roles.
+            The human judging the agent's output is a success criterion, not an additional agent judgement, acknowledgement or feedback action.
             Never promise a sensor-triggered riddle game or invite answers that the accepted task cannot evaluate.
             Offer a supported dialogue alternative or explicitly output-only sensor response; keep requested cues unless the user accepts a replacement.
             Explain the finite contribution/action limit even for 'until stop'; never promise unlimited work.
@@ -88,6 +90,7 @@ public final class CoordinationTaskContract {
                 + "When currentStage is REFLECTION, a user report about the completed task uses REFLECT, not COMPLETE; "
                 + "COMPLETE is only for a task still in execution. Keep the report as the user's assessment, not a measured outcome. "
                 + "When unansweredProposalQuestions is present, use PROPOSE to fill the incomplete draft from the user's clarification. "
+                + "That incomplete draft has no protectedRevisionTerms: update goal, roles and success from the clarification; do not retain placeholder recognition-only or no-response terms. "
                 + "Preserve the requested cues, limits and preparation; resolving a question is not REPLACE or START. "
                 + "For a response-content/style PROPOSE revision, copy protectedRevisionTerms exactly into the revised agreement. "
                 + "In particular do not rewrite humanRole or success to mention the new response: those fixed strings require explicit REPLACE consent. "

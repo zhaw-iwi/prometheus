@@ -2,6 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {startObservationPumps} from './hand_observation_pump.mjs';
 
+test('capture cadence includes request duration without overlap or a burst',async()=>{
+  let time=0,active=0;const starts=[],waits=[];
+  const pump=startObservationPumps([async()=>{
+    assert.equal(active++,0);starts.push(time);
+    if(starts.length===1)time+=750;
+    await Promise.resolve();active--;
+    if(starts.length===3)pump.running=false;
+  }],async ms=>{waits.push(ms);time+=ms;},()=>time);
+  await pump.done;
+  assert.deepEqual(starts,[500,1250,1750]);assert.deepEqual(waits,[500,0,500]);
+  assert.equal(pump.error,null);assert.equal(active,0);
+});
+
 test('blocked pointing leaves scene captures fresh and cleanup drains the owned request',async()=>{
   let release,pointRequests=0,sceneCaptures=0;
   const blocked=new Promise(resolve=>{release=resolve;});

@@ -3,8 +3,8 @@
   "authorized": true,
   "authorization": "hand-interaction-2026-11-23-usd50",
   "dated": "2026-11-23",
-  "maximumAttempts": 36,
-  "maximumReservedUsd": 70,
+  "maximumAttempts": 66,
+  "maximumReservedUsd": 100,
   "reserveUsdPerAttempt": 1,
   "models": {
     "backend": "gpt-5.6-luna",
@@ -48,9 +48,9 @@
   },
   "stimulus": "Locally synthesized Windows speech, 24kHz mono PCM. Controlled sensor/scene observations; real provider interpretation, speech and capture. No provider synthesis or grading.",
   "rubric": "Review complete captured replies and received native audio, plus synchronized visible output. Wrong sign, side, direction, target, order, roles, terms, count, renewed consent after activation, premature execution, false cancellation, denial or completion claim fails. Missing evidence is INCONCLUSIVE. GPT-Live strict silence is unsupported by owner decision 2026-11-24; truthful optional native speech is allowed. No backend playback approval, buffering, muting or replacement TTS may make Live pass. Text/Continuous strict silence is verified separately. Sensor fixtures do not prove camera accuracy; digital receipts do not prove physical actuation. Preserve revision-1 failures; require new revision-2 evidence.",
-  "failurePolicy": "Keep every failed/crashed reservation and artifact. No refunds, ledger reset or automatic paid retries. Ten initial sessions cover L-01..08 and separate L-09 sessions. Further diagnostic attempts require explicit selection, within 36 total attempts and USD 70 reserved.",
-  "allocationRevision": 5,
-  "allocationReason": "Allocation 5 preserves all 28 attempts/USD 62. Reduce future backend requests from 36 to 14; unchanged other bounds yield USD 0.9587424 maximum per attempt. Allow eight USD 1 reservations, at most 36 attempts/USD 70 under the existing owner authorization; no refund or reset.",
+  "failurePolicy": "Keep every failed/crashed reservation and artifact. No refunds, ledger reset or automatic paid retries. Ten initial sessions cover L-01..08 and separate L-09 sessions. Further diagnostic attempts require explicit selection, within 66 total attempts and USD 100 reserved.",
+  "allocationRevision": 6,
+  "allocationReason": "Allocation 6 preserves all 36 attempts/USD 70. Owner authorized an additional USD 30 on 2026-11-24. At most thirty further USD 1 reservations; unchanged models, acceptance revision and technical caps, USD 0.9587424 conservative bound. No refunds or ledger reset.",
   "acceptanceRevision": 2,
-  "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+  "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
 }

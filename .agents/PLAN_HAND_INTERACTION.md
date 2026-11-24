@@ -2,14 +2,16 @@
 
 Prepared: 2026-11-23. Baseline: main `025697df`.
 Status: **HI-01 through HI-11 COMPLETE; HI-12 INCOMPLETE**.
-The owner-authorized $20 extension is exhausted: 36 attempts/$70 reserved;
-required Live retests remain open. Actual billing is unavailable.
+The owner authorized another $30 on 2026-11-24: preserve 36 attempts/$70 and
+allow at most 30 further $1 reservations, 66 attempts/$100 cumulatively.
+All 66 reservations/$100 are now used; further paid selections fail closed.
+Required Live acceptance remains open. Actual billing is unavailable.
 HI-12 acceptance revision 2: owner decision of 2026-11-24 preserves native Live speech independence.
 Development branch: `main`; deployment branch: `agents`.
 
 The owner authorized sequential implementation on 2026-11-23: complete and verify
 one milestone, commit and push it to main, then continue to the next. The new
-OpenAI allowance was $50 and is now $70 with the 2026-11-24 extension, including failures, backend
+OpenAI allowance was $50 and is now $100 after the $20 and $30 extensions on 2026-11-24, including failures, backend
 inference, native audio, synthesis and grading. Use a separate bounded ledger;
 previous exhausted authorizations do not carry forward. No deployment or physical
 robot acceptance is authorized or implied. See `HAND_INTERACTION_RESULTS.md` for
@@ -742,3 +744,28 @@ and native confirmed/uncertain delivery; the last blank-caption interruption fix
 has not been retested with the provider. Keep HI-12 **INCOMPLETE** and preserve all
 prior verdicts. Exact fixes, artifacts, verification and required retests are in
 `HAND_INTERACTION_RESULTS.md`; this checkpoint authorizes no further allocation.
+
+
+### Second owner-authorized extension (2026-11-24)
+
+The owner explicitly chose another $30. Allocation revision 6 preserves all
+36 attempts/$70 and permits at most thirty further $1 reservations, up to
+66 attempts/$100 cumulatively. The original and first-extension identities stay
+unchanged in historical entries; new entries record
+`hand-interaction-2026-11-24-usd30-extension`. Models, technical limits and the
+$0.9587424 conservative bound are unchanged. Diagnose the remaining failures
+offline first; keep acceptance revision 2 and all previous verdicts. Stop paid
+work at this ceiling, even if the milestone remains incomplete.
+
+### Second-extension final checkpoint (2026-11-24)
+
+All 66 reservations/$100 are now used; the original 36/$70 entries are unchanged
+and further selections reject before provider access. Latest L-01 and paired
+L-09 pass. L-05 and the fully specified L-07 obtained earlier complete passes in
+this extension, but later regressions and the required L-07 clarification remain
+open. L-02/L-03/L-04 expose native speech contradicting correct backend output;
+L-08 returns an invalid START shape; L-06 still lacks complete provider acceptance.
+HI-12 stays **INCOMPLETE**. Offline units, isolated MySQL, mode/visual checks and
+packaging pass. See `HAND_INTERACTION_RESULTS.md` for exact scope, source manifests,
+failed reproductions and remaining work. No architecture change, rubric relaxation
+or additional paid authorization is implied by this checkpoint.

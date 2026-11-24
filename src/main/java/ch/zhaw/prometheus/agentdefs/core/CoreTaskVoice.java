@@ -51,6 +51,24 @@ final class CoreTaskVoice {
         while (start < speech.length() && Character.isWhitespace(speech.charAt(start))) start++;
         return start;
     }
+    /** A complete ending may follow an older acknowledgement in the same native segment. */
+    static boolean freshEnding(Event event, List<LiveSpeechPart> parts, Instant boundary, Instant now) {
+        if (parts.isEmpty()) return false;
+        StringBuilder raw = new StringBuilder();Instant previous = null;
+        for (var part : parts) {
+            if (part.text() == null || part.receivedAt() == null || part.receivedAt().isAfter(now)
+                    || previous != null && part.receivedAt().isBefore(previous)) return false;
+            raw.append(part.text());previous = part.receivedAt();
+        }
+        String captured = BehaviourPlan.fromJson(event.getPayload()).getSpeech();
+        if (captured == null || captured.isBlank() || !raw.toString().strip().equals(captured.strip())) return false;
+        int ending = finalSentenceStart(raw.toString()), offset = 0;
+        for (var part : parts) {
+            if (offset + part.text().length() > ending) return part.receivedAt().isAfter(boundary);
+            offset += part.text().length();
+        }
+        return false;
+    }
     private static String promptText(String speech) {
         if (speech == null || speech.isBlank()) return null;
         String prompt = speech.substring(finalSentenceStart(speech)).trim();

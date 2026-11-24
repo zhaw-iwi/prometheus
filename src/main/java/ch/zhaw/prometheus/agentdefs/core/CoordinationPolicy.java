@@ -130,7 +130,9 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 || !owner.epoch().toString().equals(response.get("epoch").getAsString())
                 || !TaskMemory.text(storage(), TaskMemory.REVISION, "0").equals(response.get("revision").getAsString())
                 || started == null || started.isAfter(now)
-                || (!started.isAfter(Instant.parse(response.get("created").getAsString()))
+                || (!(started.isAfter(Instant.parse(response.get("created").getAsString()))
+                        || (supportOnly || response.has("proposalReview") && response.get("proposalReview").getAsBoolean())
+                            && CoreTaskVoice.freshEnding(event, parts, Instant.parse(response.get("created").getAsString()), now))
                     || !now.isBefore(Instant.parse(response.get("expires").getAsString())))) return changed;
         response.addProperty("consumed", true); storage().put(CoreTaskVoice.RESPONSE, response); return true;
     }

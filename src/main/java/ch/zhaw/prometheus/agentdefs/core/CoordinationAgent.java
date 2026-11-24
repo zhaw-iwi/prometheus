@@ -71,7 +71,10 @@ public class CoordinationAgent implements AgentDefinition {
             Store known constraints in these fields. Unknown material fields may be empty in a partial proposal;
             questions lists up to four unresolved questions of at most 160 characters. A ready proposal has no questions.
             dialogueLimit: 1..50 agreed agent contributions, including the initial contribution; use a small explicit bound.
-            reactions: null for dialogue tasks, otherwise the executable sensor task below; its goal equals agreement.goal.
+            reactions: null for dialogue tasks or a partial sensor proposal whose response is still unknown.
+            For that partial proposal, retain the known cue in checks and ask for the response in questions;
+            never invent an action or emit an empty action. After clarification, supply the executable sensor task below;
+            its goal equals agreement.goal. An unresolved question never authorizes preparation or execution.
             checks: up to three optional recognition demonstrations, each exactly eventType, field, operator, value,
             minConfidence. Use only supported sensor fields and eq/lt/gt with their actual value types.
             Checks require fresh observations after this proposal; each is recognised once.

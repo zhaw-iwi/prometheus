@@ -14,6 +14,30 @@ import ch.zhaw.prometheus.model.interaction.AgentInteractionProfile;
 import fixtures.behaviour.PointingFixture;
 
 class DirectionalPointingUnitTest {
+    @Test void freshSceneCaptureEstablishesFrameAfterSlowInferenceWithoutBecomingACue() {
+        var now=Instant.parse("2026-11-24T12:00:00Z");var history=new EventHistory();var storage=new Storage();
+        for(String feature:List.of(HandFeatures.POINTING,HandFeatures.TARGETS,HandFeatures.DYNAMIC_TARGETS))storage.put(feature,new JsonPrimitive(true));
+        var old=event(PointingFixture.observation("before-inference","right",now.minusSeconds(24)));history.appendEvent(old);
+        var agreement=CoordinationAgreement.parse(PointingFixture.agreement());var condition=agreement.checks().getFirst().handPoint();
+        assertThrows(IllegalArgumentException.class,()->condition.requireCurrentFrame(history,now,storage));
+        var scene=fixtures.behaviour.ObservedTargetsFixture.snapshot(now);
+        scene.add("targets",new JsonArray());
+        ObservedTargets.admit(storage,java.util.UUID.randomUUID(),Event.observation(Event.TYPE_SCENE_TARGETS,"camera",scene.toString()),now);
+        assertDoesNotThrow(()->condition.requireCurrentFrame(history,now,storage));
+        assertDoesNotThrow(()->condition.requireCurrentFrame(new EventHistory(),now,storage),"Empty scene capture establishes coordinates without a pointing cue");
+        var simultaneous=new EventHistory();var conflict=PointingFixture.observation("conflicting-camera","right",now);conflict.getAsJsonObject("frame").addProperty("revision",2);simultaneous.appendEvent(event(conflict));
+        assertThrows(IllegalArgumentException.class,()->condition.requireCurrentFrame(simultaneous,now,storage),"Equal-time conflicting frames must reject");
+        assertFalse(TaskDecision.matchesObservation(agreement.checks().getFirst().rule(),old,now),"A fresh frame never refreshes an old pointing cue");
+        assertThrows(IllegalArgumentException.class,()->condition.requireCurrentFrame(history,now.plusSeconds(3),storage));
+        storage.put(HandFeatures.DYNAMIC_TARGETS,new JsonPrimitive(false));
+        assertThrows(IllegalArgumentException.class,()->condition.requireCurrentFrame(history,now,storage));
+        storage.put(HandFeatures.DYNAMIC_TARGETS,new JsonPrimitive(true));
+        var changed=PointingFixture.observation("new-camera","right",now.plusMillis(500));changed.getAsJsonObject("frame").addProperty("revision",2);history.appendEvent(event(changed));
+        assertThrows(IllegalArgumentException.class,()->condition.requireCurrentFrame(history,now.plusMillis(500),storage),"Older scene cannot mask a newer pointing frame");
+        var next=fixtures.behaviour.ObservedTargetsFixture.snapshot(now.plusSeconds(1));next.getAsJsonObject("frame").addProperty("revision",2);
+        ObservedTargets.admit(storage,java.util.UUID.randomUUID(),Event.observation(Event.TYPE_SCENE_TARGETS,"camera",next.toString()),now.plusSeconds(1));
+        assertThrows(IllegalArgumentException.class,()->condition.requireCurrentFrame(history,now.plusSeconds(1),storage));
+    }
     AgentInteractionProfile profile(boolean point) {return AgentInteractionProfile.of(List.of(Event.TYPE_HAND_POINTING),List.of(HandActions.MODALITY),
             point?List.of("demo.valerian.coordination",HandFeatures.POINTING):List.of("demo.valerian.coordination"));}
     Event event(JsonObject o) {return Event.observation(Event.TYPE_HAND_POINTING,"camera",o.toString());}

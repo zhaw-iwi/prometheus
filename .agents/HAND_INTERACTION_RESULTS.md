@@ -2,11 +2,12 @@
 
 Started 2026-11-23 from main `025697df`. The owner authorized sequential
 implementation, commit/push after each verified milestone, then continuation.
-Provider allowance: original $50 plus the owner-approved $20 extension on
+Provider allowance: original $50 plus owner-approved $20 and $30 extensions on
 2026-11-24, including successful/failed requests and all modalities.
 Actual provider billing: **invoice total not available**.
-Cumulative reservations: **$70 / 36 attempts**, exhausted. HI-12 remains
-**INCOMPLETE**; further paid selections fail closed. No deployment.
+Cumulative reservations at the second-extension checkpoint: **$100 / 66 attempts**.
+The cumulative ceiling is **$100 / 66 attempts**. HI-12 remains **INCOMPLETE**;
+the allowance is exhausted and further paid selections fail closed. No deployment.
 Historical GLF/TWC ledgers remain unchanged.
 
 ## HI-01 — Contracts and compatibility baseline
@@ -722,9 +723,9 @@ HI-05/08 remain visible; this does not establish general real-room accuracy.
 All runner-owned schemas/accounts/apps are cleaned on exit; the owned loopback
 MySQL remains available for HI-12. Remote MySQL and old paid ledgers are untouched.
 
-## HI-12 - Real provider acceptance (incomplete; allocation exhausted)
+## HI-12 - Real provider acceptance (incomplete; second extension active)
 
-Status: **INCOMPLETE; revision-2 paid allocation exhausted on 2026-11-24**. The owner chose
+Status: **INCOMPLETE; second owner-authorized extension exhausted on 2026-11-24**. The owner chose
 immediate independent native speech and accepted strict silence as unsupported in
 GPT-Live. No playback gate, backend speech approval, classification buffer,
 task-window muting or replacement TTS will be added. Text/Continuous retain strict
@@ -747,22 +748,24 @@ listening or provider-based grading. No physical microphone/speaker/adapter tria
 
 | Journey | Revision-2 acceptance |
 | --- | --- |
-| L-01 named signs | PASS: `748a94c65d`, including complete speech/audio and rendered sign review. |
-| L-02 custom poses | PASS: `e50790242f`, task and immediate ten-finger pose; preceding failures retained. |
-| L-03 ring/geometry | FAIL `9f54d8a270`: correct direct ring, but premature native demonstration claim and omitted geometry during task inference. Projection fixed offline; latest retest `e0ae02e89c` INCONCLUSIVE at missing native clarification. |
-| L-04 direction | PASS `69a4fe99eb`: exact camera/robot frames, opposite direct direction, one task action, wrong/duplicate cues excluded, images/audio reviewed. |
-| L-05 registered target | INCONCLUSIVE `5c32ba4dfe`: correct conditions and complete preparation/review; clipped acceptance safely kept CONFIGURATION. Direct target output not reached. |
-| L-06 person/item | FAIL `bbee299898`: cup task passed but direct selected person used invalid reply.motion/destination reference. Guidance corrected; retest `af9b9aed24` failed cup proposal validation before person/stale-target checks. |
-| L-07 input sequence | INCONCLUSIVE `7eae6b1f68`: correct ordered cue, preparation, acceptance and one Ready action; whitespace input caption falsely interrupted native capture. Final fix verified offline only. |
-| L-08 output sequence | PASS `df8f86dd8f`: five direct counts, Stop, three task counts, scoped completion, duplicate exclusion and no reload replay; images/audio reviewed. |
-| L-09 conversation/latency and separate comparison | PASS: comparison `10320f2bcf`, Coordination `79739a10c7`; complete speech review, matched latency and correct immediate attention sign. |
-| M-01 Text/Continuous strict silence | PASS: final `7742045c5f`, both modes; all three silent action windows and positive Continuous speech control. |
-| M-02 native ownership, Stop and mode switching | PASS: final `7742045c5f`; backend-held native audio, immediate Stop and mode switching; confirmed/uncertain final delivery also passes. |
+| L-01 named signs | Latest PASS `1be4bc1e10`: two direct right thumbs-up signs, preparation/acceptance, one fresh-cue right peace and duplicate exclusion; full audio and all three images reviewed. |
+| L-02 custom poses | Latest FAIL `a370692218`: exact task and direct ten-finger output render correctly, but native speech falsely refuses the independent direct command because of the completed task limit. Earlier PASS `e50790242f` remains historical. |
+| L-03 ring/geometry | Latest FAIL `54d6fa0265`: exact combined geometry, near-miss rejection and both rings pass; native announces an OK demonstration while backend correctly asks for clarification. Earlier PASS `0439ea6bbc` remains historical. |
+| L-04 direction | Latest FAIL `3377e48acd`: correct task robot-right and direct robot-left output; native falsely refuses the independent direct point. Earlier PASS `69a4fe99eb` remains historical. |
+| L-05 registered target | PASS `1c7bb666d7`: exact target/frame, preparation/acceptance, one confirmed Ready and reviewed Display point. Later shared context/capture changes have no complete L-05 retest. |
+| L-06 person/item | Still no complete PASS. Latest `b032f0bb3e` INCONCLUSIVE: exact cup proposal/preparation/review, but no completed acceptance ingress; person output not reached. Earlier backend/visual passes fail native semantics. Selected-label context repair has unit coverage but no complete person/item provider acceptance. |
+| L-07 input sequence | Latest FAIL `365cccb3ed`: clarification adds an unwanted robot sequence and wrong judgement role; empty generated output now safely pauses at zero actions. Earlier fully specified PASS `c656de937d` does not cover the required clarification roundtrip. |
+| L-08 output sequence | Latest FAIL `9f985668a2`: direct counts/Stop pass, but model returns START with a forbidden non-null agreement; task activation rejected. Earlier PASS `df8f86dd8f` remains historical. |
+| L-09 conversation/latency and separate comparison | Latest PASS: comparison `2d8916425b`, Coordination `025f92b3fd`; complete audio review and correct attention sign. Median/max differences +263.842/+1856.325 ms pass the unchanged +1000/+2000 ms thresholds; three turns, no p95 claim. |
+| M-01 Text/Continuous strict silence | PASS `31875ac4e1`, both modes; all three silent action windows and positive Continuous speech control. |
+| M-02 native ownership, Stop and mode switching | PASS `31875ac4e1`; backend-held native audio, immediate Stop and mode switching; confirmed/uncertain final delivery also passes. |
 
-Passing Live entries describe their recorded source manifests. The final shared
-blank-caption capture fix has no paid retest, so this is not a complete final-source
-acceptance matrix. The extension checkpoint below is the current disposition;
-older checkpoints remain historical evidence.
+Passing entries describe their recorded source manifests, not a guarantee across
+provider runs. The latest regression results above prevent final-source acceptance.
+M-01/M-02 include the fresh-sentence and empty-plan repairs; later selected-label
+enrichment is covered by projection/delivery units and does not affect their
+unselected scene paths. The final checkpoint below is authoritative; earlier
+checkpoints retain their historical scope and verdicts.
 
 All attempt directories below are under ignored `target/gptlive-acceptance-<id>`.
 
@@ -1163,3 +1166,199 @@ on the final source as well. Do not weaken freshness, consent or native speech
 ownership to satisfy these checks. No further paid calls without another explicit
 allowance. Physical microphone/speaker/robot trials remain **NOT_RUN**; previous
 camera-accuracy and software-WebGL limits remain. HI-12 is not complete.
+
+
+## HI-12 second extension - frame freshness and interpretation repairs (2026-11-24)
+
+Continued from main `e8e4e8e3` under the owner's additional $30 authorization.
+Allocation 6 preserves every prior reservation and permits thirty further $1
+attempts, at most 66 attempts/$100. The original 36-entry/$70 prefix is unchanged
+against `target/hi12-second-extension-ledger-before.json`. Models, per-attempt
+limits and $0.9587424 conservative bound are unchanged. Actual invoice unavailable.
+
+Repairs and their boundaries:
+
+- A fresh validated passive scene capture can establish the current camera frame
+  after a serialized pointing event ages during inference. It cannot supply a
+  cue, revive a stale target or mask a newer changed frame. Three-second scene
+  expiry remains unchanged. Fixed-clock tests cover empty scenes, equal-time
+  conflicts, newer frames, expiry and undeclared capability; local MySQL tests
+  exercise proposals after slow inference and reject disappeared targets.
+- Delegated thinking replies no longer prohibit the pending native answer. Other
+  context stays quiet; no new speaking occasion or playback gate is introduced.
+- Geometry guidance preserves the AND of requested finger states and relations,
+  numeric thresholds and partial masks, without inventing thumb/index bends.
+  Task guidance preserves human demonstration/judgement and robot output roles.
+- Spatial guidance separates relative left/right conventions from named target
+  frames and distinguishes proposing a target condition from demonstrating it.
+  Direct clarification previously described every unresolved request as a
+  sign/gesture, even a stale target. Current-turn feedback and Text/Continuous
+  clarification now cover actions and targets. Immediate-demo guidance no longer
+  promises that pointing needs no setup. Native capabilities remain in their
+  existing dedicated section instead of being duplicated in command guidance.
+- Input clips were shortened without changing required conditions. Direction and
+  registered-target fixtures now provide the independent empty-scene capture that
+  the camera pipeline emits. Person/item fixtures begin with their actual scene.
+  Observation request/capture timings are retained with a 2048-entry bound.
+  L-07 now explicitly leaves the response unspecified, then supplies Ready once,
+  human judgement and one action, to require a clarification roundtrip before
+  preparation/acceptance. Prior audio manifests and verdicts remain recorded.
+
+| Attempt | Journey | Verdict | Evidence |
+| --- | --- | --- | --- |
+| 37 | L-03 | FAIL | `f5715b95e5`: native ambiguity clarification and direct ring work; model incorrectly says geometry cannot combine with three finger states. |
+| 38 | L-03 | INCONCLUSIVE | `b7c6795d8c`: exact combined condition and preparation work; provider invents a Hmm user caption outside injected turns, interrupting review. No acceptance bypass. |
+| 39 | L-07 | FAIL | `02ee4732ec`: model assigns human judgement to robot and adds acknowledgement; clarification revises via PROPOSE but retains unsupported roles. |
+| 40 | L-06 | FAIL | `ee802faca7`: garbled input, empty rules and native pointing/demo claims; no task saved. |
+| 41 | L-07 | PASS | `c656de937d`: exact sequence, wrong-order zero action, full preparation, fresh accepted sequence produces one confirmed Ready; held three does not repeat. |
+| 42 | L-03 | FAIL | `5a33601196`: provider input inserts Silent context only; model invents neutral bends and nests action fields inside pose. Strict validation rejects. |
+| 43 | L-05 | FAIL | `85faa34416`: correct target but unnecessary orientation question; operation_constraints after 15.914-second inference with no independent scene capture. |
+| 44 | L-06 | FAIL | `80ef62496b`: provider captures only At that; backend refuses to invent intent, native denies visible cups. Unnecessary initial empty scene removed. |
+| 45 | L-03 | PASS | `0439ea6bbc`: exact <0.18 plus three stretched fingers; no added bends, correct clarification, preparation, acceptance, fresh/duplicate cue behavior and right ring. Native refers to the specified cue rather than repeating its number. |
+| 46 | L-05 | INCONCLUSIVE | `48251cb19b`: one correct Ready, complete capture and semantic match. Browser sampling_gap at 120682 ms discards evidence before association at 121005 ms; completion withheld. Guard unchanged. |
+| 47 | L-06 | FAIL | `a60bc0a23e`: all backend/visual assertions pass, including selected-person point and disappeared-target rejection. Native incorrectly clarifies a ring and claims continued pointing at stale Visitor. |
+| 48 | L-06 | INCONCLUSIVE | `5d48c6a22a`: correct native ambiguity question and exact selected-cup proposal; target generations change during capture gaps, invalidating selection. No activation. |
+
+All thirty second-extension attempts reserve $1 each. Complete received audio was transcribed
+locally and reviewed with full captions/backend evidence; physical audibility is
+NOT_RUN. Every completed paid source manifest reports no tracked changes during
+its run. Images reviewed include both rings in `0439ea6bbc`, the selected-person
+point in `a60bc0a23e`, and the completed sequence cockpit in `c656de937d`.
+
+Offline verification: the first integrated run passed 249 Java tests in 24 suites,
+45 Python tests, 25 Node tests and nine schema examples. The 48-case isolated
+MySQL run `8ecedbcba1` and all six browser checks passed; all six unique images
+were inspected. Final coverage reaches 342 Java tests in 32 suites, 45 Python
+tests, 27 Node tests, nine schema examples and packaging. The 48-case isolated
+MySQL and six-browser rerun `31875ac4e1` passes, including the fresh-sentence and
+empty-plan repairs. The later selected-label change has three new unit tests;
+it changes no schema or DB path. After restricting pose guidance to capable
+profiles, 59 command/capability tests and packaging pass again. Counts are retained in
+`target/hi12-second-final-verification.json`. Initial reproductions retain two
+frame/delegation failures and one clarification-scope failure. An intermediate
+clarification guidance change exceeded the 16000-byte Live budget (three unit
+errors); removing duplicated capability text restored passing startup coverage.
+A first slow-frame DB reproduction had one failed proposal check; its cause was
+not conclusively established. A focused rerun and the later 48-case run pass. Do not erase these failed evidence records.
+
+
+Further second-extension findings:
+
+- Partial sensor proposals with an unknown response keep the known cue in checks
+  and use null reactions; an empty executable action is invalid. Clarifications
+  may fill goal, roles and success because incomplete drafts have no protected
+  terms. A regression preserves the sequence and forbids activation before
+  clarification and preparation. The happy-path fixture waits for the completed
+  spoken clarification before answering it.
+- A generated empty ACT plan now follows the existing generation-failure pause
+  path, before action spending or completion. Text and Live reproductions first
+  failed (COMPLETED instead of PAUSED), then passed; subsequent camera samples
+  cannot trigger automatic retries. Valid silent hand output remains covered.
+- Unresolved-command feedback is factual data rather than an instruction to ask
+  another question. This does not create a new speaking occasion. Repetitive
+  provider speech remains an acceptance failure.
+- Ready journeys now require one fresh complete native Ready event after the
+  execution cue, in addition to task and playback checks. The regression rejects
+  empty/reflection-only output, old/incomplete/synthesized speech and duplicates.
+  Full recording review remains required; caption matching alone is not a pass.
+- Capture pumps now count HTTP time toward their 500 ms interval, preserving one
+  in-flight request per kind. In `f1a219b06f`, scene captures have no >3-second gap
+  (maximum 1104 ms) while serialized pointing requests reach 12031 ms. No TTL,
+  target generation, capture or playback fence was relaxed.
+
+| Attempt | Journey | Verdict | Evidence |
+| --- | --- | --- | --- |
+| 49 | L-06 | FAIL | `f1a219b06f`: fresh target and exact preparation; native falsely denies pointing recognition. Acceptance is clipped to accept the; backend correctly leaves it inactive. |
+| 50 | L-07 | FAIL | `6626bcb6f9`: model asks the missing-response question but supplies an empty executable action; strict validation rejects the partial draft. |
+| 51 | L-07 | FAIL | `e872738bb9`: correct sequence control and one spent action, but clarification keeps obsolete roles/success; behavior model returns an empty plan instead of Ready, then completion is narrated. The semantic MATCH in this run covers arming only. |
+| 52 | L-05 | PASS | `1c7bb666d7`: complete registered-target task, one confirmed Ready, duplicate rejection and correct inspected Display point. Initial unnecessary repeat request is followed by a correct proposal/review. |
+| 53 | L-06 | FAIL | `fcd9c3805d`: confirmed cup task and correct inspected Visitor point. Native denies the selected person label in a repeated-question loop; stale-target repeat has no durable user transcript. |
+| 54 | L-07 | FAIL | `ca9e25ca21`: completed clarification and full recognition, but the model retains recognition-only roles/success after adding Ready. Native review repeats those obsolete terms; an unexpected incomplete user turn interrupts review. No acceptance/action. |
+
+All completed attempts retain complete captions, local audio review and separate
+semantic verdicts. `target/hi12-second-extension-audit.json` records usage and the
+unchanged original 36-entry prefix. The latest source manifests have no tracked
+changes during paid runs. No physical or production acceptance is implied.
+
+### Final second-extension checkpoint (2026-11-24)
+
+HI-12 remains **INCOMPLETE**. All 30 new $1 reservations are consumed: 66 attempts,
+$100 cumulatively, zero remaining under this authorization. The original 36/$70
+entries are byte-for-byte equivalent as parsed ledger data. No failed reservation
+is refunded. The offline budget preflight rejects another selection without any
+provider access. The recorded cumulative usage is 235 backend requests, 1,813,121
+prompt tokens, 77,645 completion tokens and 7,484.092 seconds of RTC lifetime.
+RTC lifetime excludes setup/closure and is not a billed-duration measurement;
+the actual invoice total remains unavailable. There was no paid synthesis or grading.
+The second extension alone records six PASS, nineteen FAIL and five INCONCLUSIVE
+attempts, 122 backend requests, 963,346 prompt tokens, 40,312 completion tokens
+and 3,794.546 seconds of RTC lifetime. Passing attempts are not a full matrix.
+
+Additional repairs, following concrete reproductions:
+
+- A completed preparation/support or proposal-review sentence can consume its
+  existing occasion when it begins after that occasion within an older native
+  segment. Ordered, nonfuture trusted parts must reproduce the captured speech
+  exactly, and the whole final sentence must begin after the boundary. Eleven
+  positive/negative cases cover old/split text, mismatches, incomplete capture,
+  expiry, owner changes and missing parts. Task-contribution semantic/arming
+  checks are unchanged; this consumes no action and supplies no acceptance.
+- Fresh scene context now includes the selected user label, target type and
+  whether its explicit virtual output mapping is still current. It enriches the
+  existing observation with the same source/time/expiry; no new observation or
+  speaking occasion. Three tests cover quiet delivery, changed labels/mappings,
+  expiry, disappearance and reappearance. A later generation cannot borrow an old
+  selection, or an old source a new label. Labels never establish identity.
+- Explicit supported poses remain immediate commands after task reflection and
+  need no sensor reading. This guidance is restricted to capable profiles; legacy
+  profiles do not advertise pose support. Backend behavior passes, but native
+  speech still sometimes applies the previous task limit to a new direct request.
+
+| Attempt | Journey | Verdict | Evidence |
+| --- | --- | --- | --- |
+| 55 | L-01 | FAIL | `5b458f57a9`: direct thumbs-up images correct; proposal goal reverses acceptance roles. Correct preparation sentence starts after the occasion inside an older segment and is not consumed; led to the trusted-part fix. |
+| 56 | L-02 | FAIL | `5a56867a38`: exact ten-finger task and rendered pose; subsequent explicit pose interpreted as KEEP/restart, with an incorrect fresh-reading dependency. |
+| 57 | L-06 | INCONCLUSIVE | `1f8d34f3c4`: correct ambiguity/proposal, but selected cup generation 2 becomes stale against current generation 6; rejected before saving. Selected-person context not reached. |
+| 58 | L-07 | FAIL | `365cccb3ed`: initial clarification works, but the next model response adds robot sequence repetition despite You only say Ready and assigns wrong judgement. Empty behavior now pauses at zero actions; no false completion. |
+| 59 | L-01 | PASS | `1be4bc1e10`: exact cue/roles/peace response, preparation/acceptance, fresh/duplicate checks; both direct thumbs-up images and task peace reviewed. Initial terse acknowledgement is followed by explicit inactive-proposal review before acceptance. |
+| 60 | L-02 | FAIL | `a370692218`: automated backend/visual journey passes, including independent direct pose after completion. Full native audio falsely refuses that command because of the old task limit. |
+| 61 | L-06 | INCONCLUSIVE | `b032f0bb3e`: exact cup task/preparation and correct native review; acceptance never produces a completed durable user turn. Remains inactive; person/stale-person checks not reached. |
+| 62 | L-03 | FAIL | `54d6fa0265`: exact geometry, near-miss, preparation/acceptance, both correct rings. Native claims an OK demonstration when backend correctly returns CLARIFY with no action. |
+| 63 | L-04 | FAIL | `3377e48acd`: correct frames, one robot-right task point and independent robot-left direct point, both visually inspected. Native falsely refuses the direct point as outside the old cue. |
+| 64 | L-08 | FAIL | `9f985668a2`: five correct direct counts plus two repeat steps/Stop, all images reviewed. START returns an echoed agreement instead of null and is rejected; task counting/reload not reached. |
+| 65 | L-09 comparison | PASS | `2d8916425b`: three relevant replies; complete audio reviewed. Speech-end onset median -493.342 ms, maximum -290.200 ms. |
+| 66 | L-09 Coordination | PASS | `025f92b3fd`: relevant conversation and correct inspected attention sign. Median/max differences +263.842/+1856.325 ms pass unchanged limits. Negative onset values mean native overlap; three samples do not establish p95. |
+
+Final verification and evidence boundaries:
+
+- 342 Java units across 32 suites pass (`target/hand-interaction-mysql/hi12-final-selection-verified-unit.log`);
+  the final capability-scoping edit then passes 59 command/capability tests
+  (`target/hi12-final-command-profile-unit.log`). Final packaging passes
+  (`target/hi12-final-package.log`). Failed reproductions remain retained.
+- 48 isolated local-MySQL tests and six Playwright cases pass in `31875ac4e1`.
+  Eight silent-output images match previously inspected bytes; both new confirmed
+  and uncertain-delivery images were inspected directly. The post-release peace
+  screenshot is not evidence of a held peace pose. Later selected-label enrichment
+  has unit coverage; no final DB rerun is claimed for that change.
+- 45 Python tests, 27 Node tests and nine schema examples pass. The new native
+  Ready assertion prevents empty/reflection-only completion from passing the
+  automated speech journeys. Full semantic review still rejects provider errors
+  even when automated backend/visual assertions pass.
+- Every new paid attempt has complete local received-audio review, a separate
+  semantic verdict and an empty sourceChangedDuringRun list. Current SAPI clips
+  replaced earlier local PCM; earlier stimulus text/hash manifests remain, not
+  every prior PCM byte. New screenshots listed in reviews were inspected.
+- Branch is main, based on `e8e4e8e3`; origin/main was unchanged at final fetch.
+  Disposable schemas/accounts and owned runner applications were cleaned up.
+  Existing local MySQL remains available. No deployment, agents merge, remote
+  database migration or physical microphone/speaker/robot trial was performed.
+
+Remaining work is provider reliability and complete final-source acceptance:
+truthful native handling of independent commands and ambiguity, a faithful
+partial-sequence clarification, reliable acceptance capture/START shape, and a
+complete selected-person/disappeared-target run. L-05 needs a final shared-context
+regression despite its earlier complete pass. The latest L-01/L-09 and offline
+checks do not establish those missing outcomes. Preserve native speech ownership,
+consent, target freshness and capture/delivery guards; do not weaken the rubric
+or add playback control to turn these failures into passes. No further paid
+requests under the exhausted authorization.

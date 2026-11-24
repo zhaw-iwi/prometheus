@@ -92,6 +92,7 @@ public class TaskUpdateAction extends Action {
                 generated = true;
                 plan = TaskMemory.plan(JsonParser.parseString(raw), runtime.promptMessageAssembler().capabilities());
                 plan=ch.zhaw.prometheus.model.hand.HandScene.ground(plan,storage,events,Instant.now());
+                if (!completed && plan.isEmpty()) throw new IllegalArgumentException("An ACT cue requires a generated behaviour");
             } catch (RuntimeException failure) {
                 if (cancelled(storage, runtime)) return;
                 ch.zhaw.prometheus.logging.ActivityTrace.failed(generated ? "task_behaviour_invalid" : "task_provider_failed");

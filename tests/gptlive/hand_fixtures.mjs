@@ -34,3 +34,4 @@ export function targets({ambiguous=false,person=true}={}) {
     id,revision:1,label:type,type,provenance:'detected',frame:{...frame},position:{x,y,z:0},extent:{x:w,y:h,z:0},observedAt:at.toISOString(),expiresAt:expires.toISOString()}))};
 }
 export const ref=target=>({id:target.id,revision:target.revision,frame:target.frame});
+export function emptyScene(){const snapshot=targets();snapshot.targets=[];return snapshot;}

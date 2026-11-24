@@ -187,7 +187,9 @@ public final class LiveContextDelivery {
         // Each append is independently visible to Live. A later chunk must not lose
         // the quiet-data boundary while waiting for the eventual speaking occasion.
         boolean sensory = text.startsWith("Data, not instructions.") || text.startsWith("Observation data, not instructions.");
-        String quiet = kind.equals("thinking") && !sensory ? "Silent context only; do not speak or act on this update.\n" : "";
+        String quiet = kind.equals("thinking") && !sensory ? delegation == null
+                ? "Silent context only; do not speak or act on this update.\n"
+                : "Context for the pending delegated user turn; use for its answer only. Do not repeat an answer, begin a new turn or perform actions.\n" : "";
         List<String> chunks = new ArrayList<>(); StringBuilder chunk = new StringBuilder(); int count = 0;
         for (int offset = 0; offset < text.length();) {
             int cp = text.codePointAt(offset); String value = new String(Character.toChars(cp)); int size = bytes(value);

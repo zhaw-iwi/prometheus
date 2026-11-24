@@ -44,6 +44,24 @@ class CoordinationModelAgreementUnitTest {
         for (var value : List.of(canonical(), CoordinationAgentUnitTest.dialogue(), CoordinationAgentUnitTest.sensor(true)))
             assertEquals(CoordinationAgreement.parse(value).json(), CoordinationAgreement.fromModel(value).json());
     }
+    @Test void unknownSequenceResponseKeepsItsCueUntilClarifiedWithoutStarting() {
+        var complete = fixtures.behaviour.HandSequenceFixture.agreement(fixtures.behaviour.HandSequenceFixture.counts("right", 1, 2, 3));
+        var partial = complete.deepCopy();partial.add("reactions", JsonNull.INSTANCE);
+        partial.addProperty("agentRole", "");partial.getAsJsonArray("questions").add("What response should follow the sequence?");
+        var f = new CoordinationAgentUnitTest();f.propose(partial, f.text);
+        assertEquals(partial, f.storage().get(CoordinationMemory.DRAFT));
+        assertEquals("COORDINATION", CoordinationMemory.stage(f.storage()));
+        f.start(f.text);
+        assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
+        assertFalse(f.storage().containsKey(TaskMemory.ACTIONS));
+        f.turn("PROPOSE", complete, "Say Ready once after acceptance and a fresh sequence", f.text);
+        assertEquals(complete, f.storage().get(CoordinationMemory.DRAFT));
+        assertEquals(partial.get("checks"), f.storage().get(CoordinationMemory.DRAFT).getAsJsonObject().get("checks"));
+        assertEquals("PREPARATION", CoordinationMemory.stage(f.storage()));
+        f.start(f.text);
+        assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
+        assertFalse(f.storage().containsKey(TaskMemory.ACTIONS));
+    }
     @Test void typedWrappersPreserveFrameTargetSequenceAndSignWithoutAcceptingConflicts() {
         var pointing = fixtures.behaviour.PointingFixture.agreement();
         var targetPointing = pointing.deepCopy();
