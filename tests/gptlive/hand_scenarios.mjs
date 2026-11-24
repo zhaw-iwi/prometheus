@@ -43,7 +43,7 @@ export async function runHandScenario(mode,c){
     const after=await c.history();if(mode==='L-05'||mode==='L-06')requireReadyContribution(after,before);
     const outputs=after.filter(e=>!before.includes(e.id)&&e.type==='resp.behaviour_plan').map(e=>({id:e.id,...JSON.parse(e.payload)}));
     report.taskOutputs=outputs;if(verify){const hands=outputs.filter(p=>p.motion?.handAction);assert.equal(hands.length,1);verify(actionOf(hands[0].motion));}
-    if(kind)await render('task-'+mode,kind); // Native speech is reviewed for meaning, not required to be absent.
+    if(kind)await render('task-'+mode,kind,outputs.find(p=>p.motion?.handAction).id);
   };
   // Like the camera's scene capture, an empty scene keeps frame evidence fresh
   // independently of the serialized pointing turn; it is never a pointing cue.

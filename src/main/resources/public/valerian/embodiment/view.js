@@ -110,10 +110,11 @@ function receive(plan,options={}) {
   // No delayed replay while loading the renderer or hidden behind another tab.
   state.visible=visible()&&!!renderer;state.reduced=reduced.matches;
   state.receive(plan,options,performance.now());
+  if(stage && !options.preserveNonSpeech) stage.dataset.handEvent = options.fromHistory ? '' : options.eventId || '';
   if (!options.preserveNonSpeech) poseRendered=state.started!==null && !options.fromHistory ? options.poseRendered : null;
   if(root){caption();draw();stop();if(visible()&&state.pose&&!reduced.matches)frame=requestAnimationFrame(loop);}
 }
-function clear() {poseRendered=null;state.clear();stop();if(root){caption();draw();}}
+function clear() {poseRendered=null;state.clear();stop();if(stage)delete stage.dataset.handEvent;if(root){caption();draw();}}
 function settle() {state.settle();draw();}
 // Explicit diagnostic capture: redraw and read the same submitted GPU frame.
 function snapshot(){

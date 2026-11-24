@@ -40,7 +40,7 @@ public final class DirectCommands {
         if (!enabled(profile)) return "";
         // Live already supplies the capability-aware profile as its own section.
         return (profile.isCapabilityAwareness() ? "Direct output requests:" : " " + capabilities(profile))
-                + (phaseGuidance.isBlank() ? " Supported immediate demos are independent of finished tasks/limits; no agreement or second consent."
+                + (phaseGuidance.isBlank() ? " 'Show me' requests one direct demo now. The request itself is permission."
                 + (HandFeatures.poses(profile) && HandActions.enabled(profile)
                         ? " For a specified pose, never ask the person to demonstrate it."
                         : " Explicit supported signs need no sensor reading or restart.") : " " + phaseGuidance)

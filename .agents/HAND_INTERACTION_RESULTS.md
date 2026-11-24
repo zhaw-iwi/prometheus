@@ -1787,3 +1787,29 @@ cases, 42 Node tests, 45 Python tests, nine schema examples and packaging passed
   targets”, although eight robot-relative directions need no target.
 
 At entry 100 the ledger totaled $246, with $30 of the $90 continuation available.
+
+### Direct sign consent and scene capture diagnostics
+
+- **101, L-06, FAIL** (`98c822fa02`). The provider supplied “At the” during
+  verified silent input. Its receipt was IGNORED and the backend admitted no
+  visitor turn. Live also offered to point before the visitor had resolved the
+  two cups. The subsequent selection, proposal, review and consent reached
+  RUNNING. At 21:21:36.043 UTC the controlled camera captured `scene-261`.
+  Its POST returned HTTP 400 after 2.665 seconds. That stopped the feed. The
+  last retained scene was 25.166 seconds old at the cue, which spent zero
+  actions. The person-point and removal stages were never reached. The full
+  received recording was 98.34 seconds.
+- **102, L-01, FAIL** (`4d3d2589d1`). Live described all eight directions.
+  It then insisted on a cue and an agreement for “show me a thumbs-up,” and
+  repeated that prerequisite after the repeat command result was acknowledged.
+  Both direct commands produced one accepted right-hand thumbs-up. The first
+  image was retained. The repeat image wait expired after the native reply.
+  The full 93.18-second recording was reviewed.
+
+Fresh scene updates now identify when a previously selected detected target
+is absent. The direct capability description distinguishes direction-only
+points from mapped targets. The current command result and startup guidance
+explicitly authorize a single requested sign. The acceptance camera reports
+its first failed frame with capture time and elapsed request time. For single
+hand actions the browser saves the actual holding frame by published event ID,
+so a later utterance cannot remove the only visual evidence.

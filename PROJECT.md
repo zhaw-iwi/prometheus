@@ -109,7 +109,9 @@ and regulation diagnostics remain future work.
   At entry 97, allocation 12 raised the continuation limit to $90 and the
   cumulative ceiling to $276. The starting reservation balance is $45.
   L-02 passed at 98. L-06 reached stale-target rejection and L-01 reached the
-  final peace sign, but their spoken answers failed. At 100/$246, $30 remained.
+  final peace sign, but their spoken answers failed. Subsequent runs confirmed
+  silent-input rejection in L-06 and a spurious consent requirement in L-01.
+  At 102/$256, $20 of the $90 continuation remained.
   [Results](.agents/HAND_INTERACTION_RESULTS.md) ·
   [Restoring the latest budget checkpoint](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 

@@ -24,6 +24,7 @@ public final class LiveCommandResult {
         String status = receipt.get("status").getAsString();
         String meaning = switch (status) {
             case "ACCEPTED" -> "Accepted output plan: " + acceptedPlan(receipt) + ". "
+                    + ("HAND_SIGN".equals(receipt.get("kind").getAsString()) ? "Direct sign authorized by this request. No task or consent step. " : "")
                     + ("HAND_POSE".equals(receipt.get("kind").getAsString()) ? "Immediate pose; no demonstration needed. " : "")
                     + ("POINT".equals(receipt.get("kind").getAsString()) ? "One point only. A repeat needs its own result. " : "")
                     + (receipt.has("renderedEvent") ? "Digital renderer confirmed this pose." : "Rendering/physical execution unconfirmed.");
@@ -32,7 +33,7 @@ public final class LiveCommandResult {
             case "CLARIFY" -> receipt.has("clarification") && receipt.get("clarification").getAsString().equals("ok_shape")
                     ? "Not performed. " + DirectCommands.OK_CHOICE
                     : "Not performed: the action or target is unresolved and needs clarification.";
-            case "CAPABILITY" -> "Capability question only; no demonstration requested.";
+            case "CAPABILITY" -> "Capability question only; no demonstration requested. A person may request a supported sign directly.";
             default -> "";
         };
         return meaning.isEmpty() ? null : new Turn(user.getId(), receipt.has("renderedEvent") ? "RENDERED" : status,

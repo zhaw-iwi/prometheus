@@ -96,7 +96,9 @@ handling. Nonzero input, even below the speech detector threshold, also retains
 normal handling. A verified silent caption keeps an individually identified
 ledger receipt. Native output and explicit consent keep their existing owners.
 L-02 passed at 98. L-06 reached stale-target rejection and L-01 reached the
-final peace sign, but their spoken answers failed. At 100/$246, $30 remained. See the [attempt 97 evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-extension.json).
+final peace sign, but their spoken answers failed. Subsequent runs confirmed
+silent-input rejection in L-06 and a spurious consent requirement in L-01.
+At 102/$256, $20 of the $90 continuation remained. See the [attempt 97 evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-extension.json).
 
 ## Findings carried into this continuation
 

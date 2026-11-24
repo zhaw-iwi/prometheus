@@ -27,6 +27,7 @@ class LiveCommandResultUnitTest {
         var result = LiveCommandResult.current(agent, now, source.getId()::equals);
         var facts = result.facts();
         assertTrue(facts.contains(source.getId().toString())); assertTrue(facts.contains("HAND_SIGN rock"));
+        assertTrue(facts.contains("Direct sign authorized by this request."));
         assertTrue(facts.contains("unconfirmed"));
         assertNull(LiveCommandResult.current(agent, now, id -> false));
         assertNull(LiveCommandResult.current(agent, now.plusSeconds(30), id -> true));

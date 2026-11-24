@@ -2,6 +2,7 @@ import {readFileSync,writeFileSync} from 'node:fs';
 import {test,expect} from './fixtures/offline-ui-assets.mjs';
 import {hardware} from './fixtures/native-hardware.mjs';
 import {openValerianSession} from './fixtures/valerian-session.mjs';
+import {captureHandFrames} from './fixtures/hand-frames.mjs';
 import {sign,fingers} from '../gptlive/hand_fixtures.mjs';
 
 // Real MySQL, ingress, SSE, rig and Speech renderer; only providers/media are fixtures.
@@ -41,6 +42,7 @@ for(const mode of ['Text','Continuous'])test(`strict hand silence in ${mode} cov
   };
   try{
     await openValerianSession(page,`/valerian/?agentId=${agent.id}`,code);await page.getByRole('button',{name:'Robot',exact:true}).click();
+    await page.evaluate(captureHandFrames);
     const stage=page.getByTestId('embodiment-stage');await expect(stage).toHaveAttribute('data-ready','true');
     if(mode==='Continuous'){await page.getByTestId('continuous-speech-tab').click();await page.getByTestId('toggle-transcription').click();await ready();}
     await request.post('/__live-fixture/coordination-proposal',{data:{operation:'KEEP',agreement:null,reply:{speech:'Ready for hand actions.'}}});
@@ -48,6 +50,11 @@ for(const mode of ['Text','Continuous'])test(`strict hand silence in ${mode} cov
     if(mode==='Continuous'){await expect.poll(()=>speech.length).toBeGreaterThan(0);await expect.poll(async()=>(await playback()).pcm).toBeGreaterThan(0);await ready();}
     await interpret('HAND_POSE',pose);
     await silent('custom pose',async()=>{await say('Show the custom two hand pose silently');await expect(stage).toHaveAttribute('data-hand-sign','custom_pose');await expect(stage).toHaveAttribute('data-hand-phase','released');expect((await memory())['command.lastResult'].silent).toBe(true);});
+    const poseId=evidence.at(-1).events.find(p=>p.motion?.handAction).id;
+    expect(await page.evaluate(id=>{
+      const frame=window.__handFrames.get(id);
+      return frame?.phase==='holding' && frame.pose.sign==='custom_pose' && frame.irisPixels>100 && frame.glError===0;
+    },poseId)).toBe(true);
     await interpret('HAND_SEQUENCE',sequence);
     await silent('count sequence',async()=>{
       const captures=sequence.steps.map(async({action},index)=>{

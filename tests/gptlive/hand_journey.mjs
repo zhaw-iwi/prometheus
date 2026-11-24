@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 import {installOfflineUiAssets} from '../playwright/fixtures/offline-ui-assets.mjs';
 import {openValerianSession} from '../playwright/fixtures/valerian-session.mjs';
-import {synchronizeEmbodimentFrame} from '../playwright/fixtures/embodiment-frame.mjs';
+import {captureHandFrames} from '../playwright/fixtures/hand-frames.mjs';
 import {trialCapture} from './trial_capture.mjs';
 import {handBudgetCapture} from './hand_budget_capture.mjs';
 import {playHandStimulus,handReplyObserved,outboundHandAudio} from './hand_audio_input.mjs';
@@ -35,7 +35,11 @@ const report={mode,plan,acceptanceRevision:plan.acceptanceRevision,startedAt:new
   turns:[],observations:[],observationTimings:[],observationTimingsDropped:0,checkpoints:[],screenshots:[],renderChecks:[],network:[],browserErrors:[],stimulus};
 const started=Date.now(),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 let browser,page,agentPath,scoped,handle,closing=false,watchdog,pump,mediaSaved=false;
-const check=()=>{if(!closing&&Date.now()-started>390000)throw Error('Journey deadline');};
+const check=()=>{
+  if(closing)return;
+  if(pump?.error)throw pump.error;
+  if(Date.now()-started>390000)throw Error('Journey deadline');
+};
 async function api(route,method='GET',body,headers=scoped){check();const response=await fetch(base+route,{method,
   headers:{...headers,'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
   if(!response.ok)throw Error(`${method} ${route}: HTTP ${response.status}`);return response.status===204?null:response.json();}
@@ -73,9 +77,14 @@ async function say(name,{reply=true}={}){
 async function updateTurn(turn){turn.memory=await memory();turn.history=(await history()).filter(e=>!turn.beforeIds.includes(e.id));
   turn.events=await page.evaluate(i=>__trial.events.slice(i),turn.index);turn.spoken=turn.events.filter(e=>e.type==='session.output_transcript.delta').map(e=>e.delta).join('');turn.latency=speechLatency(turn.events,turn.input);}
 async function checkpoint(name){const value={name,memory:await memory(),history:await history()};report.checkpoints.push(value);return value.memory;}
-async function render(name,kind){await page.waitForFunction(kind=>document.querySelector('[data-testid="embodiment-stage"]')?.dataset.handSign===kind,kind);
-  const measured=await synchronizeEmbodimentFrame(page);assert.equal(measured.glError,0);assert.ok(measured.irisPixels>100);
-  report.renderChecks.push({name,...measured});const file=name+'.png';await page.locator('#embodiment_panel').screenshot({path:path.join(directory,file)});report.screenshots.push(file);}
+async function render(name,kind,eventId){
+  assert.ok(eventId,'Expected a published hand event');
+  const handle=await page.waitForFunction(id=>window.__handFrames.get(id),eventId);
+  const {image,...frame}=await handle.jsonValue();await handle.dispose();
+  assert.equal(frame.pose.sign,kind);assert.equal(frame.glError,0);assert.ok(frame.irisPixels>100);
+  report.renderChecks.push({name,eventId,...frame});const file=name+'.png';
+  fs.writeFileSync(path.join(directory,file),Buffer.from(image.split(',')[1],'base64'));report.screenshots.push(file);
+}
 const plans=events=>events.filter(e=>e.type==='resp.behaviour_plan').map(e=>({id:e.id,...JSON.parse(e.payload)}));
 async function command(name,status,{kind,verify}={}){
   const turn=await say(name,{reply:status!=='ACCEPTED'});
@@ -89,13 +98,16 @@ async function command(name,status,{kind,verify}={}){
   assert.equal(receipt.status,status);assert.equal(receipt.silent,false,'Live stimulus does not request strict silence');
   assert.deepEqual(turn.memory['coordination.agreement'],turn.beforeAgreement,'Direct command mutated agreement');assert.equal(turn.memory['task.actions'],turn.beforeActions,'Direct command spent task budget');
   const all=await history();const produced=plans(all.slice(receipt.sourcePosition+1)).filter(p=>p.motion?.handAction||p.motion?.handSign);
-  if(status==='ACCEPTED'){assert.equal(produced.length,1,'One canonical hand output');assert.ok(!produced[0].speech,'Competing Speech');verify?.(produced[0].motion);turn.action=produced[0];if(kind)await render(name,kind);}
+  if(status==='ACCEPTED'){assert.equal(produced.length,1,'One canonical hand output');assert.ok(!produced[0].speech,'Competing Speech');verify?.(produced[0].motion);turn.action=produced[0];if(kind)await render(name,kind,turn.action.id);}
   else assert.equal(produced.length,0,'Unaccepted command produced output');return turn;
 }
-async function observe(type,payload,{retain=true}={}){const startedAt=Date.now();
+async function observe(type,payload,{retain=true}={}){const startedAt=Date.now();let error;
   try{const result=await api(agentPath+'/acknowledge?profile=full_plan','POST',{type,actor:'controlled-camera',kind:'observation',payload:JSON.stringify(payload)});
     if(retain)report.observations.push({type,payload,responseEvent:result.responseEvent?.id});return payload;
-  }finally{if(report.observationTimings.length<2048)report.observationTimings.push({type,id:payload.observationId,capturedAt:payload.ts,startedAt,finishedAt:Date.now()});else report.observationTimingsDropped++;}}
+  }catch(cause){
+    error=cause.message;
+    throw new Error(`${type} ${payload.observationId} captured ${payload.ts}, failed after ${Date.now()-startedAt} ms: ${error}`,{cause});
+  }finally{if(report.observationTimings.length<2048)report.observationTimings.push({type,id:payload.observationId,capturedAt:payload.ts,startedAt,finishedAt:Date.now(),error});else report.observationTimingsDropped++;}}
 async function propose(name,verify,{clarification,requireClarification=false}={}){await say(name);let m=await until('saved draft',async()=>{const m=await memory();return m['coordination.draft']?m:null;});
   assert.ok(!m['coordination.agreement']);assert.equal(m['task.actions']||0,0);
   if(requireClarification)assert.ok(clarification&&m['coordination.draft'].questions.length,'The unspecified response needs clarification');
@@ -183,6 +195,7 @@ try{
   await api(`/admin/access-codes/${access.id}/agent-types`,'PUT',{agentTypeKeys:[definition]},admin);scoped={'X-Prometheus-Access-Code':code};
   const agent=await api('/demo/agents','POST',{agentDefinitionKey:definition});agentPath='/demo/agents/'+agent.id;report.agentId=agent.id;
   await openValerianSession(page,base+`/valerian/?agentId=${agent.id}`,code);
+  await page.evaluate(captureHandFrames);
   await page.getByRole('button',{name:'Robot',exact:true}).click();await page.getByTestId('gptlive-tab').click();await page.getByTestId('gptlive-settings').locator(':scope > summary').click();
   await page.locator('#gptlive_voice').selectOption('willow');await page.getByTestId('gptlive-start').click();await page.waitForFunction(()=>['Active','Error'].includes(document.getElementById('gptlive_status').textContent));
   assert.equal(await page.getByTestId('gptlive-status').textContent(),'Active');
