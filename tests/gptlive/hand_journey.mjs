@@ -25,7 +25,8 @@ assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===2&&a.alloc
 fs.writeFileSync(path.join(directory,'provider-attempt.started'),new Date().toISOString(),{flag:'wx'});
 const clips=JSON.parse(fs.readFileSync(new URL('./hand-cases.json',import.meta.url))),stimulus=JSON.parse(fs.readFileSync('target/hand-interaction-audio/manifest.json'));
 assert.equal(stimulus.providerCalls,0);assert.equal(stimulus.sampleRate,24000);
-const report={mode,plan,startedAt:new Date().toISOString(),automatedPassed:false,semanticReview:'PENDING',
+assert.equal(plan.acceptanceRevision,2,'Use the owner-approved mode boundary');
+const report={mode,plan,acceptanceRevision:plan.acceptanceRevision,startedAt:new Date().toISOString(),automatedPassed:false,semanticReview:'PENDING',
   physicalAudibility:'NOT_RUN',sensorEvidence:'controlled scoped observations; not real-camera accuracy',
   turns:[],observations:[],checkpoints:[],screenshots:[],renderChecks:[],network:[],browserErrors:[],stimulus};
 const started=Date.now(),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -43,7 +44,7 @@ async function until(label,read,ms=45000){const deadline=Date.now()+ms;while(Dat
 async function quiet(){await page.waitForFunction(()=>performance.now()-(__trial.lastVoice||0)>1200
   &&performance.now()-(__handBudget.lastNativeVoice||0)>1200
   &&performance.now()-(__trial.lastOutputCaption||0)>3500,null,{timeout:35000});}
-async function say(name,{silent=false,reply=true}={}){
+async function say(name,{reply=true}={}){
   assert.ok(report.turns.length<12,'Visitor-turn cap');await quiet();const before=await history(),prior=await memory();
   const turn={name,intendedInput:clips[name],beforeIds:before.map(e=>e.id),beforeAgreement:prior['coordination.agreement'],
     beforeActions:prior['task.actions'],beforeCommandCount:prior['command.handledTurns']?.length||0,index:await page.evaluate(()=>__trial.events.length)};
@@ -60,24 +61,23 @@ async function say(name,{silent=false,reply=true}={}){
     return{startMs:at,speechEndMs,bufferEndMs:performance.now()};
   },{bytes:[...bytes],name});
   await until('durable user '+name,async()=>(await history()).some(e=>!turn.beforeIds.includes(e.id)&&e.type==='obs.user_utterance'));
-  if(silent)await wait(6000);else if(reply){await page.waitForFunction(i=>__trial.events.slice(i).some(e=>e.type==='session.output_transcript.delta'),turn.index,{timeout:35000});await quiet();}
-  await updateTurn(turn);if(silent)assertSilent(turn);else if(reply)assert.ok(Number.isFinite(turn.latency.speechEndToOutputMs),'Native audio missing');console.log('Reply: '+turn.spoken);return turn;
+  if(reply){await page.waitForFunction(i=>__trial.events.slice(i).some(e=>e.type==='session.output_transcript.delta'),turn.index,{timeout:35000});await quiet();}
+  await updateTurn(turn);if(reply)assert.ok(Number.isFinite(turn.latency.speechEndToOutputMs),'Native audio missing');console.log('Reply: '+turn.spoken);return turn;
 }
 async function updateTurn(turn){turn.memory=await memory();turn.history=(await history()).filter(e=>!turn.beforeIds.includes(e.id));
   turn.events=await page.evaluate(i=>__trial.events.slice(i),turn.index);turn.spoken=turn.events.filter(e=>e.type==='session.output_transcript.delta').map(e=>e.delta).join('');turn.latency=speechLatency(turn.events,turn.input);}
-function assertSilent(turn){assert.equal(turn.spoken,'','Silent request produced a native caption');assert.ok(!turn.events.some(e=>['native_audio_received','output_voice'].includes(e.type)),'Silent request produced received native audio');}
 async function checkpoint(name){const value={name,memory:await memory(),history:await history()};report.checkpoints.push(value);return value.memory;}
 async function render(name,kind){await page.waitForFunction(kind=>document.querySelector('[data-testid="embodiment-stage"]')?.dataset.handSign===kind,kind);
   const measured=await synchronizeEmbodimentFrame(page);assert.equal(measured.glError,0);assert.ok(measured.irisPixels>100);
   report.renderChecks.push({name,...measured});const file=name+'.png';await page.locator('#embodiment_panel').screenshot({path:path.join(directory,file)});report.screenshots.push(file);}
 const plans=events=>events.filter(e=>e.type==='resp.behaviour_plan').map(e=>({id:e.id,...JSON.parse(e.payload)}));
-async function command(name,status,{silent=false,kind,verify}={}){
-  const turn=await say(name,{silent,reply:status!=='ACCEPTED'});
+async function command(name,status,{kind,verify}={}){
+  const turn=await say(name,{reply:status!=='ACCEPTED'});
   await until('command '+name,async()=>(await memory())['command.handledTurns']?.length===turn.beforeCommandCount+1);
   // A visual command permits, but does not require, a spoken acknowledgement.
   // Leave time for its confirmed result to reach Live before the next visitor turn.
-  if(!silent){if(status==='ACCEPTED')await wait(8000);await quiet();}await updateTurn(turn);if(silent)assertSilent(turn);
-  const receipt=turn.memory['command.lastResult'];assert.equal(receipt.status,status);assert.equal(receipt.silent,silent);
+  if(status==='ACCEPTED')await wait(8000);await quiet();await updateTurn(turn);
+  const receipt=turn.memory['command.lastResult'];assert.equal(receipt.status,status);assert.equal(receipt.silent,false,'Live stimulus does not request strict silence');
   assert.deepEqual(turn.memory['coordination.agreement'],turn.beforeAgreement,'Direct command mutated agreement');assert.equal(turn.memory['task.actions'],turn.beforeActions,'Direct command spent task budget');
   const all=await history(),source=all[receipt.sourcePosition];assert.equal(source.type,'obs.user_utterance');assert.ok(!turn.beforeIds.includes(source.id));
   turn.commandSource={id:source.id,position:receipt.sourcePosition};const produced=plans(all.slice(receipt.sourcePosition+1)).filter(p=>p.motion?.handAction||p.motion?.handSign);

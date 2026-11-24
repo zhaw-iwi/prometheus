@@ -85,8 +85,11 @@ and regulation diagnostics remain future work.
   ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
   people/items, HI-09 input sequences, HI-10 output sequences/counting and HI-11
   integrated acceptance are complete and pushed; HI-12 real-provider acceptance is
-  in progress. Nine attempts reserve $24; native silence failures remain unaccepted,
-  and the playback-policy decision is pending before further paid retries. The owner authorized sequential implementation,
+  in progress. Nine attempts reserve $24. The 2026-11-24 owner decision accepts
+  strict silence as unsupported in GPT-Live to preserve independent native speech;
+  Text/Continuous retain strict silence. HI-12 revision 2 requires fresh Live
+  evidence and explicit mode checks; original failures remain unchanged.
+  The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
@@ -10359,3 +10362,19 @@ deployment remain deferred.
   DB checks plus three final targeted repeats; five distinct real-app browser
   journeys, reviewed images and package. Full provider/physical acceptance is
   outstanding. Exact artifacts and limits: .agents/HAND_INTERACTION_RESULTS.md.
+
+## HI-12 scope revision - Preserve mode ownership (2026-11-24)
+
+- Owner decision: strict "silently do X" is unsupported in GPT-Live. Native
+  speech remains independent of backend inference; no approval, buffering,
+  task-window muting or replacement TTS. Text/Continuous retain strict silence.
+- Revised the roadmap, machine-readable acceptance contract, paid rubric and
+  Live stimuli/assertions. Required L-01..09 retain task/semantic/visual/latency
+  checks; M-01 covers Text/Continuous silence and M-02 native ownership/mode switching.
+  Reports/baselines are revision-fenced. Earlier failures are not relabeled.
+- Definition/harness verification: 44 Python tests, six Node/browser harness
+  tests, both journey syntax checks and nine schema examples pass. Regenerated
+  and validated 27 local stimulus clips; no provider calls or production changes.
+- HI-12 remains incomplete pending revised application/provider acceptance.
+  Budget remains nine attempts/$24 reserved within the existing $50 authorization.
+  Physical trials remain NOT RUN. See the hand-interaction results for details.

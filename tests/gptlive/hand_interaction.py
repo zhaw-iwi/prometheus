@@ -18,6 +18,12 @@ def manifest():
         raise ValueError('Invalid hand interaction acceptance manifest')
     if [case['id'] for case in data['journeys']] != list(JOURNEYS):
         raise ValueError('Missing or reordered hand interaction journey')
+    if (data.get('acceptanceRevision') != 2 or data.get('modeContract') != {
+            'decisionDate': '2026-11-24',
+            'live': {'speechOwner': 'gpt-live', 'strictSilence': 'unsupported', 'backendPlaybackApproval': False},
+            'textContinuous': {'speechOwner': 'backend', 'strictSilence': 'required'}}
+            or [case['id'] for case in data.get('modeChecks', [])] != ['M-01', 'M-02']):
+        raise ValueError('Unreviewed hand mode acceptance contract')
     budget = data['budget']
     if (budget.get('authorization') != 'hand-interaction-2026-11-23-usd50'
             or budget.get('maximumReservedUsd') != 50 or budget.get('maximumAttempts') != 21

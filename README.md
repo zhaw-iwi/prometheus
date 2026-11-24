@@ -361,7 +361,9 @@ The browser moves into the pose for 350 ms, holds it for 500 ms, then releases
 over 350 ms. History, hidden views and reduced-motion views show a static preview;
 they do not replay the action. A new intentional repeat is a new command; retrying
 the same admitted turn cannot republish it. Pending task output blocks unrelated
-demonstrations. Silence suppresses speech, independently of native Live ownership.
+demonstrations. Explicit silence suppresses backend speech in Text and Continuous.
+GPT-Live generates and streams its own speech independently: strict "silently do X"
+is unsupported in that mode. Choose Text or Continuous when silence is required.
 "OK" needs clarification between thumbs up and the diver's ring. A plan
 or browser rendering is not a physical robot execution receipt.
 
@@ -487,13 +489,16 @@ may coalesce; they cannot trigger a task or spend its action budget. Applied
 snapshots remain visible in ordinary Storage and event history. Other observation
 types retain their existing acknowledgement contract.
 
-HI-12 real OpenAI acceptance is still incomplete. Native Live has produced
-unsolicited speech after otherwise correct silent hand actions. Empty backend
-speech is not a guarantee of silence from Live. The current results and pending
-playback decision are recorded in [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+HI-12 real OpenAI acceptance is still incomplete. Its revised mode contract
+(owner decision, 2026-11-24) preserves immediate independent GPT-Live speech.
+Live hand actions and tasks carry no strict-silence guarantee; empty backend
+speech does not silence Live. No playback approval, buffering, muting or replacement
+TTS is added for this purpose. Strict silence is tested in Text and Continuous.
+Previous failures remain recorded under their original rubric; the revised
+matrix still needs acceptance. See [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
 New Coordination instances also declare `hand.sequences.output.v1`. An immediate
-request such as **Count one to five silently** produces one finite output command;
+request such as **Count one to five silently** in Text/Continuous produces one finite output command;
 a negotiated cue may produce the same sequence as one task contribution. The
 counting convention extends thumb, index, middle, ring and little finger in order
 on the right hand; six through ten adds the left hand in that order. The user can

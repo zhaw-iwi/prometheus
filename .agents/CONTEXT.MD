@@ -112,8 +112,11 @@ explicit bounded voice projection; full terms remain authoritative in Storage.
 README documents the database widening and saved-instance adoption.
 HI-12 real-provider acceptance is in progress, not complete. Nine paid-attempt
 reservations total $24; no Live journey has yet passed its complete rubric.
-Correct named/custom actions exposed unsolicited native speech during requested
-silence. A playback-policy choice is pending; paid retries are paused. The local
+On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,
+preserving immediate native speech without playback approval, buffering or muting.
+Strict silent hand commands/tasks remain a Text/Continuous requirement. Revised
+Live stimuli and complete semantic/audio/visual review retain all task-authority
+checks; original failures are not relabeled. The revised matrix remains unrun. The local
 target fix adds one durable latest scene capture per agent, independent of blocking
 interpretation, with epoch fencing, unchanged expiry and fresh dispatch reads.
 Applied captures remain passive data in Storage/history. README documents the new

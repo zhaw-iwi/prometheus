@@ -722,12 +722,17 @@ MySQL remains available for HI-12. Remote MySQL and old paid ledgers are untouch
 
 ## HI-12 - Real provider acceptance (in progress)
 
-Status: **INCOMPLETE; playback-policy decision pending**. No complete Live journey
-has passed its rubric. Paid retries are paused; the failed runs remain evidence.
-The owner is choosing between application-controlled silence (retaining upstream
-audio and measuring added latency) and the stricter zero-provider-audio rule.
-No rubric has been relaxed. OpenAI documents that thinking appends cannot prevent
-independent model speech: [official suppression guidance](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run).
+Status: **INCOMPLETE; acceptance revision 2 defined on 2026-11-24**. The owner chose
+immediate independent native speech and accepted strict silence as unsupported in
+GPT-Live. No playback gate, backend speech approval, classification buffer,
+task-window muting or replacement TTS will be added. Text/Continuous retain strict
+silence. Optional truthful Live speech is permitted; task authority, semantic
+correctness, rendering, lifecycle and latency requirements remain mandatory.
+
+This is a prospective scope revision, not a retrospective pass. The original nine
+attempts retain their revision-1 verdicts and reservations below. No new paid run
+has been made under revision 2. Complete native audio remains required evidence.
+The original limitation is consistent with [official suppression guidance](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run).
 
 The hand runner uses the real scoped cockpit, native Live, backend inference and
 disposable loopback MySQL. Sensor inputs are controlled fixtures, not camera
@@ -737,10 +742,10 @@ command/action identities, receipts and synchronized rendered images. Complete
 received audio has also been transcribed locally for review; this is not physical
 listening or provider-based grading. No physical microphone/speaker/adapter trial.
 
-| Journey | Current result |
+| Journey | Revision-2 acceptance |
 | --- | --- |
-| L-01 named signs | FAIL; correct actions but unsolicited native speech. |
-| L-02 custom poses | FAIL; correct ten-finger task output but unsolicited native speech. Immediate custom request not reached. |
+| L-01 named signs | NOT RUN; revision-1 failures retained below. |
+| L-02 custom poses | NOT RUN; revision-1 failures retained below, including unreached immediate custom request. |
 | L-03 ring/geometry | NOT RUN |
 | L-04 direction | NOT RUN |
 | L-05 registered target | NOT RUN |
@@ -748,6 +753,8 @@ listening or provider-based grading. No physical microphone/speaker/adapter tria
 | L-07 input sequence | NOT RUN |
 | L-08 output sequence | NOT RUN |
 | L-09 conversation/latency and separate comparison | NOT RUN |
+| M-01 Text/Continuous strict silence | NOT RUN against the complete revised pose/sequence/task matrix. Prior units/browser evidence remains recorded below. |
+| M-02 native ownership, Stop and mode switching | Prior blocked-backend/Stop/switch regressions passed below; final acceptance against revision 2 pending. |
 
 All attempt directories below are under ignored `target/gptlive-acceptance-<id>`.
 
@@ -830,7 +837,35 @@ Verification actually run:
   cleaned. The owned loopback MySQL remains for continuation; remote MySQL and the
   pre-existing local service are untouched.
 
-Remaining acceptance: all L-01..09 against final integrated behavior after the
-silence decision, including L-09 latency limits; full semantic/audio/visual review;
+Remaining acceptance: all revision-2 L-01..09 against final integrated behavior,
+including same-revision L-09 comparison and latency limits; M-01/M-02; full semantic/audio/visual review;
 operator trials listed in `tests/hand-interaction/README.md` (all NOT RUN).
 The real-detector failures and software-WebGL limits from HI-08 remain known.
+
+### Revision-2 definition verification (2026-11-24)
+
+Updated the roadmap, executable manifest, paid rubric, Live stimuli/scenario
+assertions and current documentation to the owner's mode boundary. Reports carry
+acceptance revision 2; preflight rejects old revisions and an L-09 comparison from
+another revision. Complete audio capture, semantic review, action/pose validation,
+budget enforcement and all revision-1 artifacts remain intact. No production
+speech/playback code changed.
+
+Actually run for this definition/harness update:
+
+- `python -B -m unittest discover -s tests/gptlive -p 'test_*.py'`: 44 pass.
+- `node --test tests/gptlive/test_hand_capture.mjs tests/gptlive/test_hand_media.mjs
+  tests/gptlive/test_hand_scenarios.mjs`: six pass. Includes retained received audio
+  with muted test playback, optional native speech in the pose harness and rejection
+  of the wrong finger pose. These are harness tests, not application acceptance.
+- `node --check` on `hand_journey.mjs` and `hand_scenarios.mjs`: pass.
+- `python -B tests/gptlive/run_acceptance.py --hand-interaction contracts`: nine
+  examples pass with no database/provider access.
+- `python -B tests/gptlive/prepare_hand_audio.py`: regenerated 27 local SAPI clips;
+  hashes/text pass `hand_paid.validate_audio()`. Provider calls: zero.
+- Budget validation and `git diff --check` pass. The ledger still contains nine
+  attempts/$24 reserved; no new paid request, database run or physical trial.
+
+The redefinition is verified; HI-12 acceptance itself is still incomplete as
+shown in the matrix above. M-01 coverage must be completed where missing, followed
+by M-02 and the revision-2 Live runs within the existing budget.

@@ -3,11 +3,26 @@ import json
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 from hand_interaction import ROOT, JOURNEYS, manifest, validate_contracts
 
 
 class HandInteractionContractTest(unittest.TestCase):
+    def test_mode_contract_preserves_native_ownership_and_backend_silence(self):
+        data = manifest()
+        self.assertEqual(2, data['acceptanceRevision'])
+        cases = json.loads((ROOT / 'tests/gptlive/hand-cases.json').read_text(encoding='utf-8'))
+        self.assertTrue(all('silent' not in text.lower() for text in cases.values()))
+        for changed in (dict(data, acceptanceRevision=1), dict(data, modeChecks=[])):
+            with patch('hand_interaction.MANIFEST') as source:
+                source.read_text.return_value = json.dumps(changed)
+                with self.assertRaisesRegex(ValueError, 'mode acceptance contract'): manifest()
+        changed = copy.deepcopy(data); changed['modeContract']['live']['backendPlaybackApproval'] = True
+        with patch('hand_interaction.MANIFEST') as source:
+            source.read_text.return_value = json.dumps(changed)
+            with self.assertRaisesRegex(ValueError, 'mode acceptance contract'): manifest()
+
     @classmethod
     def setUpClass(cls):
         cls.schema = json.loads((ROOT / 'src/main/resources/hand/interaction-v1.schema.json').read_text())

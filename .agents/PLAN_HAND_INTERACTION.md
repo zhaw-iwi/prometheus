@@ -2,6 +2,7 @@
 
 Prepared: 2026-11-23. Baseline: main `025697df`.
 Status: **HI-01 through HI-11 COMPLETE; HI-12 IN PROGRESS**.
+HI-12 acceptance revision 2: owner decision of 2026-11-24 preserves native Live speech independence.
 Development branch: `main`; deployment branch: `agents`.
 
 The owner authorized sequential implementation on 2026-11-23: complete and verify
@@ -255,7 +256,7 @@ the same predeclared rubric and recorded source/configuration.
 | HI-09 | Ordered input sequences and finger counting | HI-08 | U, DB, V; L-07 |
 | HI-10 | Finite output sequences and robot finger counting | HI-09 | U, DB, V; L-08 |
 | HI-11 | Integrated mode, lifecycle, UI and resource regression acceptance | HI-10 | U, DB, V; L-09 |
-| HI-12 | Real OpenAI Live acceptance, evidence and operator handoff | HI-01..11 | L-01..09; final affected U/DB/V |
+| HI-12 | Mode-appropriate acceptance, evidence and operator handoff | HI-01..11 | Revision-2 L-01..09; M-01/M-02; final affected U/DB/V |
 
 Milestones distinguish SOFTWARE VERIFIED from PROVIDER VERIFIED. Passing mocked
 tests does not mark the linked Live journey complete. Overall completion requires
@@ -323,7 +324,7 @@ one admitted command across reload/retry, plus a distinct intentional repeat;
 V reviewed front/side pose contact sheet, light/dark/narrow layouts, visible
 thumb direction, replay without repeated action and supported/unsupported output.
 
-**Exit:** "show thumbs up silently" renders once without task creation; "when I
+**Exit:** in Text/Continuous, "show thumbs up silently" renders once without task creation; "when I
 show thumbs up, show peace" executes only after acceptance and a fresh cue.
 
 ## HI-04 — Custom finger patterns and two-hand composition
@@ -478,7 +479,7 @@ advance another command, and scope/owner checks hold; V virtual-clock assertions
 plus sampled frames for every counting step, cancellation between steps, replay
 as static history, and no hidden-tab catch-up burst of obsolete motions.
 
-**Exit:** "count one to five silently" executes exactly five ordered poses;
+**Exit:** in Text/Continuous, "count one to five silently" executes exactly five ordered poses;
 Stop after two prevents steps three through five. A task-triggered sequence uses
 the same output contract and its single agreed contribution budget.
 
@@ -507,10 +508,30 @@ Review successful screenshots/contact sheets, not only failure screenshots.
 sequence directions have local acceptance evidence. Ordinary Live audio remains
 independent of backend work and no duplicate Speech route is introduced.
 
-## HI-12 — Real OpenAI Live journeys and final handoff
+## HI-12 — Mode-appropriate acceptance and final handoff
 
 **Outcome:** real spoken interaction succeeds through the actual application,
-local persistence and browser rendering for every new capability family.
+local persistence and browser rendering for every new capability family, preserving
+the existing speech-ownership architecture. Strict silent output is verified in
+Text and Continuous; GPT-Live supports the same hand actions without a silence guarantee.
+
+### Accepted mode boundary (revision 2, 2026-11-24)
+
+- Text/Continuous: the backend owns verbal and nonverbal behavior. Explicit silent
+  commands/tasks must omit speech and produce no synthesis or audible output.
+- GPT-Live: Live owns verbal responses and their immediate streaming; the backend
+  owns task authority and all other behavior modalities. Ordinary native audio
+  must continue while backend interpretation is blocked.
+- Strict "silently do X" is unsupported in GPT-Live for this roadmap, including
+  silent sensor-triggered actions. Users needing strict silence choose Text or
+  Continuous. No playback gate, buffering pending classification, sentence approval,
+  task-window muting, or replacement TTS is introduced to satisfy acceptance.
+- Live journeys request the hand behavior without promising silence. Optional
+  truthful acknowledgements/follow-up speech are allowed. False cancellation,
+  denial or completion claims, changed terms and unauthorized task progress still
+  fail. Capture and review complete native audio; do not hide inconvenient output.
+- This is a prospective owner-approved scope revision. Preserve the nine original
+  attempts and their verdicts under revision 1; none becomes a pass by relabeling.
 
 Reuse the existing native Live runner, real scoped cockpit, disposable local MySQL,
 SSE, capture/playback evidence and commanding preflight patterns. Add a distinct
@@ -552,14 +573,27 @@ duplicate check as well as a success path; these are not free automatic retries.
 | ID | Real spoken journey | Required evidence |
 | --- | --- | --- |
 | L-01 Named signs | Ask capabilities; request thumbs up; negotiate "on thumbs up, show peace once"; prepare/accept; send wrong then fresh correct sign; deliberately repeat a direct command. | Correct spoken scope; one action per authorized turn/cue; no premature task start, duplicate contribution or competing speech; visible correct poses. |
-| L-02 Custom poses | Specify a custom two-hand pattern; demonstrate it during preparation; accept one response on its next occurrence; ask robot to reproduce it silently. | All finger/side constraints preserved; split/missing readings do not match; readiness spends no action; one response and correct ten-finger output; no audio for silent demonstration. |
+| L-02 Custom poses | Specify a custom two-hand pattern; demonstrate it during preparation; accept one response on its next occurrence; ask robot to reproduce it. | All finger/side constraints preserved; split/missing readings do not match; readiness spends no action; one response and correct ten-finger output; any native speech remains consistent with confirmed facts. |
 | L-03 Ring and geometry | Ask for "OK", resolve shape if ambiguous; demonstrate an OK ring and a near miss; agree one ring-triggered response; request the ring from the robot. | Thumb-up/ring distinction, all geometric terms retained, near miss rejected, one accepted cue, rendered ring and consistent speech. |
 | L-04 Direction | Negotiate "when I point to my left, point to your right"; accept and exercise wrong/correct directions; request an immediate left-pointing demonstration. | Correct disclosed frames, no mirroring reversal, one action, correct visible arm/finger direction and no task mutation by the unrelated direct request. |
 | L-05 Registered target | Identify the configured display; agree a response to pointing there; accept and trigger it; request pointing at that display. | Same scoped target/frame across agreement and output, correct selected region, supported virtual mapping and visible target-directed output. |
 | L-06 Person/item | Select one of two ambiguous cups, negotiate a pointing-triggered response and trigger it; directly request pointing at a clearly selected person; remove that target before repeating. | Clarification precedes action, stable target binding, fresh cup/person resolution, no invented personal identity, and no action at a stale target. |
 | L-07 Input sequence | Agree "one, then two, then three -> one acknowledgement"; accept; show an incomplete/wrong sequence then a valid one; hold the last pose. | Spoken terms retain order/limits; inspectable progress; only full sequence spends one action; holding the final pose does not repeat it. |
-| L-08 Output sequence | Request counting one to five silently; request a second bounded sequence and Stop after step two; agree one pose-triggered output sequence and execute it. | Correct ordered visual steps, silent request respected, timely cancellation, no late/reconnected replay, one task contribution with scoped completion evidence. |
+| L-08 Output sequence | Request counting one to five; request a second bounded sequence and Stop after step two; agree one pose-triggered output sequence and execute it. | Correct ordered visual steps, timely cancellation, no late/reconnected replay, one task contribution with scoped completion evidence; any native speech remains consistent with confirmed facts. |
 | L-09 Mode/conversation regression | Three matched ordinary turns on Coordination and the existing Live comparison agent; one supported new direct request; inspect Text/Continuous parity through the local real-app suite. | Native speech remains independent, correct capabilities, no extra TTS, no false completion claim; compare browser audio onset with the declared baseline and retain evidence. |
+
+Also require two deterministic real-application checks with disposable local MySQL:
+
+| ID | Mode check | Required evidence |
+| --- | --- | --- |
+| M-01 Strict silence | In both Text and Continuous, request a silent custom pose and finite count sequence; prepare/accept and trigger one silent hand task. | Correct visible output and one action per request/cue; canonical plans omit speech; no synthesis request or audio playback for the action, including completion. A spoken control response verifies the Continuous speech route is functioning. |
+| M-02 Ownership | Run the existing native-audio/blocked-backend, Stop and mode-switch regression. | Native audio plays while backend inference is held; no approval/replacement-TTS request; Stop immediately releases audio; Text/Continuous regain canonical backend speech after switching. |
+
+M-01 uses real ingress, persistence, SSE and rendering with labelled provider/media
+fixtures; it is not real-provider speech recognition or physical audibility evidence.
+Extend neighboring commanding/hand/sequence browser tests only where coverage is
+missing. M-02 is anchored in `valerian-gptlive-native.spec.mjs`; retain its blocked
+backend assertion. These checks add no paid-provider attempts.
 
 For each journey predeclare the semantic rubric before running: wrong sign, hand,
 direction, target, step order, task terms or action count fails; repeated consent
@@ -569,18 +603,21 @@ captured speech/audio and visible output, not a convenient substring or a regex
 alone. Missing evidence is INCONCLUSIVE, not PASS. A failed journey remains in the
 record after a corrected retest.
 
-Native silence must be assessed from received audio, not only an empty backend
-speech field. Spatial/pose correctness needs inspected rendered output, not only
+Strict silence in Text/Continuous needs both canonical output and browser
+synthesis/playback evidence, not only an empty speech field. Native Live audio is
+retained for semantic and latency review, with no zero-audio requirement.
+Spatial/pose correctness needs inspected rendered output, not only
 canonical JSON. Controlled sensor injection proves interpretation/control, not
 camera accuracy; include the HI-08 actual-detector fixture results and a separate
 operator checklist for real-room sensing and physical audio/actuation.
 
 ### Final exit and evidence
 
-- All L-01..09 pass with recorded source revision, model/configuration, stimuli,
+- All revision-2 L-01..09 and M-01/M-02 pass with recorded source revision, model/configuration, stimuli,
   actual/reserved usage, timing, admitted turn/event/action IDs and reviewed visual
   and speech evidence. Run the mandatory matrix against the final integrated
   behavior; after a relevant fix, repeat every affected journey, preserving failures.
+  L-09 uses a separate comparison recorded under the same acceptance revision.
 - The smallest complete affected unit/contract, isolated DB and Playwright suites
   pass after the final changes. Include packaging and whitespace checks. Do not
   rerun unrelated suites repeatedly without a change or unresolved concern.
@@ -637,12 +674,14 @@ not general real-room accuracy; unexpected failures cannot be hidden by relabell
 the examples after a run. UI tests may replay the same clips deterministically.
 
 
-## HI-12 acceptance decision (2026-11-23)
+## HI-12 acceptance decision history
 
-Nine attempts reserve $24. Complete received-audio review still fails native
-silence for otherwise correct named/custom hand actions. The owner has been asked
-whether to enforce silence at application playback, retaining upstream audio for
-audit and measuring added latency, or keep the zero-provider-audio criterion.
-No answer or rubric change is assumed; paid retries are paused. Independent local
-capture-freshness repairs and their regression checks are complete. HI-12 remains
-incomplete; see HAND_INTERACTION_RESULTS.md for every retained attempt and check.
+On 2026-11-23, nine attempts reserved $24 and complete audio review failed the
+original native-silence requirement. Work paused for an ownership decision after
+independent capture-freshness repairs were verified and pushed in `ae493087`.
+On 2026-11-24, the owner explicitly chose immediate independent Live speech and
+accepted strict silence as unsupported in that mode. Revision 2 above replaces
+the zero-native-audio gate without changing task authority, speech ownership or
+the $50 authorization. Refresh local visitor clips and run preflight before
+resuming explicit paid selections. HI-12 remains incomplete until the revised
+matrix passes; all previous failures/reservations remain in the results.

@@ -258,6 +258,22 @@ they are not recognition accuracy or paid provider evidence.
 
 ## HI-12 provider acceptance (in progress)
 
+Acceptance revision 2 (owner decision 2026-11-24) preserves the ownership split:
+Text/Continuous use backend speech; GPT-Live generates and streams native speech
+independently of backend inference. Strict silent commands/tasks are unsupported
+in GPT-Live. Live stimuli ask for the hand action without silence; optional native
+speech is allowed when consistent with authoritative task state. False claims,
+changed terms, premature actions and incorrect visible output still fail. No
+playback gate, classification buffer, task-window muting or replacement TTS is used.
+
+Required M-01 checks silence in Text and Continuous for a custom pose, finite count
+sequence and one sensor-triggered hand task: no canonical speech, synthesis or
+action audio, including completion, with a spoken Continuous control. Required
+M-02 retains native audio while backend inference is held, immediate Stop and
+restored Text/Continuous ownership on switching. Use real local MySQL, ingress,
+SSE and rendering with labelled provider/media fixtures. These mode checks are
+separate from the required L-01..09 real-provider runs and physical trials.
+
 Use `tests/gptlive/run_acceptance.py --database-properties <loopback-properties>
 --hand-interaction L-01 --paid-core hand-live` with `OPENAI_MODEL=gpt-5.6-luna`.
 Selections L-01 through L-09 are explicit individual attempts; the L-09 comparison
@@ -273,7 +289,8 @@ Each attempt permits at most one six-minute native session, 36 backend requests,
 80,000 UTF-8 request bytes, 2,048 completion tokens per call and twelve visitor
 turns. The overall watchdog is 390 seconds. Paid synthesis and grading are disabled.
 Generate the labelled visitor audio with `python tests/gptlive/prepare_hand_audio.py`;
-this uses local Windows SAPI, not a provider. Controlled sensor fixtures do not
+regenerate it after this revision, since old silence-request clips fail preflight.
+This uses local Windows SAPI, not a provider. Controlled sensor fixtures do not
 establish camera accuracy. Every paid run records source hashes and complete
 received native audio, including audio suppressed by browser playback.
 
@@ -287,10 +304,11 @@ python -B tests/gptlive/review_hand_audio.py --download-model target/gptlive-acc
 Omit `--download-model` after the public base.en weights are cached. The report
 retains package versions, model/audio hashes and all transcript segments. It is
 supporting evidence, not an automatic semantic verdict or a physical listening
-test. Review full captions, independent transcription, raw silence measurements,
+test. Review full captions, independent transcription, raw audio activity,
 ordered renderer images, durable terms/actions and scoped completion evidence.
-Failed attempts remain failed after a later successful retest. HI-12 is incomplete
-until its required matrix passes; see the project results for current failures.
+Revision-1 failed attempts remain failed under their original rubric. Every new
+report records revision 2; L-09 requires a comparison from the same revision.
+HI-12 is incomplete until L-01..09 and M-01/M-02 pass; see the project results.
 
 Physical operator checklist (all NOT RUN): ten named signs on each hand; custom
 one/two-hand patterns and occlusion; mirrored preview and all pointing directions;

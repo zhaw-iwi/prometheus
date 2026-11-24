@@ -50,9 +50,9 @@
         "HI-04"
       ],
       "fixture": {
-        "steps": "Specify a custom two-hand pattern; demonstrate it during preparation; accept one response on its next occurrence; ask robot to reproduce it silently."
+        "steps": "Specify a custom two-hand pattern; demonstrate it during preparation; accept one response on its next occurrence; ask robot to reproduce it."
       },
-      "expected": "All finger/side constraints preserved; split/missing readings do not match; readiness spends no action; one response and correct ten-finger output; no audio for silent demonstration.",
+      "expected": "All finger/side constraints preserved; split/missing readings do not match; readiness spends no action; one response and correct ten-finger output; any native speech remains consistent with confirmed facts.",
       "providerReady": true
     },
     {
@@ -122,9 +122,9 @@
         "HI-10"
       ],
       "fixture": {
-        "steps": "Request counting one to five silently; request a second bounded sequence and Stop after step two; agree one pose-triggered output sequence and execute it."
+        "steps": "Request counting one to five; request a second bounded sequence and Stop after step two; agree one pose-triggered output sequence and execute it."
       },
-      "expected": "Correct ordered visual steps, silent request respected, timely cancellation, no late/reconnected replay, one task contribution with scoped completion evidence.",
+      "expected": "Correct ordered visual steps, timely cancellation, no late/reconnected replay, one task contribution with scoped completion evidence. Any native speech remains consistent with confirmed facts.",
       "providerReady": true
     },
     {
@@ -148,5 +148,37 @@
     "retryEntityWrites": 0,
     "inferencesWithoutTask": 0,
     "eventsPerRepresentation": 1
-  }
+  },
+  "acceptanceRevision": 2,
+  "modeContract": {
+    "decisionDate": "2026-11-24",
+    "live": {
+      "speechOwner": "gpt-live",
+      "strictSilence": "unsupported",
+      "backendPlaybackApproval": false
+    },
+    "textContinuous": {
+      "speechOwner": "backend",
+      "strictSilence": "required"
+    }
+  },
+  "modeChecks": [
+    {
+      "id": "M-01",
+      "modes": [
+        "Text",
+        "Continuous"
+      ],
+      "expected": "Silent custom pose, finite count sequence and one sensor-triggered hand action: correct visible output, no canonical speech, synthesis request or audio playback including completion; spoken control confirms the Continuous speech route works."
+    },
+    {
+      "id": "M-02",
+      "modes": [
+        "GPT-Live",
+        "Text",
+        "Continuous"
+      ],
+      "expected": "Native audio plays while backend inference is blocked, without approval or replacement TTS; Stop releases audio immediately; switching restores canonical backend speech."
+    }
+  ]
 }

@@ -21,6 +21,9 @@ class HandPaidBudgetTest(unittest.TestCase):
     def test_current_priced_routes_fit_the_reserve_and_changed_bounds_fail_closed(self):
         plan = json.loads(PLAN.read_text(encoding='utf-8'))
         self.assertLess(validate(plan, 'gpt-5.6-luna'), 2)
+        for revision in (None, 1, 3):
+            changed = copy.deepcopy(plan); changed['acceptanceRevision'] = revision
+            with self.assertRaisesRegex(ValueError, 'acceptance revision 2'): validate(changed, 'gpt-5.6-luna')
         for section, key, value in [('limits', 'sessions', 2), ('limits', 'outputSpeechCalls', 1),
                                     ('limits', 'sessionSeconds', 600), ('pricing', 'liveUsdPerMinute', .01),
                                     ('models', 'backend', 'unpriced')]:

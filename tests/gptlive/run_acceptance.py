@@ -118,7 +118,8 @@ def main():
                 if not pointer.exists():
                     raise SystemExit('Run L-09 --hand-comparison before the Coordination latency comparison.')
                 baseline = json.loads((Path(json.loads(pointer.read_text(encoding='utf-8'))['artifact'])/'journey.json').read_text(encoding='utf-8'))
-                if baseline.get('mode') != 'L-09-comparison' or not baseline.get('automatedPassed'):
+                if (baseline.get('mode') != 'L-09-comparison' or not baseline.get('automatedPassed')
+                        or baseline.get('acceptanceRevision') != plan['acceptanceRevision']):
                     raise SystemExit('The hand conversation baseline is not passing; no provider access permitted.')
             hand_paid.available_models(key,plan)
         if commanding:

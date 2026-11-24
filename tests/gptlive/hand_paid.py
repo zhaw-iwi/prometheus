@@ -18,6 +18,8 @@ LIMITS = dict(backendRequests=36, requestBytes=80000, inputFramingTokenAllowance
 
 
 def validate(plan, model):
+    if plan.get('acceptanceRevision') != 2:
+        raise ValueError('Use hand acceptance revision 2; preserve earlier failures')
     if (plan.get('schema') != 'hand-paid-plan-v1' or plan.get('authorized') is not True
             or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 21
             or plan.get('maximumReservedUsd') != 50 or plan.get('reserveUsdPerAttempt') != 2
