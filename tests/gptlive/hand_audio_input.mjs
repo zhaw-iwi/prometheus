@@ -16,6 +16,14 @@ export function handReplyObserved({index,startMs}) {
     &&events.some(e=>e.type==='output_voice'&&e.at>=startMs);
 }
 
+// The scripted visitor waits for an audible invitation before supplying a missing choice.
+// Semantic review still checks which choice the full prompt asked for.
+export function spokenClarification(events,beforeIds){
+  const replies=events.filter(e=>!beforeIds.includes(e.id)&&e.type==='resp.behaviour_plan'
+    &&e.provenance?.origin==='NATIVE'&&e.provenance.complete).map(e=>JSON.parse(e.payload).speech||'');
+  return replies.find(text=>/[?？]|\b(tell me|let me know|choose|pick|specify|what would|how should|what should)\b/i.test(text));
+}
+
 export async function playHandStimulus({pcmBase64,name}) {
   const bytes=Uint8Array.from(atob(pcmBase64),value=>value.charCodeAt(0));
   const pcm=new Int16Array(bytes.buffer),samples=Float32Array.from(pcm,value=>value/32768);

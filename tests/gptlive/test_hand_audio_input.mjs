@@ -1,3 +1,4 @@
+import {spokenClarification} from './hand_audio_input.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -82,4 +83,12 @@ test('long PCM stimulus transfers losslessly without starving the browser poll',
     await page.evaluate(()=>{__handBudget.inputSeconds=359;});
     await assert.rejects(()=>page.evaluate(playHandStimulus,{pcmBase64:bytes.toString('base64'),name:'over-budget'}),/Native input audio limit/);
   }finally{await browser.close();}
+});
+
+test('the visitor waits through a backchannel for the actual clarification prompt',()=>{
+  const event=(id,speech,complete=true)=>({id,type:'resp.behaviour_plan',provenance:{origin:'NATIVE',complete},payload:JSON.stringify({speech})});
+  const early=[event('prior','Which response?'),event('ack','Mm-hmm.'),event('partial','How should',false)];
+  assert.equal(spokenClarification(early,['prior']),undefined);
+  for(const speech of ['What would you like me to do?', 'Please tell me how to respond.'])
+    assert.equal(spokenClarification([...early,event('ask',speech)],['prior']),speech);
 });
