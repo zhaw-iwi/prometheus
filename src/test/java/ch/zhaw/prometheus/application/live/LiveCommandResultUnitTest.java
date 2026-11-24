@@ -53,6 +53,19 @@ class LiveCommandResultUnitTest {
         assertTrue(facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length<=380);
         assertEquals(saved,storage.get(DirectCommands.LAST));
     }
+    @Test void failedPointCarriesItsOwnReasonAndLeavesTheSavedTaskSeparate() {
+        var source = command("CLARIFY", false);
+        var receipt = storage.get(DirectCommands.LAST).getAsJsonObject();
+        for (String reason : List.of("selected_target_absent", "target_unavailable")) {
+            receipt.addProperty("kind", "POINT"); receipt.addProperty("clarification", reason);
+            storage.put(DirectCommands.LAST, receipt);
+            var facts = LiveCommandResult.current(agent, now, source.getId()::equals).facts();
+            assertTrue(facts.contains("No point sent."));
+            assertEquals(reason.equals("selected_target_absent"), facts.contains("absent from the current scene"));
+            assertTrue(facts.contains("The saved task is separate."));
+            assertTrue(facts.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= 380);
+        }
+    }
     @Test void factsAreQuietDeduplicatedWithdrawnAndNeverAStartupAnnouncement() {
         command("ACCEPTED",false);
         var projection = new LiveContextProjection(new PromptMessageAssembler(),new LiveVoicePolicyAdapter(),Clock.fixed(now,ZoneOffset.UTC));

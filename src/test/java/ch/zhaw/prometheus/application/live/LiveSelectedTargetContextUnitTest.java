@@ -70,6 +70,9 @@ class LiveSelectedTargetContextUnitTest {
     @Test void onlyTheFreshRemovalFrameWithdrawsTheSelectionInQuietContext() {
         append(capture(now, true), now);bind("Visitor", true, now);var before=project(now);
         var removalAt=now.plusMillis(500);var removed=append(capture(removalAt, false), removalAt);
+        var selected=TargetRef.parse(storage.get(ObservedTargets.SELECTED));
+        assertTrue(ObservedTargets.selectedAbsent(storage,selected,removalAt));
+        assertFalse(ObservedTargets.selectedAbsent(storage,selected,removalAt.plusSeconds(4)));
         var item=item(removalAt);
         assertTrue(item.text().contains("previous selection is absent"));assertFalse(item.text().contains("Visitor"));
         var delivery=new LiveContextDelivery(before);delivery.ready();

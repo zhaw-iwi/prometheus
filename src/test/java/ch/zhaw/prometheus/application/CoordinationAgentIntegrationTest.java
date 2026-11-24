@@ -118,7 +118,10 @@ class CoordinationAgentIntegrationTest {
             return;
         }
         assertEquals(disappear?"CLARIFY":"ACCEPTED",saved.get("command.lastResult").getAsJsonObject().get("status").getAsString());
-        if(disappear)assertTrue(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(saved,Instant.now()).isEmpty());
+        if(disappear){
+            assertTrue(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(saved,Instant.now()).isEmpty());
+            assertEquals("selected_target_absent",saved.get("command.lastResult").getAsJsonObject().get("clarification").getAsString());
+        }
         else assertEquals(reference,ch.zhaw.prometheus.model.hand.HandScene.ref(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(saved,Instant.now()).getFirst()));
         assertEquals(disappear?0:1,agents.findById(scope.id()).orElseThrow().getEventHistory().toList().stream()
                 .filter(e->Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(e.getType())&&e.getPayload().contains("handAction")).count());
@@ -414,7 +417,10 @@ class CoordinationAgentIntegrationTest {
         var say=new EventRequest(Event.TYPE_USER_UTTERANCE,"user",Event.KIND_OBSERVATION,"Point at the registered display silently");demo.acknowledge(scope.code(),scope.id(),say,OutputProfile.FULL_PLAN).orElseThrow();
         var receipt=memory(scope).get("command.lastResult").getAsJsonObject();assertEquals("ACCEPTED",receipt.get("status").getAsString());assertTrue(receipt.getAsJsonObject("handAction").getAsJsonObject("action").has("resolved"));
         var deleted=fixtures.behaviour.HandSceneFixture.request(1);deleted.add("targets",new JsonArray());demo.configureHandScene(scope.code(),scope.id(),deleted.toString()).orElseThrow();
-        demo.acknowledge(scope.code(),scope.id(),say,OutputProfile.FULL_PLAN).orElseThrow();assertEquals("CLARIFY",memory(scope).get("command.lastResult").getAsJsonObject().get("status").getAsString());
+        demo.acknowledge(scope.code(),scope.id(),say,OutputProfile.FULL_PLAN).orElseThrow();
+        var rejected=memory(scope).get("command.lastResult").getAsJsonObject();
+        assertEquals("CLARIFY",rejected.get("status").getAsString());
+        assertEquals("target_unavailable",rejected.get("clarification").getAsString());
         assertEquals(proposal,memory(scope).get(CoordinationMemory.AGREEMENT));assertEquals(1,memory(scope).get(TaskMemory.ACTIONS).getAsInt());
         assertThrows(IllegalArgumentException.class,()->demo.configureHandScene(scope.code(),scope.id(),request.toString()));
     }

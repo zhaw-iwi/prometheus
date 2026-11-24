@@ -2,7 +2,7 @@
 
 HI-01 through HI-11 are complete. HI-12 remains open. The historical implementation
 checkpoint was `82d12bc7`. The latest findings and reservations are in
-[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l07-verification.json)
+[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-workflow.json)
 and the final section of [the results](HAND_INTERACTION_RESULTS.md).
 
 ## Start here
@@ -120,6 +120,18 @@ for the workflow. Here the visitor had explicitly requested one spoken word
 once. The L-07 verification used the full $100 continuation. See the
 [results](HAND_INTERACTION_RESULTS.md) for the recorded speech and next step.
 
+Allocation 15 tested natural acknowledgement of the right-hand sequence. In
+both 109 and 111 the wrong order spent zero actions, the correct order spent
+one and the held three kept the count at one. In 111 Live asked for the missing
+choice before the visitor answered. It acknowledged the sequence, then gave a
+second acknowledgement three seconds later. In 112 the digital right arm
+pointed to Visitor and the backend rejected the repeat after a fresh scene
+showed Visitor absent. Live incorrectly described both commands as requiring
+agreement changes. The scoped point-result facts now carry the grounding
+reason and the immediate-command authority. Their effect on native speech
+still requires real-provider evidence. Strict dictated speech remains a
+separate rehearsal. See the [four reviewed runs](HAND_INTERACTION_RESULTS.md).
+
 ## Findings carried into this continuation
 
 Use the saved failure evidence for an offline reproduction before another paid
@@ -154,9 +166,9 @@ tests. These results are historical evidence, not tests run on the new device.
 
 ## Carry the spending history across devices
 
-Allocation 14 added $5 for one L-07 verification after entry 107. Across backend
-inference and GPT-Live, all $100 of the continuation from attempt 89 is reserved.
-The cumulative ledger has 108 entries and $286 reserved.
+Allocation 15 added $20 after entry 108. Across backend inference and GPT-Live,
+all $120 of the continuation from attempt 89 is reserved. The cumulative ledger
+has 112 entries and $306 reserved.
 Obtain fresh owner authorization before increasing it. Invoices are unavailable.
 
 Restore historical reservations before any paid selection. The helper verifies the

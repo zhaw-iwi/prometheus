@@ -27,7 +27,9 @@ export function spokenClarification(events,beforeIds){
 }
 
 export function spokenPreparation(events,beforeIds){
-  return completeReplies(events,beforeIds).find(text=>/(?:^|[.!?;:]\s*|\bplease\s+|\b(?:can|could) you\s+)(?:please\s+)?(?:demonstrate|show me|let me see)\b/i.test(text));
+  const invitation=/(?:^|[.!?;:]\s*|\bplease\s+|\b(?:can|could) you\s+)(?:please\s+)?(?:demonstrate|show me|let me see)\b/i;
+  const preparationStep=/\b(?:after|when|once|first) you (?:point|show|hold|demonstrate|make)\b[^.!?]*\b(?:check|recognition|review|preparation)\b/i;
+  return completeReplies(events,beforeIds).find(text=>invitation.test(text)||preparationStep.test(text));
 }
 
 export async function playHandStimulus({pcmBase64,name}) {

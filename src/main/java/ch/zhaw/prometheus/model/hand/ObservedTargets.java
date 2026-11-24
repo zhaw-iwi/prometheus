@@ -89,6 +89,21 @@ public final class ObservedTargets {
                 +"The backend resolves that destination and rechecks the observed target's freshness; do not substitute the destination reference. "
                 +"Temporary tracks and user labels are not identity. Output needs an explicitly registered virtual counterpart; never invent room coordinates. Unknown or multiple projected candidates require clarification. The backend rechecks expiry after inference.\n";
     }
+    private static boolean containsTarget(JsonObject scene, TargetRef ref) {
+        return scene.getAsJsonArray("targets").asList().stream().map(JsonElement::getAsJsonObject)
+                .anyMatch(target -> HandScene.ref(target).equals(ref));
+    }
+    /** Only the latest fresh scene in the requested frame can establish that its selection is absent. */
+    public static boolean selectedAbsent(Storage storage, TargetRef ref, Instant now) {
+        if (!storage.containsKey(SELECTED) || !storage.containsKey(KEY) || !ref.json().equals(storage.get(SELECTED))) return false;
+        try {
+            var scene = storage.get(KEY).getAsJsonObject();
+            return ObservationEvidence.fresh(ObservationEvidence.observed(scene), now, TTL_SECONDS, 0)
+                    && ref.frame().equals(SpatialFrame.parse(scene.get("frame"))) && !containsTarget(scene, ref);
+        } catch (RuntimeException unavailable) {
+            return false;
+        }
+    }
     /** Enrich one fresh scene source with its verified selection, never a new observation or action. */
     public static String selectedContext(Storage storage,String payload,Instant now){
         if(!storage.containsKey(SELECTED))return "";
@@ -96,7 +111,7 @@ public final class ObservedTargets {
             var ref=TargetRef.parse(storage.get(SELECTED));
             var source=JsonParser.parseString(payload).getAsJsonObject();
             if(!ObservationEvidence.fresh(ObservationEvidence.observed(source),now,TTL_SECONDS,0))return "";
-            if(source.getAsJsonArray("targets").asList().stream().map(JsonElement::getAsJsonObject).noneMatch(t->HandScene.ref(t).equals(ref))){
+            if(!containsTarget(source,ref)){
                 var latest=storage.get(KEY);
                 if(latest==null || !Objects.equals(source.get("observationId"),latest.getAsJsonObject().get("observationId"))
                         || !Objects.equals(source.get("ts"),latest.getAsJsonObject().get("ts"))

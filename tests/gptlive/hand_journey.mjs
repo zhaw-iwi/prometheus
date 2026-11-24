@@ -135,8 +135,8 @@ async function propose(name,verify,{clarification,requireClarification=false}={}
     assert.deepEqual(state['coordination.draft'],draft,'Preparation terms changed');
     assert.ok(!state['coordination.agreement']&&!state['task.actions'],'Preparation must stay inactive');
     if(response?.supportOnly&&response.consumed&&(!request||response.id===request.id))return {id:response.id};
-    if(response)return null;
-    // A new visitor fragment can clear the occasion after Live has spoken it.
+    if(response&&(!response.supportOnly||(request&&response.id!==request.id)))return null;
+    // Native speech can precede consumption or survive withdrawal of the same preparation request.
     const heard=spokenPreparation(await history(),proposalTurn.beforeIds);
     return heard?{heard}:null;
   });

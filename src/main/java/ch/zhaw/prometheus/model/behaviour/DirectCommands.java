@@ -9,6 +9,8 @@ import ch.zhaw.prometheus.model.task.*;
 import ch.zhaw.prometheus.model.hand.HandActions;
 import ch.zhaw.prometheus.model.hand.HandSignObservation;
 import ch.zhaw.prometheus.model.hand.HandFeatures;
+import ch.zhaw.prometheus.model.hand.ObservedTargets;
+import ch.zhaw.prometheus.model.hand.TargetRef;
 
 /** Validates an interpreted one-shot request; never executes a task transition or confirms physical delivery. */
 public final class DirectCommands {
@@ -155,11 +157,20 @@ public final class DirectCommands {
             status = "CONFLICT"; words = "A task response is still pending. Would you like to resolve or pause that task before a separate demonstration?";
         } else { status = "ACCEPTED"; action = true; words = "I'll show " + label(request) + "."; }
         JsonObject grounded=request.handAction();
+        String pointClarification = null;
         if(action&&grounded!=null&&(grounded.getAsJsonObject("action").has("target")||"sequence".equals(grounded.getAsJsonObject("action").get("kind").getAsString()))) {
+            var now = java.time.Instant.now();
             try {
                 var motion=new JsonObject();motion.add("handAction",grounded);var raw=new JsonObject();raw.add("motion",motion);
-                grounded=ch.zhaw.prometheus.model.hand.HandScene.ground(BehaviourPlan.fromJson(raw.toString()),storage,history,java.time.Instant.now()).getMotion().getAsJsonObject().getAsJsonObject("handAction");
-            } catch(RuntimeException invalid){action=false;status="CLARIFY";words="That target changed, expired, lacks a mapping or is too close to the digital arm. Please update its destination.";}
+                grounded=ch.zhaw.prometheus.model.hand.HandScene.ground(BehaviourPlan.fromJson(raw.toString()),storage,history,now).getMotion().getAsJsonObject().getAsJsonObject("handAction");
+            } catch(RuntimeException invalid){
+                action=false;status="CLARIFY";words="That target changed, expired, lacks a mapping or is too close to the digital arm. Please update its destination.";
+                var target = grounded.getAsJsonObject("action").get("target");
+                if ("POINT".equals(request.kind()) && target != null) {
+                    pointClarification = ObservedTargets.selectedAbsent(storage, TargetRef.parse(target), now)
+                            ? "selected_target_absent" : "target_unavailable";
+                }
+            }
         }
         var plan = new JsonObject();
         if (!silentMode && !request.silent()) plan.addProperty("speech", words);
@@ -179,6 +190,7 @@ public final class DirectCommands {
         var receipt = new JsonObject(); receipt.addProperty("sourcePosition", event.sourcePosition()); receipt.addProperty("status", status);
         receipt.addProperty("silent", request.silent()); receipt.addProperty("kind", request.kind()); receipt.addProperty("value", request.value());
         if ("HAND_SIGN".equals(request.kind()) && HandSignObservation.SIGNS.contains(request.value())) receipt.addProperty("effector", request.effector());
+        if (pointClarification != null) receipt.addProperty("clarification", pointClarification);
         if (shapeChoice) {
             receipt.addProperty("clarification", "ok_shape");
             receipt.add("kind", JsonNull.INSTANCE); receipt.add("value", JsonNull.INSTANCE); receipt.remove("effector");

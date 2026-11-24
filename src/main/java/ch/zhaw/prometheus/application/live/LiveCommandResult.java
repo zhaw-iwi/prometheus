@@ -26,13 +26,16 @@ public final class LiveCommandResult {
             case "ACCEPTED" -> "Accepted output plan: " + acceptedPlan(receipt) + ". "
                     + ("HAND_SIGN".equals(receipt.get("kind").getAsString()) ? "Direct sign authorized by this request. No task or consent step. " : "")
                     + ("HAND_POSE".equals(receipt.get("kind").getAsString()) ? "Immediate pose; no demonstration needed. " : "")
-                    + ("POINT".equals(receipt.get("kind").getAsString()) ? "One point only. A repeat needs its own result. " : "")
+                    + ("POINT".equals(receipt.get("kind").getAsString()) ? "This direct point needs no agreement change or consent. A repeat needs its own result. " : "")
                     + (receipt.has("renderedEvent") ? "Digital renderer confirmed this pose." : "Rendering/physical execution unconfirmed.");
             case "CONFLICT" -> "Not performed: pending task output conflicts. Ask whether to resolve or pause it; no task change made.";
             case "UNSUPPORTED" -> "Not performed: unsupported output. Offer a declared alternative.";
-            case "CLARIFY" -> receipt.has("clarification") && receipt.get("clarification").getAsString().equals("ok_shape")
-                    ? "Not performed. " + DirectCommands.OK_CHOICE
-                    : "Not performed: the action or target is unresolved and needs clarification.";
+            case "CLARIFY" -> switch (receipt.has("clarification") ? receipt.get("clarification").getAsString() : "") {
+                case "ok_shape" -> "Not performed. " + DirectCommands.OK_CHOICE;
+                case "selected_target_absent" -> "No point sent. The selected target was absent from the current scene. Ask for a fresh target selection. The saved task is separate.";
+                case "target_unavailable" -> "No point sent. The requested destination could not be used. Ask for a current mapped target. The saved task is separate.";
+                default -> "Not performed: the action or target is unresolved and needs clarification.";
+            };
             case "CAPABILITY" -> "Capability question only; no demonstration requested. A person may request a supported sign directly.";
             default -> "";
         };

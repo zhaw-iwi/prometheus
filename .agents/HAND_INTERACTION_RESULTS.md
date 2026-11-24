@@ -1958,3 +1958,48 @@ caption timestamps, audio transcription and response verdict. Allocation 14
 closed at **108 reservations/$286 cumulatively**. The continuation has reserved
 **$100 of $100**. Actual billing is unavailable. HI-12 remains open with L-04
 through L-08 outstanding.
+
+### Ordinary sequence acknowledgement and selected-person removal, November 25
+
+Allocation 15 reserved four $5 selections. Native speech, backend inference
+and the renderer used their existing ownership paths. The local visitor audio
+came from Windows SAPI. Hand observations and scene changes were controlled.
+
+| Attempt | Journey and source | Reviewed outcome |
+| --- | --- | --- |
+| 109 | L-07, `269f10254a`, `133b11b4` | **INCONCLUSIVE on clarification.** The coordination and held-pose checks passed. The first captured reply was only “Mm-hmm.” The driver supplied the visitor’s response choice before Live asked for it. Live then described preparation and the correct next step. After consent, wrong order spent zero actions and the full sequence spent one. Playback confirmed the natural acknowledgement. A stray input fragment and later backchannel left the action count at one. |
+| 110 | L-06, `4cefe89c74`, `352c72c3` | **INCONCLUSIVE.** Live asked which cup the visitor meant and no motion was published. The proposal bound the selected cup. The input transcript split and contained words from quiet context. Live delivered a preparation instruction, but a subsequent KEEP left no pending preparation record. The driver stopped before a demonstration or person command. |
+| 111 | L-07, `289063baf6`, `6c038c25` | **FAIL on spoken quantity.** The visitor heard a clarification question, chose free wording, accepted the reviewed proposal and supplied the fresh sequence. The backend rejected the wrong order, spent one action on the full sequence and confirmed playback. Holding three left the count at one. The first accurate acknowledgement ended at 149.8 seconds on the provider’s media clock. “Right, I’ve got it” started at 152.8 seconds, with no intervening visitor turn. The complete audio confirmed both. Live also echoed parts of the visitor’s clarification and consent. The backend received the actual visitor’s consent. |
+| 112 | L-06, `470af4decc`, `f390c8e7` | **FAIL on spoken guidance.** The ambiguous cup caused zero motion. The saved proposal stayed inactive and the preparation wait timed out. The independent direct point at Visitor was accepted. The image shows the digital right arm extended toward the selected marker. A fresh scene contained the source and cup without Visitor. The repeat returned CLARIFY and produced no motion. After acknowledgement of that command result, Live said a new agreement or a choice between cup and Visitor was needed. |
+
+The four received recordings were transcribed locally in full (153.66, 60.48,
+166.92 and 167.16 seconds). For L-07, harmless backchannels and free phrasing
+were assessed in context. One credited action and a confirmed playback receipt
+alone do not count how many acknowledgements the visitor heard. The separate
+dictated-word regression now rejects the full “ready ready” / “ready” tail from
+108. The browser rehearsal also checks the held pose before awaiting speech
+completion, including when the task ends UNCERTAIN.
+
+For L-06, the driver now records the actual removal frame and preserves any
+earlier cup failure when exercising independent direct commands. Both recorded
+preparation instructions can be recognized offline against the same inactive
+proposal. In 112 the same-turn clarification acknowledgement arrived before the
+incorrect agreement instruction. The original point receipt told Live only
+that the target or action needed clarification. The updated quiet result now
+distinguishes a selection absent from a fresh matching scene from a destination
+that could not be used. An accepted direct point identifies the authority in
+the current request. The saved task, motion checks and playback path keep their
+existing ownership. This change postdates the paid runs.
+
+The [portable evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-workflow.json)
+contains complete captions, local audio review, actions, held-pose results,
+command receipts, timing and the render record. All runner-owned services and
+schemas were cleaned up. The ledger now contains **112 entries/$306 cumulatively
+reserved**, including **$120 of $120** in the continuation. Actual billing and
+physical robot behavior were unmeasured.
+
+Final offline verification (`dee2c0a5a2`) passed 57 Java tests and six browser
+cases with disposable local MySQL, including four sequence rehearsals and two
+native speech-ownership regressions. The 45 Python tests, 18 focused Node tests,
+nine contract examples and Maven packaging also passed. The local ledger and
+portable restoration agree, and the preflight rejects further paid selections.

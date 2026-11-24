@@ -99,4 +99,7 @@ test('a completed preparation instruction survives withdrawal of its temporary c
   assert.equal(spokenPreparation(pending,['old']),undefined);
   const speech='The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition.';
   assert.equal(spokenPreparation([...pending,event('new',speech)],['old']),speech);
+  const nextStep="After you point at the mapped cup for the check, we’ll review terms before any acceptance.";
+  assert.equal(spokenPreparation([event('new',nextStep)],[]),nextStep);
+  assert.equal(spokenPreparation([event('other','When you point I will say ready.')],[]),undefined);
 });

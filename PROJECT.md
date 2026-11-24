@@ -120,7 +120,14 @@ and regulation diagnostics remain future work.
   response and reviewed the agreement accurately. Wrong order spent zero actions
   and the valid sequence spent one. Live repeated the requested “Ready” after one
   speaking instruction. The task ended UNCERTAIN before the held-pose check.
-  The $100 continuation is fully reserved at 108 entries/$286 cumulatively.
+  Allocation 15 tested L-07 with an acknowledgement in Live’s own words. Both
+  ordinary runs spent one action and holding three kept it at one. In attempt
+  111, a second acknowledgement followed the first by three seconds. In L-06,
+  attempt 112 rendered a direct point at Visitor and withheld motion after
+  removal. Live incorrectly asked the visitor to change the cup agreement.
+  Point results now carry the reason for a rejected target and distinguish an
+  immediate point from task consent. The $120 continuation is fully reserved
+  at 112 entries/$306 cumulatively. HI-12 remains open.
   [Results](.agents/HAND_INTERACTION_RESULTS.md) ·
   [Restoring the latest budget checkpoint](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 

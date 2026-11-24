@@ -863,3 +863,9 @@ visitor asks for one acknowledgement in the agent's own words. Judge the
 whole post-cue response against that agreement and check a continued hold of
 three before waiting for speech completion. The separate literal rehearsal
 retains the dictated “Ready” request. Prior paid trials keep their verdicts.
+
+Allocation 15 closed at 112/$306, with $120 of continuation reservations. The
+ordinary sequence and held-pose controls worked in both Live runs. Attempt 111
+exceeded the spoken acknowledgement count. Attempt 112 captured correct
+digital pointing and stale-target rejection alongside an incorrect spoken
+explanation. L-04 through L-08 remain open. See the [results](HAND_INTERACTION_RESULTS.md).

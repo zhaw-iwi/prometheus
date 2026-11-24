@@ -3,7 +3,7 @@
   "baseReservedUsd": 286,
   "addedCapUsd": 20,
   "continuationCapUsd": 120,
-  "cumulativeReservedUsd": 301,
+  "cumulativeReservedUsd": 306,
   "reservations": [
     {
       "mode": "L-07",
@@ -22,6 +22,13 @@
     {
       "mode": "L-07",
       "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-289063baf6",
+      "reservedUsd": 5,
+      "allocationRevision": 15,
+      "extensionAuthorization": "hand-interaction-2026-11-24-workflow-usd20"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-470af4decc",
       "reservedUsd": 5,
       "allocationRevision": 15,
       "extensionAuthorization": "hand-interaction-2026-11-24-workflow-usd20"
@@ -1666,6 +1673,847 @@
           " it."
         ]
       ]
+    },
+    {
+      "attempt": 112,
+      "mode": "L-06",
+      "artifact": "gptlive-acceptance-470af4decc",
+      "verdict": "FAIL",
+      "finding": "The ambiguous cup produced CLARIFY and no motion. A split proposal stayed inactive and the scripted preparation timed out. The independent direct command pointed with the right hand at the selected digital Visitor, confirmed in the render capture. A fresh scene then contained source and cup-a only; the repeat command produced CLARIFY and zero motion. After the exact result ACK, Live said the visitor had to agree and choose between the old cup task and the Visitor. The target had disappeared; task agreement was not the prerequisite. This is a material spoken failure, independent of the earlier cup preparation timeout.",
+      "automatedPassed": false,
+      "error": "Timed out: completed preparation request",
+      "sourceRevision": "f390c8e7cb24083c8ddb7254f795744a20433b4f",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "c88b85435b90837bbad87758aeaac78e20eda78eb4f9e7b6762004fbf3309ddf",
+      "journeySha256": "7fc24d61ce963fa12c4249f406e0f46ba769df2cbbaf70b90516661b330bfea1",
+      "spoken": " I can't point a real hand, but we could try a simple on-screen cue instead? Yeah, I'm more screen whisperer than arm pointer. Want a quick digital pointer demo? I still can't move a physical hand, but I can help highlight or describe what the cup is doing. What would help you most? Mm-hmm. Sure. Mm-hmm. Mm-hmm. Sure. We could agree on a small task where Mm-hmm. Got it. You demonstrate, judge, and I only say “ready” after preparation. What will you show first so we can prep? That edit would change roles and triggers, so I've kept the agreement. If you want those terms replaced, please say so explicitly. We can stick with your \"you demonstrate, judge; I only say ready\" idea, but right now the saved cup-point variant is not active. After you point at the mapped cup for the check, we'll review terms before any acceptance. Mm-hmm. 'kay. I'm here—no hurry. Mm-hmm. Mm-hmm. I still can't move a real hand; we can only do a digital point, and only after we accept terms. We can stick to the cup version unless you'd like to replace it, which we'll review before accepting. What do you prefer? I'm still here. Say cup or visitor, and we’ll tidy the terms. Still quietly here. Not moving a finger till we agree, promise. Still just listening. Mm-hmm. Quick check: do you want to replace the cup target with Visitor, or keep the original? I can't act on \"point again\" until we agree. Do you want to switch to pointing at the Visitor, or keep the cup?",
+      "admitted": [
+        {
+          "id": "8a952753-96ba-416d-a065-429b4a39e52f",
+          "text": "Please point your right hand at that cup"
+        },
+        {
+          "id": "f69caa85-a14a-4f11-8b3a-5afc0bbb72cc",
+          "text": "Propose one with default timing After preparation and my acceptance"
+        },
+        {
+          "id": "9126bd49-5ecb-4899-840f-a493262869dc",
+          "text": "demonstrate and judge. You only say ready"
+        },
+        {
+          "id": "89198f4c-6bff-4836-bc7c-bfe71d9e24a9",
+          "text": "r a confirmed"
+        },
+        {
+          "id": "29768b27-2a12-49e1-87ba-9a469adaf0c7",
+          "text": "Point at the selected person labeled Visitor with your right hand"
+        },
+        {
+          "id": "64b86426-f9da-4033-90dd-ee7bcee2017b",
+          "text": "Point at that same visitor again"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "80a90df5-6ea5-4a9b-93b7-3281289834ee",
+          "speech": "I can't point a real hand, but we could try a simple on-screen cue instead? Yeah, I'm more screen whisperer than arm pointer. Want a quick digital pointer demo? I still can't move a physical hand, but I can help highlight or describe what the cup is doing. What would help you most?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "59886679-ee3a-4634-afd9-8968bc0eb66d",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "ae93d478-2121-44e1-b31f-59d7ea781c3b",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "678d23e9-2c0f-4ddd-ac1f-12772dbd9b62",
+          "speech": "Sure",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "417b79ef-699a-4f7e-96ec-630402c0d034",
+          "speech": ".",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "a4364c77-c09e-43da-939e-462424403e9f",
+          "speech": "Mm-hmm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "a6193925-eb47-430f-983c-21eaf5f830aa",
+          "speech": "Mm-hmm. Sure.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "8c3d8f51-49eb-4896-8def-5637dd22621f",
+          "speech": "We could agree on a small task",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "82eea8d0-23a3-450a-9139-dec9deeed42c",
+          "speech": "where",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "c41816c6-7550-4dab-97f5-4198414772f4",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "3c42d7ea-3e04-440e-a38f-5b07edb69b32",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "8b3f5825-c9f1-44bb-a82d-eb64ce00c74a",
+          "speech": "Got it. You demonstrate, judge, and I only say “ready” after preparation. What will you show first so we can prep?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "12d982cf-b806-4fb5-bf26-dc3036c69032",
+          "speech": "That edit would change roles and triggers, so I've kept the agreement. If you want those terms replaced, please say so explicitly.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "fec100b9-6401-4279-aae1-ae88408522c0",
+          "speech": "We can stick with your \"you demonstrate, judge; I only say ready\" idea, but right now the saved cup-point variant is not active. After you point at the mapped cup for the check, we'll review terms before any acceptance.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "413046b3-17b6-4c08-8028-cf1ce4232bd5",
+          "speech": "Mm-hmm.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "7c1ba7b8-97b4-41a3-8025-c8d3be53da07",
+          "speech": "'kay.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "85bef089-1508-4437-9f83-83384eface77",
+          "speech": "I'm here—no",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "1a0beaa3-dc02-49ad-8c46-8826b42bd206",
+          "speech": "hurry.",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "5783aeb0-b0a8-4e8a-9952-5f938b556496",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "69357fea-b8cc-4597-b8b6-98dd17450354",
+          "speech": "mm.",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "35f35312-5781-4a63-af31-c9655899c9ed",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "c6dfa580-0e33-4849-ae85-b3502ce4961a",
+          "speech": "mm. I still can't move a real hand; we can only do a digital point, and only after we accept terms.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "e013fd9c-efc1-45c0-b1c6-e5e9a3f9d502",
+          "speech": "We can stick to the cup version unless you'd like to replace it, which we'll review before accepting. What do you prefer?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "9043bb75-1a69-41e7-ad34-e844f94f4ee0",
+          "speech": "I'm still here. Say cup or visitor, and we’ll tidy the terms. Still quietly here. Not moving a finger till we agree, promise.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "19878e91-cf08-4278-9496-d1bb87f604c3",
+          "speech": "Still",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "23c403ed-9cb0-4e42-b08f-02b654c4b5bb",
+          "speech": "just",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "22ac77a0-c176-4c91-a977-50b38f3418d4",
+          "speech": "listening.",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "96f694db-cf67-4716-99b6-b370b3844e32",
+          "speech": "Mm-hmm. Quick check: do you want to replace the cup target with Visitor, or keep the original? I can't act on \"point again\" until we agree. Do you want to switch to pointing at the Visitor, or keep the cup?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "14286972d5fd0e16478efaa8ca48669778b9bf2353bafec69038f8dfdd0085cf",
+            "duration": 167.16,
+            "segments": [
+              {
+                "start": 7.5,
+                "end": 12.5,
+                "text": " I can't point a real hand, but we could try a simple onscreen to you instead.",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 13.5,
+                "end": 16.5,
+                "text": " Yeah, I'm more screen whisperer than our end pointer.",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 16.5,
+                "end": 19.5,
+                "text": " Want a quick digital demo?",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 20.5,
+                "end": 27.5,
+                "text": " I still can't move a physical hand, but I can help highlight or describe what the cup is doing.",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 27.5,
+                "end": 35.2,
+                "text": " What would help you most?",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 35.2,
+                "end": 36.2,
+                "text": " Mm-hmm.",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 36.2,
+                "end": 37.2,
+                "text": " Sure.",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 37.2,
+                "end": 39.61,
+                "text": " Mm-hmm.",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 39.61,
+                "end": 40.61,
+                "text": " Mm-hmm.",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 40.61,
+                "end": 41.61,
+                "text": " Sure.",
+                "logprob": -0.19381090932126557
+              },
+              {
+                "start": 41.61,
+                "end": 43.93,
+                "text": " We could agree on a small task.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 43.93,
+                "end": 44.73,
+                "text": " Where?",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 44.73,
+                "end": 48.9,
+                "text": " Mm-hmm.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 48.9,
+                "end": 49.78,
+                "text": " Got it.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 49.78,
+                "end": 53.3,
+                "text": " You demonstrate, judge, and I only say ready after preparation.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 53.3,
+                "end": 55.62,
+                "text": " What will you show first so we can prep?",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 55.62,
+                "end": 64.3,
+                "text": " That end it would change roles and triggers.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 64.3,
+                "end": 66.78,
+                "text": " So I've kept the agreement.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 66.78,
+                "end": 80.76,
+                "text": " If you want those terms replaced, please say so explicitly.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 80.76,
+                "end": 83.4,
+                "text": " We can stick with your you demonstrate, judge.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 83.4,
+                "end": 85.08,
+                "text": " I only say ready idea.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 85.08,
+                "end": 89.0,
+                "text": " But right now, the saved cup point variant is not active.",
+                "logprob": -0.2205440468788147
+              },
+              {
+                "start": 89.0,
+                "end": 94.0,
+                "text": " After you point at the mapped cup for the check, we'll review turns before any acceptance.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 94.0,
+                "end": 97.5,
+                "text": " Mm-hmm.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 97.5,
+                "end": 100.64,
+                "text": " Okay.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 100.64,
+                "end": 104.84,
+                "text": " I'm here.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 104.84,
+                "end": 105.84,
+                "text": " No hurry.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 105.84,
+                "end": 106.84,
+                "text": " Mm-hmm.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 106.84,
+                "end": 107.84,
+                "text": " Mm-hmm.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 107.84,
+                "end": 111.84,
+                "text": " I still can't move a real hand.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 111.84,
+                "end": 122.86,
+                "text": " We can only do a digital point, and only after we accept terms.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 122.86,
+                "end": 127.86,
+                "text": " We can stick to the cup version unless you'd like to replace it, which we'll review before",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 127.86,
+                "end": 128.86,
+                "text": " accepting.",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 128.86,
+                "end": 129.86,
+                "text": " What do you prefer?",
+                "logprob": -0.1647486873273927
+              },
+              {
+                "start": 129.86,
+                "end": 137.93,
+                "text": " I'm still here. Say, cup or visitor and we'll tidy the terms.",
+                "logprob": -0.23028300651188555
+              },
+              {
+                "start": 139.93,
+                "end": 149.55,
+                "text": " Still quietly here. Not moving a finger till we agree. Promise. Still just...",
+                "logprob": -0.23028300651188555
+              },
+              {
+                "start": 150.55,
+                "end": 156.55,
+                "text": " Quick check. Do you want to replace the cup target with visitor or keep the original?",
+                "logprob": -0.23028300651188555
+              },
+              {
+                "start": 157.55,
+                "end": 164.55,
+                "text": " I can't act on point again until we agree. Do you want to switch to pointing at the visitor or keep the cup?",
+                "logprob": -0.23028300651188555
+              }
+            ]
+          }
+        ]
+      },
+      "images": [
+        {
+          "name": "personshow.png",
+          "sha256": "fff045832ebbe4bfbd8e6456ab57b5b6cae9a0447c5f59868a80cbdd67980887"
+        }
+      ],
+      "renderChecks": [
+        {
+          "name": "personshow",
+          "eventId": "4436a77b-284c-4e9e-998d-e76ed76067d3",
+          "phase": "holding",
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "point",
+            "hand": "right_hand",
+            "action": {
+              "kind": "point",
+              "effector": "right_hand",
+              "target": {
+                "id": "2b434559-7780-43c9-addc-1c3a40bb62f1:visitor",
+                "revision": 7,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "resolved": {
+                "label": "Visitor",
+                "position": {
+                  "x": -3,
+                  "y": 2,
+                  "z": 0
+                },
+                "frame": {
+                  "id": "scene:2b434559-7780-43c9-addc-1c3a40bb62f1",
+                  "revision": 1,
+                  "space": "virtual_scene",
+                  "mirrored": false
+                }
+              }
+            },
+            "display": null,
+            "warnings": []
+          },
+          "irisPixels": 272,
+          "glError": 0
+        }
+      ],
+      "phase": "CONFIGURATION",
+      "actions": null,
+      "outcome": null,
+      "proposal": {
+        "goal": "Have Valerian digitally point once with its right hand at the mapped cup.",
+        "humanRole": "Point at My cup for the recognition check, accept the proposal, then point at the cup again.",
+        "agentRole": "After acceptance, wait for a fresh cup-pointing cue, then request one digital right-hand point. Pause if Live disconnects.",
+        "success": "You see one digital right-hand point toward the cup’s mapped pedestal after the fresh cue.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pointing",
+            "minConfidence": 0,
+            "handPoint": {
+              "handedness": "any",
+              "target": {
+                "id": "2b434559-7780-43c9-addc-1c3a40bb62f1:cup-a",
+                "revision": 2,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              }
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Have Valerian digitally point once with its right hand at the mapped cup.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pointing",
+              "action": "Digitally point with the right hand at the same detected cup reference in this rule, using its registered virtual mapping and rechecking target freshness.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPoint": {
+                "handedness": "any",
+                "target": {
+                  "id": "2b434559-7780-43c9-addc-1c3a40bb62f1:cup-a",
+                  "revision": 2,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "checkpoints": [],
+      "silentInputReceipts": [],
+      "commands": [
+        {
+          "name": "cupambiguous",
+          "result": {
+            "sourcePosition": 26,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": null,
+            "value": null
+          },
+          "source": {
+            "id": "8a952753-96ba-416d-a065-429b4a39e52f",
+            "position": 26
+          },
+          "delivery": [
+            {
+              "serverMs": 1795562029826,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "0bfee7532560f2a5712c327438e670992bbbd6fc1ca81ef3e665d67bda55ad11",
+              "sourceId": "8a952753-96ba-416d-a065-429b4a39e52f",
+              "sequence": 9,
+              "contentBytes": 252,
+              "sourceIds": [
+                "8a952753-96ba-416d-a065-429b4a39e52f"
+              ]
+            },
+            {
+              "serverMs": 1795562030535,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "0bfee7532560f2a5712c327438e670992bbbd6fc1ca81ef3e665d67bda55ad11",
+              "sourceId": "8a952753-96ba-416d-a065-429b4a39e52f",
+              "sequence": 10,
+              "contentBytes": 252,
+              "sourceIds": [
+                "8a952753-96ba-416d-a065-429b4a39e52f"
+              ]
+            }
+          ],
+          "renderer": null
+        },
+        {
+          "name": "personshow",
+          "result": {
+            "sourcePosition": 369,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "2b434559-7780-43c9-addc-1c3a40bb62f1:visitor",
+                  "revision": 7,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                },
+                "resolved": {
+                  "label": "Visitor",
+                  "position": {
+                    "x": -3,
+                    "y": 2,
+                    "z": 0
+                  },
+                  "frame": {
+                    "id": "scene:2b434559-7780-43c9-addc-1c3a40bb62f1",
+                    "revision": 1,
+                    "space": "virtual_scene",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "29768b27-2a12-49e1-87ba-9a469adaf0c7",
+            "position": 369
+          },
+          "delivery": [
+            {
+              "serverMs": 1795562133756,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "4948f0d6a5f83337547e31c1f6b31bcce5f9d913a8000d4f2a50578f8cc53e0d",
+              "sourceId": "29768b27-2a12-49e1-87ba-9a469adaf0c7",
+              "sequence": 178,
+              "contentBytes": 295,
+              "sourceIds": [
+                "29768b27-2a12-49e1-87ba-9a469adaf0c7"
+              ]
+            },
+            {
+              "serverMs": 1795562134466,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "4948f0d6a5f83337547e31c1f6b31bcce5f9d913a8000d4f2a50578f8cc53e0d",
+              "sourceId": "29768b27-2a12-49e1-87ba-9a469adaf0c7",
+              "sequence": 179,
+              "contentBytes": 295,
+              "sourceIds": [
+                "29768b27-2a12-49e1-87ba-9a469adaf0c7"
+              ]
+            }
+          ],
+          "renderer": null
+        },
+        {
+          "name": "personrepeat",
+          "result": {
+            "sourcePosition": 524,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "2b434559-7780-43c9-addc-1c3a40bb62f1:visitor",
+                  "revision": 7,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "64b86426-f9da-4033-90dd-ee7bcee2017b",
+            "position": 524
+          },
+          "delivery": [
+            {
+              "serverMs": 1795562173572,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "70e7d4b516bc8008112ae081f1d0284edce76afa22f892cc607c5ea25ccad39a",
+              "sourceId": "64b86426-f9da-4033-90dd-ee7bcee2017b",
+              "sequence": 248,
+              "contentBytes": 252,
+              "sourceIds": [
+                "64b86426-f9da-4033-90dd-ee7bcee2017b"
+              ]
+            },
+            {
+              "serverMs": 1795562174126,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "70e7d4b516bc8008112ae081f1d0284edce76afa22f892cc607c5ea25ccad39a",
+              "sourceId": "64b86426-f9da-4033-90dd-ee7bcee2017b",
+              "sequence": 249,
+              "contentBytes": 252,
+              "sourceIds": [
+                "64b86426-f9da-4033-90dd-ee7bcee2017b"
+              ]
+            }
+          ],
+          "renderer": null
+        }
+      ],
+      "stimuli": [
+        {
+          "name": "cupambiguous",
+          "sha256": "56eaa358c8ff3a31fc0bed511225da54bcecb45936aa306f00dc5526a5308d34"
+        },
+        {
+          "name": "cuppropose",
+          "sha256": "b6623e540d8a9d79d5715a5c4711296eb232eb33229809d4db816f6009030ac6"
+        },
+        {
+          "name": "personshow",
+          "sha256": "5bcd819a8a0a9566689bfa99e0c0a0a3fef377b4fcca8cec2a9497f69cfd4364"
+        },
+        {
+          "name": "personrepeat",
+          "sha256": "5111c3960ca51ae1a2f921639be1e907f45273ab3812f268d23360e86eb0a8e2"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": null,
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": {
+        "observationId": "scene-472",
+        "capturedAt": "2026-11-24T23:15:54.724Z",
+        "removed": {
+          "id": "2b434559-7780-43c9-addc-1c3a40bb62f1:visitor",
+          "revision": 7,
+          "frame": {
+            "id": "hand-live-camera",
+            "revision": 1,
+            "space": "camera_image",
+            "mirrored": false
+          }
+        },
+        "remaining": [
+          "2b434559-7780-43c9-addc-1c3a40bb62f1:source",
+          "2b434559-7780-43c9-addc-1c3a40bb62f1:cup-a"
+        ]
+      },
+      "response": {},
+      "delivery": null,
+      "backendReportedTokens": 72815,
+      "backendRequests": 6,
+      "providerUsageSeconds": 164,
+      "runtime": {
+        "inputSeconds": 24.467999999999996,
+        "textBytes": 81048,
+        "exhausted": null,
+        "rtcElapsedSeconds": 170.50390000000223
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 590,
+      "contributionContext": [],
+      "cupTaskError": "Timed out: completed preparation request",
+      "preparationTrace": {
+        "id": "ce401b30-0110-4e5f-a47d-f1162dd13ca3",
+        "facts": "The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition; we will review the terms before acceptance.",
+        "proactive": false,
+        "expires": "2026-11-24T23:15:14.493008800Z",
+        "revision": "3",
+        "session": "f75e6588-fba7-4c8a-b815-2ccce8787332",
+        "epoch": "3a620f77-f9e7-426b-97b2-71665f0eb30b",
+        "created": "2026-11-24T23:14:29.493008800Z",
+        "supportOnly": true
+      },
+      "commandSpeechOrdering": {
+        "cupambiguous": {
+          "observed_before_result_sent": " I can't point a real hand, but we could try a simple on-screen",
+          "undetermined": " cue instead?",
+          "observed_after_result_ack": " Yeah, I'm more screen whisperer than arm pointer. Want a quick digital pointer demo? I still can't move a physical hand, but I can help highlight or describe what the cup is doing. What would help you most?"
+        },
+        "personshow": {
+          "observed_before_result_sent": " I'm here—no hurry. Mm-hmm. Mm-hmm. I still can't move a real hand; we can only do a digital point, and only after we",
+          "undetermined": " accept terms.",
+          "observed_after_result_ack": " We can stick to the cup version unless you'd like to replace it, which we'll review before accepting. What do you prefer? I'm still here. Say cup or visitor, and we’ll tidy the terms. Still quietly here. Not moving a finger till we agree, promise."
+        },
+        "personrepeat": {
+          "observed_before_result_sent": " Still just listening. Mm-hmm. Quick check: do you want to replace the cup target with Visitor, or keep the",
+          "undetermined": " original?",
+          "observed_after_result_ack": " I can't act on \"point again\" until we agree. Do you want to switch to pointing at the Visitor, or keep the cup?"
+        }
+      },
+      "visualReview": "personshow.png shows the digital right arm and index extended toward the displayed target marker on the left of the image.",
+      "offlineFollowup": "The driver also accepts a completed, observable preparation instruction phrased as a next step while the same inactive draft remains current. Replayed both L-06 captures. Point-result facts now distinguish a confirmed absent selection and a destination that could not be used. These changes were made after the paid run."
     }
   ]
 }
