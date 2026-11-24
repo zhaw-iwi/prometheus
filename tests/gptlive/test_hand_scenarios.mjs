@@ -3,16 +3,36 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {runHandScenario,requireReadyContribution,demonstrateCount} from './hand_scenarios.mjs';
 
-test('count dwell requires distinct captures spanning the hold despite slow acknowledgements',async()=>{
-  for(const acknowledgementMs of [0,900]){
-    let clock=0;const captures=[];
-    await demonstrateCount(()=>({ts:new Date(clock).toISOString()}),300,async make=>{
-      const sample=make();captures.push(Date.parse(sample.ts));clock+=acknowledgementMs;return sample;
-    },async ms=>{clock+=ms;});
+test('count dwell spans fresh samples at camera cadence',async()=>{
+  for(const dwellMs of [300,900,2500]){
+    let time=0;const captures=[];
+    await demonstrateCount(()=>({ts:new Date(time).toISOString()}),{dwellMs,maximumGapMs:5000},
+      async sample=>{captures.push(Date.parse(sample.ts));},async ms=>{time+=ms;},()=>time);
     assert.ok(captures.length>=2);
-    assert.ok(captures.at(-1)-captures[0]>=300);
-    assert.equal(captures.length,acknowledgementMs?2:3);
+    assert.equal(captures.at(-1)-captures[0],dwellMs);
+    assert.ok(captures.slice(1).every((t,i)=>t>captures[i]&&t-captures[i]<=500));
   }
+});
+
+test('slow pose acknowledgement preserves capture times and ordered delivery',async()=>{
+  let time=0,release;const captured=[],sent=[];
+  const firstReceipt=new Promise(resolve=>{release=resolve;});
+  const trial=demonstrateCount(()=>{
+    captured.push(time);return {ts:new Date(time).toISOString()};
+  },{dwellMs:300,maximumGapMs:5000},async sample=>{
+    sent.push(Date.parse(sample.ts));if(sent.length===1)await firstReceipt;
+  },async ms=>{time+=ms;},()=>time);
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(captured,[0,300]);assert.deepEqual(sent,[0]);
+  time=1730;release();await trial;
+  assert.deepEqual(sent,[0,300]);
+});
+
+test('persistent capture gaps stop at the agreed limit without advancing the count',async()=>{
+  let time=0;
+  await assert.rejects(demonstrateCount(()=>({ts:new Date(time).toISOString()}),{dwellMs:300,maximumGapMs:5000},
+    async()=>{},async()=>{time+=1700;},()=>time),/agreed step gap/);
+  assert.equal(time,5100);
 });
 
 function poseJourney({wrongOutput=false}={}) {

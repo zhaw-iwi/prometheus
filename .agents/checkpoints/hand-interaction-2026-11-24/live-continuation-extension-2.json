@@ -3,7 +3,7 @@
   "baseReservedUsd": 231,
   "addedCapUsd": 20,
   "continuationCapUsd": 90,
-  "cumulativeReservedUsd": 271,
+  "cumulativeReservedUsd": 276,
   "reservations": [
     {
       "mode": "L-02",
@@ -57,6 +57,13 @@
     {
       "mode": "L-08",
       "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-eb73bb3ed1",
+      "reservedUsd": 5,
+      "allocationRevision": 12,
+      "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-second-usd20"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-5317e4c541",
       "reservedUsd": 5,
       "allocationRevision": 12,
       "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-second-usd20"
@@ -4528,6 +4535,431 @@
             ]
           }
         ]
+      }
+    },
+    {
+      "attempt": 106,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-5317e4c541",
+      "verdict": "INCONCLUSIVE",
+      "finding": "The clarified proposal generated the canonical exact-line rule Say exactly: \"ready\". The wrong-order demonstration was rejected. Count-two captures on the subsequent one-two-three demonstration were 1.992 s apart, above the 1 s continuity limit. Preparation timed out with empty recognition evidence and zero actions. No consent, final cue or spoken contribution was reached. The clarification question was repeated. Complete 139.32 s received audio reviewed.",
+      "automatedPassed": false,
+      "error": "Timed out: all recognition checks and completed native review",
+      "sourceRevision": "a0286c97f0d0b422710d42a198e0b29a2a753a08",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "8edf13fe29232b01b7cb71b93b7a2a79155ad9ec8ce50fe1ea828ecf82cc47bf",
+      "journeySha256": "3e49bdced5ab8f3a0a56b847cccd35f7d13989d5a52198165640cde8608fd5f3",
+      "spoken": " Got it, and what's the response you'd like to pair with that cue? Understood. We'll use your right-hand sequence as the cue, but I still need your chosen response to propose it properly. What should I do when I recognize the full sequence after you accept? Mm-hmm. Great, so it's one action total: after you accept and show one, two, three in order on your right hand, I'll say 'ready' once when I recognize the full sequence. The proposal is saved and not active. Please demonstrate 1 straight finger, then 2, then 3 on your right hand for recognition; we will review the terms before acceptance.",
+      "admitted": [
+        {
+          "id": "d9806c24-df1c-49ce-b8d8-fbae545c275b",
+          "text": "Propose an ordered right-hand cue: 1, 2, then three stretched fingers with the others bent; first recognize my demonstration and wait for acceptance I have not chosen your response yet"
+        },
+        {
+          "id": "c1a4a03f-588e-48f3-bde6-91948f60c939",
+          "text": "Say ready once after I accept and repeat the whole sequence I show the counts and judge your response. You only say ready; one action total, default timing"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "88262154-57c5-4c42-b071-8c47a3f3e5e3",
+          "speech": "Got it, and what's the response you'd like to pair with that cue?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "30f41416-f568-4238-a53a-f9e37349a872",
+          "speech": "Understood. We'll use your right-hand sequence as the cue, but I still need your chosen response to propose it properly. What should I do when I recognize the full sequence after you accept?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "cc05d00d-841f-4fbf-a6b2-5e4c7161e83e",
+          "speech": "Mm-hmm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "a6fb862b-dd45-411c-942f-62ab03c6866d",
+          "speech": "Great, so it's one action total: after you accept and show one, two, three in order on your right hand, I'll say 'ready' once when I recognize the full sequence. The proposal is saved and not active. Please demonstrate 1 straight finger, then 2, then 3 on your right hand for recognition; we will review the terms before acceptance.",
+          "complete": true,
+          "association": "NONE"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "9f5de0c105df21e7d6bd04024335e7868859c518385b785cf876694edcb9995a",
+            "duration": 139.32,
+            "segments": [
+              {
+                "start": 18.7,
+                "end": 29.34,
+                "text": " Got it, and what's the response you'd like to pair with that queue?",
+                "logprob": -0.1953696986394269
+              },
+              {
+                "start": 29.34,
+                "end": 32.84,
+                "text": " Understood, we'll use your right-hand sequence as the queue,",
+                "logprob": -0.1953696986394269
+              },
+              {
+                "start": 32.84,
+                "end": 36.94,
+                "text": " but I still need your chosen response to propose it properly.",
+                "logprob": -0.1953696986394269
+              },
+              {
+                "start": 36.94,
+                "end": 59.08,
+                "text": " What should I do when I recognize the full sequence after you accept?",
+                "logprob": -0.1953696986394269
+              },
+              {
+                "start": 59.08,
+                "end": 66.28,
+                "text": " Great, so it's one action, total, after you accept, and show one, two, three in order on your right hand,",
+                "logprob": -0.1953696986394269
+              },
+              {
+                "start": 66.28,
+                "end": 69.68,
+                "text": " I'll say ready once when I recognize the full sequence.",
+                "logprob": -0.1953696986394269
+              },
+              {
+                "start": 69.68,
+                "end": 72.12,
+                "text": " The proposal is saved and not active.",
+                "logprob": -0.25202551838897524
+              },
+              {
+                "start": 72.12,
+                "end": 75.92,
+                "text": " Please demonstrate one straight finger, then two, then three.",
+                "logprob": -0.25202551838897524
+              },
+              {
+                "start": 75.92,
+                "end": 80.76,
+                "text": " On your right hand for recognition, we will review the terms before acceptance.",
+                "logprob": -0.25202551838897524
+              }
+            ]
+          }
+        ]
+      },
+      "images": [],
+      "renderChecks": [],
+      "phase": "CONFIGURATION",
+      "actions": null,
+      "outcome": null,
+      "proposal": {
+        "goal": "Say “ready” once after recognizing a fresh right-hand sequence of one, two, then three straight fingers, with all remaining fingers bent. Recognize a full practice sequence before acceptance.",
+        "humanRole": "Demonstrate the full sequence, then accept and repeat it. Hold each count until recognized and judge my response.",
+        "agentRole": "Wait for the full post-acceptance sequence, then speak once without a gesture.",
+        "success": "You judge whether I say only “ready” exactly once, after the full post-acceptance sequence.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.sequence",
+            "minConfidence": 0,
+            "handSequence": {
+              "schemaVersion": 1,
+              "steps": [
+                {
+                  "kind": "count",
+                  "count": 1,
+                  "hands": "right"
+                },
+                {
+                  "kind": "count",
+                  "count": 2,
+                  "hands": "right"
+                },
+                {
+                  "kind": "count",
+                  "count": 3,
+                  "hands": "right"
+                }
+              ],
+              "dwellMs": 300,
+              "maximumGapMs": 5000,
+              "maximumDurationMs": 120000
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Say “ready” once after recognizing a fresh right-hand sequence of one, two, then three straight fingers, with all remaining fingers bent. Recognize a full practice sequence before acceptance.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.sequence",
+              "action": "Say exactly: \"ready\"",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handSequence": {
+                "schemaVersion": 1,
+                "steps": [
+                  {
+                    "kind": "count",
+                    "count": 1,
+                    "hands": "right"
+                  },
+                  {
+                    "kind": "count",
+                    "count": 2,
+                    "hands": "right"
+                  },
+                  {
+                    "kind": "count",
+                    "count": 3,
+                    "hands": "right"
+                  }
+                ],
+                "dwellMs": 300,
+                "maximumGapMs": 5000,
+                "maximumDurationMs": 120000
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "checkpoints": [
+        {
+          "name": "clarification-question-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "counts-1-3",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "counts-1-2-3",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        }
+      ],
+      "silentInputReceipts": [],
+      "commands": [],
+      "stimuli": [
+        {
+          "name": "inputpropose",
+          "sha256": "07dd935655dfb02af1cc13985ff6d0297a37b7aa190a3b0464c33d93b29fc56f"
+        },
+        {
+          "name": "inputclarify",
+          "sha256": "63cea6d9ebc0c5ce90aa60453d0e2541ce87cc90b4c8457b2bc87e1f78426644"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "sequenceTiming": [
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-1",
+          "capturedAt": "2026-11-24T21:52:01.874Z",
+          "startedAt": 1795557121875,
+          "finishedAt": 1795557122051
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-2",
+          "capturedAt": "2026-11-24T21:52:02.354Z",
+          "startedAt": 1795557122354,
+          "finishedAt": 1795557122775
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-3",
+          "capturedAt": "2026-11-24T21:52:03.036Z",
+          "startedAt": 1795557123036,
+          "finishedAt": 1795557123411
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-4",
+          "capturedAt": "2026-11-24T21:52:03.684Z",
+          "startedAt": 1795557123684,
+          "finishedAt": 1795557124107
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-5",
+          "capturedAt": "2026-11-24T21:52:04.573Z",
+          "startedAt": 1795557124573,
+          "finishedAt": 1795557124847
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-6",
+          "capturedAt": "2026-11-24T21:52:05.098Z",
+          "startedAt": 1795557125098,
+          "finishedAt": 1795557125557
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-7",
+          "capturedAt": "2026-11-24T21:52:05.816Z",
+          "startedAt": 1795557125816,
+          "finishedAt": 1795557127546
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-8",
+          "capturedAt": "2026-11-24T21:52:07.808Z",
+          "startedAt": 1795557127808,
+          "finishedAt": 1795557129250
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-9",
+          "capturedAt": "2026-11-24T21:52:09.503Z",
+          "startedAt": 1795557129504,
+          "finishedAt": 1795557129592
+        },
+        {
+          "type": "obs.hand.pose",
+          "id": "hand-live-10",
+          "capturedAt": "2026-11-24T21:52:10.054Z",
+          "startedAt": 1795557130054,
+          "finishedAt": 1795557131438
+        }
+      ],
+      "sequenceProgress": [
+        {
+          "name": "counts-1-3",
+          "progress": {
+            "prep-0": {
+              "epoch": "2026-11-24T21:51:37.681780Z",
+              "contract": "f0549ddc78b8eae9d3c8bba32046f8e788a884070329bb6ceead24305fb33ba0",
+              "total": 3,
+              "maximumDurationMs": 120000,
+              "maximumGapMs": 5000,
+              "index": 0,
+              "status": "wrong_step",
+              "process": "2f6d41a5-09a8-4571-9a99-7b6516adcc79",
+              "ordinal": 4,
+              "capture": "hand-live-fixture/hand-live-4",
+              "lastAt": "2026-11-24T21:52:03.684Z",
+              "source": {
+                "source": "hand-live-fixture",
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "hands": {
+                "right": "right-track"
+              }
+            }
+          }
+        },
+        {
+          "name": "counts-1-2-3",
+          "progress": {
+            "prep-0": {
+              "epoch": "2026-11-24T21:51:37.681780Z",
+              "contract": "f0549ddc78b8eae9d3c8bba32046f8e788a884070329bb6ceead24305fb33ba0",
+              "total": 3,
+              "maximumDurationMs": 120000,
+              "maximumGapMs": 5000,
+              "index": 0,
+              "status": "timeout",
+              "process": "2f6d41a5-09a8-4571-9a99-7b6516adcc79",
+              "ordinal": 10,
+              "capture": "hand-live-fixture/hand-live-10",
+              "lastAt": "2026-11-24T21:52:10.054Z",
+              "source": {
+                "source": "hand-live-fixture",
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "hands": {
+                "right": "right-track"
+              }
+            }
+          }
+        }
+      ],
+      "offlineContinuityReplay": {
+        "method": "Actual driver capture with the six recorded HTTP latencies applied in order. Java HandSequenceMemory evaluated each original sample at the simulated receipt time. No provider call.",
+        "recordedReceiptLatenciesMs": [
+          274,
+          459,
+          1730,
+          1442,
+          88,
+          1384
+        ],
+        "countCaptureReceiptMs": [
+          [
+            1,
+            0,
+            277
+          ],
+          [
+            1,
+            308,
+            769
+          ],
+          [
+            2,
+            769,
+            2510
+          ],
+          [
+            2,
+            1077,
+            3959
+          ],
+          [
+            3,
+            3959,
+            4050
+          ],
+          [
+            3,
+            4266,
+            5654
+          ]
+        ],
+        "progressIndex": 3,
+        "status": "complete"
       }
     }
   ]

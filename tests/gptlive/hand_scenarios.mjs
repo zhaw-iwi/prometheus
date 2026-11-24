@@ -18,12 +18,26 @@ function named(action,sign,effector='right_hand'){assert.equal(action.kind,'sign
 function pointing(action,direction,effector){assert.equal(action.kind,'point');assert.equal(action.direction,direction);assert.equal(action.effector,effector);assert.equal(action.frame.space,'robot_local');}
 function countOutput(action,n,hold){assert.equal(action.kind,'sequence');assert.equal(action.steps.length,n);action.steps.forEach((step,i)=>{assert.equal(step.holdMs,hold);outputPose(step.action,[['right',f.fingers.map((_,j)=>j<=i?0:1)]]);});}
 const actionOf=motion=>{assert.equal(motion.handAction.schemaVersion,1);return motion.handAction.action;};
-export async function demonstrateCount(make,dwellMs,emit,wait){
-  let first,last,samples=0;
-  do{
-    const observation=await emit(make);last=Date.parse(observation.ts);first??=last;samples++;
-    await wait(250);
-  }while(samples<2||last-first<dwellMs);
+export async function demonstrateCount(make,{dwellMs,maximumGapMs},deliver,wait,now=Date.now){
+  const deadline=now()+maximumGapMs;
+  let stableSince,last,error,delivery=Promise.resolve();
+  try{
+    while(true){
+      if(error)throw error;
+      if(now()>deadline)throw Error('Count demonstration exceeded the agreed step gap');
+      const sample=make(),captured=Date.parse(sample.ts);
+      assert.ok(Number.isFinite(captured)&&(last===undefined||captured>last),'Expected a fresh count capture');
+      // Capture at camera cadence, while delivering original frames in order on one HTTP stream.
+      delivery=delivery.then(()=>{if(!error)return deliver(sample);}).catch(e=>{error=e;});
+      if(last===undefined||captured-last>1000)stableSince=captured;
+      last=captured;
+      const remaining=dwellMs-(captured-stableSince);
+      if(remaining<=0)break;
+      await wait(Math.min(500,remaining));
+    }
+  }finally{await delivery;}
+  if(error)throw error;
+  if(now()<=last)await wait(1);
 }
 export function requireReadyContribution(events,beforeIds){
   const heard=events.filter(e=>!beforeIds.includes(e.id)&&e.type==='resp.behaviour_plan'
@@ -88,8 +102,8 @@ export async function runHandScenario(mode,c){
     person=false;await wait(3500);await command('personrepeat','CLARIFY',{});
   }else if(mode==='L-07'){
     const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}),{clarification:'inputclarify',requireClarification:true});
-    const dwell=draft.checks[0].handSequence.dwellMs;
-    const counts=async values=>{for(const n of values)await demonstrateCount(()=>f.count(n),dwell,emit,wait);await checkpoint('counts-'+values.join('-'));};
+    const sequence=draft.checks[0].handSequence;
+    const counts=async values=>{for(const n of values)await demonstrateCount(()=>f.count(n),sequence,sample=>observe('obs.hand.pose',sample),wait);await checkpoint('counts-'+values.join('-'));};
     await counts([1,3]);assert.deepEqual((await memory())['coordination.evidence'],{});await zero();await counts([1,2,3]);await ready();await accept();
     await counts([1,3]);await zero();const before=(await c.history()).map(e=>e.id);await counts([1,2,3]);await complete();requireReadyContribution(await c.history(),before);await counts([3]);assert.equal((await memory())['task.actions'],1);
   }else if(mode==='L-08'){

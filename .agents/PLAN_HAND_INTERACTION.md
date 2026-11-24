@@ -839,3 +839,7 @@ and preserve quiet genuine interruptions. The remaining reservation balance is $
 
 Allocation 12 adds $20 at entry 97/$231. The continuation permits $90 in total,
 including all prior selections since entry 89. The cumulative limit is 106/$276.
+
+Allocation 12 closed at 106/$276, with the $90 continuation fully reserved.
+L-01 and L-02 passed during this allocation. L-04 through L-08 remain open.
+See the [latest reviewed results](HAND_INTERACTION_RESULTS.md).

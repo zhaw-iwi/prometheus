@@ -1849,3 +1849,36 @@ the colon form. The offline replay now recognizes this quoted rule when the
 committed output agrees. Its speaking occasion supplies only the agreed line
 and the instruction to finish. Open-ended contributions retain semantic
 delivery checks. Context and delivery tests preserve native speech ownership.
+
+- **106, L-07, INCONCLUSIVE** (`5317e4c541`). Live asked the clarification
+  question twice. The clarified and saved action used the canonical
+  `Say exactly: "ready"` form. The wrong sequence was rejected. During the
+  correct demonstration, count-two frames were captured 1.992 seconds apart,
+  exceeding the recognizer's one-second continuity bound. The driver advanced
+  to three anyway. The sequence timed out and no preparation evidence, consent
+  or action followed. The full 139.32-second recording was reviewed. The exact
+  contribution change did not receive a real-provider test at its execution
+  point in this run.
+
+The driver now captures each finger count on a clock independent of HTTP and
+delivers the original timestamped frames in order. Persistent capture gaps
+stop at the agreed step-gap limit. Applying all six observed POST durations
+offline produced six frames across three counts. The production recognizer
+completed step three using those captures at their simulated receipt times.
+The [portable evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-extension-2.json)
+includes the original and replay timings.
+
+The focused Java suites and package passed. Final isolated verification passed
+65 MySQL tests, six browser ownership and silence cases, 44 Node tests, 45
+Python acceptance tests, and nine schema examples. The live runner stopped its
+owned applications and removed its disposable schemas.
+
+Allocation 12 closed at **106 entries and $276 cumulatively reserved**.
+Continuation reservations total **$90 of $90**, including the nine $5
+selections made after entry 97. The budget preflight rejects another selection.
+Actual billing is unavailable. HI-12 remains open. L-01, L-02, L-03 and paired
+L-09 have passes, as do M-01 and M-02. L-04 and L-05 still have their
+earlier direction-review and registered-display failures or inconclusive results.
+L-06 needs a complete selected-person/removal run with accurate speech,
+L-07 needs the correct spoken contribution and held-pose check, and L-08
+needs a confirmed task count and reload after its successful direct count/Stop.

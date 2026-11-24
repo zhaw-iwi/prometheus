@@ -143,7 +143,10 @@ silent receipts stay in the transcript ledger without becoming user turns.
 L-02 passed at 98. L-06 reached stale-target rejection and L-01 reached the
 final peace sign, but their spoken answers failed. Subsequent runs confirmed
 silent-input rejection in L-06 and a spurious consent requirement in L-01.
-At 102/$256, $20 of the $90 continuation remained.
+L-01 passed at 103. L-07 reached an incorrect spoken contribution at 104;
+the exact-line retest at 106 stopped during preparation on a capture gap.
+L-08 completed direct counting and Stop at 105, then timed out on preparation.
+The capture-gap fix is verified offline. At 106/$276 the $90 continuation is fully reserved.
 See `.agents/HAND_INTERACTION_RESULTS.md` for individual outcomes. Isolated tests
 use GPT-6.2 Sol (low) and GPT-Live-1.1. Measured billing is unavailable.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,

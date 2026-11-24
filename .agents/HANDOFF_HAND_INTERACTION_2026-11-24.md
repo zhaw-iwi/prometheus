@@ -98,7 +98,13 @@ ledger receipt. Native output and explicit consent keep their existing owners.
 L-02 passed at 98. L-06 reached stale-target rejection and L-01 reached the
 final peace sign, but their spoken answers failed. Subsequent runs confirmed
 silent-input rejection in L-06 and a spurious consent requirement in L-01.
-At 102/$256, $20 of the $90 continuation remained. See the [attempt 97 evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-extension.json).
+L-01 passed at 103. L-07 reached an incorrect spoken contribution at 104;
+the exact-line retest at 106 stopped during preparation on a capture gap.
+L-08 completed direct counting and Stop at 105, then timed out on preparation.
+The capture-gap fix is verified offline. At 106/$276 the $90 continuation is fully reserved.
+After fresh budget authorization, select L-07 first to verify the exact spoken
+line and the held final pose end to end. The [latest evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-extension-2.json)
+includes the failed sequence timings and the six-frame offline replay.
 
 ## Findings carried into this continuation
 
