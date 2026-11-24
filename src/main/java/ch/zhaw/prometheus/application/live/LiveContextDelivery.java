@@ -101,7 +101,7 @@ public final class LiveContextDelivery {
                     // quiet facts lets native speech race a second, separate speaking instruction.
                     String content = "Confirmed reply " + continuation.id()
                             + (continuation.correction() ? ". Unheard draft rejected. Correct it once; keep every clue and fact, no additions: "
-                                    : ". Say once, preserving meaning; do not repeat it or read metadata: ") + continuation.facts();
+                                    : ". Respond once as directed. Keep required wording. Omit metadata: ") + continuation.facts();
                     if (bytes(content) > MAX_APPEND_BYTES) throw new IllegalStateException("Confirmed reply exceeds one append");
                     occasion.add(new Command("session.commentary.append", content, null, continuation.id(), revision));
                 } else {
@@ -111,8 +111,8 @@ public final class LiveContextDelivery {
                                 + ". Say only the unchanged committed response from current facts. Preserve every clue, quantity and control state; no apology or additions. This is the sole correction, not a new task action."
                             : "Use the confirmed facts for speaking occasion " + continuation.id()
                             + (continuation.occasion() == ch.zhaw.prometheus.model.policy.LiveActivityContext.Occasion.USER_REQUEST
-                                    ? ". Continue the visitor's pending request once, in your own words."
-                                    : ". Make the authorized proactive comment once, in your own words.")
+                                    ? ". Continue the visitor's pending request once, keeping any required wording."
+                                    : ". Make the authorized proactive comment once, keeping any required wording.")
                             + " Do not repeat an answer already spoken or read metadata aloud.", null, continuation.id(), revision);
                 }
                 for (var command : occasion) commands.add(new Command(command.type(), command.content(), null,

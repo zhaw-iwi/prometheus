@@ -70,6 +70,7 @@ public class CoordinationAgent implements AgentDefinition {
             goal, success, humanRole and agentRole: strings up to 300 characters each.
             Keep each role brief (aim below 140 characters); put exact response wording and details in rule.action
             instead of repeating the whole script in agentRole. Check these field limits before returning JSON.
+            For a speech-only cue with explicitly dictated words, write rule.action as Say exactly: "the agreed words".
             Store known constraints in these fields. Unknown material fields may be empty in a partial proposal;
             questions lists up to four unresolved questions of at most 160 characters. A ready proposal has no questions.
             dialogueLimit: 1..50 agreed agent contributions, including the initial contribution; use a small explicit bound.

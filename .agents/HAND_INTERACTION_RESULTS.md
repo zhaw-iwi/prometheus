@@ -1813,3 +1813,39 @@ explicitly authorize a single requested sign. The acceptance camera reports
 its first failed frame with capture time and elapsed request time. For single
 hand actions the browser saves the actual holding frame by published event ID,
 so a later utterance cannot remove the only visual evidence.
+
+- **103, L-01, PASS** (`048db1c0da`). Live answered the capability question
+  accurately and acknowledged both immediate right-hand thumbs-ups. The later
+  task required recognition and explicit acceptance. One fresh right-hand
+  thumbs-up produced one right-hand peace sign. All three images were captured
+  while holding, each tied to its own published event. Full received audio was
+  143.16 seconds. The input transcript included a stray “Describe” during
+  preparation, with no observed change to consent, agreed terms or actions.
+- **104, L-07, FAIL** (`f7df387614`). Live asked the visitor to choose the
+  missing response. The clarified proposal recorded the human's judgement,
+  the right-hand one-two-three order and exactly one spoken “ready.” Both
+  wrong-order sequences spent zero actions. After preparation and explicit
+  consent, the fresh valid sequence spent one. Live said “ready” and added a
+  remark about a postcard from its faraway search. The full 155.22-second
+  recording confirms the aside. The task entered UNCERTAIN, and the held-pose
+  test was never reached. Live also voiced the visitor's side of a question
+  during proposal review.
+- **105, L-08, INCONCLUSIVE** (`eb73bb3ed1`). The first right-hand sequence
+  displayed counts one through five. The repeated sequence stopped at step
+  two and stayed interrupted. All seven holding frames and the complete
+  153.36-second received recording were reviewed. The saved proposal preserved
+  the trigger and count. Live included the correct demonstration request in
+  a longer reply that also said “I say I saw it.” The capture had ambiguous
+  association and the preparation request remained unconsumed. Acceptance,
+  the task-triggered count and the reload check were never reached. On the
+  browser/server clock bracket, “Proposal” arrived 8.695–8.698 seconds before
+  the preparation speaking instruction was sent. “Please [demonstrate]” began
+  6.529–6.532 seconds after that send within the same captured utterance.
+
+In 104 the saved rule read “Say exactly ‘ready’ once, with no other speech,
+gesture, or motion.” The contribution actually sent to Live allowed an answer
+with equivalent meaning. The exact-wording parser previously recognized only
+the colon form. The offline replay now recognizes this quoted rule when the
+committed output agrees. Its speaking occasion supplies only the agreed line
+and the instruction to finish. Open-ended contributions retain semantic
+delivery checks. Context and delivery tests preserve native speech ownership.

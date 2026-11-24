@@ -402,6 +402,7 @@ class CoordinationVoiceUnitTest {
     }
     @Test void cueUsesCurrentCommittedContentAndOnlyCompleteExplicitLiteralsGetExactMatching() {
         for (String action : List.of("Say exactly: \"Welcome to the lab.\"", "Say exactly: Welcome to the lab.",
+                "Say exactly “Welcome to the lab.” once, with no other speech, gesture, or motion.",
                 "Say exactly: \"Welcome to the lab.\" Then estimate the face (e.g. neutral).", "Say exactly: A different line.")) {
             var fixture = new CoordinationAgentUnitTest(); var agreement = fixture.sensor(false);
             agreement.getAsJsonObject("reactions").getAsJsonArray("rules").get(0).getAsJsonObject().addProperty("action", action);
@@ -421,10 +422,14 @@ class CoordinationVoiceUnitTest {
             assertTrue(instructions.contains("complete words the audience should hear"));
             assertFalse(instructions.contains("not a finished utterance"), "Coordination must not inherit contradictory generic intent guidance");
             var committed = fixture.storage().get(TaskResponse.KEY).getAsJsonObject();
-            assertTrue(committed.get("facts").getAsString().contains("Required spoken content: Welcome to the lab."));
+            boolean exact = !action.contains("Then") && !action.contains("different");
+            var facts = committed.get("facts").getAsString();
+            assertTrue(facts.contains("Welcome to the lab."));
+            assertEquals(exact, facts.contains("Say this exact line once, then listen"));
+            assertEquals(!exact, facts.contains("equivalent meaning"));
             assertFalse(committed.get("facts").getAsString().contains("neutral"));
             assertFalse(fixture.policy().liveActivityContext().facts().contains("neutral"));
-            assertEquals(!action.contains("Then") && !action.contains("different"), committed.has("exactSpeech"));
+            assertEquals(exact, committed.has("exactSpeech"));
         }
     }
 }

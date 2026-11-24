@@ -14,12 +14,15 @@ import jakarta.persistence.Entity;
 /** Preserve Generic's guarded cue execution, capture confirmation and failure handling. */
 @Entity
 public class CoordinationCueAction extends CoreTaskUpdateAction {
+    private static final java.util.regex.Pattern EXACT_LINE = java.util.regex.Pattern.compile(
+            "(?i)^say exactly(?:\\s*:?\\s*\"([^\"\\r\\n]+)\"(?: once)?"
+            + "(?:,? with no other speech, gesture, or motion)?[.!]?|:\\s*([^\"\\r\\n]+))$");
     protected CoordinationCueAction() {}
     public CoordinationCueAction(Storage storage, String instructions) { super(storage, instructions, true); }
     @Override protected String liveSpeechGuidance() {
         return "\nFor an agreed spoken task action, speech contains the complete words the audience should hear, not a description or instruction to Live. "
                 + "Perform the communicative act: welcome the audience, tell the joke or provide the requested observation. "
-                + "Live may paraphrase these words while preserving their meaning; the backend retains task authority. Preserve appropriate nonverbal/motion channels. "
+                + "Keep any explicitly agreed words verbatim. Live may paraphrase other speech while preserving its meaning. Preserve appropriate nonverbal/motion channels. "
                 + "For an output-only silent action, omit speech.";
     }
     @Override protected String inferenceGuidance(PolicyRuntime runtime) {
@@ -43,11 +46,13 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
             if (runtime.externalSpeech() != null && spoken != null && !spoken.isBlank()
                     && getStorage().containsKey(CoreTaskVoice.RESPONSE) && getStorage().containsKey(TaskResponse.KEY)) {
                 String intent = spoken.substring(0, Math.min(350, spoken.length()));
-                String facts = "A fresh cue authorized this current contribution. Required spoken content: " + intent
+                String exact = literalSpeech(rule, spoken);
+                String facts = exact != null ? "Say this exact line once, then listen: " + new JsonPrimitive(exact)
+                        : "A fresh cue authorized this current contribution. Required spoken content: " + intent
                         + " Convey this committed result with equivalent meaning, not an example from the agreement. Say it once; do not add a reflection or aside.";
                 var response = getStorage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
                 response.addProperty("facts", facts); response.addProperty("contributionOnly", true); getStorage().put(CoreTaskVoice.RESPONSE, response);
-                TaskResponse.contribution(getStorage(), facts, literalSpeech(rule, spoken));
+                TaskResponse.contribution(getStorage(), facts, exact);
             }
         }
         CoordinationDelivery.attach(getStorage());
@@ -59,7 +64,7 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
     }
     private static String literalSpeech(TaskSpec.Rule rule, String spoken) {
         if (rule == null || spoken == null) return null;
-        var match = java.util.regex.Pattern.compile("(?i)^say exactly:\\s*(?:\"([^\"\\r\\n]+)\"[.!]?|([^\"\\r\\n]+))$").matcher(rule.action().strip());
+        var match = EXACT_LINE.matcher(rule.action().strip().replace('“', '"').replace('”', '"'));
         if (!match.matches()) return null;
         String literal = match.group(1) == null ? match.group(2).strip() : match.group(1);
         return TaskResponse.sameWords(literal, spoken) ? literal : null;
