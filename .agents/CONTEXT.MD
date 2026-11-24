@@ -136,6 +136,10 @@ Attempt 97 waited for the full proposal and matched its terms. An unscripted
 “Mm-mm” input during the review split its capture and the review was withdrawn.
 The direct pose was not reached. Exact-owner urgent renderer delivery passed
 offline. The ledger stands at 97/$231 with $25 available.
+Allocation 12 subsequently raised the cap to $90 at entry 97/$231, leaving $45.
+Coordination capture compares a possible interruption during native output with
+continuous all-zero input and a recent reflected output media clock. Verified
+silent receipts stay in the transcript ledger without becoming user turns.
 See `.agents/HAND_INTERACTION_RESULTS.md` for individual outcomes. Isolated tests
 use GPT-6.2 Sol (low) and GPT-Live-1.1. Measured billing is unavailable.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,

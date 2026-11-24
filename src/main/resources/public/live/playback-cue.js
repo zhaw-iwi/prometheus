@@ -31,7 +31,7 @@ export class PlaybackSettlingGate {
         this.segments.set(segment.segmentId, [...segment.receiptIds]);
       if (segment.speaker === 'USER' && segment.status !== 'PENDING') {
         const harmless = segment.status === 'COMPLETE' && segment.reason === 'countdown_acknowledgement'
-          || segment.status === 'IGNORED' && segment.reason === 'empty_transcript';
+          || segment.status === 'IGNORED' && ['empty_transcript', 'silent_input_audio'].includes(segment.reason);
         for (const id of (segment.receiptIds || []).slice(0, 128)) {
           this.inputResults.set(id, harmless);
           if (this.pendingInputs.delete(id) && !harmless) this.interrupt();

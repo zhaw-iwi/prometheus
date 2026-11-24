@@ -22,8 +22,8 @@ if(permission!=='--allow-paid-provider'||!output||!/^L-0[1-9](-comparison)?$/.te
     ||!['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname))throw Error('Use the isolated authorized hand runner');
 const plan=JSON.parse(fs.readFileSync(process.env.PROMETHEUS_HAND_PAID_PLAN)),reservation=JSON.parse(fs.readFileSync(ledger));
 assert.equal(reservation.authorization,'hand-interaction-2026-11-23-usd50');
-assert.ok(reservation.attempts.length<=102&&reservation.reservedUsd<=256
-  &&reservation.attempts.slice(88).reduce((sum,a)=>sum+a.reservedUsd,0)<=70);
+assert.ok(reservation.attempts.length<=106&&reservation.reservedUsd<=276
+  &&reservation.attempts.slice(88).reduce((sum,a)=>sum+a.reservedUsd,0)<=90);
 const directory=path.dirname(path.resolve(output));
 assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===5&&a.allocationRevision===plan.allocationRevision&&a.extensionAuthorization===plan.extensionAuthorization&&path.resolve(a.artifact)===directory));
 fs.writeFileSync(path.join(directory,'provider-attempt.started'),new Date().toISOString(),{flag:'wx'});
@@ -41,7 +41,7 @@ async function api(route,method='GET',body,headers=scoped){check();const respons
   if(!response.ok)throw Error(`${method} ${route}: HTTP ${response.status}`);return response.status===204?null:response.json();}
 const memory=async()=>Object.fromEntries((await api(agentPath+'/storage')).map(e=>[e.key,JSON.parse(e.value)]));
 const history=async()=>api(agentPath+'/live/history');
-const contextTraces=new Map(),providerEvents=new Map();
+const contextTraces=new Map(),providerEvents=new Map(),silentInputReceipts=new Map();
 function retainDiagnostics(status){
   for(const e of status?.context?.recent||[])if(e.phase.startsWith('command_'))contextTraces.set(e.sequence,e);
   for(const e of status?.recent||[])if(e.eventId&&e.type==='session.output_transcript.delta')providerEvents.set(e.eventId,e);
@@ -171,7 +171,11 @@ try{
     await context.route(url,route=>route.fulfill({body:'',contentType:'application/javascript'}));
   await context.addInitScript({content:`(${trialCapture.toString()})();(${handBudgetCapture.toString()})(${JSON.stringify(plan.limits)});`});page=await context.newPage();page.setDefaultTimeout(30000);
   page.on('pageerror',error=>report.browserErrors.push(error.message));page.on('response',async response=>{if(!response.url().startsWith(base))return;const url=new URL(response.url());
-    if(url.pathname.endsWith('/updates') && response.ok())await response.json().then(data=>retainDiagnostics(data.status)).catch(()=>{});
+    if(url.pathname.endsWith('/updates') && response.ok())await response.json().then(data=>{
+      retainDiagnostics(data.status);
+      for(const outcome of data.transcripts||[])if(outcome.speaker==='USER' && outcome.reason==='silent_input_audio')
+        silentInputReceipts.set(outcome.segmentId,outcome);
+    }).catch(()=>{});
     if(/acknowledge|speech-synthesis|speech-approvals|behaviours\/.*\/speech|playback-cues|hand-execution/.test(url.pathname))report.network.push({path:url.pathname,status:response.status(),method:response.request().method()});
     if(url.pathname.endsWith('/live/sessions')&&response.status()===201)handle=(await response.json()).handle;});
   const code=Math.random().toString(36).slice(2,7).toUpperCase(),definition=mode==='L-09-comparison'?'core.live_multimodal':'core.coordination';
@@ -194,6 +198,7 @@ finally{
     await page.screenshot({path:path.join(directory,'final-cockpit.png')}).catch(()=>{});}
   if(agentPath){report.finalStorage=await memory().catch(()=>null);report.history=await history().catch(()=>null);if(handle)report.finalSession=await api(`${agentPath}/live/sessions/${handle}`).catch(()=>null);}
   retainDiagnostics(report.finalSession);
+  report.silentInputReceipts=[...silentInputReceipts.values()];
   for(const turn of report.turns.filter(t=>t.commandSource || t.name==='poseshow')){
     turn.commandTiming=commandTiming(turn,[...contextTraces.values()],providerEvents);
   }

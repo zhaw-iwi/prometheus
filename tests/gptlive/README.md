@@ -7,9 +7,9 @@ which local credentials, audio and database prerequisites must be recreated.
 
 ## Current hand acceptance allocation
 
-Allocation 11 adds $20 to the $50 continuation that began at 88 attempts/$186.
+Allocation 12 raises the continuation that began at 88 attempts/$186 to $90.
 Each selection reserves $5 across backend inference and native Live. The cumulative
-ceiling is 102 attempts/$256. See the latest hand interaction handoff for the current ledger.
+ceiling is 106 attempts/$276. See the latest hand interaction handoff for the current ledger.
 The L-02 report records command delivery and individual native caption/audio
 observations under each direct turn's `commandTiming`. Clock overlap and missing
 evidence leave ordering undetermined. The local PCM, outgoing RTP counters

@@ -106,6 +106,8 @@ and regulation diagnostics remain future work.
   An unscripted input split the spoken proposal review. The task stayed
   inactive and the urgent renderer receipt was verified offline only.
   The ledger has 97 entries/$231 reserved, leaving $25 available.
+  At entry 97, allocation 12 raised the continuation limit to $90 and the
+  cumulative ceiling to $276. The starting reservation balance is $45.
   [Results](.agents/HAND_INTERACTION_RESULTS.md) ·
   [Restoring the latest budget checkpoint](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 

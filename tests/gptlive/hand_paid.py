@@ -1,4 +1,4 @@
-"""Fail-closed $70 continuation from the immutable 88-attempt/$186 checkpoint. Importing never bills."""
+"""Fail-closed $90 continuation from the immutable 88-attempt/$186 checkpoint. Importing never bills."""
 import hashlib
 import json
 import os
@@ -16,6 +16,7 @@ SECOND_EXTENSION = 'hand-interaction-2026-11-24-usd30-extension'
 THIRD_EXTENSION = 'hand-interaction-2026-11-24-usd100-extension'
 CONTINUATION = 'hand-interaction-2026-11-24-live-continuation-usd50'
 CONTINUATION_EXTENSION = 'hand-interaction-2026-11-24-live-continuation-plus-usd20'
+SECOND_CONTINUATION_EXTENSION = 'hand-interaction-2026-11-24-live-continuation-second-usd20'
 LIMITS = dict(backendRequests=10, requestBytes=80000, inputFramingTokenAllowance=2048,
               completionTokensPerRequest=2048, reportedTokens=250000, sessions=1,
               sessionSeconds=360, journeySeconds=390, visitorTurns=12,
@@ -27,9 +28,9 @@ def validate(plan, model):
     if plan.get('acceptanceRevision') != 2:
         raise ValueError('Use hand acceptance revision 2; preserve earlier failures')
     if (plan.get('schema') != 'hand-paid-plan-v1' or plan.get('authorized') is not True
-            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 102
-            or plan.get('maximumReservedUsd') != 256 or plan.get('reserveUsdPerAttempt') != 5
-            or plan.get('allocationRevision') != 11 or plan.get('extensionAuthorization') != CONTINUATION_EXTENSION):
+            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 106
+            or plan.get('maximumReservedUsd') != 276 or plan.get('reserveUsdPerAttempt') != 5
+            or plan.get('allocationRevision') != 12 or plan.get('extensionAuthorization') != SECOND_CONTINUATION_EXTENSION):
         raise ValueError('Unreviewed hand authorization')
     if plan.get('models') != {'backend': 'gpt-6.2-sol', 'live': 'gpt-live-1.1'} or model != 'gpt-6.2-sol' or plan.get('backendReasoningEffort') != 'low':
         raise ValueError('Unpriced hand model')
@@ -48,6 +49,7 @@ def validate(plan, model):
 
 
 def _allocation_for(index):
+    if index >= 97: return 12, SECOND_CONTINUATION_EXTENSION
     if index >= 96: return 11, CONTINUATION_EXTENSION
     if index >= 88: return 10, CONTINUATION
     if index < 28: return 4, EXTENSION
@@ -69,14 +71,22 @@ def checkpoint_history():
             or extension['cumulativeReservedUsd'] != base['reservedUsd'] + sum(a['reservedUsd'] for a in extra)):
         raise ValueError('Invalid hand continuation checkpoint')
     attempts = base['attempts'] + extra
-    topup = json.loads((CHECKPOINT / 'live-continuation-extension.json').read_text(encoding='utf-8'))
-    added = topup['reservations']
-    if (len(attempts) != topup['baseAttempts'] or topup['baseAttempts'] != 96
-            or extension['cumulativeReservedUsd'] != topup['baseReservedUsd'] or topup['baseReservedUsd'] != 226
-            or topup['addedCapUsd'] != 20 or topup['continuationCapUsd'] != 70 or len(added) > 6
-            or topup['cumulativeReservedUsd'] != topup['baseReservedUsd'] + sum(a['reservedUsd'] for a in added)):
-        raise ValueError('Invalid hand continuation extension checkpoint')
-    return {**base, 'attempts': attempts + added, 'reservedUsd': topup['cumulativeReservedUsd']}
+    reserved = extension['cumulativeReservedUsd']
+    for filename, count, base_usd, cap in [
+        ('live-continuation-extension.json', 96, 226, 70),
+        ('live-continuation-extension-2.json', 97, 231, 90),
+    ]:
+        topup = json.loads((CHECKPOINT / filename).read_text(encoding='utf-8'))
+        added = topup['reservations']
+        if (len(attempts) != count or topup['baseAttempts'] != count or reserved != base_usd
+                or topup['baseReservedUsd'] != base_usd or topup['addedCapUsd'] != 20
+                or topup['continuationCapUsd'] != cap
+                or topup['cumulativeReservedUsd'] != reserved + sum(a['reservedUsd'] for a in added)
+                or topup['cumulativeReservedUsd'] > base['reservedUsd'] + cap):
+            raise ValueError('Invalid hand continuation extension checkpoint')
+        attempts = attempts + added
+        reserved = topup['cumulativeReservedUsd']
+    return {**base, 'attempts': attempts, 'reservedUsd': reserved}
 
 
 def restore_checkpoint(ledger=LEDGER):
@@ -95,23 +105,23 @@ def history(ledger=LEDGER):
     data = json.loads(ledger.read_text(encoding='utf-8'))
     attempts = data.get('attempts')
     if (data.get('authorization') != AUTHORIZATION or not isinstance(attempts, list)
-            or not 96 <= len(attempts) <= 102 or any(a.get('mode') not in MODES
+            or not 97 <= len(attempts) <= 106 or any(a.get('mode') not in MODES
                                        or a.get('reservedUsd') != (4 if i<3 else 2 if i<28 else 1 if i<74 else 7 if i<78 else 5)
                                        or not a.get('artifact')
                                        or i >= 22 and (a.get('allocationRevision'), a.get('extensionAuthorization')) != _allocation_for(i)
                                        for i,a in enumerate(attempts))
             or data.get('reservedUsd') != sum(a['reservedUsd'] for a in attempts)
-            or data.get('reservedUsd') > 256):
+            or data.get('reservedUsd') > 276):
         raise ValueError('Invalid hand ledger; never replace or reset it')
     saved = checkpoint_history()['attempts']
-    if attempts[:len(saved)] != saved or sum(a['reservedUsd'] for a in attempts[88:]) > 70:
+    if attempts[:len(saved)] != saved or sum(a['reservedUsd'] for a in attempts[88:]) > 90:
         raise ValueError('Invalid hand ledger: checkpoint prefix or continuation cap')
     return data
 
 
 def available_budget(mode, ledger=LEDGER):
     data = history(ledger)
-    if mode not in MODES or len(data['attempts']) >= 102 or data['reservedUsd'] + 5 > 256:
+    if mode not in MODES or len(data['attempts']) >= 106 or data['reservedUsd'] + 5 > 276:
         raise ValueError('Hand budget exhausted or invalid selection; no provider call permitted')
     return data
 

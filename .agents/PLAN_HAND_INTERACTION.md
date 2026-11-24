@@ -836,3 +836,6 @@ L-02 proposal. It passed the opening and stopped at a split proposal review,
 before the direct command. The offline segmenter replay split the review with
 both silent and voiced input. Test time-aligned audio evidence for admission
 and preserve quiet genuine interruptions. The remaining reservation balance is $25.
+
+Allocation 12 adds $20 at entry 97/$231. The continuation permits $90 in total,
+including all prior selections since entry 89. The cumulative limit is 106/$276.

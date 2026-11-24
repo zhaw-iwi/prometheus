@@ -11,9 +11,15 @@ import java.util.UUID;
 /** Acoustic sample activity, not an event-delivery gap, establishes a candidate boundary. */
 public final class LiveTranscriptSegmenter {
     public enum Speaker { USER, ASSISTANT }
-    public enum Closure { COMPLETE, INCOMPLETE, LATE }
+    public enum Closure { COMPLETE, INCOMPLETE, LATE, IGNORED }
     public record Fragment(String eventId, Speaker speaker, Long startMs, Long endMs, long receivedMs,
-            long sequence, String text) {}
+            long sequence, String text) {
+        public Fragment {
+            if (eventId == null || !eventId.matches("[A-Za-z0-9_:.\\-]{1,200}")
+                    || speaker == null || text == null || text.length() > MAX_CHARACTERS)
+                throw new IllegalArgumentException("Invalid or oversized transcript fragment");
+        }
+    }
     public record Segment(UUID id, Speaker speaker, List<Fragment> fragments, Closure closure,
             String reason, long firstReceivedMs, long lastReceivedMs) {
         public Segment { fragments = List.copyOf(fragments); }
@@ -63,10 +69,10 @@ public final class LiveTranscriptSegmenter {
         return fragment(fragment, true);
     }
     public synchronized List<Segment> fragment(Fragment fragment, boolean userInputAllowed) {
+        return fragment(fragment, userInputAllowed, false);
+    }
+    public synchronized List<Segment> fragment(Fragment fragment, boolean userInputAllowed, boolean confirmedSilentInput) {
         if (closed) throw new IllegalStateException("Transcript capture is closed");
-        if (fragment.eventId() == null || !fragment.eventId().matches("[A-Za-z0-9_:.\\-]{1,200}")
-                || fragment.speaker() == null || fragment.text() == null || fragment.text().length() > MAX_CHARACTERS)
-            throw new IllegalArgumentException("Invalid or oversized transcript fragment");
         if (received.contains(fragment.eventId())) return List.of();
         if (received.size() >= MAX_RECEIPTS) throw new IllegalStateException("Transcript receipt capacity reached");
         received.add(fragment.eventId());
@@ -75,6 +81,8 @@ public final class LiveTranscriptSegmenter {
                 && fragment.endMs() >= fragment.startMs() && fragment.endMs() <= 3_600_000;
         if (validTime && (fragment.startMs() < track.frozenEnd || fragment.endMs() <= track.frozenEnd))
             return List.of(segment(fragment.speaker(), List.of(fragment), Closure.LATE, "late_after_commit"));
+        if (confirmedSilentInput && fragment.speaker() == Speaker.USER)
+            return List.of(segment(Speaker.USER, List.of(fragment), Closure.IGNORED, "silent_input_audio"));
         List<Segment> boundary = List.of();
         Track assistant = tracks.get(Speaker.ASSISTANT);
         // Input captions stream after the corresponding audio. A tail of the already

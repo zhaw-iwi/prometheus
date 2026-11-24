@@ -87,6 +87,13 @@ class LiveTranscriptIngressIntegrationTest {
             assertNull(ignored.eventId());
             assertEquals(ignored, ingress.commit(agentId, owner, segment(empty, closure), List.of()).orElseThrow());
         }
+        Fragment noise = fragment("silent-caption", Speaker.USER, 3000, "Mm-mm");
+        assertTrue(ingress.receipt(agentId, owner, noise));
+        var silent = new Segment(UUID.randomUUID(), Speaker.USER, List.of(noise), Closure.IGNORED,
+                "silent_input_audio", noise.receivedMs(), noise.receivedMs());
+        var ignored = ingress.commit(agentId, owner, silent, List.of("game")).orElseThrow();
+        assertEquals("IGNORED", ignored.status()); assertEquals("silent_input_audio", ignored.reason());
+        assertNull(ignored.eventId()); assertEquals(ignored, ingress.commit(agentId, owner, silent, List.of()).orElseThrow());
         assertEquals(1, rounds()); verifyNoInteractions(gateway); oldIngress = ingress;
         assertEquals(acceptedActionVersion, actionVersion());
     }

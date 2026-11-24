@@ -210,11 +210,11 @@ test('a partial yes followed by stop, an incomplete input or ordinary conversati
   }
 });
 
-test('a complete backend-ignored empty input resolves pending classification without cancelling the countdown', () => {
+for (const reason of ['empty_transcript', 'silent_input_audio']) test(`a backend-ignored ${reason} preserves the countdown`, () => {
   const f = fixture(), cue = {...f.cue, segmentId: 'speech', allowAcknowledgements: true};
   f.gate.update({...cue, segmentId: null}); f.gate.input('whitespace');
   f.speak(); f.gate.update(cue, ledger()); f.quiet(); assert.deepEqual(f.seen, []);
-  f.gate.update(cue, [...ledger(), {speaker: 'USER', status: 'IGNORED', reason: 'empty_transcript', receiptIds: ['whitespace']}]);
+  f.gate.update(cue, [...ledger(), {speaker: 'USER', status: 'IGNORED', reason, receiptIds: ['whitespace']}]);
   f.quiet(); assert.deepEqual(f.seen, ['round-one']);
   f.gate.update(cue, ledger()); f.quiet(); assert.deepEqual(f.seen, ['round-one']);
 });

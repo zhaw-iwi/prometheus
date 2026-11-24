@@ -17,6 +17,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import com.google.gson.JsonObject;
 import ch.zhaw.prometheus.application.live.LivePcmActivity;
+import ch.zhaw.prometheus.application.live.LiveInputSilence;
 import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter;
 import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.*;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
@@ -79,6 +80,8 @@ public class LiveTranscriptCaptureService {
         private final Consumer<String> failure;
         private final LiveTranscriptSegmenter segmenter;
         private final LivePcmActivity.OnsetFilter inputActivity;
+        private final LiveInputSilence inputSilence;
+        private Fragment possibleSilentInput;
         private final Set<String> seen = new HashSet<>();
         private final Map<String, List<String>> fragmentStates = new HashMap<>();
         private final ArrayBlockingQueue<Runnable> work = new ArrayBlockingQueue<>(128);
@@ -96,6 +99,7 @@ public class LiveTranscriptCaptureService {
             this.agent = agent; this.owner = owner; this.state = state; this.failure = failure;
             this.segmenter = new LiveTranscriptSegmenter(owner.sessionId(), userSilenceMs, assistantSilenceMs);
             this.inputActivity = filterIsolatedInputActivity ? new LivePcmActivity.OnsetFilter() : null;
+            this.inputSilence = assistantSilenceMs > LiveTranscriptSegmenter.SILENCE_MS ? new LiveInputSilence() : null;
         }
         public synchronized void receive(JsonObject event) {
             if (closed || failed) return;
@@ -103,13 +107,17 @@ public class LiveTranscriptCaptureService {
                 String type = event.get("type").getAsString(); long now = clock.millis();
                 if (type.equals("session.input_audio.append") || type.equals("session.output_audio.delta")) {
                     // A new voiced chunk must not erase measured quiet before the scheduled poll.
-                    completed(ready(now));
                     Speaker speaker = type.contains("input_") ? Speaker.USER : Speaker.ASSISTANT;
                     if (speaker == Speaker.USER && muted) return;
                     // Reflected sideband output has media ranges; untimed input/legacy events
                     // retain sample/arrival coverage. Neither proves browser playback.
                     var pcm = Base64.getDecoder().decode(event.get(speaker == Speaker.USER ? "audio" : "delta").getAsString());
                     var activity = LivePcmActivity.measure(pcm);
+                    if (inputSilence != null) {
+                        if (speaker == Speaker.USER) inputSilence.input(pcm, now);
+                        else inputSilence.output(number(event, "start_ms"), number(event, "end_ms"), activity.samples(), now);
+                    }
+                    completed(ready(now));
                     if (activity.voiced()) lastVoiceAt = now;
                     if (speaker == Speaker.USER && inputActivity != null) activity = inputActivity.measure(pcm, now);
                     if (speaker == Speaker.USER && activity.voiced()) completed(segmenter.userActivity(now));
@@ -132,13 +140,20 @@ public class LiveTranscriptCaptureService {
                     if (seen.size() >= LiveTranscriptSegmenter.MAX_RECEIPTS) throw new IllegalStateException("Receipt capacity reached");
                     Fragment fragment = new Fragment(id, speaker, number(event, "start_ms"), number(event, "end_ms"), now,
                             ++sequence, event.get("delta").getAsString());
-                    List<Segment> ready = segmenter.fragment(fragment, speaker != Speaker.USER || !muted);
+                    if (speaker == Speaker.USER) resolveSilentInput(now, true);
                     seen.add(id); fragmentStates.put(id, List.copyOf(state.get()));
                     trace("receipt_queued", id, null, null, fragment.startMs(), fragment.endMs());
                     enqueue(() -> {
                         boolean saved = ingress.receipt(agent, owner, fragment);
                         trace("receipt_processed", id, null, saved ? "persisted" : "duplicate_or_obsolete", fragment.startMs(), fragment.endMs());
                     });
+                    if (identified && !muted && speaker == Speaker.USER && !fragment.text().isBlank()
+                            && inputSilence != null && segmenter.hasOpenSegment(Speaker.ASSISTANT)
+                            && !segmenter.hasOpenSegment(Speaker.USER) && inputSilence.covers(fragment, now)) {
+                        possibleSilentInput = fragment;
+                        return;
+                    }
+                    List<Segment> ready = segmenter.fragment(fragment, speaker != Speaker.USER || !muted);
                     if (!identified) segmenter.uncertain(speaker, "missing_provider_identity");
                     if (speaker == Speaker.USER && muted) segmenter.uncertain(speaker, "input_muted");
                     completed(ready);
@@ -146,11 +161,26 @@ public class LiveTranscriptCaptureService {
             } catch (RuntimeException invalid) { fail("capture_input_invalid_or_full"); }
         }
         public synchronized void inputMuted(boolean value) {
+            if (value && !muted) {
+                resolveSilentInput(clock.millis(), true);
+                if (inputSilence != null) inputSilence.clear();
+            }
             if (value && !muted) completed(segmenter.interrupt(Speaker.USER, "input_muted"));
             if (value && inputActivity != null) inputActivity.reset();
             muted = value;
         }
-        private List<Segment> ready(long now) { return segmenter.poll(now, inputActivity != null && inputActivity.pending()); }
+        private void resolveSilentInput(long now, boolean flush) {
+            var fragment = possibleSilentInput;
+            if (fragment == null) return;
+            boolean silent = inputSilence.confirmed(fragment, now);
+            if (!silent && !flush && now - fragment.receivedMs() <= 2000 && inputSilence.covers(fragment, now)) return;
+            possibleSilentInput = null;
+            completed(segmenter.fragment(fragment, !muted, silent));
+        }
+        private List<Segment> ready(long now) {
+            resolveSilentInput(now, false);
+            return segmenter.poll(now, inputActivity != null && inputActivity.pending());
+        }
         synchronized void poll() {
             if (closed || failed) return;
             try { completed(ready(clock.millis())); }
@@ -158,6 +188,7 @@ public class LiveTranscriptCaptureService {
         }
         public synchronized CompletableFuture<Void> close() {
             if (!closed) {
+                resolveSilentInput(clock.millis(), true);
                 closed = true; captures.remove(owner.sessionId(), this);
                 completed(segmenter.close());
                 if (work.isEmpty() && !draining.get()) drained.complete(null);

@@ -118,7 +118,9 @@ public class LiveTranscriptIngressService {
                 segments.save(persisted); ledgerChanged(id, owner.sessionId()); return Optional.of(view(persisted));
             }
             String text = persisted.getTranscript();
-            if (segment.speaker() == Speaker.USER && text.isBlank() && segment.closure() == Closure.COMPLETE) {
+            if (segment.speaker() == Speaker.USER && segment.closure() == Closure.IGNORED) {
+                persisted.finish("IGNORED", segment.reason(), null);
+            } else if (segment.speaker() == Speaker.USER && text.isBlank() && segment.closure() == Closure.COMPLETE) {
                 // A whitespace-only provider delta is not a spoken interruption. Keep
                 // its durable identity so opted-in playback can resolve pending input.
                 persisted.finish("IGNORED", "empty_transcript", null);

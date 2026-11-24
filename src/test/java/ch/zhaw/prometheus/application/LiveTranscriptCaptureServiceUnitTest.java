@@ -19,6 +19,67 @@ import ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Segment;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 class LiveTranscriptCaptureServiceUnitTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"zero", "quiet", "delayed", "missing", "older-caption"})
+    void reviewInterruptionRequiresContinuousSilentInputToIgnoreAReceipt(String input) throws Exception {
+        var ingress = mock(LiveTranscriptIngressService.class);
+        when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());
+        var clock = mock(Clock.class);
+        var now = new AtomicLong();
+        when(clock.millis()).thenAnswer(call -> now.get());
+        var service = new LiveTranscriptCaptureService(ingress, mock(ApplicationEventPublisher.class), clock);
+        var capture = service.open(UUID.randomUUID(), new ExternalSpeech(UUID.randomUUID(), UUID.randomUUID()),
+                () -> List.of("ready"), reason -> fail(reason), 2000, false, 2400);
+        try {
+            capture.inputMuted(false);
+            for (int end = 58_000; end <= 67_000; end += 100) {
+                now.set(end);
+                var pcm = new byte[4800];
+                if (input.equals("quiet") && end == 62_500 || input.equals("delayed") && end == 63_200) pcm[0] = 1;
+                if (!input.equals("missing") || end < 62_500 || end > 63_400) {
+                    var audio = new com.google.gson.JsonObject();
+                    audio.addProperty("type", "session.input_audio.append");
+                    audio.addProperty("audio", Base64.getEncoder().encodeToString(pcm));
+                    capture.receive(audio);
+                }
+                var output = new com.google.gson.JsonObject();
+                output.addProperty("type", "session.output_audio.delta");
+                output.addProperty("start_ms", end - 100); output.addProperty("end_ms", end);
+                if (end <= 62_900) java.util.Arrays.fill(pcm, (byte) 64);
+                output.addProperty("delta", Base64.getEncoder().encodeToString(pcm));
+                capture.receive(output);
+                if (end == 62_300) capture.receive(caption("output", "first", 60_800, 62_400, "Preparation is complete."));
+                if (end == 62_600) {
+                    // A delayed caption can predate the uninterrupted digital-zero span.
+                    int start = input.equals("older-caption") ? 57_000 : 62_400;
+                    var user = caption("input", "visitor", start, 62_600, "Mm-mm");
+                    capture.receive(user); capture.receive(user);
+                }
+                if (end == 62_900) capture.receive(caption("output", "last", 62_600, 62_900, " Shall we start?"));
+            }
+            capture.close().get(4, TimeUnit.SECONDS);
+            var segments = org.mockito.ArgumentCaptor.forClass(Segment.class);
+            verify(ingress, atLeast(2)).commit(any(), any(), segments.capture(), any());
+            var users = segments.getAllValues().stream().filter(s -> s.speaker() == ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.USER).toList();
+            assertEquals(1, users.size()); assertEquals("Mm-mm", users.getFirst().text());
+            if (input.equals("zero")) {
+                assertEquals("silent_input_audio", users.getFirst().reason());
+                assertEquals("IGNORED", users.getFirst().closure().name());
+                assertTrue(segments.getAllValues().stream().anyMatch(s -> s.closure().name().equals("COMPLETE")
+                        && s.text().equals("Preparation is complete. Shall we start?")));
+            } else {
+                assertNotEquals("IGNORED", users.getFirst().closure().name());
+                assertTrue(segments.getAllValues().stream().anyMatch(s -> s.reason().equals("user_interrupted")));
+            }
+            verify(ingress, times(3)).receipt(any(), any(), any());
+        } finally { service.shutdown(); }
+    }
+    private static com.google.gson.JsonObject caption(String direction, String id, int start, int end, String text) {
+        var event = new com.google.gson.JsonObject();
+        event.addProperty("type", "session." + direction + "_transcript.delta");
+        event.addProperty("event_id", id); event.addProperty("start_ms", start); event.addProperty("end_ms", end);
+        event.addProperty("delta", text); return event;
+    }
     @Test void reflectedOutputUsesProviderMediaRangesInsteadOfPacketArrivalGaps() throws Exception {
         var ingress = mock(LiveTranscriptIngressService.class);
         when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());
