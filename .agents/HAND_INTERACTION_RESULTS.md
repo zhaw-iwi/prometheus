@@ -1882,3 +1882,29 @@ earlier direction-review and registered-display failures or inconclusive results
 L-06 needs a complete selected-person/removal run with accurate speech,
 L-07 needs the correct spoken contribution and held-pose check, and L-08
 needs a confirmed task count and reload after its successful direct count/Stop.
+
+### Single L-07 retest at the $95 continuation cap
+
+**107, L-07, INCONCLUSIVE** (`44efa30a44`, revision `cdf27c33`). The visitor
+specified “ready” once. The saved rule preserved the exact word. Preparation
+recognized the full right-hand one-two-three sequence. In review, Live called
+the word “the agreed response.” Fresh explicit acceptance armed the task. The
+subsequent one-three sequence spent zero actions. Count one of the next
+sequence registered. The first count-two frame, `hand-live-17`, received HTTP
+400 because five hand frames had already been admitted in the preceding second.
+The task spent zero actions. The final “ready” and held-three check were never
+reached. The full 134.52-second received recording and captions were reviewed.
+
+Replaying the original timestamps reproduced the rejection at the same frame.
+The driver now paces delivery against the previous five HTTP receipts across
+consecutive counts. Timestamped camera capture proceeds independently. With
+the corrected driver, the production admission check and sequence recognizer
+admitted all twelve simulated frames for wrong order, correct order and
+held-three, with exactly one completed sequence. A separate replay of the
+slow acknowledgements from attempt 106 also completed. The scoped MySQL
+sequence regression passed. These checks used no provider calls.
+
+The [attempt record](checkpoints/hand-interaction-2026-11-24/live-continuation-l07.json)
+retains the original and replay timings, task evidence, transcripts and
+reservation. Allocation 13 closed at **107 entries and $281 cumulatively
+reserved**. The continuation has reserved **$95 of $95**. HI-12 remains open.

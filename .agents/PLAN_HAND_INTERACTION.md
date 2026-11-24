@@ -843,3 +843,7 @@ including all prior selections since entry 89. The cumulative limit is 106/$276.
 Allocation 12 closed at 106/$276, with the $90 continuation fully reserved.
 L-01 and L-02 passed during this allocation. L-04 through L-08 remain open.
 See the [latest reviewed results](HAND_INTERACTION_RESULTS.md).
+
+Allocation 13 authorized one L-07 selection. At 107/$281, all $95 of the
+continuation is reserved. L-07 reached arming and wrong-order rejection, then
+stopped at the frame admission limit. Receipt pacing is verified offline.

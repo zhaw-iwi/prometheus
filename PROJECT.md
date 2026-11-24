@@ -114,7 +114,10 @@ and regulation diagnostics remain future work.
   L-01 passed at 103. L-07 reached an incorrect spoken contribution at 104;
   the exact-line retest at 106 stopped during preparation on a capture gap.
   L-08 completed direct counting and Stop at 105, then timed out on preparation.
-  The capture-gap fix is verified offline. At 106/$276 the $90 continuation is fully reserved.
+  The capture-gap fix was verified offline. In 107, L-07 armed and rejected the
+  wrong order. The five-frame admission limit then stopped the correct sequence.
+  The driver now paces receipts and passes both timing replays offline. The
+  $95 continuation is fully reserved at 107 entries/$281 cumulatively.
   [Results](.agents/HAND_INTERACTION_RESULTS.md) ·
   [Restoring the latest budget checkpoint](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 

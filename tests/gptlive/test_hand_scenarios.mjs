@@ -1,7 +1,22 @@
 // Harness-only regression: this is not provider, detector or application acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {runHandScenario,requireReadyContribution,demonstrateCount} from './hand_scenarios.mjs';
+import {runHandScenario,requireReadyContribution,demonstrateCount,paceHandReceipts} from './hand_scenarios.mjs';
+
+test('queued count captures respect the receipt limit across successive poses',async()=>{
+  const captured=[0,318,374,722,924,1230,1302],latency=[148,56,37,56,71,72,28];
+  let time=0;const admitted=[];
+  const deliver=paceHandReceipts(async sample=>{
+    const start=time;
+    assert.ok(admitted.filter(p=>p.receipt>start-1000).length<5);
+    time+=latency[sample.index];admitted.push({...sample,receipt:time});
+  },async ms=>{time+=ms;},()=>time);
+  for(const [index,at] of captured.entries()){
+    time=Math.max(time,at);await deliver({index,at});
+  }
+  assert.deepEqual(admitted.map(p=>p.at),captured);
+  assert.equal(admitted.at(-1).receipt,1402);
+});
 
 test('count dwell spans fresh samples at camera cadence',async()=>{
   for(const dwellMs of [300,900,2500]){

@@ -2,7 +2,7 @@
 
 HI-01 through HI-11 are complete. HI-12 remains open. The historical implementation
 checkpoint was `82d12bc7`. The latest findings and reservations are in
-[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-extension-2.json)
+[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l07.json)
 and the final section of [the results](HAND_INTERACTION_RESULTS.md).
 
 ## Start here
@@ -102,9 +102,12 @@ L-01 passed at 103. L-07 reached an incorrect spoken contribution at 104;
 the exact-line retest at 106 stopped during preparation on a capture gap.
 L-08 completed direct counting and Stop at 105, then timed out on preparation.
 The capture-gap fix is verified offline. At 106/$276 the $90 continuation is fully reserved.
-After fresh budget authorization, select L-07 first to verify the exact spoken
-line and the held final pose end to end. The [latest evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-extension-2.json)
-includes the failed sequence timings and the six-frame offline replay.
+Allocation 13 authorized one L-07 retest. Attempt 107 recognized preparation,
+armed and rejected the wrong order. The post-consent correct sequence stopped
+at the five-frame admission limit. Receipt pacing passed offline replays of
+107 and 106. The final spoken line and held-pose check still need Live evidence.
+The [attempt record](checkpoints/hand-interaction-2026-11-24/live-continuation-l07.json)
+closes the allocation at 107/$281 with zero available.
 
 ## Findings carried into this continuation
 
@@ -140,9 +143,9 @@ tests. These results are historical evidence, not tests run on the new device.
 
 ## Carry the spending history across devices
 
-Allocation 12 adds the owner's second $20 increase to the continuation. Across backend
-inference and GPT-Live, the continuation ceiling is $90 from attempt 89. Each
-selection reserves $5. The cumulative ceiling is 106 entries and $276.
+Allocation 13 adds $5 for one L-07 selection after entry 106. Across backend
+inference and GPT-Live, the continuation ceiling is $95 from attempt 89.
+The cumulative ceiling is 107 entries and $281.
 Obtain fresh owner authorization before increasing it. Invoices are unavailable.
 
 Restore historical reservations before any paid selection. The helper verifies the

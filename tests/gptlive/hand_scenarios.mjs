@@ -18,6 +18,19 @@ function named(action,sign,effector='right_hand'){assert.equal(action.kind,'sign
 function pointing(action,direction,effector){assert.equal(action.kind,'point');assert.equal(action.direction,direction);assert.equal(action.effector,effector);assert.equal(action.frame.space,'robot_local');}
 function countOutput(action,n,hold){assert.equal(action.kind,'sequence');assert.equal(action.steps.length,n);action.steps.forEach((step,i)=>{assert.equal(step.holdMs,hold);outputPose(step.action,[['right',f.fingers.map((_,j)=>j<=i?0:1)]]);});}
 const actionOf=motion=>{assert.equal(motion.handAction.schemaVersion,1);return motion.handAction.action;};
+// Count delivery is serial. A receipt bounds when the server persisted that frame,
+// even when an earlier HTTP call held several already captured samples in the queue.
+export function paceHandReceipts(deliver,wait,now=()=>performance.now()){
+  const receipts=[];
+  return async sample=>{
+    if(receipts.length===5){
+      const availableAt=receipts.shift()+1000;
+      while(now()<availableAt)await wait(Math.ceil(availableAt-now()));
+    }
+    await deliver(sample);
+    receipts.push(now());
+  };
+}
 export async function demonstrateCount(make,{dwellMs,maximumGapMs},deliver,wait,now=Date.now){
   const deadline=now()+maximumGapMs;
   let stableSince,last,error,delivery=Promise.resolve();
@@ -103,7 +116,8 @@ export async function runHandScenario(mode,c){
   }else if(mode==='L-07'){
     const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}),{clarification:'inputclarify',requireClarification:true});
     const sequence=draft.checks[0].handSequence;
-    const counts=async values=>{for(const n of values)await demonstrateCount(()=>f.count(n),sequence,sample=>observe('obs.hand.pose',sample),wait);await checkpoint('counts-'+values.join('-'));};
+    const deliver=paceHandReceipts(sample=>observe('obs.hand.pose',sample),wait);
+    const counts=async values=>{for(const n of values)await demonstrateCount(()=>f.count(n),sequence,deliver,wait);await checkpoint('counts-'+values.join('-'));};
     await counts([1,3]);assert.deepEqual((await memory())['coordination.evidence'],{});await zero();await counts([1,2,3]);await ready();await accept();
     await counts([1,3]);await zero();const before=(await c.history()).map(e=>e.id);await counts([1,2,3]);await complete();requireReadyContribution(await c.history(),before);await counts([3]);assert.equal((await memory())['task.actions'],1);
   }else if(mode==='L-08'){
