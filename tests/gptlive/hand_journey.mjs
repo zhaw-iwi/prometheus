@@ -9,6 +9,8 @@ import {openValerianSession} from '../playwright/fixtures/valerian-session.mjs';
 import {synchronizeEmbodimentFrame} from '../playwright/fixtures/embodiment-frame.mjs';
 import {trialCapture} from './trial_capture.mjs';
 import {handBudgetCapture} from './hand_budget_capture.mjs';
+import {playHandStimulus} from './hand_audio_input.mjs';
+import {startObservationPumps} from './hand_observation_pump.mjs';
 import {armingReady,speechLatency,conversationLatency,compareConversations} from './commanding_evidence.mjs';
 import {runHandScenario} from './hand_scenarios.mjs';
 
@@ -19,9 +21,9 @@ if(permission!=='--allow-paid-provider'||!output||!/^L-0[1-9](-comparison)?$/.te
     ||!['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname))throw Error('Use the isolated authorized hand runner');
 const plan=JSON.parse(fs.readFileSync(process.env.PROMETHEUS_HAND_PAID_PLAN)),reservation=JSON.parse(fs.readFileSync(ledger));
 assert.equal(reservation.authorization,'hand-interaction-2026-11-23-usd50');
-assert.ok(reservation.attempts.length<=21&&reservation.reservedUsd<=48);
+assert.ok(reservation.attempts.length<=22&&reservation.reservedUsd<=50);
 const directory=path.dirname(path.resolve(output));
-assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===2&&a.allocationRevision===2&&path.resolve(a.artifact)===directory));
+assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===2&&a.allocationRevision===plan.allocationRevision&&path.resolve(a.artifact)===directory));
 fs.writeFileSync(path.join(directory,'provider-attempt.started'),new Date().toISOString(),{flag:'wx'});
 const clips=JSON.parse(fs.readFileSync(new URL('./hand-cases.json',import.meta.url))),stimulus=JSON.parse(fs.readFileSync('target/hand-interaction-audio/manifest.json'));
 assert.equal(stimulus.providerCalls,0);assert.equal(stimulus.sampleRate,24000);
@@ -50,16 +52,7 @@ async function say(name,{reply=true}={}){
     beforeActions:prior['task.actions'],beforeCommandCount:prior['command.handledTurns']?.length||0,index:await page.evaluate(()=>__trial.events.length)};
   report.turns.push(turn);const clip=stimulus.clips[name],bytes=fs.readFileSync(path.join('target/hand-interaction-audio',clip.file));
   assert.equal(clip.text,clips[name]);assert.equal(createHash('sha256').update(bytes).digest('hex'),clip.sha256);console.log('Visitor: '+name);
-  turn.input=await page.evaluate(async({bytes,name})=>{
-    const pcm=new Int16Array(Uint8Array.from(bytes).buffer),samples=Float32Array.from(pcm,v=>v/32768);
-    __handBudget.inputSeconds+=samples.length/24000;if(__handBudget.inputSeconds>360)throw Error('Native input audio limit');
-    const buffer=__trial.context.createBuffer(1,samples.length,24000);buffer.copyToChannel(samples,0);
-    let last=samples.length-1;while(last>0&&Math.abs(samples[last])<.01)last--;
-    const source=__trial.context.createBufferSource();source.buffer=buffer;source.connect(__trial.input);
-    const at=performance.now();__trial.mark('input_start',{name});
-    await new Promise(resolve=>{source.onended=resolve;source.start();});const speechEndMs=at+last/24;__trial.mark('input_end',{name,speechEndMs});
-    return{startMs:at,speechEndMs,bufferEndMs:performance.now()};
-  },{bytes:[...bytes],name});
+  turn.input=await page.evaluate(playHandStimulus,{pcmBase64:bytes.toString('base64'),name});
   await until('durable user '+name,async()=>(await history()).some(e=>!turn.beforeIds.includes(e.id)&&e.type==='obs.user_utterance'));
   if(reply){await page.waitForFunction(i=>__trial.events.slice(i).some(e=>e.type==='session.output_transcript.delta'),turn.index,{timeout:35000});await quiet();}
   await updateTurn(turn);if(reply)assert.ok(Number.isFinite(turn.latency.speechEndToOutputMs),'Native audio missing');console.log('Reply: '+turn.spoken);return turn;
@@ -94,7 +87,7 @@ async function accept(){await say('accept');const m=await until('accepted and co
   assert.equal(m['task.actions'],0);assert.deepEqual(m['coordination.agreement'],report.proposal);report.accepted=m;}
 async function complete(){await until('one complete contribution',async()=>{const m=await memory();if(['UNCERTAIN','PAUSED'].includes(m['task.phase']))throw Error('Task stopped with '+m['task.phase']);return m['task.phase']==='COMPLETED'&&m['task.actions']===1;},55000);await wait(8000);await quiet();return checkpoint('completed');}
 async function zero(){assert.equal((await memory())['task.actions']||0,0,'Nonmatching evidence spent an action');}
-async function runPump(callback){assert.ok(!pump);pump={running:true,error:null};const owned=pump;owned.done=(async()=>{while(owned.running){await wait(500);if(!owned.running)break;try{await callback();}catch(e){owned.error=e;owned.running=false;}}})();}
+async function runPump(callback){assert.ok(!pump);pump=startObservationPumps(Array.isArray(callback)?callback:[callback]);}
 async function stopPump(){if(pump){pump.running=false;await pump.done;const error=pump.error;pump=null;if(error)throw error;}}
 async function captureMedia(){
   if(mediaSaved)return;report.browser=await page.evaluate(()=>__trial.events);

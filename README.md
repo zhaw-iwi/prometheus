@@ -494,8 +494,18 @@ HI-12 real OpenAI acceptance is still incomplete. Its revised mode contract
 Live hand actions and tasks carry no strict-silence guarantee; empty backend
 speech does not silence Live. No playback approval, buffering, muting or replacement
 TTS is added for this purpose. Strict silence is tested in Text and Continuous.
-Previous failures remain recorded under their original rubric; the revised
-matrix still needs acceptance. See [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+Named-sign, custom-pose and conversation/latency Live checks pass, as do the
+Text/Continuous silence and native ownership checks. Ring, pointing and sequence
+Live journeys remain failed or incomplete; the current paid allocation is exhausted.
+Previous failures remain recorded under their original rubric. See [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+
+Coordination adapts one equivalent model-output encoding before validation: an
+exact typed hand condition in a preparation check or reaction rule, inside
+`field: handPose|handSign|handPoint|handSequence`,
+`operator: eq`, and object `value` becomes the corresponding typed member.
+The event type must match. Every condition and other term is preserved; conflicting
+encodings, unknown fields, invalid bounds and unavailable targets remain rejected.
+Public and persisted agreement parsing still requires the canonical typed format.
 
 New Coordination instances also declare `hand.sequences.output.v1`. An immediate
 request such as **Count one to five silently** in Text/Continuous produces one finite output command;

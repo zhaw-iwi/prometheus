@@ -31,16 +31,16 @@ class HandPaidBudgetTest(unittest.TestCase):
             with self.assertRaises(ValueError): validate(changed, 'gpt-5.6-luna')
         with self.assertRaises(ValueError): validate(plan, 'unpriced')
 
-    def test_failed_legacy_reservations_survive_and_revised_allocation_stops_at_48(self):
+    def test_failed_legacy_reservations_survive_and_revised_allocation_stops_at_50(self):
         with tempfile.TemporaryDirectory() as directory:
             ledger = Path(directory) / 'hand.json'
             old={'authorization':'hand-interaction-2026-11-23-usd50','reservedUsd':12,
                  'attempts':[{'mode':'L-01','artifact':str(Path(directory)/str(i)),'reservedUsd':4} for i in range(3)]}
             ledger.write_text(json.dumps(old),encoding='utf-8')
-            for i in range(18):
+            for i in range(19):
                 self.assertEqual(12+(i + 1) * 2, reserve('L-02', Path(directory) / str(i+3), ledger)['reservedUsd'])
             with self.assertRaisesRegex(ValueError, 'exhausted'): reserve('L-02', directory, ledger)
-            self.assertEqual(48, history(ledger)['reservedUsd'])
+            self.assertEqual(50, history(ledger)['reservedUsd'])
             self.assertEqual(old['attempts'],history(ledger)['attempts'][:3])
 
     def test_foreign_corrupted_and_locked_ledgers_are_never_reset(self):

@@ -1,7 +1,8 @@
 # Coordination hand interaction: signs, finger poses and pointing
 
 Prepared: 2026-11-23. Baseline: main `025697df`.
-Status: **HI-01 through HI-11 COMPLETE; HI-12 IN PROGRESS**.
+Status: **HI-01 through HI-11 COMPLETE; HI-12 INCOMPLETE**.
+The current paid allocation is exhausted; required Live retests remain open.
 HI-12 acceptance revision 2: owner decision of 2026-11-24 preserves native Live speech independence.
 Development branch: `main`; deployment branch: `agents`.
 
@@ -548,6 +549,10 @@ uses at most eighteen further $2 reservations: 21 attempts and $48 reserved tota
 Official verified prices and unchanged per-attempt bounds yield a conservative
 $1.9153 ceiling. This changes only future allocations; no failed reservation is
 refunded, reset or reused, and no per-attempt provider limit is raised.
+Allocation revision 3 (2026-11-24) uses the remaining $2 buffer for one further
+attempt: at most 22 attempts/$50 reserved, preserving every prior entry. Current
+official prices were rechecked unchanged; the $1.9153 per-attempt ceiling and all
+technical limits remain unchanged. This stays within the owner's original cap.
 Plan one initial attempt per journey; L-09 needs separate Coordination
 and comparison-agent sessions. Diagnostic repeats count as attempts. Preserve all
 failed reservations and artifacts, including on crash. Current `paid_budget.py`
@@ -685,3 +690,11 @@ the zero-native-audio gate without changing task authority, speech ownership or
 the $50 authorization. Refresh local visitor clips and run preflight before
 resuming explicit paid selections. HI-12 remains incomplete until the revised
 matrix passes; all previous failures/reservations remain in the results.
+
+
+On 2026-11-24, revision-2 execution verified L-01, L-02 and the paired L-09, plus
+M-01/M-02. L-03..08 remain failed or inconclusive; the exact causes, local fixes and
+required retests are in `HAND_INTERACTION_RESULTS.md`. All 22 reservations/$50 of
+allocation 3 are used (not a measured invoice total). The runner refuses further
+paid selections. HI-12 is not complete, and this checkpoint does not change its
+exit criteria or authorize another allocation. Preserve the ledger and evidence.

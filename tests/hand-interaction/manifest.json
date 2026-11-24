@@ -5,7 +5,7 @@
   "budget": {
     "authorization": "hand-interaction-2026-11-23-usd50",
     "maximumReservedUsd": 50,
-    "maximumAttempts": 21,
+    "maximumAttempts": 22,
     "reserveUsdPerAttempt": 2,
     "ledger": "target/hand-interaction-budget.json",
     "includes": [
@@ -16,7 +16,7 @@
       "grading"
     ],
     "pricingVerified": true,
-    "allocationRevision": 2
+    "allocationRevision": 3
   },
   "baselineCeilings": {
     "realProviderRequests": 0,

@@ -21,15 +21,15 @@ def validate(plan, model):
     if plan.get('acceptanceRevision') != 2:
         raise ValueError('Use hand acceptance revision 2; preserve earlier failures')
     if (plan.get('schema') != 'hand-paid-plan-v1' or plan.get('authorized') is not True
-            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 21
+            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 22
             or plan.get('maximumReservedUsd') != 50 or plan.get('reserveUsdPerAttempt') != 2
-            or plan.get('allocationRevision') != 2):
+            or plan.get('allocationRevision') != 3):
         raise ValueError('Unreviewed hand authorization')
     if plan.get('models') != {'backend': 'gpt-5.6-luna', 'live': 'gpt-live-1'} or model != 'gpt-5.6-luna':
         raise ValueError('Unpriced hand model')
     if plan.get('limits') != LIMITS:
         raise ValueError('Missing or unreviewed hand bounds')
-    if plan.get('pricingChecked') != '2026-11-23' or plan.get('pricing') != dict(
+    if plan.get('pricingChecked') != '2026-11-24' or plan.get('pricing') != dict(
             backendInputUsdPerMillion=.2, backendOutputUsdPerMillion=1.2, cacheWriteMultiplier=2.5,
             liveUsdPerMinute=.05, liveBilling='session_duration', liveCostedSeconds=420):
         raise ValueError('Unreviewed hand prices')
@@ -47,18 +47,18 @@ def history(ledger=LEDGER):
     data = json.loads(ledger.read_text(encoding='utf-8'))
     attempts = data.get('attempts')
     if (data.get('authorization') != AUTHORIZATION or not isinstance(attempts, list)
-            or len(attempts) > 21 or any(a.get('mode') not in MODES
+            or len(attempts) > 22 or any(a.get('mode') not in MODES
                                        or a.get('reservedUsd') not in ([2,4] if i<3 else [2])
                                        or not a.get('artifact') for i,a in enumerate(attempts))
             or data.get('reservedUsd') != sum(a['reservedUsd'] for a in attempts)
-            or data.get('reservedUsd') > 48):
+            or data.get('reservedUsd') > 50):
         raise ValueError('Invalid hand ledger; never replace or reset it')
     return data
 
 
 def available_budget(mode, ledger=LEDGER):
     data = history(ledger)
-    if mode not in MODES or len(data['attempts']) >= 21 or data['reservedUsd'] + 2 > 48:
+    if mode not in MODES or len(data['attempts']) >= 22 or data['reservedUsd'] + 2 > 50:
         raise ValueError('Hand budget exhausted or invalid selection; no provider call permitted')
     return data
 
@@ -69,7 +69,7 @@ def reserve(mode, artifact, ledger=LEDGER):
     descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     try:
         data = available_budget(mode, ledger)
-        data['attempts'].append({'mode': mode, 'artifact': str(Path(artifact).resolve()), 'reservedUsd': 2, 'allocationRevision': 2})
+        data['attempts'].append({'mode': mode, 'artifact': str(Path(artifact).resolve()), 'reservedUsd': 2, 'allocationRevision': 3})
         data['reservedUsd'] += 2
         temporary = ledger.with_suffix('.tmp')
         temporary.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')

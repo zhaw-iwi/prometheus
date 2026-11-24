@@ -62,7 +62,7 @@ export async function runHandScenario(mode,c){
   }else if(mode==='L-06'){
     let ambiguous=true,person=true;await framePump();await c.stopPump();const scene=await api('/hand-scene','POST',f.sceneConfig(true));report.scene=scene;
     const fresh=async()=>{await observe('obs.scene.targets',f.targets({ambiguous,person}),{retain:false});};
-    await fresh();await c.runPump(fresh);const ambiguousCue=await emit(f.point,'obs.hand.pointing');const pointEvent=(await c.history()).find(e=>e.type==='obs.hand.pointing'&&JSON.parse(e.payload).observationId===ambiguousCue.observationId);assert.equal(JSON.parse(pointEvent.payload).resolution.status,'ambiguous');
+    await fresh();await c.runPump([fresh,()=>observe('obs.hand.pointing',f.point(null),{retain:false})]);const ambiguousCue=await emit(f.point,'obs.hand.pointing');const pointEvent=(await c.history()).find(e=>e.type==='obs.hand.pointing'&&JSON.parse(e.payload).observationId===ambiguousCue.observationId);assert.equal(JSON.parse(pointEvent.payload).resolution.status,'ambiguous');
     await command('cupambiguous','CLARIFY',{});
     const bind=async(id,label,destination)=>{const targets=(await memory())['hand.scene.observed.v1'].targets,target=targets.find(t=>t.id.endsWith(':'+id));assert.ok(target);await api('/hand-scene/binding','POST',{target:f.ref(target),label,destination:f.ref(scene.targets[destination])});return(await memory())['hand.scene.selected.v1'];};
     const cup=await bind('cup-a','My cup',0);ambiguous=false;await wait(750);

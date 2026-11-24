@@ -110,14 +110,18 @@ persistence, enforces a 64 KiB active hand-state budget and widens event payload
 and Storage-entry columns to TEXT for the declared hand/sequence limits. Large agreements use an
 explicit bounded voice projection; full terms remain authoritative in Storage.
 README documents the database widening and saved-instance adoption.
-HI-12 real-provider acceptance is in progress, not complete. Nine paid-attempt
-reservations total $24; no Live journey has yet passed its complete rubric.
+HI-12 acceptance is incomplete. Revision-2 named signs and custom poses pass live
+review; Text/Continuous silence and native ownership checks pass. Ring, pointing
+and sequence journeys still have failed or incomplete provider evidence. The
+22-attempt allocation reserves the full $50 ceiling (not measured billing); see
+`.agents/HAND_INTERACTION_RESULTS.md` for exact outcomes and required retests.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,
 preserving immediate native speech without playback approval, buffering or muting.
 Strict silent hand commands/tasks remain a Text/Continuous requirement. Revised
 Live stimuli and complete semantic/audio/visual review retain all task-authority
-checks; original failures are not relabeled. The revised matrix remains unrun. The local
-target fix adds one durable latest scene capture per agent, independent of blocking
+checks; original failures are not relabeled. A model-boundary adapter preserves
+complete typed hand checks/rules from an equivalent scalar wrapper; strict public
+parsing, grounding, limits and consent remain unchanged. The local target fix adds one durable latest scene capture per agent, independent of blocking
 interpretation, with epoch fencing, unchanged expiry and fresh dispatch reads.
 Applied captures remain passive data in Storage/history. README documents the new
 capture table; no remote migration or physical test has been performed.

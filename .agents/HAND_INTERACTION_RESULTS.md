@@ -3,8 +3,8 @@
 Started 2026-11-23 from main `025697df`. The owner authorized sequential
 implementation, commit/push after each verified milestone, then continuation.
 Provider allowance: at most $50 cumulative across all new successful/failed
-requests and modalities. Current provider billing: **in progress; invoice total not available**.
-Cumulative reservations: **$24** (HI-12 allocation revision 2). No deployment.
+requests and modalities. Actual provider billing: **invoice total not available**.
+Cumulative reservations: **$50 / 22 attempts** (allocation revision 3 exhausted). No deployment.
 Historical GLF/TWC ledgers remain unchanged.
 
 ## HI-01 — Contracts and compatibility baseline
@@ -720,9 +720,9 @@ HI-05/08 remain visible; this does not establish general real-room accuracy.
 All runner-owned schemas/accounts/apps are cleaned on exit; the owned loopback
 MySQL remains available for HI-12. Remote MySQL and old paid ledgers are untouched.
 
-## HI-12 - Real provider acceptance (in progress)
+## HI-12 - Real provider acceptance (incomplete; allocation exhausted)
 
-Status: **INCOMPLETE; acceptance revision 2 defined on 2026-11-24**. The owner chose
+Status: **INCOMPLETE; revision-2 paid allocation exhausted on 2026-11-24**. The owner chose
 immediate independent native speech and accepted strict silence as unsupported in
 GPT-Live. No playback gate, backend speech approval, classification buffer,
 task-window muting or replacement TTS will be added. Text/Continuous retain strict
@@ -730,8 +730,9 @@ silence. Optional truthful Live speech is permitted; task authority, semantic
 correctness, rendering, lifecycle and latency requirements remain mandatory.
 
 This is a prospective scope revision, not a retrospective pass. The original nine
-attempts retain their revision-1 verdicts and reservations below. No new paid run
-has been made under revision 2. Complete native audio remains required evidence.
+attempts retain their revision-1 verdicts and reservations below. Revision-2
+attempts and final mode checks are recorded in the continuation below. Complete
+native audio remains required evidence.
 The original limitation is consistent with [official suppression guidance](https://developers.openai.com/api/docs/guides/live-delegation#suppress-automatic-acknowledgments-while-tools-run).
 
 The hand runner uses the real scoped cockpit, native Live, backend inference and
@@ -744,17 +745,17 @@ listening or provider-based grading. No physical microphone/speaker/adapter tria
 
 | Journey | Revision-2 acceptance |
 | --- | --- |
-| L-01 named signs | NOT RUN; revision-1 failures retained below. |
-| L-02 custom poses | NOT RUN; revision-1 failures retained below, including unreached immediate custom request. |
-| L-03 ring/geometry | NOT RUN |
-| L-04 direction | NOT RUN |
-| L-05 registered target | NOT RUN |
-| L-06 person/item | NOT RUN |
-| L-07 input sequence | NOT RUN |
-| L-08 output sequence | NOT RUN |
-| L-09 conversation/latency and separate comparison | NOT RUN |
-| M-01 Text/Continuous strict silence | NOT RUN against the complete revised pose/sequence/task matrix. Prior units/browser evidence remains recorded below. |
-| M-02 native ownership, Stop and mode switching | Prior blocked-backend/Stop/switch regressions passed below; final acceptance against revision 2 pending. |
+| L-01 named signs | PASS: `748a94c65d`, including complete speech/audio and rendered sign review. |
+| L-02 custom poses | PASS: `e50790242f`, task and immediate ten-finger pose; preceding failures retained. |
+| L-03 ring/geometry | FAIL `c4878a6175`; retry `93175570b5` INCONCLUSIVE. Correct immediate ring reviewed, complete task not accepted. |
+| L-04 direction | FAIL `f84796cf1a`: complete condition in noncanonical model wrapper; no task started. Locally corrected, no successful paid retest. |
+| L-05 registered target | FAIL `614a1d51c8`: preparation check used scalar wrapper; safely rejected before activation. Locally corrected, successful paid retest pending. |
+| L-06 person/item | FAIL `0f27412f5a`: ambiguous cup clarified, then clipped transcription and changed role/preparation semantics; no task activated. |
+| L-07 input sequence | INCONCLUSIVE `701b969927`: correct proposal and wrong/full preparation checks; native review capture timed out before acceptance. |
+| L-08 output sequence | INCONCLUSIVE `8956a39114`: correct canonical 1-5 count, then context-delivery closure and owner-loss cancellation; remaining journey unreached. |
+| L-09 conversation/latency and separate comparison | PASS: comparison `10320f2bcf`, Coordination `79739a10c7`; complete speech review, matched latency and correct immediate attention sign. |
+| M-01 Text/Continuous strict silence | PASS: final Text `bac97ece5d`, Continuous `71e9fa1fbd`; all three silent action windows and positive Continuous speech control. |
+| M-02 native ownership, Stop and mode switching | PASS: final `bac97ece5d`; backend-held native audio, immediate Stop and mode switching. |
 
 All attempt directories below are under ignored `target/gptlive-acceptance-<id>`.
 
@@ -770,7 +771,7 @@ All attempt directories below are under ignored `target/gptlive-acceptance-<id>`
 | 8 | L-02 | FAIL | `42da9a7a9b`: all ten constraints retained but scalar rule fields used instead of handPose; safely rejected before proposal/action. |
 | 9 | L-02 | FAIL | `ce594e8b5b`: corrected rule format, preparation/acceptance and one correct custom action; unsolicited reflection violates silence. Synchronized image reviewed: left index/right thumb stretched, other eight bent. |
 
-Budget: **nine reservations/$24**, not an invoice total. Models are explicitly
+Revision-1 checkpoint budget: **nine reservations/$24**, not an invoice total. Models are explicitly
 `gpt-5.6-luna` and `gpt-live-1`; developer default `gpt-5.2` is unchanged. Verified
 2026-11-23 prices and unchanged bounds give a conservative $1.9153 per-attempt
 ceiling. Allocation revision 2 retains the first three $4 reservations and permits
@@ -837,7 +838,7 @@ Verification actually run:
   cleaned. The owned loopback MySQL remains for continuation; remote MySQL and the
   pre-existing local service are untouched.
 
-Remaining acceptance: all revision-2 L-01..09 against final integrated behavior,
+Acceptance pending at the revision-1 checkpoint: all revision-2 L-01..09 against final integrated behavior,
 including same-revision L-09 comparison and latency limits; M-01/M-02; full semantic/audio/visual review;
 operator trials listed in `tests/hand-interaction/README.md` (all NOT RUN).
 The real-detector failures and software-WebGL limits from HI-08 remain known.
@@ -866,6 +867,152 @@ Actually run for this definition/harness update:
 - Budget validation and `git diff --check` pass. The ledger still contains nine
   attempts/$24 reserved; no new paid request, database run or physical trial.
 
-The redefinition is verified; HI-12 acceptance itself is still incomplete as
-shown in the matrix above. M-01 coverage must be completed where missing, followed
-by M-02 and the revision-2 Live runs within the existing budget.
+At this definition checkpoint, acceptance remained incomplete. The execution
+continuation below records the subsequent M-01/M-02 checks and revision-2 Live
+runs; the current matrix above reflects their final outcomes.
+
+
+### Revision-2 execution continuation (2026-11-24)
+
+All artifacts retain the source revision plus per-file start/end hashes. Successful
+canonical L-01/L-02 behavior is unchanged by the later lossless model adapter;
+identity and strict parsing regressions cover that path. No native speech ownership,
+playback gate, muting, replacement TTS, TTL, task limit or consent rule was changed.
+
+| Attempt | Journey | Result | Artifact / finding |
+| --- | --- | --- | --- |
+| 10 | L-01 | PASS | `748a94c65d`: capabilities, two authorized direct thumbs-up requests, prepared/accepted one-cue peace task; wrong and duplicate cues spend no extra action. Full captions/local ASR and sign images reviewed. |
+| 11 | L-02 | INCONCLUSIVE | `44873a36db`: startup/input automation stalled with a large PCM number array; transport stopped before transcript, inference or reply. No backend provider call. Reservation retained. |
+| 12 | L-02 | FAIL | `1a1f603484`: correct ten-finger draft/preparation, but provider transcribed the acceptance as only "Start the". Backend correctly kept configuration; native speech falsely claimed starting. Full local ASR of the visitor clip confirmed the original full sentence. |
+| 13 | L-02 | PASS | `e50790242f`: all ten constraints retained; separate-hand negatives fail; prepared/accepted fresh combined cue acts once, then a direct custom pose leaves agreement/count unchanged. Task/direct images and complete captions/local ASR reviewed. Truthful completion follow-up is permitted. |
+| 14 | L-03 | FAIL | `c4878a6175`: ambiguity clarified and correct direct ring rendered. Complete geometric condition appeared in scalar rule fields; strict parser rejected the draft before task start. |
+| 15 | L-03 | INCONCLUSIVE | `93175570b5`: backend correctly returned CLARIFY for ambiguous OK, with no motion. No native reply/voiced output before timeout; full local ASR empty. Explicit ring/task and the parser correction were not reached. |
+| 16 | L-04 | FAIL | `f84796cf1a`: correct image-right/robot-right terms, but handPoint used the same scalar wrapper. No saved draft/action; complete speech truthfully reported the failed update. |
+
+Corrections and evidence:
+
+- Model-only typed-check/rule conversion copies the full condition from an exact
+  field/eq/object-value wrapper into its typed member. Event/field must agree;
+  unknown fields, mixed encodings and all strict validation remain. Public/stored
+  parsing is unchanged. Target availability and fresh camera frame checks still
+  run after conversion. This repairs syntax, never invents or changes task terms.
+- `CoordinationModelAgreementUnitTest` covers complete geometry, signs, directions,
+  target references and ordered sequences; no accepted agreement/action before
+  preparation/consent, unavailable target rejection and conflicting/invalid terms.
+  All 61 focused Java cases pass after the final extension. An initial new fixture
+  omitted the current camera frame; the corrected fixture supplies it, while the
+  unregistered-target variant deliberately remains rejected.
+- PCM now crosses automation as base64; a real headless-browser harness test
+  verifies the complete 45-second PCM checksum, responsive polling and unchanged
+  audio budget. Eight Node/browser harness tests and 44 Python tests pass.
+- Future acceptance uses the shorter "Start now." clip. All 27 clips were generated
+  locally; previous artifacts keep their original text/hashes. No paid synthesis.
+- `b2a8a67df2`: 38 local MySQL checks and four mode browser cases pass. Text silent
+  windows have zero synthesis/PCM/media playback. Continuous positive control
+  plays PCM; pose/count windows preserve synthesis=2/PCM=1, task/completion preserves
+  synthesis=5/PCM=3. Native blocked-backend, Stop and mode switches pass. Third-count
+  images reviewed: right thumb/index/middle straight, ring/little bent; the Text
+  and Continuous files are identical. A blank image-viewer display was not a bad
+  capture. Final peace screenshot is after release, not active geometry evidence.
+
+Allocation revision 3 preserves all earlier reservations and allocates the unused
+$2 buffer: at most 22 attempts/$50, with the unchanged $1.9153 conservative ceiling.
+Official model prices were rechecked unchanged on 2026-11-24. At that checkpoint the ledger held
+16 attempts/$38 reserved; final usage is recorded below. Actual invoice total remains unavailable. Failures are
+not refunded and no earlier rubric failure is relabeled as a pass.
+
+Production verification after the reaction adapter extension: `e3e93e20be`
+passes the same 38 Java/local MySQL and four browser mode checks. Third-count
+Text/Continuous images were reviewed/byte-compared; the full mode evidence is
+retained in `mode-review.json`. Packaging succeeds (`hi12-final-package.log`).
+The person/item fixture now runs independent bounded scene and pointing feeds,
+matching the camera pipeline. A blocked-pointing harness test proves scenes keep
+refreshing, only one delivery per kind runs, and cleanup drains pending requests.
+No provider interpretation, task result or verdict is injected by this fixture.
+
+Further revision-2 attempts:
+
+| Attempt | Journey | Result | Artifact / finding |
+| --- | --- | --- | --- |
+| 17 | L-05 | FAIL | `614a1d51c8`: exact Display reference/terms, but preparation and reaction both used scalar wrappers. Preparation parsing rejected the proposal; no activation, cue or direct output. Complete audio truthfully reported failure; two extra short "mm" input transcripts produced no task. |
+| 18 | L-06 | FAIL | `0f27412f5a`: ambiguous cup clarification and scoped selection succeeded. Provider transcripts omitted words; the proposal reversed the demonstrator role, questioned the action budget and left checks/rules empty. Native paraphrase also confused roles, then reported no active task. Person output and disappeared-target rejection were unreached. |
+
+The adapter now covers preparation checks and rules equally, with all 61 focused
+Java cases passing again. The unregistered-target case supplies a current frame,
+so rejection specifically retains target grounding. No semantic repair is applied
+to the changed roles or empty rules in L-06; that run remains failed.
+
+| Attempt | Journey | Result | Artifact / finding |
+| --- | --- | --- | --- |
+| 19 | L-07 | INCONCLUSIVE | `701b969927`: correct complete proposal; 1-3 gives wrong_step/no evidence, 1-2-3 completes preparation without actions. Full native review is consistent, but its combined segment is INCOMPLETE/activity_or_transcript_timeout, leaving the review unconsumed. Harness did not bypass this to accept. Active repeat/hold not reached. |
+| 20 | L-08 | INCONCLUSIVE | `8956a39114`: correct five ordered poses/500ms holds accepted. Session closes context_delivery_unconfirmed, causing voice_owner_lost interruption at step 0. No ordered visual frames; explicit Stop, triggered count and reload not reached. Empty native speech is allowed and is not the failure. |
+
+These are not silence failures. The remaining native capture/context-delivery
+boundaries are retained; no timeout, acknowledgement or consent check was relaxed
+to force acceptance. The independent deterministic sequence and lifecycle evidence
+from HI-09..11 remains valid but does not substitute for a successful paid journey.
+
+Final check/rule adapter verification: all 61 focused Java units, 44 Python tests,
+eight Node/browser harness tests and nine contract examples pass; packaging passes.
+`bac97ece5d` passes 38 MySQL cases, Text silence and both native ownership cases.
+Its Continuous test fails at startup because the test dereferenced the fake mic
+before initialization. The readiness poll now waits for the optional object;
+the affected case is rerun separately. No production speech code changed.
+
+The corrected Continuous readiness test passes in `71e9fa1fbd` (35.2 s), along
+with three local LiveCockpit smoke cases. All silent synthesis/PCM counters remain
+unchanged from their positive control; the final count PNG is byte-identical to
+the reviewed correct Text frame. Together with `bac97ece5d`, all four required
+mode cases pass on the final production code. `71e9fa1fbd/mode-review.json` records
+the source hashes and per-case artifact mapping. The earlier startup failure remains
+retained, not hidden by an automatic retry.
+
+| Attempt | Journey | Result | Artifact / finding |
+| --- | --- | --- | --- |
+| 21 | L-09 comparison | PASS | `10320f2bcf`: three matched ordinary clips, complete captions/local ASR and retained native onset telemetry. Repeated/truncated opening phrases and split input transcripts remain visible. |
+| 22 | L-09 Coordination | PASS | `79739a10c7`: same models/revision/clips; appropriate ordinary responses, no extra TTS or unauthorized task. Correct immediate right index-up sign inspected in `ordinarynew.png`, with no agreement/action-budget mutation. |
+
+Latency uses the predeclared first native audio after input starts, relative to the
+visitor's speech end. Negative values mean speech began before the visitor finished;
+these are real onsets, not missing values. With only three matched clips per agent,
+comparison median/max are -556.14/-456.00 ms, Coordination -605.14/-462.80 ms.
+Differences -49.00/-6.80 ms pass the +1000/+2000 ms allowances. This is a small
+matched regression check, not p95 evidence or a general latency promise. Both full
+recordings retain the repeated opening fragments; no output was hidden.
+
+### Final bounded checkpoint
+
+HI-12 remains **INCOMPLETE**: revision-2 L-01, L-02, L-09 and M-01/M-02 pass;
+L-03..08 require successful complete retests. The syntax failures in L-03..05 have
+local regression coverage after correction. L-06 still needs reliable transcription
+and unchanged role/preparation semantics; L-07 needs confirmed complete native review;
+L-08 needs successful context delivery and the whole visual/Stop/reload journey.
+None is replaced by deterministic fixtures or relabeled under a weaker rubric.
+
+The ledger contains **22 reservations/$50**, exhausting allocation 3. All original
+entries remain. Aggregate recorded usage is **68 backend requests, 492,765 prompt
+and 17,688 completion tokens, plus 2,052.05 seconds of RTC lifetime**. This excludes
+provider setup/closure and is not an invoice measurement. No paid synthesis or
+grading occurred. `target/hi12-final-usage.json` retains the calculation. Every paid
+source manifest has an empty `sourceChangedDuringRun`. Calling
+`hand_paid.available_budget('L-03')` now rejects before any provider/database access;
+no further reservation was attempted. Additional paid attempts require an explicit
+extension of this recorded allowance; do not reset/refund the existing ledger.
+
+Final commands actually run:
+
+- `mvnw.cmd -q -Dtest=CoordinationModelAgreementUnitTest,CoordinationHandPoseUnitTest,CoordinationAgentUnitTest,CoordinationNamedSignUnitTest,HandPoseTaskUnitTest,CoreTaskVoiceUnitTest,DirectionalPointingUnitTest,CoordinationSequenceUnitTest test`: 61 pass; output `target/hand-interaction-mysql/hi12-model-boundary.log`.
+- `python -B -m unittest discover -s tests/gptlive -p 'test_*.py'`: 44 pass.
+- `node --test tests/gptlive/test_hand_capture.mjs tests/gptlive/test_hand_media.mjs tests/gptlive/test_hand_scenarios.mjs tests/gptlive/test_hand_audio_input.mjs tests/gptlive/test_hand_observation_pump.mjs`: eight pass.
+- `python -B tests/gptlive/run_acceptance.py --hand-interaction contracts`: nine examples pass with no provider/database access.
+- Isolated runner with `--java-tests 'CoordinationAgentIntegrationTest,LiveQueryBudgetIntegrationTest' --browser --browser-mode enabled --browser-grep 'strict hand silence|native Coordination audio precedes blocked backend' --live-only`: `bac97ece5d` passes 38 Java cases and three browser cases; startup-only Continuous failure retained above.
+- Affected rerun with `--browser --browser-mode enabled --browser-grep 'strict hand silence in Continuous' --live-only`: `71e9fa1fbd` passes that browser case and three LiveCockpitSmokeIntegrationTest cases. Both use `--database-properties target/hand-interaction-mysql/application-test.properties`; no remote database.
+- `mvnw.cmd -q -DskipTests package`, JavaScript syntax checks and `git diff --check`: pass.
+- Each paid selection uses the same loopback properties, explicit `OPENAI_MODEL=gpt-5.6-luna`, `--hand-interaction L-0N --paid-core hand-live`; attempt 21 additionally uses `--hand-comparison`. All new audio was reviewed with `python -B tests/gptlive/review_hand_audio.py <artifact>`; no physical listening or provider grading.
+
+All runner-owned apps, schemas and accounts were cleaned. The owned loopback MySQL
+remains available; the pre-existing local service and remote database are untouched.
+No deployment, agents-branch integration, physical microphone/speaker/robot trial or
+new real-camera accuracy claim. HI-08 detector false positives and software-WebGL
+latency limits remain known. Source: `da50fa8c` plus the changes in this checkpoint;
+per-file manifests identify the exact code used for each attempt.

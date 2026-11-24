@@ -32,6 +32,30 @@ public record CoordinationAgreement(String goal, String humanRole, String agentR
     public static boolean supportedObservation(String type) {
         return TaskSpec.FIELDS.containsKey(type) || Event.TYPE_HAND_SIGNS.equals(type) || Event.TYPE_HAND_POSE.equals(type) || Event.TYPE_HAND_POINTING.equals(type)||ch.zhaw.prometheus.model.task.HandSequence.RULE_TYPE.equals(type);
     }
+    /** Model-boundary syntax adaptation only. Public/persisted parsing remains strict. */
+    public static CoordinationAgreement fromModel(JsonElement raw) {
+        var copy = raw.deepCopy().getAsJsonObject();
+        var typedFields = Map.of(Event.TYPE_HAND_POSE, "handPose", Event.TYPE_HAND_POINTING, "handPoint",
+                Event.TYPE_HAND_SIGNS, "handSign", ch.zhaw.prometheus.model.task.HandSequence.RULE_TYPE, "handSequence");
+        var conditions = new ArrayList<JsonElement>();
+        copy.getAsJsonArray("checks").forEach(conditions::add);
+        if (copy.has("reactions") && copy.get("reactions").isJsonObject()) {
+            copy.getAsJsonObject("reactions").getAsJsonArray("rules").forEach(conditions::add);
+        }
+        for (var item : conditions) {
+            var condition = item.getAsJsonObject();
+            var field = typedFields.get(condition.get("eventType").getAsString());
+            if (field != null && !condition.has(field) && new JsonPrimitive(field).equals(condition.get("field"))
+                    && new JsonPrimitive("eq").equals(condition.get("operator"))
+                    && condition.has("value") && condition.get("value").isJsonObject()) {
+                // Preserve the complete condition and every other term. Mixed encodings,
+                // unknown fields, invalid conditions and all budgets still fail in parse.
+                condition.add(field, condition.remove("value"));
+                condition.remove("field"); condition.remove("operator");
+            }
+        }
+        return parse(copy);
+    }
     public static CoordinationAgreement parse(JsonElement raw) {
         try {
             var object = raw.getAsJsonObject();

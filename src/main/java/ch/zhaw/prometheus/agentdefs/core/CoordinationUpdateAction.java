@@ -128,7 +128,7 @@ public class CoordinationUpdateAction extends Action {
                 CoordinationAgreement.exact(update, Set.of("operation", "agreement", "reply"));
                 operation = update.get("operation").getAsString();
                 rejection = "agreement_shape";
-                proposed = update.get("agreement").isJsonNull() ? null : CoordinationAgreement.parse(update.get("agreement"));
+                proposed = update.get("agreement").isJsonNull() ? null : CoordinationAgreement.fromModel(update.get("agreement"));
                 // A redundant exact echo on RESTART carries no new terms. Never normalize a changed agreement.
                 if (operation.equals("RESTART") && proposed != null && storage.containsKey(CoordinationMemory.AGREEMENT)
                         && proposed.json().equals(storage.get(CoordinationMemory.AGREEMENT))) proposed = null;

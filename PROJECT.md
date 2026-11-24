@@ -85,10 +85,12 @@ and regulation diagnostics remain future work.
   ring, HI-06 directional pointing, HI-07 configured targets and HI-08 dynamic
   people/items, HI-09 input sequences, HI-10 output sequences/counting and HI-11
   integrated acceptance are complete and pushed; HI-12 real-provider acceptance is
-  in progress. Nine attempts reserve $24. The 2026-11-24 owner decision accepts
-  strict silence as unsupported in GPT-Live to preserve independent native speech;
-  Text/Continuous retain strict silence. HI-12 revision 2 requires fresh Live
-  evidence and explicit mode checks; original failures remain unchanged.
+  incomplete. The current 22-attempt allocation reserves the full $50 ceiling;
+  actual billing is not available. Revised named-sign/custom-pose Live journeys
+  and all mode checks pass, but ring, pointing and sequence acceptance remains
+  failed or incomplete. The 2026-11-24 owner decision leaves strict silence
+  unsupported in GPT-Live, preserving independent native speech; Text/Continuous
+  silence is verified. Original failures remain unchanged.
   The owner authorized sequential implementation,
   commit/push after each milestone, and at most $50 new cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
@@ -10378,3 +10380,26 @@ deployment remain deferred.
 - HI-12 remains incomplete pending revised application/provider acceptance.
   Budget remains nine attempts/$24 reserved within the existing $50 authorization.
   Physical trials remain NOT RUN. See the hand-interaction results for details.
+
+
+## HI-12 checkpoint - Mode checks and bounded live acceptance (2026-11-24)
+
+- INCOMPLETE: revision-2 L-01 named signs, L-02 custom poses and paired L-09
+  conversation/latency pass complete review. L-03..08 remain failed/inconclusive;
+  the 22-attempt allocation reserves the full $50 ceiling. Recorded usage is not
+  an invoice total; no further paid call is authorized by the exhausted plan.
+- Added strict Text/Continuous silence coverage for direct poses, count sequences
+  and prepared hand tasks, with a spoken Continuous control. Native speech still
+  precedes blocked backend inference; Stop and mode switching retain ownership.
+- Added lossless model-boundary conversion for equivalent typed hand check/rule
+  wrappers. Strict stored parsing, target/frame grounding, limits and consent remain.
+  Compact PCM transfer and independent bounded sensor feeds strengthen the harness.
+- Final checks: 61 focused Java units, 38 Coordination/query-budget plus three
+  cockpit MySQL cases, four distinct mode browser cases, 44 Python tests, eight
+  harness tests, nine contract examples, packaging and whitespace checks pass.
+  A Continuous test startup race was corrected and its affected case rerun; the
+  failure remains recorded. Live transcription/role errors and capture/context
+  delivery gaps remain open; no speech-ownership workaround was introduced.
+- Evidence and commands: `.agents/HAND_INTERACTION_RESULTS.md`. No deployment,
+  remote migration, physical trial or agents-branch integration. The checkpoint
+  preserves all failed attempts and the original detector limitations.

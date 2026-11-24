@@ -93,17 +93,19 @@ python tests/gptlive/run_acceptance.py --database-properties <local-admin-proper
 
 The baseline uses a disposable local MySQL schema/user, existing real-app
 Playwright journeys, mocked providers, and the existing query-budget tests.
-`manifest.json` maps all nine future Live journeys to milestones and expected
-outcomes. `--hand-interaction L-01` through `L-09` currently reject before database
-provisioning or provider access. Baseline success is not new-feature acceptance.
+`manifest.json` maps all nine Live journeys to milestones and expected outcomes.
+Paid `L-01` through `L-09` selections require the explicit `--paid-core hand-live`
+opt-in and the bounded plan described below. Baseline success is not provider
+acceptance and never enables paid calls.
 
 The new authorization is at most $50 cumulatively, including failed attempts,
-backend inference, native audio, synthesis and grading. Initial allocation is
-12 attempts at $4 reserved each ($48), in a separate persistent ledger. L-09
-requires two provider sessions within its reservation. Historical exhausted
-ledgers remain untouched. Actual model prices and conservative per-session limits
-must be verified and enforced before enabling the first paid journey; the
-manifest is not itself a billing meter. No paid call is enabled by HI-01.
+backend inference, native audio, synthesis and grading. Current allocation 3
+retains the first three $4 reservations and allows nineteen later $2 reservations:
+22 attempts/$50 maximum in a separate persistent ledger. L-09 uses separate
+comparison and Coordination reservations. Historical exhausted ledgers remain
+untouched. Verified prices and per-session limits are enforced before provider
+access; the manifest is not itself a billing meter. See the results for current
+usage and remaining allowance.
 
 ## Actual detector smoke
 
@@ -256,7 +258,7 @@ No nearest-target/depth heuristic or automatic label transfer compensates for
 missing detections. Tests with controlled SDK output cover the scoped UI flow;
 they are not recognition accuracy or paid provider evidence.
 
-## HI-12 provider acceptance (in progress)
+## HI-12 provider acceptance (incomplete)
 
 Acceptance revision 2 (owner decision 2026-11-24) preserves the ownership split:
 Text/Continuous use backend speech; GPT-Live generates and streams native speech
@@ -274,6 +276,17 @@ restored Text/Continuous ownership on switching. Use real local MySQL, ingress,
 SSE and rendering with labelled provider/media fixtures. These mode checks are
 separate from the required L-01..09 real-provider runs and physical trials.
 
+Run the mode matrix with the isolated runner:
+
+```powershell
+python -B tests/gptlive/run_acceptance.py --database-properties <loopback-properties> --java-tests 'CoordinationAgentIntegrationTest,LiveQueryBudgetIntegrationTest' --browser --browser-mode enabled --browser-grep 'strict hand silence|native Coordination audio precedes blocked backend' --live-only
+```
+
+`valerian-hand-silence.spec.mjs` retains synthesis/playback counters and ordered
+count images. The final peace screenshot is captured after release; active sign
+geometry is covered by the sign/pose renderer evidence. Continuous includes a
+spoken positive control before its silent windows.
+
 Use `tests/gptlive/run_acceptance.py --database-properties <loopback-properties>
 --hand-interaction L-01 --paid-core hand-live` with `OPENAI_MODEL=gpt-5.6-luna`.
 Selections L-01 through L-09 are explicit individual attempts; the L-09 comparison
@@ -283,7 +296,7 @@ browser/Java selections. Keep the existing developer model configuration unchang
 
 The enforced plan is `tests/gptlive/hand-paid-plan.json`. Its separate persistent
 ledger is `target/hand-interaction-budget.json`; never reset it or refund a failed
-attempt. Current allowance is 21 attempts/$48 reserved within the owner's $50 cap,
+attempt. Current allocation revision 3 permits 22 attempts/$50 reserved within the owner's $50 cap,
 retaining the first three $4 reservations and using $2 for later attempts.
 Each attempt permits at most one six-minute native session, 36 backend requests,
 80,000 UTF-8 request bytes, 2,048 completion tokens per call and twelve visitor
@@ -293,6 +306,11 @@ regenerate it after this revision, since old silence-request clips fail prefligh
 This uses local Windows SAPI, not a provider. Controlled sensor fixtures do not
 establish camera accuracy. Every paid run records source hashes and complete
 received native audio, including audio suppressed by browser playback.
+The acceptance stimulus is now the short phrase "Start now."; preserve earlier
+attempts with their original clip hashes. PCM reaches the browser as lossless
+base64 rather than a large array of JSON numbers, avoiding expensive automation
+serialization. The harness test verifies a complete 45-second PCM round trip,
+browser polling and the unchanged input-audio budget.
 
 Optional independent audio transcription stays local:
 
@@ -309,6 +327,8 @@ ordered renderer images, durable terms/actions and scoped completion evidence.
 Revision-1 failed attempts remain failed under their original rubric. Every new
 report records revision 2; L-09 requires a comparison from the same revision.
 HI-12 is incomplete until L-01..09 and M-01/M-02 pass; see the project results.
+The current local ledger has exhausted its 22 attempts/$50 reserved allowance.
+This is a conservative reservation ceiling, not a measured invoice total.
 
 Physical operator checklist (all NOT RUN): ten named signs on each hand; custom
 one/two-hand patterns and occlusion; mirrored preview and all pointing directions;
