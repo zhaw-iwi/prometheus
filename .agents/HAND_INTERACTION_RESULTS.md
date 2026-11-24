@@ -12,6 +12,12 @@ including **$86 reserved in this extension**. **$14 remains unreserved**; alloca
 queued. HI-12 remains **INCOMPLETE** after the final sweep below. No deployment.
 Historical GLF/TWC ledgers remain unchanged.
 
+Portable continuation: [handoff and setup](HANDOFF_HAND_INTERACTION_2026-11-24.md),
+[exact budget checkpoint](checkpoints/hand-interaction-2026-11-24/ledger.json), and
+[curated evidence](checkpoints/hand-interaction-2026-11-24/evidence.json).
+Raw recordings/logs remain local; these files preserve continuation state without
+committing credentials or treating earlier results as newly rerun acceptance.
+
 ## HI-01 — Contracts and compatibility baseline
 
 Status: **COMPLETE** (2026-11-23), committed and pushed to main as `111ed6f3`.

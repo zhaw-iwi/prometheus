@@ -103,6 +103,8 @@ and regulation diagnostics remain future work.
   The owner authorized sequential implementation,
   commit/push after each milestone, and now at most $200 cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+  Another-device continuation, including the preserved 88-entry budget ledger:
+  [.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 
 - Main synchronization and Live acknowledgement hooks (2026-11-23): merged remote
   main's GLF-01..05, TWC-01..05, robot embodiment and course assets with local hand
@@ -10518,3 +10520,20 @@ documentation and the ledger-minimum preflight changed afterward. Scoped runner
 apps/schemas/accounts were cleaned; the existing local MySQL remains. No remote
 DB, deployment, agents merge or physical trials. Detailed outcomes and artifacts:
 [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+
+### HI-12 portable continuation checkpoint (2026-11-24)
+
+At the owner's request, added a committed continuation guide and an exact
+88-entry/$186 reservation snapshot, with curated findings for attempts 67–88 and
+final-sweep transcripts, model outputs and stimulus metadata. Context, current
+status and the runner README point to the handoff. Credentials, raw audio/logs
+and local database files remain ignored. The guide records unresolved acceptance,
+ownership boundaries, local setup, next diagnostics and the two remaining $5
+slots; it prevents treating another device as a new allowance.
+
+Validated the documented restore code in a temporary checkout: missing history
+restores, existing/newer history stays unchanged, and conflicting history or an
+altered checkpoint rejects. All 88 reservations, 22 semantic reviews and stimulus
+metadata match local originals. No provider requests or runtime changes; prior
+acceptance results remain historical. See
+[.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).

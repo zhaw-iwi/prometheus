@@ -1,5 +1,10 @@
 # GPT-Live acceptance
 
+For a fresh checkout on another device, use the
+[hand-interaction continuation guide](../../.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
+It restores the existing budget history without resetting spending and identifies
+which local credentials, audio and database prerequisites must be recreated.
+
 ## Hand acceptance third extension (2026-11-24)
 
 The owner approved an additional $100 reservation allocation. Allocation 9

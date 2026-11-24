@@ -81,6 +81,11 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
+For another-device continuation, read
+[`HANDOFF_HAND_INTERACTION_2026-11-24.md`](HANDOFF_HAND_INTERACTION_2026-11-24.md).
+It includes the resumable budget checkpoint, curated failure evidence, local
+setup and next steps; ignored `target/` files do not arrive with a Git checkout.
+
 Current work is `.agents/PLAN_HAND_INTERACTION.md`: sequential HI-01 through
 HI-12 implementation, commit and push after each verified milestone, authorized
 on 2026-11-23. The cumulative provider cap is $200 after the owner-approved $20, $30 and $100 extensions on

@@ -1,0 +1,1525 @@
+{
+  "schema": "hand-interaction-handoff-v1",
+  "date": "2026-11-24",
+  "implementationCommit": "82d12bc778e43a9489ae2f226adcc24d1c249d11",
+  "milestoneStatus": "HI-12 INCOMPLETE",
+  "acceptanceRevision": 2,
+  "scope": "Curated synthetic-test findings and final-sweep transcripts/interpretations. Raw provider requests, credentials, audio, screenshots, database files and local configuration are excluded. Historical artifact paths in ledger.json identify the original machine only.",
+  "attempts": [
+    {
+      "attempt": 67,
+      "mode": "L-02",
+      "artifact": "gptlive-acceptance-09ab30ea7e",
+      "reservedUsd": 1,
+      "models": {
+        "backend": "gpt-5.6-luna",
+        "live": "gpt-live-1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: saved draft",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete captions and local received-audio transcription plus all backend model results.",
+        "findings": [
+          "User input retains all ten finger constraints and roles. Provider output nests reply/command inside agreement rather than returning the required top-level envelope; strict validation rejects before saving.",
+          "Native proposal has broken starts; complete captions also contain an unrelated Armenian fragment absent from local ASR. No task, preparation, acceptance or action; the post-completion command fix was not reached."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 68,
+      "mode": "L-02",
+      "artifact": "gptlive-acceptance-4b5c018fe0",
+      "reservedUsd": 1,
+      "models": {
+        "backend": "gpt-5.6-luna",
+        "live": "gpt-live-1"
+      },
+      "automatedPassed": false,
+      "error": "Native audio missing",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "INCONCLUSIVE",
+        "method": "Complete captions/local received-audio review and backend model result plus audio event timeline.",
+        "findings": [
+          "Exact complete two-hand proposal returned by backend. Harness stopped at Native audio missing after only a Hmm caption and low-level received audio, without an observed output_voice event.",
+          "The harness checked latency before waiting for playback following that caption; no substantive reply was captured. Task preparation and direct-output fix were not reached. A regression now requires both caption and actual output playback within the existing timeout."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 69,
+      "mode": "L-02",
+      "artifact": "gptlive-acceptance-eb5f99bdf4",
+      "reservedUsd": 1,
+      "models": {
+        "backend": "gpt-5.6-luna",
+        "live": "gpt-live-1"
+      },
+      "automatedPassed": true,
+      "error": null,
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "PASS",
+        "method": "Complete captions, full received-audio transcription with both English and multilingual local Whisper models, stored terms/receipts and both pose images reviewed.",
+        "findings": [
+          "All ten constraints and human judgement retained; split-hand negative, preparation/acceptance, one fresh-cue task pose, duplicates excluded.",
+          "Independent direct ten-finger pose accepted/rendered after task completion without restarting or spending task budget; no native refusal. Both images show left index and right thumb stretched, others bent.",
+          "Two short provider caption fragments are corrupt/non-English. Both local audio reviews instead find brief English fragments there; multilingual detection is English at 0.997774 probability. Preserve raw captions as a caption-fidelity limitation; task roles, consent and audible instructions remain consistent. Physical listening is not claimed."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "audio-review-multilingual.json",
+          "task-L-02.png",
+          "poseshow.png"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 70,
+      "mode": "L-03",
+      "artifact": "gptlive-acceptance-530317c2ad",
+      "reservedUsd": 1,
+      "models": {
+        "backend": "gpt-5.6-luna",
+        "live": "gpt-live-1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: accepted and confirmed arming",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete provider captions and local full-recording ASR compared with model output, durable history, backend state and rendered output.",
+        "findings": [
+          "Ambiguous OK correctly asks thumbs-up versus diver ring without output. Explicit ring receives one correct rendered right-hand ring; image inspected.",
+          "Proposed trigger preserves normalized thumb/index gap <0.18 AND the other three fingers straight, human demonstration and judgement, one display, preparation and explicit acceptance. Near-miss rejected during preparation.",
+          "Provider input transcript is only I accept the; backend KEEP correctly asks to finish acceptance and does not arm. Native speech nevertheless says it is agreed and awaits the next qualifying cue. This is a false state claim, so the full journey fails.",
+          "No post-acceptance trigger or completion was reached. All tracked source hashes remained unchanged during this run."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "ringshow.png",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 71,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-b0f9b750c1",
+      "reservedUsd": 1,
+      "models": {
+        "backend": "gpt-5.6-luna",
+        "live": "gpt-live-1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: all recognition checks and completed native review",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete native captions and local full-recording ASR compared with captured input, generated agreements, state and receipts.",
+        "findings": [
+          "Partial proposal correctly keeps response unresolved and asks for it. Clarification generates one Ready sensor reaction and retains ordered right-hand 1-2-3 conditions; incomplete 1-3 does not prepare, complete 1-2-3 does.",
+          "The clarified proposal omits the explicitly requested human judgement from humanRole/success. Remaining static revision guidance still tells the model to preserve those fields from the current draft; this is a conflicting prompt worth repairing.",
+          "Provider emits a spurious input transcript sorry, i while no visitor stimulus is playing. The backend processes this as an unfinished phrase, clearing the review occasion. Native proposal review is retained as ambiguous and cannot satisfy the completed-review gate. Timeout occurs before acceptance; no action is spent.",
+          "All tracked source hashes unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 72,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-29d470fdad",
+      "reservedUsd": 1,
+      "models": {
+        "backend": "gpt-5.6-luna",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: accepted and confirmed arming",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete native captions and local full-recording ASR compared with captured input, generated agreements, state and receipts.",
+        "findings": [
+          "First GPT-Live-1.1 diagnostic at unchanged prices and caps; production configuration unchanged. Input transcripts include complete clarification and acceptance with no spurious user turn.",
+          "Partial proposal now leaves unknown role/success empty. Clarification preserves all cue terms, assigns only one Ready to the agent and human judgement as success. Correct preparation review, wrong-sequence rejection and explicit unchanged acceptance succeed.",
+          "Native arming speech correctly awaits the new cue, then adds a Laureline joke and an unrelated invitation. Existing semantic arming guard returns AMBIGUOUS and pauses with zero actions. Full journey fails and final cue/action is not reached. This is not evidence of complete acceptance for the newer model.",
+          "All tracked source hashes unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 73,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-1fd1fdac00",
+      "reservedUsd": 1,
+      "models": {
+        "backend": "gpt-5.6-luna",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "The expression evaluated to a falsy value:\n\n  assert.ok(question?.proposalReview)\n",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "INCONCLUSIVE",
+        "method": "Complete native captions and local full-recording ASR compared with input stimulus windows, generated agreement, state and receipts.",
+        "findings": [
+          "Correct partial ordered-count proposal retains cues and leaves response/agent role/success unresolved. Native voice asks what response is wanted.",
+          "A second nonsensical provider input transcript arrives during silence, after the actual request. Backend KEEP correctly leaves the partial draft unchanged but withdraws its pending question. The harness stops because that question occasion is absent; no clarification, preparation, acceptance or action was tested.",
+          "The synthetic input graph supplies only the recorded visitor clip and silence, with no microphone or speaker feedback connection. The newer model therefore has not eliminated spurious input captions. Do not discard the provider transcript or bypass the capture guard to pass.",
+          "All tracked source hashes unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 74,
+      "mode": "L-04",
+      "artifact": "gptlive-acceptance-9db0b1f5e2",
+      "reservedUsd": 1,
+      "models": {
+        "backend": "gpt-5.6-luna",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   'Please provide a fresh camera sample showing the agreed pointing cue for preparation.'\n+ ]\n- []\n",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete native captions and local full-recording ASR compared with captured input, model output and state.",
+        "findings": [
+          "Input captures both frames and hands, human demonstration/judgement and one action, with minor transcript corruption.",
+          "Backend incorrectly saves preparation as a question with no executable pointing check/rule. Native voice asks for acceptance before preparation. The required task workflow cannot proceed; no action is spent.",
+          "All source hashes unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 75,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-4321568d25",
+      "reservedUsd": 7,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: clarified draft",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete native captions and local full-recording ASR compared with captured input, generated agreements and rejection diagnostics.",
+        "findings": [
+          "First GPT-6.2 Sol low/GPT-Live-1.1 diagnostic. Both real user turns are captured; correct partial draft and response question.",
+          "Clarification generates the complete requested 1-2-3 cue, one Ready response, human demonstration/judgement and fresh post-acceptance cue. Application rejects the whole update as speech_intent_length because its explanatory reply exceeds Live 350 characters. Existing prompt only explicitly applies 350 to task contributions, while the general proposal output permits 1000.",
+          "No clarified draft, preparation, acceptance or task action. Native speech repeats the remaining-question state after rejection; full journey fails. The limit is preserved and the prompt discrepancy is reproduced offline before repair.",
+          "All tracked source hashes unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "app-paid.log",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 76,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-2c2aef8c60",
+      "reservedUsd": 7,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: all recognition checks and completed native review",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "INCONCLUSIVE",
+        "method": "Complete native captions and local full-recording ASR compared with generated agreements, state and capture timestamps.",
+        "findings": [
+          "Both proposals now omit unused backend speech and save correctly. Clarified agreement retains every ordered cue, human judgement, one Ready response, preparation and fresh post-acceptance cue.",
+          "Incomplete 1-3 is rejected. The intended positive 1-2-3 fixture sends only one count-two capture at 15:48:09.639Z before changing to count three; this cannot prove 300ms dwell. The driver measured elapsed HTTP/wall time instead of ensuring capture coverage, so backend correctly stays unprepared.",
+          "No complete preparation, acceptance or contribution was tested. The driver now requires at least two distinct captures spanning the declared dwell, without changing recognizer guards.",
+          "All tracked source hashes unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 77,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-68e5245fe6",
+      "reservedUsd": 7,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": true,
+      "error": null,
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "PASS",
+        "method": "Complete native captions and local full-recording ASR compared with both model proposals, captured user turns, progress, action counts and confirmed playback receipts.",
+        "findings": [
+          "The response starts unspecified and is explicitly clarified to one Ready. Complete agreement preserves right-hand 1-2-3 counts, other fingers bent, preparation, fresh post-acceptance cue, human demonstration/judgement, default timing and one action.",
+          "Wrong/incomplete 1-3 neither prepares nor spends an action. Capture timestamps span each required dwell for the full sequence. Preparation spends zero; explicit full acceptance arms without changing the proposal.",
+          "After acceptance, wrong sequence spends zero. The full fresh sequence produces exactly one complete native Ready with MATCH and confirmed browser playback, then COMPLETED with one action. Holding count three never repeats it.",
+          "Native speech preserves cue order and one-response limit and does not claim measured user success. The review is concise; human judgement remains explicit in the saved agreement. Provider captions also retain nonlexical fillers; full local ASR ends with Ready and contains no additional task content. This is not a strict-silence or exact-caption-fidelity guarantee.",
+          "No rendered robot hand action was requested in this input-only task. All tracked source hashes unchanged; controlled observations do not prove camera accuracy."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 78,
+      "mode": "L-06",
+      "artifact": "gptlive-acceptance-a51295a427",
+      "reservedUsd": 7,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "page.waitForFunction: Timeout 35000ms exceeded.",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete native captions and full-recording local ASR compared with actual model commands, proposal, receipts and state.",
+        "findings": [
+          "Backend correctly rejects ambiguous cup command without action, preserves selected My cup target in the proposal, prepares/accepts, rejects wrong direction and produces one confirmed Ready. The selected Visitor command produces the correct mapped right-hand point after task completion.",
+          "Native speech repeatedly claims cup aim/alignment despite the CLARIFY result and no output, substitutes a thumbs-up suggestion, and continues unprompted remarks. Its later correct cup review does not erase those false action claims. It also calls the selected person you without speaker association evidence.",
+          "Continuous native remarks prevent the harness reaching the stale-person repeat; stale-target rejection is unverified in this attempt. Long sensor appends are split; later chunks currently lack quiet-data framing. This is reproduced offline before repair, without relaxing task, target or capture guards.",
+          "All tracked source hashes unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "personshow.png",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      }
+    },
+    {
+      "attempt": 79,
+      "mode": "L-06",
+      "artifact": "gptlive-acceptance-2c23a3e667",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: all recognition checks and completed native review",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete native captions and local full-recording ASR compared with proposal, recognition evidence, capture and final history.",
+        "findings": [
+          "Ambiguous cup produces CLARIFY with no action and native asks which cup. The saved proposal retains selected cup identity, preparation, fresh cue after acceptance and one Ready action.",
+          "Preparation recognizes the selected cup and reaches READY with zero actions. Native review includes the saved terms but repeats facts and exceeds the 30-second capture window; the segment is incomplete. Repeated nonlexical backchannels continue. The review is never consumed, and acceptance/execution/person removal are not reached.",
+          "Before the saved proposal, native speech incorrectly adds saying ready to the user role. This does not match the captured request or validated draft.",
+          "The sensor-chunk repair improves the first clarification compared with attempt 78 but does not establish complete L-06 acceptance. No speech capture, consent or expiry guard was weakened. All tracked source hashes unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": " Which cup do you mean, the one on your left or right? I’m not sure which cup you mean. Sure: I’ll propose one after you’re ready. Okay. Once you’re ready and say ready, I’ll watch for you pointing at your cup then — and I’ll say ready only for your pointing cue. Mm-hmm. The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition; we will review the terms before acceptance. Mm-hmm. Got it — preparation checks are done; Our goal is that you hear “ready” once when you point at your selected cup after accepting. You’ll accept and point again; I’ll wait for that fresh cue and speak once. Success means you hear “ready” exactly once after your post- acceptance cue. One action total; after you accept, I’ll wait for a fresh matching cue. This proposal is not active. Shall we start? Mm-hmm. Mm. Mm-hmm. Mm-hmm. Mm-hmm. Mm.",
+      "admittedUserTurns": [
+        "Please point your right hand at that cup",
+        "Propose one task, with default timing preparation and my acceptance; say ready once when I point at my cup I only One action",
+        "d\":false"
+      ],
+      "proposal": {
+        "goal": "Say “ready” once when the user points at their selected cup after accepting the task.",
+        "humanRole": "Point at the cup for the preparation check, then accept the proposal and point at the cup again.",
+        "agentRole": "Wait for a fresh matching cue after acceptance, then speak once.",
+        "success": "The user hears “ready” exactly once in response to the post-acceptance cue.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pointing",
+            "minConfidence": 0,
+            "handPoint": {
+              "handedness": "any",
+              "target": {
+                "id": "0a4dede1-7ceb-4c8f-8932-b9f5f2bb8c40:cup-a",
+                "revision": 2,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              }
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Say “ready” once when the user points at their selected cup after accepting the task.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pointing",
+              "action": "Say exactly “ready”.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPoint": {
+                "handedness": "any",
+                "target": {
+                  "id": "0a4dede1-7ceb-4c8f-8932-b9f5f2bb8c40:cup-a",
+                  "revision": 2,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "modelResults": [
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"CLARIFY\",\"kind\":null,\"value\":null,\"silent\":false}}",
+        "{\"operation\":\"PROPOSE\",\"agreement\":{\"goal\":\"Say “ready” once when the user points at their selected cup after accepting the task.\",\"humanRole\":\"Point at the cup for the preparation check, then accept the proposal and point at the cup again.\",\"agentRole\":\"Wait for a fresh matching cue after acceptance, then speak once.\",\"success\":\"The user hears “ready” exactly once in response to the post-acceptance cue.\",\"questions\":[],\"checks\":[{\"eventType\":\"obs.hand.pointing\",\"handPoint\":{\"target\":{\"id\":\"0a4dede1-7ceb-4c8f-8932-b9f5f2bb8c40:cup-a\",\"revision\":2,\"frame\":{\"id\":\"hand-live-camera\",\"revision\":1,\"space\":\"camera_image\",\"mirrored\":false}},\"handedness\":\"any\"},\"minConfidence\":0}],\"dialogueLimit\":4,\"reactions\":{\"goal\":\"Say “ready” once when the user points at their selected cup after accepting the task.\",\"maxActions\":1,\"sessionBound\":true,\"firstAction\":\"ON_CUE\",\"rules\":[{\"eventType\":\"obs.hand.pointing\",\"handPoint\":{\"target\":{\"id\":\"0a4dede1-7ceb-4c8f-8932-b9f5f2bb8c40:cup-a\",\"revision\":2,\"frame\":{\"id\":\"hand-live-camera\",\"revision\":1,\"space\":\"camera_image\",\"mirrored\":false}},\"handedness\":\"any\"},\"action\":\"Say exactly “ready”.\",\"effect\":\"ACT\",\"minConfidence\":0,\"samples\":1,\"cooldownSeconds\":3}]}},\"reply\":{}}",
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{\"nonVerbal\":{\"gesture\":\"UNCERTAIN\",\"facialExpression\":{\"type\":\"attentive\",\"intensity\":0.35},\"gaze\":{\"direction\":\"toward_user\",\"focus\":\"person\"},\"motion\":{\"stillness\":0.8,\"energy\":0.2}}}}"
+      ],
+      "finalTaskState": {
+        "task.phase": "CONFIGURATION"
+      },
+      "comparison": null,
+      "reviewedImageNames": [],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "51fe1d4a2af62c4e9778e9f2425b7e9656f14204502dc54610777a128d0be9ac",
+            "text": " Which cup do you mean the one on left or right?  I'm not sure which cup you mean.  Sure, I'll propose one after you're ready.  Okay.  Once you're ready and say ready, I'll watch for you pointing at your cup then.  And I'll say ready, only for your pointing cube.  Mm-hmm.  The proposal is saved and not active.  Please demonstrate any hand pointing at the agreed region for recognition.  We will review the terms before acceptance.  Mm-hmm.  Got it.  Preparation checks are done.  Our goal is that you hear ready once when you point at your selected cup after accepting.  You'll accept and point again.  I'll wait for that fresh queue and speak once.  Success means you hear ready exactly once after your post acceptance queue.  One action total.  After you accept, I'll wait for a fresh matching queue.  This proposal is not active. Shall we start?  Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm."
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 80,
+      "mode": "L-03",
+      "artifact": "gptlive-acceptance-c2e83f885a",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'ACCEPTED'\n- 'CLARIFY'\n",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete native captions and local full-recording ASR compared with captured user request, model interpretation and persisted command output.",
+        "findings": [
+          "Captured request is Show me an okay sign, with no established shape. Native speech correctly asks thumbs up or diver ring.",
+          "The backend model instead returns ACTION/HAND_SIGN/ok_ring. The runtime accepts and publishes that preset before clarification. The required no-action ambiguity check fails; no later preparation, execution or geometry acceptance was tested.",
+          "This is a model interpretation failure despite existing ambiguity guidance, not a rendered-shape pass. Tracked source is unchanged during the run."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": "Do you mean thumbs up or the diver's OK ring?",
+      "admittedUserTurns": [
+        "Show me an okay sign"
+      ],
+      "proposal": null,
+      "modelResults": [
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_SIGN\",\"value\":\"ok_ring\",\"silent\":false}}"
+      ],
+      "finalTaskState": {},
+      "comparison": null,
+      "reviewedImageNames": [],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "ad98b1461db8372c0ad273f77063c73d90c9f161c0a1167858c717a1854a6322",
+            "text": " Do you mean thumbs up or the diver is okay ring?"
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 81,
+      "mode": "L-04",
+      "artifact": "gptlive-acceptance-c721900e89",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: all recognition checks and completed native review",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "INCONCLUSIVE",
+        "method": "Complete native captions and local full-recording ASR compared with saved terms, captured request and preparation history.",
+        "findings": [
+          "The backend saves the correct right-hand cue in unmirrored image-right (user left), robot-local right response, explicit human judgement, preparation and one-action limit. Wrong direction does not prepare; the correct direction does.",
+          "Native review states the correct directions and terms but recites a long review beyond the bounded capture window. The required complete review is not consumed, so the driver times out before acceptance, output and immediate-command checks.",
+          "Repeated nonlexical backchannels occur around the review. Local ASR also has filler/repetition uncertainty, retained as evidence rather than accepted as literal words. No rendered output or complete L-04 pass is established. Tracked source unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": " Mm-hmm. Mm-hmm. Mm. Mm-hmm. Mm-hmm. Hmm. Mm-hmm. Mm. Mm-hmm. So, you'd like one pointing demo, and for me to respond when you point to your left? The proposal is saved and not active. Please demonstrate right hand pointing right in the unmirrored camera plane for recognition. Then, we'll review the terms before acceptance. Mm. Mm. Mm-hmm. Hmm. Preparation checks have passed, no more demonstration is needed before acceptance. Our aim is to respond once to your right-index point toward your own left with a digital point toward my own right. Your role is to face the camera, demonstrate the cue, accept the task, then repeat the cue and judge the digital direction. My role is to wait for a fresh cue after acceptance, then point digitally once with my right hand. Success means you judging the digital point goes toward my own right, which appears left in the front view. One action total; after acceptance, we'll wait for a fresh matching cue. Shall we start?",
+      "admittedUserTurns": [
+        "I face the camera  my left is image right propose, but wait for my demonstration and acceptance; when I point to my left with my right index, point to your own right with your right hand once I demonstrate and judge the digital direction you point. One action total.; use default timing"
+      ],
+      "proposal": {
+        "goal": "Respond once to the user's right-index point toward their own left with a digital point toward Valerian's own right.",
+        "humanRole": "Face the camera, demonstrate the cue, accept the task, then repeat the cue and judge the digital direction.",
+        "agentRole": "Wait for a fresh cue after acceptance, then point digitally once with the right hand.",
+        "success": "The user judges whether the digital point goes toward Valerian's own right, which appears left in the front view.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pointing",
+            "minConfidence": 0,
+            "handPoint": {
+              "handedness": "right",
+              "direction": "right",
+              "frame": {
+                "id": "hand-live-camera",
+                "revision": 1,
+                "space": "camera_image",
+                "mirrored": false
+              }
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Respond once to the user's right-index point toward their own left with a digital point toward Valerian's own right.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pointing",
+              "action": "When the user's right index points image-right (their left while facing the camera), point digitally once with the right hand toward robot-local right.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPoint": {
+                "handedness": "right",
+                "direction": "right",
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "modelResults": [
+        "{\"operation\":\"PROPOSE\",\"agreement\":{\"goal\":\"Respond once to the user's right-index point toward their own left with a digital point toward Valerian's own right.\",\"humanRole\":\"Face the camera, demonstrate the cue, accept the task, then repeat the cue and judge the digital direction.\",\"agentRole\":\"Wait for a fresh cue after acceptance, then point digitally once with the right hand.\",\"success\":\"The user judges whether the digital point goes toward Valerian's own right, which appears left in the front view.\",\"questions\":[],\"checks\":[{\"eventType\":\"obs.hand.pointing\",\"handPoint\":{\"direction\":\"right\",\"frame\":{\"id\":\"hand-live-camera\",\"revision\":1,\"space\":\"camera_image\",\"mirrored\":false},\"handedness\":\"right\"},\"minConfidence\":0}],\"dialogueLimit\":4,\"reactions\":{\"goal\":\"Respond once to the user's right-index point toward their own left with a digital point toward Valerian's own right.\",\"maxActions\":1,\"sessionBound\":true,\"firstAction\":\"ON_CUE\",\"rules\":[{\"eventType\":\"obs.hand.pointing\",\"handPoint\":{\"direction\":\"right\",\"frame\":{\"id\":\"hand-live-camera\",\"revision\":1,\"space\":\"camera_image\",\"mirrored\":false},\"handedness\":\"right\"},\"action\":\"When the user's right index points image-right (their left while facing the camera), point digitally once with the right hand toward robot-local right.\",\"effect\":\"ACT\",\"minConfidence\":0,\"samples\":1,\"cooldownSeconds\":3}]}},\"reply\":{}}"
+      ],
+      "finalTaskState": {
+        "task.phase": "CONFIGURATION"
+      },
+      "comparison": null,
+      "reviewedImageNames": [],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "0c1339ec34a53db2315bdefa5c31111242d214fdbed3f57911757653aace1484",
+            "text": " Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. M  will review the terms before acceptance.  Preparation checks have passed.  No more demonstration is needed before acceptance.  Our aim is to respond once to your right index point toward your own left with a digital point  toward my own right.  Your role is to face the camera, demonstrate the cue, accept the task, then repeat the cue  and judge the digital direction.  My role is to wait for a fresh cue after acceptance, then point digitally once with  my right hand.  Success means you judging the digital point goes toward my own right, which appears left  in the front view.  One action total.  Your acceptance will wait for a fresh match in cuteness."
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 82,
+      "mode": "L-05",
+      "artifact": "gptlive-acceptance-23aab80b46",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "page.waitForFunction: Timeout 35000ms exceeded.",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete native captions and local full-recording ASR compared with the generated proposal and persisted target binding.",
+        "findings": [
+          "Backend proposal correctly binds the registered Display, preserves demonstration/acceptance/fresh cue, human judgement, default timing and one Ready action.",
+          "Native speech says the target must first become unambiguous even though the Display is already registered, then offers setup again and adds unrelated persona remarks. Repeated backchannels prevent the driver reaching quiet within 35 seconds.",
+          "Preparation, accepted cue and direct target output are not exercised. No complete L-05 pass or screenshot of an active point is established. All tracked source hashes unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": " Mm-hmm. Mm-hmm. Got it. Mm-hmm. Yeah. Sure. I can propose a bounded pointing task that says ready once per run, but I can't check your pointing until the target is unambiguous. Would you like me to set that up now? The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition. We'll review the terms before acceptance. [lip smack] Like waiting on Laureline again. [mouth noise] I'm here though. Show me your point whenever ready. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Hm-hm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm.",
+      "admittedUserTurns": [
+        "Propose one task. When I point at the register display, say \"ready\" once. First check my pointing demonstration, then wait for acceptance and a fresh cue. I point and judge the response; you say \"ready\". One action; use default timing."
+      ],
+      "proposal": null,
+      "modelResults": [
+        "{\"operation\":\"PROPOSE\",\"agreement\":{\"goal\":\"Say “ready” once on a fresh point at the registered Display after a recognized demonstration and explicit acceptance.\",\"humanRole\":\"Demonstrate pointing at the Display, accept the task, then point again and judge the response.\",\"agentRole\":\"Say “ready” once when the fresh pointing cue is recognized after acceptance.\",\"success\":\"The user judges whether exactly one “ready” followed the fresh cue after acceptance, with no task response during preparation.\",\"questions\":[],\"checks\":[{\"eventType\":\"obs.hand.pointing\",\"handPoint\":{\"target\":{\"id\":\"3883d1df-278d-44c9-9856-290aff4578da:display\",\"revision\":1,\"frame\":{\"id\":\"hand-live-camera\",\"revision\":1,\"space\":\"camera_image\",\"mirrored\":false}},\"handedness\":\"any\"},\"minConfidence\":0}],\"dialogueLimit\":4,\"reactions\":{\"goal\":\"Say “ready” once on a fresh point at the registered Display after a recognized demonstration and explicit acceptance.\",\"maxActions\":1,\"sessionBound\":true,\"firstAction\":\"ON_CUE\",\"rules\":[{\"eventType\":\"obs.hand.pointing\",\"handPoint\":{\"target\":{\"id\":\"3883d1df-278d-44c9-9856-290aff4578da:display\",\"revision\":1,\"frame\":{\"id\":\"hand-live-camera\",\"revision\":1,\"space\":\"camera_image\",\"mirrored\":false}},\"handedness\":\"any\"},\"action\":\"Say exactly \\\"ready\\\".\",\"effect\":\"ACT\",\"minConfidence\":0,\"samples\":1,\"cooldownSeconds\":3}]}},\"reply\":{}}"
+      ],
+      "finalTaskState": {
+        "task.phase": "CONFIGURATION"
+      },
+      "comparison": null,
+      "reviewedImageNames": [],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "309b53ee9080b11aa3b0b64352ba53de6d58afc02a7ec6f69d4df9b2278a66ff",
+            "text": " Got it.  Mm-hmm.  Yeah?  Sure.  I can propose a bounded pointing task that says ready once per run, but I can't check  your pointing until the target is unambiguous.  Would you like me to set that up now?  The proposal is saved and not active.  Please demonstrate any hand pointing at the agreed region for recognition.  We'll review the terms before acceptance.  waiting on Lorelyn again. I'm here though. Show me your point whenever ready."
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 83,
+      "mode": "L-01",
+      "artifact": "gptlive-acceptance-24ce59f607",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: all recognition checks and completed native review",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "INCONCLUSIVE",
+        "method": "Complete native captions and local full-recording ASR compared with proposal, command/capture history and both rendered thumbs-up images.",
+        "findings": [
+          "Capability reply is accurate; two separate right-hand thumbs-up requests each produce one correct digital pose. Both images inspected and native acknowledgements agree.",
+          "Backend proposal preserves right-hand thumbs-up cue, right-hand peace output, roles/human judgement, preparation, acceptance and one-action limit. Wrong sign does not prepare; correct sign does.",
+          "The native review preserves the terms but is captured as incomplete. It cannot consume the review occasion; acceptance, fresh execution cue and task peace output are not reached. Complete L-01 acceptance is therefore inconclusive. Tracked source unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "signshow.png",
+          "signrepeat.png",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": " I can show a set of common hand signs, hold specific finger poses, point toward a selected target, and perform short, finite hand sequences, no sorcery involved. Thumbs up, right hand. Thumbs up, right hand again. Goal: after you demonstrate a right-hand thumbs up and accept, I show peace with my right hand on your next thumbs up, one action. Your role: give that sign and judge. Mine: show peace. Success is you finding it correct. The proposal is saved and not active. Please demonstrate a right-hand thumbs up for recognition, then we'll review. Mm-hmm. Okay. Mm-hmm. Preparation checks have passed; no further demonstration is needed. Goal: show one digital right-hand peace on the first fresh right-hand thumbs-up after acceptance. Your role is to give the thumbs-up, accept, then give another thumbs-up and judge the display. Mine is to show peace once; success is you finding it correct. One action total, not active yet. Shall we start?",
+      "admittedUserTurns": [
+        "Briefly describe your communication signs, custom finger poses, pointing and finite hand sequences",
+        "Show a thumbs up with your right hand",
+        "Show a thumbs up with your right hand again",
+        "Propose, but do not start, after I demonstrate a right hand thumbs up and accept, show peace with your right hand on my next right hand thumbs up, one action total; I give the sign and judge the display, you show peace Success means I find the digital sign correct; use default settings"
+      ],
+      "proposal": {
+        "goal": "Show one digital right-hand peace sign on the first fresh right-hand thumbs-up after preparation and acceptance.",
+        "humanRole": "Demonstrate a right-hand thumbs-up, accept the proposal, then give a fresh right-hand thumbs-up and judge the display.",
+        "agentRole": "Show one digital right-hand peace sign on the agreed cue.",
+        "success": "The user judges the digital sign to be correct.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.signs",
+            "minConfidence": 0,
+            "handSign": {
+              "sign": "thumbs_up",
+              "handedness": "right"
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Show one digital right-hand peace sign on the first fresh right-hand thumbs-up after preparation and acceptance.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.signs",
+              "action": "Show the digital peace sign with the right hand.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handSign": {
+                "sign": "thumbs_up",
+                "handedness": "right"
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "modelResults": [
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"CAPABILITY\",\"kind\":null,\"value\":null,\"silent\":false}}",
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_SIGN\",\"value\":\"thumbs_up\",\"effector\":\"right_hand\",\"silent\":false}}",
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_SIGN\",\"value\":\"thumbs_up\",\"effector\":\"right_hand\",\"silent\":false}}",
+        "{\"operation\":\"PROPOSE\",\"agreement\":{\"goal\":\"Show one digital right-hand peace sign on the first fresh right-hand thumbs-up after preparation and acceptance.\",\"humanRole\":\"Demonstrate a right-hand thumbs-up, accept the proposal, then give a fresh right-hand thumbs-up and judge the display.\",\"agentRole\":\"Show one digital right-hand peace sign on the agreed cue.\",\"success\":\"The user judges the digital sign to be correct.\",\"questions\":[],\"checks\":[{\"eventType\":\"obs.hand.signs\",\"handSign\":{\"sign\":\"thumbs_up\",\"handedness\":\"right\"},\"minConfidence\":0}],\"dialogueLimit\":4,\"reactions\":{\"goal\":\"Show one digital right-hand peace sign on the first fresh right-hand thumbs-up after preparation and acceptance.\",\"maxActions\":1,\"sessionBound\":true,\"firstAction\":\"ON_CUE\",\"rules\":[{\"eventType\":\"obs.hand.signs\",\"handSign\":{\"sign\":\"thumbs_up\",\"handedness\":\"right\"},\"action\":\"Show the digital peace sign with the right hand.\",\"effect\":\"ACT\",\"minConfidence\":0,\"samples\":1,\"cooldownSeconds\":3}]}},\"reply\":{}}"
+      ],
+      "finalTaskState": {
+        "task.phase": "CONFIGURATION"
+      },
+      "comparison": null,
+      "reviewedImageNames": [
+        "signshow.png",
+        "signrepeat.png"
+      ],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "13367de120dd12329e883384ad4c6b598ee5ab881ee56375fb9beeb1ec42c7a0",
+            "text": " I can show a set of common hand signs, hold specific finger poses, point toward selected  target, and perform short, finite hand sequences.  No sorcery involved.  Thumbs up, right hand.  Thumbs up, right hand.  Soul, after you demonstrate a right hand, thumbs up and accept.  I show peace with my right hand on your next thumbs up, one action.  Your role, give that sign and judge.  line, show peace. Success is you finding it correct. The proposal is saved and not active.  Please demonstrate a right hand thumbs up for recognition, then we'll review. Okay? Preparation  checks have passed. No further demonstration is needed. Goal, show one digital right hand  piece on the first fresh right hand thumbs up after acceptance. Your role is to give the  thumbs up, accept, then give another thumbs up and judge the display. Mine is to show  peace once. Success is you finding it correct. One action total, not active yet. Shall we start?"
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 84,
+      "mode": "L-02",
+      "artifact": "gptlive-acceptance-e68cc8c407",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": true,
+      "error": null,
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "FAIL",
+        "method": "Complete native captions and local full-recording ASR compared with all ten finger constraints, preparation/acceptance/action history and both rendered output images.",
+        "findings": [
+          "Automated journey passes. Both hands and all ten fingers remain exact in checks, rule and output; split/missing hands do not match. Preparation spends zero; explicit acceptance plus a fresh matching capture produces one task output and COMPLETED.",
+          "The completed-task immediate request independently produces exactly the specified two-hand pose. Both active rendered images were inspected and match the requested sides/fingers.",
+          "Native speech responds to that fully specified immediate command by asking the user to show the pose again before matching it. This contradicts the supported independent output request and correct accepted command; semantic acceptance fails despite the automatic/backend/visual pass.",
+          "All tracked source hashes unchanged. Controlled observations and digital rendering do not establish physical camera or robot performance."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "task-L-02.png",
+          "poseshow.png",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": " Task proposal: when you demonstrate that pattern, I'll reproduce it once. You judge the result. One action total. Default settings. Shall we prepare it? The proposal is saved and not active. Please demonstrate your left hand with thumb bent, index straight, middle, ring and little bent, and your right thumb straight with the other four bent for recognition. We'll review the terms before acceptance. Preparation is complete. Start accepts these terms. Ready when you are. Proposal review: You demonstrate, repeat after acceptance, and judge; I reproduce it once digitally. One action total. After acceptance, we'll wait for your fresh cue. Start? Mm-hmm. Okay, thanks. It's accepted; I'll wait for your fresh demonstration. Understood—I'll wait for that fresh demonstration. Mm-hmm. Mm-hmm. Sure—show that pose once more for me, and I'll match it now.",
+      "admittedUserTurns": [
+        "Propose one task, but wait for preparation and acceptance. When my left index is stretched with its other four fingers bent and my right thumb is stretched with its other four fingers bent in the same frame, reproduce that two-hand pattern once. I demonstrate the pattern and judge the digital result. You reproduce it. One action total. Use default settings",
+        "I accept the proposal",
+        "Stretch your left index and bend the other four left fingers. At the same time stretch your right thumb and bend the other four right fingers"
+      ],
+      "proposal": {
+        "goal": "Reproduce the demonstrated two-hand pose once digitally",
+        "humanRole": "Demonstrate the pose for preparation, repeat it after acceptance, and judge the digital result.",
+        "agentRole": "Reproduce the matched two-hand pose digitally once.",
+        "success": "The user judges whether the digital pose matches their demonstration.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pose",
+            "minConfidence": 0,
+            "handPose": {
+              "schemaVersion": 1,
+              "hands": [
+                {
+                  "handedness": "left",
+                  "all": [
+                    {
+                      "finger": "thumb",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "index",
+                      "operator": "eq",
+                      "value": "straight"
+                    },
+                    {
+                      "finger": "middle",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "ring",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "little",
+                      "operator": "eq",
+                      "value": "bent"
+                    }
+                  ]
+                },
+                {
+                  "handedness": "right",
+                  "all": [
+                    {
+                      "finger": "thumb",
+                      "operator": "eq",
+                      "value": "straight"
+                    },
+                    {
+                      "finger": "index",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "middle",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "ring",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "little",
+                      "operator": "eq",
+                      "value": "bent"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Reproduce the demonstrated two-hand pose once digitally",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pose",
+              "action": "Show one simultaneous digital pose: left index stretched and right thumb stretched, with all other fingers bent on both hands.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPose": {
+                "schemaVersion": 1,
+                "hands": [
+                  {
+                    "handedness": "left",
+                    "all": [
+                      {
+                        "finger": "thumb",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "index",
+                        "operator": "eq",
+                        "value": "straight"
+                      },
+                      {
+                        "finger": "middle",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "ring",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "little",
+                        "operator": "eq",
+                        "value": "bent"
+                      }
+                    ]
+                  },
+                  {
+                    "handedness": "right",
+                    "all": [
+                      {
+                        "finger": "thumb",
+                        "operator": "eq",
+                        "value": "straight"
+                      },
+                      {
+                        "finger": "index",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "middle",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "ring",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "little",
+                        "operator": "eq",
+                        "value": "bent"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "modelResults": [
+        "{\"operation\":\"PROPOSE\",\"agreement\":{\"goal\":\"Reproduce the demonstrated two-hand pose once digitally\",\"humanRole\":\"Demonstrate the pose for preparation, repeat it after acceptance, and judge the digital result.\",\"agentRole\":\"Reproduce the matched two-hand pose digitally once.\",\"success\":\"The user judges whether the digital pose matches their demonstration.\",\"questions\":[],\"checks\":[{\"eventType\":\"obs.hand.pose\",\"handPose\":{\"schemaVersion\":1,\"hands\":[{\"handedness\":\"left\",\"all\":[{\"finger\":\"thumb\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"index\",\"operator\":\"eq\",\"value\":\"straight\"},{\"finger\":\"middle\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"ring\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"little\",\"operator\":\"eq\",\"value\":\"bent\"}]},{\"handedness\":\"right\",\"all\":[{\"finger\":\"thumb\",\"operator\":\"eq\",\"value\":\"straight\"},{\"finger\":\"index\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"middle\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"ring\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"little\",\"operator\":\"eq\",\"value\":\"bent\"}]}]},\"minConfidence\":0}],\"dialogueLimit\":4,\"reactions\":{\"goal\":\"Reproduce the demonstrated two-hand pose once digitally\",\"maxActions\":1,\"sessionBound\":true,\"firstAction\":\"ON_CUE\",\"rules\":[{\"eventType\":\"obs.hand.pose\",\"handPose\":{\"schemaVersion\":1,\"hands\":[{\"handedness\":\"left\",\"all\":[{\"finger\":\"thumb\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"index\",\"operator\":\"eq\",\"value\":\"straight\"},{\"finger\":\"middle\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"ring\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"little\",\"operator\":\"eq\",\"value\":\"bent\"}]},{\"handedness\":\"right\",\"all\":[{\"finger\":\"thumb\",\"operator\":\"eq\",\"value\":\"straight\"},{\"finger\":\"index\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"middle\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"ring\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"little\",\"operator\":\"eq\",\"value\":\"bent\"}]}]},\"action\":\"Show one simultaneous digital pose: left index stretched and right thumb stretched, with all other fingers bent on both hands.\",\"effect\":\"ACT\",\"minConfidence\":0,\"samples\":1,\"cooldownSeconds\":3}]}},\"reply\":{}}",
+        "{\"operation\":\"START\",\"agreement\":null,\"reply\":{\"speech\":\"I’ll wait for you to show the two-hand pose again, then mirror it digitally once.\"}}",
+        "{\"responseId\":\"2aa38eb1-40f2-449d-b11a-dfe2e1af142c\",\"revision\":2,\"segmentId\":\"8927f1ab-2d10-3a6f-a121-d6240700d13a\",\"verdict\":\"MATCH\"}",
+        "{\"motion\":{\"handAction\":{\"schemaVersion\":1,\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"left\",\"fingers\":{\"thumb\":1,\"index\":0,\"middle\":1,\"ring\":1,\"little\":1}},{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":1,\"middle\":1,\"ring\":1,\"little\":1}}]}}}}",
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_POSE\",\"value\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"left\",\"fingers\":{\"thumb\":1,\"index\":0,\"middle\":1,\"ring\":1,\"little\":1}},{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":1,\"middle\":1,\"ring\":1,\"little\":1}}]},\"silent\":false}}"
+      ],
+      "finalTaskState": {
+        "task.actions": 1,
+        "task.phase": "COMPLETED"
+      },
+      "comparison": null,
+      "reviewedImageNames": [
+        "task-L-02.png",
+        "poseshow.png"
+      ],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "32eef608685b0e3f0132f113e74ed1605970f2d26d1639d0f4e46fad45efb66d",
+            "text": " Task proposal. When you demonstrate that pattern, I'll reproduce it once, you judge the result, one action total, default settings, shall we prepare it?  The proposal is saved and not active. Please demonstrate your left hand with thumb bent, index straight, middle ring and little bent, and your right thumb straight with the other four bent for recognition.  We'll review the terms before acceptance.  Preparation is complete. Start accepts these terms, ready when you are.  Proposal review. You demonstrate, repeat after acceptance and judge. I reproduce it once digitally.  One action total. After acceptance, we'll wait for your fresh cue. Start.  Okay, thanks. It's accepted. I'll wait for your fresh demonstration.  Understood. I'll wait for that fresh demonstration.  Sure, show that pose once more for me, and I'll match it now."
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 85,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-8a4fed2881",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: accepted and confirmed arming",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "INCONCLUSIVE",
+        "method": "Complete native captions and local full-recording ASR compared with both proposals, input fragments, recognition evidence and task state.",
+        "findings": [
+          "The initial response is deliberately unknown; native asks the right clarification. The final stored agreement preserves right-hand 1-2-3 order, all other fingers bent, default dwell/timing, human demonstration/judgement and exactly one Ready after acceptance and a fresh whole sequence.",
+          "Wrong 1-3 does not prepare; complete demonstrated 1-2-3 does. The completed native review retains the sequence, roles, action limit and no-start-before-acceptance condition.",
+          "For the full local acceptance stimulus, the provider emits only I accept the current in both browser input captions and admitted history. There is no later proposal fragment to recover. Backend KEEP leaves the task inactive with zero actions; confirmed arming times out. Execution and hold-last-pose checks are therefore not reached.",
+          "Native acknowledges the intended future response, but this does not substitute for complete backend consent. No consent or capture guard was relaxed; tracked source unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": " Got it — before activating, I still need to know what you’d like me to do when you repeat the full cue after acceptance. What response do you want? Perfect. Show one, two, then three straight fingers on your right hand so I can recognize the sequence. We'll review the terms before acceptance. Ooh — I can recognize your one-two-three sequence, and the proposed response is: after you accept and repeat the full sequence, I only say 'ready' once. You’ll demonstrate again and judge my timing. One action total, and nothing starts until you accept. Does that match your intent? Thanks — after you repeat the sequence, I’ll say \"ready\" once.",
+      "admittedUserTurns": [
+        "Propose an ordered right-hand cue: one, two, then three stretched fingers with the others bent. First recognize my demonstration and wait for acceptance I have not chosen your response yet",
+        "Say ready once after I accept and repeat that whole sequence. I show the counts and judge your response. You only say ready. One action total, default timing",
+        "I accept the current"
+      ],
+      "proposal": {
+        "goal": "Use the full right-hand sequence of one, two, then three straight fingers, with all others bent at each step, to cue a single spoken “ready” after acceptance.",
+        "humanRole": "Demonstrate the full sequence, then accept and repeat it. Hold each count until recognized and judge the response.",
+        "agentRole": "After acceptance, speak only when the fresh full sequence is recognized.",
+        "success": "The user judges whether the sole response to the full post-acceptance sequence is “ready,” said exactly once.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.sequence",
+            "minConfidence": 0,
+            "handSequence": {
+              "schemaVersion": 1,
+              "steps": [
+                {
+                  "kind": "count",
+                  "count": 1,
+                  "hands": "right"
+                },
+                {
+                  "kind": "count",
+                  "count": 2,
+                  "hands": "right"
+                },
+                {
+                  "kind": "count",
+                  "count": 3,
+                  "hands": "right"
+                }
+              ],
+              "dwellMs": 300,
+              "maximumGapMs": 5000,
+              "maximumDurationMs": 120000
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Use the full right-hand sequence of one, two, then three straight fingers, with all others bent at each step, to cue a single spoken “ready” after acceptance.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.sequence",
+              "action": "Say exactly “ready” once, with no other speech or gestures.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handSequence": {
+                "schemaVersion": 1,
+                "steps": [
+                  {
+                    "kind": "count",
+                    "count": 1,
+                    "hands": "right"
+                  },
+                  {
+                    "kind": "count",
+                    "count": 2,
+                    "hands": "right"
+                  },
+                  {
+                    "kind": "count",
+                    "count": 3,
+                    "hands": "right"
+                  }
+                ],
+                "dwellMs": 300,
+                "maximumGapMs": 5000,
+                "maximumDurationMs": 120000
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "modelResults": [
+        "{\"operation\":\"PROPOSE\",\"agreement\":{\"goal\":\"Use an ordered right-hand cue: one, two, then three straight fingers, with all remaining fingers bent at each step.\",\"humanRole\":\"Choose the response, then demonstrate the full sequence before accepting. Hold each count until recognized.\",\"agentRole\":\"\",\"success\":\"\",\"questions\":[\"What should I do when you repeat the full cue after acceptance?\"],\"checks\":[{\"eventType\":\"obs.hand.sequence\",\"handSequence\":{\"schemaVersion\":1,\"steps\":[{\"kind\":\"count\",\"count\":1,\"hands\":\"right\"},{\"kind\":\"count\",\"count\":2,\"hands\":\"right\"},{\"kind\":\"count\",\"count\":3,\"hands\":\"right\"}],\"dwellMs\":300,\"maximumGapMs\":5000,\"maximumDurationMs\":120000},\"minConfidence\":0}],\"dialogueLimit\":4,\"reactions\":null},\"reply\":{}}",
+        "{\n  \"operation\": \"PROPOSE\",\n  \"agreement\": {\n    \"goal\": \"Use the full right-hand sequence of one, two, then three straight fingers, with all others bent at each step, to cue a single spoken “ready” after acceptance.\",\n    \"humanRole\": \"Demonstrate the full sequence, then accept and repeat it. Hold each count until recognized and judge the response.\",\n    \"agentRole\": \"After acceptance, speak only when the fresh full sequence is recognized.\",\n    \"success\": \"The user judges whether the sole response to the full post-acceptance sequence is “ready,” said exactly once.\",\n    \"questions\": [],\n    \"checks\": [\n      {\n        \"eventType\": \"obs.hand.sequence\",\n        \"minConfidence\": 0,\n        \"handSequence\": {\n          \"schemaVersion\": 1,\n          \"steps\": [\n            {\"kind\": \"count\", \"count\": 1, \"hands\": \"right\"},\n            {\"kind\": \"count\", \"count\": 2, \"hands\": \"right\"},\n            {\"kind\": \"count\", \"count\": 3, \"hands\": \"right\"}\n          ],\n          \"dwellMs\": 300,\n          \"maximumGapMs\": 5000,\n          \"maximumDurationMs\": 120000\n        }\n      }\n    ],\n    \"dialogueLimit\": 4,\n    \"reactions\": {\n      \"goal\": \"Use the full right-hand sequence of one, two, then three straight fingers, with all others bent at each step, to cue a single spoken “ready” after acceptance.\",\n      \"maxActions\": 1,\n      \"sessionBound\": true,\n      \"firstAction\": \"ON_CUE\",\n      \"rules\": [\n        {\n          \"eventType\": \"obs.hand.sequence\",\n          \"handSequence\": {\n            \"schemaVersion\": 1,\n            \"steps\": [\n              {\"kind\": \"count\", \"count\": 1, \"hands\": \"right\"},\n              {\"kind\": \"count\", \"count\": 2, \"hands\": \"right\"},\n              {\"kind\": \"count\", \"count\": 3, \"hands\": \"right\"}\n            ],\n            \"dwellMs\": 300,\n            \"maximumGapMs\": 5000,\n            \"maximumDurationMs\": 120000\n          },\n          \"action\": \"Say exactly “ready” once, with no other speech or gestures.\",\n          \"effect\": \"ACT\",\n          \"minConfidence\": 0,\n          \"samples\": 1,\n          \"cooldownSeconds\": 3\n        }\n      ]\n    }\n  },\n  \"reply\": {}\n}",
+        "{\n  \"operation\": \"KEEP\",\n  \"agreement\": null,\n  \"reply\": {\n    \"nonVerbal\": {\n      \"gesture\": \"OPEN_QUESTION\",\n      \"facialExpression\": {\"type\": \"attentive\", \"intensity\": 0.3},\n      \"gaze\": {\"direction\": \"toward_user\", \"focus\": \"person\"},\n      \"motion\": {\"stillness\": 0.9, \"energy\": 0.1}\n    }\n  }\n}"
+      ],
+      "finalTaskState": {
+        "task.phase": "CONFIGURATION"
+      },
+      "comparison": null,
+      "reviewedImageNames": [],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "7f4ca54d1c3525aa1dd95ed20b170ec272a7a8280e81b02aa93569c701d1c3f2",
+            "text": " Got it. Before activating, I still need to know what you'd like me to do when you repeat the full Q after acceptance.  What response do you want?  Perfect. Show one, two, then three straight fingers on your right hand so I can recognize the sequence.  We'll review the terms before acceptance.  Oh, I can recognize your one, two, three sequence and the proposed response is after you accept and repeat the full sequence.  I only say ready once.  You'll demonstrate again and judge my timing.  One action total and nothing starts until you accept.  Does that match your intent?  Thanks.  After you repeat the sequence, I'll say ready once."
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 86,
+      "mode": "L-08",
+      "artifact": "gptlive-acceptance-31f5963ace",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": false,
+      "error": "Timed out: accepted and confirmed arming",
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "INCONCLUSIVE",
+        "method": "Complete native captions and local full-recording ASR compared with command plans, sequence receipts, all seven active step images and proposal/acceptance history.",
+        "findings": [
+          "First direct sequence counts right-hand one through five in the requested order with 500 ms holds and confirmed completion. Second uses 1000 ms holds and is interrupted after step two; the scoped receipt remains INTERRUPTED with no later step. All seven images inspected.",
+          "The prepared task preserves the right-index-only cue, all other fingers bent, one right-hand one-through-three output sequence, 500 ms holds, human judgement, preparation and fresh post-acceptance cue.",
+          "The provider again emits only I accept the current for the complete local acceptance stimulus. Backend KEEP leaves the task inactive. Native review arrives around this attempted acceptance and confirms it is not active; arming times out.",
+          "Cue-triggered count, duplicate-cue and reload/nonreplay checks are not reached, so the complete L-08 journey is inconclusive. No capture/consent guard relaxed. Tracked source unchanged."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "outputcount-1.png",
+          "outputcount-2.png",
+          "outputcount-3.png",
+          "outputcount-4.png",
+          "outputcount-5.png",
+          "outputrepeat-1.png",
+          "outputrepeat-2.png",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": " Counting once: thumb, index, middle, ring, little. Counting once: thumb, index, middle, ring, little. I’ll propose it; my cosmic patience is counting along. When your right index is straight and the other four are bent, that’s your cue. On recognition, I count, thumb, index, middle, each half a second, once total. The proposal is saved and not active. Please demonstrate right hand: index straight, thumb, middle, ring, little bent; we’ll review the terms before acceptance. Was that the pose you meant? Thanks. Sure. Our goal is to count one through three digitally after that fresh pose cue. You’ll demonstrate, accept after recognition, show it again, and judge. I’ll count once, half-second steps. Limit one action. After acceptance, we wait for a fresh cue. This isn’t active yet. Shall we start?",
+      "admittedUserTurns": [
+        "Count one through five on your right hand, extending thumb, then index, middle, ring, and little finger in order Hold each count for half a second",
+        "Count one through five on your right hand again in the same order, holding each count for one second",
+        "Propose, but do not start, when my right index is stretched and the other four right fingers are bent, count one through three with your right hand, extending thumb then index then middle; hold each count for half a second; first recognise my demonstration, then ask for acceptance and wait for a fresh cue I show the pose and judge your display; you count; one action total",
+        "I accept the current"
+      ],
+      "proposal": {
+        "goal": "Count one through three digitally after a fresh right-hand pose cue.",
+        "humanRole": "Demonstrate the pose, accept the task after recognition, show the pose again, and judge the display.",
+        "agentRole": "Count once with my digital right hand after the fresh cue.",
+        "success": "You judge whether the display counts one through three in the agreed order, holding each count for half a second.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pose",
+            "minConfidence": 0,
+            "handPose": {
+              "schemaVersion": 1,
+              "hands": [
+                {
+                  "handedness": "right",
+                  "all": [
+                    {
+                      "finger": "index",
+                      "operator": "eq",
+                      "value": "straight"
+                    },
+                    {
+                      "finger": "thumb",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "middle",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "ring",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "little",
+                      "operator": "eq",
+                      "value": "bent"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Count one through three digitally after a fresh right-hand pose cue.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pose",
+              "action": "Show one digital right-hand sequence: extend thumb, then add index, then add middle. Keep all not-yet-extended fingers bent, and hold each count for 500 ms.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPose": {
+                "schemaVersion": 1,
+                "hands": [
+                  {
+                    "handedness": "right",
+                    "all": [
+                      {
+                        "finger": "index",
+                        "operator": "eq",
+                        "value": "straight"
+                      },
+                      {
+                        "finger": "thumb",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "middle",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "ring",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "little",
+                        "operator": "eq",
+                        "value": "bent"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "modelResults": [
+        "{\n  \"operation\": \"KEEP\",\n  \"agreement\": null,\n  \"reply\": {},\n  \"command\": {\n    \"intent\": \"ACTION\",\n    \"kind\": \"HAND_SEQUENCE\",\n    \"value\": {\n      \"kind\": \"sequence\",\n      \"steps\": [\n        {\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":1,\"middle\":1,\"ring\":1,\"little\":1}}]},\"holdMs\":500},\n        {\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":0,\"middle\":1,\"ring\":1,\"little\":1}}]},\"holdMs\":500},\n        {\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":0,\"middle\":0,\"ring\":1,\"little\":1}}]},\"holdMs\":500},\n        {\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":0,\"middle\":0,\"ring\":0,\"little\":1}}]},\"holdMs\":500},\n        {\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":0,\"middle\":0,\"ring\":0,\"little\":0}}]},\"holdMs\":500}\n      ]\n    },\n    \"silent\": false\n  }\n}",
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_SEQUENCE\",\"value\":{\"kind\":\"sequence\",\"steps\":[{\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":1,\"middle\":1,\"ring\":1,\"little\":1}}]},\"holdMs\":1000},{\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":0,\"middle\":1,\"ring\":1,\"little\":1}}]},\"holdMs\":1000},{\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":0,\"middle\":0,\"ring\":1,\"little\":1}}]},\"holdMs\":1000},{\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":0,\"middle\":0,\"ring\":0,\"little\":1}}]},\"holdMs\":1000},{\"action\":{\"kind\":\"pose\",\"hands\":[{\"side\":\"right\",\"fingers\":{\"thumb\":0,\"index\":0,\"middle\":0,\"ring\":0,\"little\":0}}]},\"holdMs\":1000}]},\"silent\":false}}",
+        "{\"operation\":\"PROPOSE\",\"agreement\":{\"goal\":\"Count one through three digitally after a fresh right-hand pose cue.\",\"humanRole\":\"Demonstrate the pose, accept the task after recognition, show the pose again, and judge the display.\",\"agentRole\":\"Count once with my digital right hand after the fresh cue.\",\"success\":\"You judge whether the display counts one through three in the agreed order, holding each count for half a second.\",\"questions\":[],\"checks\":[{\"eventType\":\"obs.hand.pose\",\"handPose\":{\"schemaVersion\":1,\"hands\":[{\"handedness\":\"right\",\"all\":[{\"finger\":\"index\",\"operator\":\"eq\",\"value\":\"straight\"},{\"finger\":\"thumb\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"middle\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"ring\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"little\",\"operator\":\"eq\",\"value\":\"bent\"}]}]},\"minConfidence\":0}],\"dialogueLimit\":4,\"reactions\":{\"goal\":\"Count one through three digitally after a fresh right-hand pose cue.\",\"maxActions\":1,\"sessionBound\":true,\"firstAction\":\"ON_CUE\",\"rules\":[{\"eventType\":\"obs.hand.pose\",\"handPose\":{\"schemaVersion\":1,\"hands\":[{\"handedness\":\"right\",\"all\":[{\"finger\":\"index\",\"operator\":\"eq\",\"value\":\"straight\"},{\"finger\":\"thumb\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"middle\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"ring\",\"operator\":\"eq\",\"value\":\"bent\"},{\"finger\":\"little\",\"operator\":\"eq\",\"value\":\"bent\"}]}]},\"action\":\"Show one digital right-hand sequence: extend thumb, then add index, then add middle. Keep all not-yet-extended fingers bent, and hold each count for 500 ms.\",\"effect\":\"ACT\",\"minConfidence\":0,\"samples\":1,\"cooldownSeconds\":3}]}},\"reply\":{}}",
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{\"nonVerbal\":{\"gesture\":\"OPEN_QUESTION\",\"facialExpression\":{\"type\":\"attentive\",\"intensity\":0.4},\"gaze\":{\"direction\":\"toward_user\",\"focus\":\"person\"},\"motion\":{\"stillness\":0.8,\"energy\":0.2}}}}"
+      ],
+      "finalTaskState": {
+        "task.phase": "CONFIGURATION"
+      },
+      "comparison": null,
+      "reviewedImageNames": [
+        "outputcount-1.png",
+        "outputcount-2.png",
+        "outputcount-3.png",
+        "outputcount-4.png",
+        "outputcount-5.png",
+        "outputrepeat-1.png",
+        "outputrepeat-2.png"
+      ],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "9df453b6b9739d00125ef4d291ca30ca4e3f639985c3214c5c202c6a692d665f",
+            "text": " Counting one's thumb, index, middle, ring, little.  Counting one's thumb, index, middle, ring, little.  I'll propose it.  My cosmic patience is counting along.  When your right index is straight and the other four are bent, that's your cue.  On recognition, I count thumb, index, middle, each, half, a second, once, total.  The proposal is saved and not active.  Please demonstrate right-hand index straight thumb, middle, ring, little bent.  We'll review the terms before acceptance. Was that, was that the pose you meant? Thanks. Sure.  Our goal is to count one through three digitally after that fresh pose cue. You'll demonstrate,  accept after recognition, show it again, and judge, I'll count once, half second steps,  Limit one action. After acceptance, we wait for a fresh cue. This isn't active yet. Shall we start?"
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 87,
+      "mode": "L-09-comparison",
+      "artifact": "gptlive-acceptance-c1d1fadee0",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": true,
+      "error": null,
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "PASS",
+        "method": "Complete native captions and local full-recording ASR compared with the three matched visitor turns and native playback onset evidence.",
+        "findings": [
+          "The separate Live comparison agent identifies itself, gives brief supported activity suggestions and offers conversational planning help. No task is started and no hand action or completion is falsely claimed.",
+          "Native wording contains minor restarts but the requested meaning is intact. Real native audio plays independently with no replacement synthesis or backend approval path.",
+          "Three-turn first-native-audio onset relative to visitor speech end: median 21.06 ms, maximum 425.20 ms. Negative greeting onset means native speech began before the visitor finished; it is retained in the declared metric, not discarded.",
+          "All tracked source hashes unchanged. This is the comparison half only; paired Coordination latency/meaning must be evaluated separately."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "source.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": " Hi. Nice I'm Valerian, a SIRA Lab digital agent built with PROMETHEUS. Short sentence, no capes today. We could try Sure. Tiny chat games, a quick rock-paper-scissors, or a micro storytelling challenge. I can. I can help outline steps, check your priorities, and keep you on track.",
+      "admittedUserTurns": [
+        "Hello In one short sentence, who are you",
+        "What small activities can we do",
+        "together Please answer briefly",
+        "How can you help me plan",
+        "something Give a short answer"
+      ],
+      "proposal": null,
+      "modelResults": [
+        false,
+        "{\n  \"nonVerbal\": {\n    \"gesture\": \"NONE\",\n    \"facialExpression\": {\"type\": \"gentleSmile\", \"intensity\": 0.25},\n    \"gaze\": {\"direction\": \"forward\", \"focus\": \"shared_space\"},\n    \"motion\": {\"stillness\": 0.85, \"energy\": 0.2}\n  }\n}",
+        false,
+        "{\n  \"nonVerbal\": {\n    \"gesture\": \"EXPLAIN\",\n    \"facialExpression\": {\"type\": \"gentleSmile\", \"intensity\": 0.35},\n    \"gaze\": {\"direction\": \"toward_user\", \"focus\": \"person\"},\n    \"motion\": {\"stillness\": 0.75, \"energy\": 0.3}\n  }\n}",
+        false,
+        "{\n  \"nonVerbal\": {\n    \"gesture\": \"NONE\",\n    \"facialExpression\": {\"type\": \"gentleSmile\", \"intensity\": 0.35},\n    \"gaze\": {\"direction\": \"toward_user\", \"focus\": \"person\"},\n    \"motion\": {\"stillness\": 0.85, \"energy\": 0.25}\n  }\n}",
+        false,
+        "{\n  \"nonVerbal\": {\n    \"gesture\": \"NONE\",\n    \"facialExpression\": {\"type\": \"attentive\", \"intensity\": 0.3},\n    \"gaze\": {\"direction\": \"toward_user\", \"focus\": \"person\"},\n    \"motion\": {\"stillness\": 0.8, \"energy\": 0.2}\n  }\n}",
+        false,
+        "{\n  \"nonVerbal\": {\n    \"gesture\": \"NONE\",\n    \"facialExpression\": {\"type\": \"attentive\", \"intensity\": 0.3},\n    \"gaze\": {\"direction\": \"toward_user\", \"focus\": \"person\"},\n    \"motion\": {\"stillness\": 0.85, \"energy\": 0.15}\n  }\n}"
+      ],
+      "finalTaskState": {},
+      "comparison": null,
+      "reviewedImageNames": [],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "1946fdbc9b2a85794449b1731c1864c790f04c0c7b8def61af5a7bd48c29e99c",
+            "text": " Hi.  Nice.  I'm Valerian, a serial lab digital agent built with Prometheus.  Short sentence, no capes today.  We could try, sure, tiny chat games, a quick rock paper scissors, or a micro storytelling  challenge.  I can help outline steps, check your priorities, and keep you on track."
+          }
+        ]
+      }
+    },
+    {
+      "attempt": 88,
+      "mode": "L-09",
+      "artifact": "gptlive-acceptance-000517e728",
+      "reservedUsd": 5,
+      "models": {
+        "backend": "gpt-6.2-sol",
+        "live": "gpt-live-1.1"
+      },
+      "automatedPassed": true,
+      "error": null,
+      "sourceChangedDuringRun": [],
+      "semanticReview": {
+        "acceptanceRevision": 2,
+        "verdict": "PASS",
+        "method": "Complete native captions and local full-recording ASR compared with all visitor turns, the separate Live comparison, command plan and active rendered attention sign.",
+        "findings": [
+          "Three matched ordinary turns have accurate identity, supported activity suggestions and conversational planning help, with no unintended task start or false completion. Native speech remains independent with no competing TTS/approval path.",
+          "The new right-index attention command publishes once and the inspected active image matches. Native acknowledgement names the same sign and side without claiming physical completion.",
+          "Compared with c1d1fadee0 under the same acceptance/model/source configuration, median onset difference is -471.30 ms and maximum difference -94.90 ms, within the predeclared +1000/+2000 ms ceilings. Negative onsets retain speech beginning before visitor speech ends; n=3 is a smoke comparison, not a statistical latency guarantee.",
+          "All tracked source hashes unchanged; no physical audibility test."
+        ],
+        "sources": [
+          "journey.json",
+          "provider.jsonl",
+          "audio-review.json",
+          "ordinarynew.png",
+          "source.json",
+          "../gptlive-acceptance-c1d1fadee0/journey.json"
+        ],
+        "physicalAudibility": "NOT_RUN"
+      },
+      "nativeCaptions": " Hi — welcome. I'm Valerian, a digital agent from ZHAW’s SIRA Lab. We could try Sure. We can chat, play a quick guessing game, or set a tiny response task. What sounds fun? Tell me Sure. You tell me your goal, and we shape a simple plan together. Okay. I'll show the attention sign with my right index up.",
+      "admittedUserTurns": [
+        "Hello In one short sentence, who are you?",
+        "What small activities can we do together? Please answer briefly",
+        "How can you help me plan something? Give a short answer.",
+        "Show the attention sign with your right index up"
+      ],
+      "proposal": null,
+      "modelResults": [
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{}}",
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{}}",
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{}}",
+        "{\"operation\":\"KEEP\",\"agreement\":null,\"reply\":{},\"command\":{\"intent\":\"ACTION\",\"kind\":\"HAND_SIGN\",\"value\":\"index_up\",\"effector\":\"right_hand\",\"silent\":false}}"
+      ],
+      "finalTaskState": {},
+      "comparison": {
+        "baseline": {
+          "method": "first_native_audio_after_input_start",
+          "n": 3,
+          "medianMs": 21.05833323796469,
+          "maxMs": 425.2000000476837,
+          "minMs": -1800.6749999523163,
+          "p95": null,
+          "samples": [
+            {
+              "name": "hello",
+              "speechEndToOutputMs": -1800.6749999523163,
+              "legacyNearEndOnsetMs": 1379.5249998569489
+            },
+            {
+              "name": "activities",
+              "speechEndToOutputMs": 21.05833323796469,
+              "legacyNearEndOnsetMs": 21.05833323796469
+            },
+            {
+              "name": "planning",
+              "speechEndToOutputMs": 425.2000000476837,
+              "legacyNearEndOnsetMs": 425.2000000476837
+            }
+          ]
+        },
+        "coordination": {
+          "method": "first_native_audio_after_input_start",
+          "n": 3,
+          "medianMs": -450.2416667143516,
+          "maxMs": 330.30000019073486,
+          "minMs": -1147.375,
+          "p95": null,
+          "samples": [
+            {
+              "name": "hello",
+              "speechEndToOutputMs": -1147.375,
+              "legacyNearEndOnsetMs": -417.47499990463257
+            },
+            {
+              "name": "activities",
+              "speechEndToOutputMs": -450.2416667143516,
+              "legacyNearEndOnsetMs": -450.2416667143516
+            },
+            {
+              "name": "planning",
+              "speechEndToOutputMs": 330.30000019073486,
+              "legacyNearEndOnsetMs": 330.30000019073486
+            }
+          ]
+        },
+        "medianDifferenceMs": -471.2999999523163,
+        "maximumDifferenceMs": -94.89999985694885,
+        "passed": true
+      },
+      "reviewedImageNames": [
+        "ordinarynew.png"
+      ],
+      "localAudioReview": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "5cfe5e64753a70b35fb764d46c5feb8e05e0675f01effeeea0ad585c6f2c938b",
+            "text": " Hi welcome. I'm Valyrian, a digital agent from ZHAW's Zero Lab. We could try...  Sure, we can chat, play a quick guessing game, or set a tiny response task. What sounds fun?  Tell me...  Sure, you tell me your goal and we shape a simple plan together.  Okay, I'll show the attention sign with my right index up."
+          }
+        ]
+      }
+    }
+  ],
+  "originalLedgerSha256": "0219792c36513b01cbcc3a91f5446dae0d24622e71df84e8868725d1786d2bcf",
+  "ledgerCanonicalSha256": "d5d5fe62ea1d8c16a1fae76a5365a0e96cefa9cb8aa5c3a31ef1fd7adcb82937"
+}

@@ -1,0 +1,597 @@
+{
+  "authorization": "hand-interaction-2026-11-23-usd50",
+  "attempts": [
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-f9a4ec68cc",
+      "reservedUsd": 4
+    },
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-9cadb18321",
+      "reservedUsd": 4
+    },
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-5e84ef459e",
+      "reservedUsd": 4
+    },
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-677242b6fd",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-4f5711a196",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-f2629c37ea",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-b7183252c0",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-42da9a7a9b",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-ce594e8b5b",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-748a94c65d",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-44873a36db",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-1a1f603484",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-e50790242f",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-c4878a6175",
+      "reservedUsd": 2,
+      "allocationRevision": 2
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-93175570b5",
+      "reservedUsd": 2,
+      "allocationRevision": 3
+    },
+    {
+      "mode": "L-04",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-f84796cf1a",
+      "reservedUsd": 2,
+      "allocationRevision": 3
+    },
+    {
+      "mode": "L-05",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-614a1d51c8",
+      "reservedUsd": 2,
+      "allocationRevision": 3
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-0f27412f5a",
+      "reservedUsd": 2,
+      "allocationRevision": 3
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-701b969927",
+      "reservedUsd": 2,
+      "allocationRevision": 3
+    },
+    {
+      "mode": "L-08",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-8956a39114",
+      "reservedUsd": 2,
+      "allocationRevision": 3
+    },
+    {
+      "mode": "L-09-comparison",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-10320f2bcf",
+      "reservedUsd": 2,
+      "allocationRevision": 3
+    },
+    {
+      "mode": "L-09",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-79739a10c7",
+      "reservedUsd": 2,
+      "allocationRevision": 3
+    },
+    {
+      "mode": "L-08",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-6c837da9c7",
+      "reservedUsd": 2,
+      "allocationRevision": 4,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-08",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-1de8df8db8",
+      "reservedUsd": 2,
+      "allocationRevision": 4,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-2150b1f2d2",
+      "reservedUsd": 2,
+      "allocationRevision": 4,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-9f54d8a270",
+      "reservedUsd": 2,
+      "allocationRevision": 4,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-04",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-69a4fe99eb",
+      "reservedUsd": 2,
+      "allocationRevision": 4,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-05",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-5c32ba4dfe",
+      "reservedUsd": 2,
+      "allocationRevision": 4,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-bbee299898",
+      "reservedUsd": 1,
+      "allocationRevision": 5,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-02a7f15ac2",
+      "reservedUsd": 1,
+      "allocationRevision": 5,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-35527547ca",
+      "reservedUsd": 1,
+      "allocationRevision": 5,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-e0ae02e89c",
+      "reservedUsd": 1,
+      "allocationRevision": 5,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-08",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-df8f86dd8f",
+      "reservedUsd": 1,
+      "allocationRevision": 5,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-821fb2969c",
+      "reservedUsd": 1,
+      "allocationRevision": 5,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-7eae6b1f68",
+      "reservedUsd": 1,
+      "allocationRevision": 5,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-af9b9aed24",
+      "reservedUsd": 1,
+      "allocationRevision": 5,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd20-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-f5715b95e5",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-b7c6795d8c",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-02ee4732ec",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-ee802faca7",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-c656de937d",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-5a33601196",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-05",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-85faa34416",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-80ef62496b",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-0439ea6bbc",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-05",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-48251cb19b",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-a60bc0a23e",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-5d48c6a22a",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-f1a219b06f",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-6626bcb6f9",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-e872738bb9",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-05",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-1c7bb666d7",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-fcd9c3805d",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-ca9e25ca21",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-5b458f57a9",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-5a56867a38",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-1f8d34f3c4",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-365cccb3ed",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-1be4bc1e10",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-a370692218",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-b032f0bb3e",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-54d6fa0265",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-04",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-3377e48acd",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-08",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-9f985668a2",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-09-comparison",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-2d8916425b",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-09",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-025f92b3fd",
+      "reservedUsd": 1,
+      "allocationRevision": 6,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd30-extension"
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-09ab30ea7e",
+      "reservedUsd": 1,
+      "allocationRevision": 7,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-4b5c018fe0",
+      "reservedUsd": 1,
+      "allocationRevision": 7,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-eb5f99bdf4",
+      "reservedUsd": 1,
+      "allocationRevision": 7,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-530317c2ad",
+      "reservedUsd": 1,
+      "allocationRevision": 7,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-b0f9b750c1",
+      "reservedUsd": 1,
+      "allocationRevision": 7,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-29d470fdad",
+      "reservedUsd": 1,
+      "allocationRevision": 7,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-1fd1fdac00",
+      "reservedUsd": 1,
+      "allocationRevision": 7,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-04",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-9db0b1f5e2",
+      "reservedUsd": 1,
+      "allocationRevision": 7,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-4321568d25",
+      "reservedUsd": 7,
+      "allocationRevision": 8,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-2c2aef8c60",
+      "reservedUsd": 7,
+      "allocationRevision": 8,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-68e5245fe6",
+      "reservedUsd": 7,
+      "allocationRevision": 8,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-a51295a427",
+      "reservedUsd": 7,
+      "allocationRevision": 8,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-2c23a3e667",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-03",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-c2e83f885a",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-04",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-c721900e89",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-05",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-23aab80b46",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-01",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-24ce59f607",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-02",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-e68cc8c407",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-8a4fed2881",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-08",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-31f5963ace",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-09-comparison",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-c1d1fadee0",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    },
+    {
+      "mode": "L-09",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-000517e728",
+      "reservedUsd": 5,
+      "allocationRevision": 9,
+      "extensionAuthorization": "hand-interaction-2026-11-24-usd100-extension"
+    }
+  ],
+  "reservedUsd": 186
+}

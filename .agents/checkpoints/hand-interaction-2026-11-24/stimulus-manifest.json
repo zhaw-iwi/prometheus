@@ -1,0 +1,203 @@
+{
+  "providerCalls": 0,
+  "sampleRate": 24000,
+  "voice": "Microsoft David Desktop - English (United States)",
+  "clips": {
+    "hello": {
+      "file": "hello.pcm",
+      "text": "Hello. In one short sentence, who are you?",
+      "bytes": 208776,
+      "sha256": "6a3a1793adf0c327ab6cd4514e2422162a909cd0d5633f4844e95faa108b23d4",
+      "seconds": 4.3495
+    },
+    "activities": {
+      "file": "activities.pcm",
+      "text": "What small activities can we do together? Please answer briefly.",
+      "bytes": 254376,
+      "sha256": "a56f5963d5d942dd8c7113b5bc064f6128b0a3c134800eb925408bd24729bbe6",
+      "seconds": 5.2995
+    },
+    "planning": {
+      "file": "planning.pcm",
+      "text": "How can you help me plan something? Give a short answer.",
+      "bytes": 221256,
+      "sha256": "6639e30533c168b01d1c5ea3be3579b7fbd99ab6de61e2cf999baa7c4e914a1b",
+      "seconds": 4.6095
+    },
+    "accept": {
+      "file": "accept.pcm",
+      "text": "I accept the current proposal.",
+      "bytes": 122136,
+      "sha256": "6ebcf4de0a220ced63a087e9114cdc09fe487ef1a7a7d7a5cc8dd735c34dc250",
+      "seconds": 2.5445
+    },
+    "signcapabilities": {
+      "file": "signcapabilities.pcm",
+      "text": "Briefly describe your communication signs, custom finger poses, pointing, and finite hand sequences.",
+      "bytes": 359496,
+      "sha256": "ad1dd32bffa8321a96bd454d0763f25646aee61bc4c7c5e5972bea483b125f17",
+      "seconds": 7.4895
+    },
+    "signshow": {
+      "file": "signshow.pcm",
+      "text": "Show a thumbs up with your right hand.",
+      "bytes": 128376,
+      "sha256": "3aae9b2088f5efac2b2812a7ddb918589fb5fdacda75dd0d03e59b42ce5cef42",
+      "seconds": 2.6745
+    },
+    "signrepeat": {
+      "file": "signrepeat.pcm",
+      "text": "Show a thumbs up with your right hand again.",
+      "bytes": 140136,
+      "sha256": "22ca02c55a72f8a1e4620dde37329852c428ac0e322328df6133f158ef5bebc0",
+      "seconds": 2.9195
+    },
+    "signpropose": {
+      "file": "signpropose.pcm",
+      "text": "Propose, but do not start: after I demonstrate a right hand thumbs up and accept, show peace with your right hand on my next right hand thumbs up. One action total. I give the sign and judge the display; you show peace. Success means I find the digital sign correct. Use default settings.",
+      "bytes": 1017576,
+      "sha256": "f967a5c17c187b872c332107a8eacec1eb331a200ed00b6965de44bd49f5146a",
+      "seconds": 21.1995
+    },
+    "posepropose": {
+      "file": "posepropose.pcm",
+      "text": "Propose one task, but wait for preparation and acceptance. When my left index is stretched with its other four fingers bent, and my right thumb is stretched with its other four fingers bent in the same frame, reproduce that two hand pattern once. I demonstrate the pattern and judge the digital result; you reproduce it. One action total. Use default settings.",
+      "bytes": 1184616,
+      "sha256": "360607f29616102f0a8b7760c92e25a0eb62296c329e99ec7ad3af55018faf55",
+      "seconds": 24.6795
+    },
+    "poseshow": {
+      "file": "poseshow.pcm",
+      "text": "Stretch your left index and bend the other four left fingers. At the same time stretch your right thumb and bend the other four right fingers.",
+      "bytes": 412776,
+      "sha256": "75f3545d1ad0bb7a1154669e9d8866fb36d8e6372fbc81e536ffa3b105464f7d",
+      "seconds": 8.5995
+    },
+    "ringambiguous": {
+      "file": "ringambiguous.pcm",
+      "text": "Show me an OK sign.",
+      "bytes": 107736,
+      "sha256": "eea2c1352f8dcb79c5038775af4a3093a09b9e78cf78180cdac403b943dd178c",
+      "seconds": 2.2445
+    },
+    "ringshow": {
+      "file": "ringshow.pcm",
+      "text": "I mean the divers OK ring: close the thumb and index into a loop and stretch the other three fingers. Show that ring with your right hand.",
+      "bytes": 443016,
+      "sha256": "172d0448f4e273654cce0a266243af30e13dcbab4f7ace7232bee6655da7377d",
+      "seconds": 9.2295
+    },
+    "ringpropose": {
+      "file": "ringpropose.pcm",
+      "text": "Propose one task. After preparation and acceptance, show a right hand divers ring when my normalized right thumb index gap is below zero point one eight and my other three fingers are stretched. I demonstrate and judge; you display. One action total, default timing.",
+      "bytes": 933576,
+      "sha256": "ab5834fcb365540a9c89a205878dc74fb9f440f22edce67eb5d1438d35c812b4",
+      "seconds": 19.4495
+    },
+    "directionpropose": {
+      "file": "directionpropose.pcm",
+      "text": "I face the camera, so my left is image right. Propose, but wait for my demonstration and acceptance: when I point to my left with my right index, point to your own right with your right hand once. I demonstrate and judge the digital direction. You point. One action total; use default timing.",
+      "bytes": 1056456,
+      "sha256": "43a4cebd54409ef04c39a1360a8a64db7659081407581e2a455a3c6d50cc5da6",
+      "seconds": 22.0095
+    },
+    "directionshow": {
+      "file": "directionshow.pcm",
+      "text": "Point to your own left with your left hand.",
+      "bytes": 143016,
+      "sha256": "3f8927d44675db5176131f0305ac11625f63a05a13b2a80f15a36b3fccef21fb",
+      "seconds": 2.9795
+    },
+    "displaypropose": {
+      "file": "displaypropose.pcm",
+      "text": "Propose one task: when I point at the registered Display, say Ready once. First check my pointing demonstration, then wait for acceptance and a fresh cue. I point and judge the response; you say Ready. One action total. Use default timing.",
+      "bytes": 918696,
+      "sha256": "354c1181f103a972673650d446508060db924063d62915afe213175cba5d56e1",
+      "seconds": 19.1395
+    },
+    "displayshow": {
+      "file": "displayshow.pcm",
+      "text": "Point at the registered Display with your right hand.",
+      "bytes": 163416,
+      "sha256": "70f5f553ac7c9269e977fd75a9915e6a8ce7871bb3cc33558d7c17c6f127868b",
+      "seconds": 3.4045
+    },
+    "cupambiguous": {
+      "file": "cupambiguous.pcm",
+      "text": "Please point your right hand at that cup.",
+      "bytes": 136536,
+      "sha256": "f6b93282bbec557d67d2c9474df1f75ddc5f16d898352b7e07779b04a9c590b2",
+      "seconds": 2.8445
+    },
+    "cuppropose": {
+      "file": "cuppropose.pcm",
+      "text": "Propose one task, with default timing. After preparation and my acceptance, say Ready once when I point at My cup again. I demonstrate and judge; you only say Ready. One action total.",
+      "bytes": 729096,
+      "sha256": "1a9f6271127717c37baee77c4d99c9e6be993b53ccdde5b198477bb6a9134456",
+      "seconds": 15.1895
+    },
+    "personshow": {
+      "file": "personshow.pcm",
+      "text": "Point at the selected person labelled Visitor with your right hand.",
+      "bytes": 197736,
+      "sha256": "c4455424300b6be3a2e2548bab6ec876f8a35d30548a13156135f2392db137fc",
+      "seconds": 4.1195
+    },
+    "personrepeat": {
+      "file": "personrepeat.pcm",
+      "text": "Point at that same Visitor again.",
+      "bytes": 130056,
+      "sha256": "4d1575232545150f9ddf002c0e14b9bfd86f3ffaf768755c0cbf1e52c1291b13",
+      "seconds": 2.7095
+    },
+    "inputpropose": {
+      "file": "inputpropose.pcm",
+      "text": "Propose an ordered right hand cue: one, two, then three stretched fingers, with the others bent. First recognize my demonstration and wait for acceptance. I have not chosen your response yet.",
+      "bytes": 693576,
+      "sha256": "598c77b22a29515f773f460299eebd3a6c151cc745d03edd1d3a3d627d606e68",
+      "seconds": 14.4495
+    },
+    "inputclarify": {
+      "file": "inputclarify.pcm",
+      "text": "Say Ready once after I accept and repeat that whole sequence. I show the counts and judge your response. You only say Ready. One action total, default timing.",
+      "bytes": 607416,
+      "sha256": "511618c3cd3fed866979c6cf692d5362d94a4f6e51c96ad4975630531c6ef186",
+      "seconds": 12.6545
+    },
+    "outputcount": {
+      "file": "outputcount.pcm",
+      "text": "Count one through five on your right hand, extending thumb, then index, middle, ring and little finger in order. Hold each count for half a second.",
+      "bytes": 475656,
+      "sha256": "b9ea44c9767860763294130615ba66a3bd39112af08fce72789f2a628b4329db",
+      "seconds": 9.9095
+    },
+    "outputrepeat": {
+      "file": "outputrepeat.pcm",
+      "text": "Count one through five on your right hand again, in the same order, holding each count for one second.",
+      "bytes": 323976,
+      "sha256": "6dcccaeb515f9844734116640da49febdbf71dab948ed3a620cfdf3416f3352b",
+      "seconds": 6.7495
+    },
+    "outputpropose": {
+      "file": "outputpropose.pcm",
+      "text": "Propose, but do not start: when my right index is stretched and the other four right fingers are bent, count one through three with your right hand, extending thumb then index then middle. Hold each count for half a second. First recognize my demonstration; then ask for acceptance and wait for a fresh cue. I show the pose and judge your display; you count. One action total.",
+      "bytes": 1257336,
+      "sha256": "cf8d64f25d0ba4f16ddf196cdef70dd61829eb4ab4d4705835f558b3d72f3170",
+      "seconds": 26.1945
+    },
+    "ordinarynew": {
+      "file": "ordinarynew.pcm",
+      "text": "Show the attention sign with your right index up.",
+      "bytes": 160536,
+      "sha256": "d6d5e8e363afa54f5d3d5be0a1150fbda2b821ccaa9ac14dbcb5d786ca1a7553",
+      "seconds": 3.3445
+    },
+    "comparisonshow": {
+      "file": "comparisonshow.pcm",
+      "text": "Show scissors.",
+      "bytes": 83016,
+      "sha256": "2ac6c13273e7914738f1307a9adbfaec902d8f10e07215049c2cdc0209861dba",
+      "seconds": 1.7295
+    }
+  }
+}
