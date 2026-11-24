@@ -1,4 +1,4 @@
-import {spokenClarification} from './hand_audio_input.mjs';
+import {spokenClarification,spokenPreparation} from './hand_audio_input.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -91,4 +91,12 @@ test('the visitor waits through a backchannel for the actual clarification promp
   assert.equal(spokenClarification(early,['prior']),undefined);
   for(const speech of ['What would you like me to do?', 'Please tell me how to respond.'])
     assert.equal(spokenClarification([...early,event('ask',speech)],['prior']),speech);
+});
+
+test('a completed preparation instruction survives withdrawal of its temporary context',()=>{
+  const event=(id,speech,complete=true)=>({id,type:'resp.behaviour_plan',provenance:{origin:'NATIVE',complete},payload:JSON.stringify({speech})});
+  const pending=[event('old','Please demonstrate it.'),event('question','What counts as demonstrate?'),event('partial','Please demonstrate',false)];
+  assert.equal(spokenPreparation(pending,['old']),undefined);
+  const speech='The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition.';
+  assert.equal(spokenPreparation([...pending,event('new',speech)],['old']),speech);
 });

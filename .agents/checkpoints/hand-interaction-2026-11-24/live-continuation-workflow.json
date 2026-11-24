@@ -3,7 +3,7 @@
   "baseReservedUsd": 286,
   "addedCapUsd": 20,
   "continuationCapUsd": 120,
-  "cumulativeReservedUsd": 296,
+  "cumulativeReservedUsd": 301,
   "reservations": [
     {
       "mode": "L-07",
@@ -15,6 +15,13 @@
     {
       "mode": "L-06",
       "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-4cefe89c74",
+      "reservedUsd": 5,
+      "allocationRevision": 15,
+      "extensionAuthorization": "hand-interaction-2026-11-24-workflow-usd20"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-289063baf6",
       "reservedUsd": 5,
       "allocationRevision": 15,
       "extensionAuthorization": "hand-interaction-2026-11-24-workflow-usd20"
@@ -875,6 +882,790 @@
       "failedObservations": [],
       "observationCount": 184,
       "contributionContext": []
+    },
+    {
+      "attempt": 111,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-289063baf6",
+      "verdict": "FAIL",
+      "finding": "The visitor heard the missing-response question before answering it, explicitly accepted the saved proposal and triggered one action on the correct 1-2-3. Wrong order spent zero and holding three left the count at one. Playback of the complete accurate sequence acknowledgement was confirmed. Three seconds after the end of that sentence, with no intervening visitor turn, Live independently added Right, I’ve got it. That second acknowledgement exceeds the visitor’s once-only quantity. Natural wording of the first response was correct. Live also echoed parts of the visitor’s proposal and consent; the backend admitted genuine consent.",
+      "automatedPassed": true,
+      "error": null,
+      "sourceRevision": "6c038c2594b65ac206e6596d918416da7a8938a5",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "9611095bcd7cf284870618eecd30c04fa1ded07402fc3d4df984800c80a22822",
+      "journeySha256": "290b35b96d8b6a996c58a2f550d91381574cd2c5e6c04f23c9a1a04cd9ace2d2",
+      "spoken": "Right, what response do you want after I recognize that sequence?Mm-hmm.We’ve saved the idea of a right-hand sequence but I’m still waiting on your choice of response. What should success look like?After I accept and show the whole sequence again, let me know once that you saw it in your own words. I show the counts and judge your response.Okay, thanks. I’ll recognize that sequence after you accept, and tell you once in my own words, just once.And the proposal stays saved but not active yet. Show me one, two, then three on your right hand for recognition, and we’ll review the terms before acceptance.I saw you hold one, two, then three, all steady until I recognised them. You’ll demonstrate the full sequence before accepting, and again after, and judge my response. I’ll wait for a fresh full sequence after acceptance, then acknowledge it once in my own words. The goal, success check, and one-action limit stay as above, and this proposal isn’t active yet. Shall we start?I accept the current proposal.I heard you.It’s running now, and I’m waiting for a fresh cue with your right hand, one straight finger, then two, then three.I saw the fresh sequence on your right hand: one finger, then two, then three.Right, I’ve got it.",
+      "admitted": [
+        {
+          "id": "52904709-be43-47ef-9ec7-91c931bd0d23",
+          "text": "Propose an ordered right-hand cue: one, two, then three stretched fingers with the others bent; first recognise my demonstration and wait for acceptance. I have not chosen your response yet"
+        },
+        {
+          "id": "4ef7596d-982e-4b86-9b22-278bde4468e1",
+          "text": "After I accept and show the whole sequence again, let me know once that you saw it in your own words I show the counts and judge your response One action total. Use default timing"
+        },
+        {
+          "id": "07df3bf1-f1ba-43d1-be83-682aa05af19b",
+          "text": "I accept the current proposal"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "ac16edbe-0c91-46aa-be2b-8da0dd9064c4",
+          "speech": "Right, what response do you want after I recognize that sequence?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "3be12d28-fe19-4154-ae27-0986c948e1c1",
+          "speech": "Mm-hmm.We’ve saved the idea of a right-hand sequence but I’m still waiting on your choice of response. What should success look like?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "8503eb5a-939a-47ca-9ab4-c348360bb942",
+          "speech": "After I",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "540675dc-52d7-4cb2-9a88-975ca29f1890",
+          "speech": "accept",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "5742c96f-c97b-455a-80e1-4ad86ff40ec9",
+          "speech": "and",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "93577842-0ec5-42c3-a8a9-af68cfe25274",
+          "speech": "show",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "f48f72d0-093e-4d75-a23f-b116662d7845",
+          "speech": "the whole",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "0e95ee1b-4b00-46ba-be97-302b2d5256ca",
+          "speech": "sequence",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "1b8427cd-5fa1-4c1b-bb15-926fae30a423",
+          "speech": "again",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "b2088678-7cfc-404a-a9fc-2f4f22c7cb38",
+          "speech": ",",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "ee238549-fd13-4b7b-980c-3333ac8fb943",
+          "speech": "let",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "a02986ce-3dce-4f34-8302-a8a2c77e5ff2",
+          "speech": "me",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "93a86b96-c794-44dc-87b3-0418672d8037",
+          "speech": "know",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "fdde6a89-c97b-497d-9cc2-0a65cf032796",
+          "speech": "once that you saw it",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "9112b575-fb76-4cb8-9e7b-8ab7926661b9",
+          "speech": "in",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "fddd2874-d839-4f70-b05d-e32a4bcd736c",
+          "speech": "your",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "344fd6d5-6737-49bb-8c58-95591b26eea6",
+          "speech": "own",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "bed499cd-fcb5-4740-97c2-49b5284bdf90",
+          "speech": "words",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "ec94f809-fdc7-402d-a491-1429cbcc197a",
+          "speech": ".",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "ee846860-b843-43b3-9feb-4b2c25db93c0",
+          "speech": "I show the counts",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "a79a54ae-bb29-4e6d-b1cd-efd90be861f7",
+          "speech": "and",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "38488e74-088f-46bd-85fe-8e269822b623",
+          "speech": "judge",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "63a93ab2-cf0b-4a66-bd26-963065179f8f",
+          "speech": "your response",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "8727f308-0a06-4a26-95d2-b76f0396a27a",
+          "speech": ".",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "ef4583f6-696e-4a5c-aee2-0112eb85c355",
+          "speech": "Okay, thanks. I’ll recognize that sequence after you accept, and tell you once in my own words, just once.And the proposal stays saved but not active yet. Show me one, two, then three on your right hand for recognition, and we’ll review the terms before acceptance.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "68d11173-399f-4c13-b5c8-259327842634",
+          "speech": "I saw you hold one, two, then three, all steady until I recognised them. You’ll demonstrate the full sequence before accepting, and again after, and judge my response. I’ll wait for a fresh full sequence after acceptance, then acknowledge it once in my own words. The goal, success check, and one-action limit stay as above, and this proposal isn’t active yet. Shall we start?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "34a57d53-a90a-477a-afb3-18ba866ae6fe",
+          "speech": "I accept",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "4d11049d-2985-48cf-bd78-23097d9b6e75",
+          "speech": "the current proposal.I heard you.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "bb2cafe7-befb-4001-9565-7495c4dc2e91",
+          "speech": "It’s running now, and I’m waiting for a fresh cue with your right hand, one straight finger, then two, then three.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "63ebc8a2-d846-42ab-8201-4be80f1068bc",
+          "speech": "I saw the fresh sequence on your right hand: one finger, then two, then three.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "9839acc2-f585-4798-9d5d-31350734fa45",
+          "speech": "Right, I’ve got it.",
+          "complete": true,
+          "association": "NONE"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "a1edbf319e2ab20efe1c0aef26b64b1a86f563574a97f11cced90b5a14187ab4",
+            "duration": 166.92,
+            "segments": [
+              {
+                "start": 18.38,
+                "end": 31.08,
+                "text": " Right, what response do you want after I recognize that sequence?",
+                "logprob": -0.16708467712347536
+              },
+              {
+                "start": 31.08,
+                "end": 37.76,
+                "text": " We've saved the idea of a right hand sequence, but I'm still waiting on your choice of response.",
+                "logprob": -0.16708467712347536
+              },
+              {
+                "start": 37.76,
+                "end": 44.68,
+                "text": " What should success look like?",
+                "logprob": -0.16708467712347536
+              },
+              {
+                "start": 44.68,
+                "end": 51.32,
+                "text": " After I accept and show the whole sequence again, let me know once that you saw it in",
+                "logprob": -0.16708467712347536
+              },
+              {
+                "start": 51.32,
+                "end": 52.6,
+                "text": " your own words.",
+                "logprob": -0.16708467712347536
+              },
+              {
+                "start": 52.6,
+                "end": 55.44,
+                "text": " I show the counts and judge your response.",
+                "logprob": -0.16708467712347536
+              },
+              {
+                "start": 55.44,
+                "end": 67.51,
+                "text": " Okay, thanks. I'll recognize that sequence after you accept and tell you once in my own words, just once.",
+                "logprob": -0.1621028423309326
+              },
+              {
+                "start": 67.51,
+                "end": 71.51,
+                "text": " And the proposal stays saved but not active yet.",
+                "logprob": -0.1621028423309326
+              },
+              {
+                "start": 71.51,
+                "end": 78.51,
+                "text": " Show me one, two, then three on your right hand for recognition and we'll review the terms before acceptance.",
+                "logprob": -0.1621028423309326
+              },
+              {
+                "start": 78.51,
+                "end": 94.5,
+                "text": " I saw you hold one, two, then three, all steady until I recognized them.",
+                "logprob": -0.1621028423309326
+              },
+              {
+                "start": 94.5,
+                "end": 98.38,
+                "text": " You'll demonstrate the full sequence before accepting,",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 98.38,
+                "end": 101.42,
+                "text": " and again after, and judge my response.",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 101.42,
+                "end": 104.62,
+                "text": " I'll wait for a fresh full sequence after acceptance,",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 104.62,
+                "end": 107.7,
+                "text": " then acknowledge it once in my own words.",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 107.7,
+                "end": 110.62,
+                "text": " The goal, success check, and one action limits day",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 110.62,
+                "end": 113.9,
+                "text": " as above, and this proposal isn't active yet.",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 113.9,
+                "end": 119.8,
+                "text": " Shall we start?",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 119.8,
+                "end": 121.68,
+                "text": " I accept the current proposal.",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 122.7,
+                "end": 128.46,
+                "text": " I heard you.",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 128.46,
+                "end": 131.7,
+                "text": " It's running now, and I'm waiting for a fresh cue",
+                "logprob": -0.12985973019118702
+              },
+              {
+                "start": 131.7,
+                "end": 147.86,
+                "text": " your right hand, one straight finger, then two, then three. I saw the fresh",
+                "logprob": -0.21985757218466864
+              },
+              {
+                "start": 147.86,
+                "end": 159.38,
+                "text": " sequence on your right hand, one finger, then two, then three. Right? I've got it.",
+                "logprob": -0.21985757218466864
+              }
+            ]
+          }
+        ]
+      },
+      "images": [],
+      "renderChecks": [],
+      "phase": "COMPLETED",
+      "actions": 1,
+      "outcome": "LIMIT_REACHED",
+      "proposal": {
+        "goal": "After preparation and acceptance, acknowledge one fresh right-hand sequence of one, two, then three straight fingers, with all other fingers bent.",
+        "humanRole": "Demonstrate the full sequence before accepting, then show it again and judge my response. Hold each count until recognised.",
+        "agentRole": "Wait for a fresh full sequence after acceptance, then acknowledge it once in my own words.",
+        "success": "You judge whether my single spoken response confirms recognition of the full fresh sequence.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.sequence",
+            "minConfidence": 0,
+            "handSequence": {
+              "schemaVersion": 1,
+              "steps": [
+                {
+                  "kind": "count",
+                  "count": 1,
+                  "hands": "right"
+                },
+                {
+                  "kind": "count",
+                  "count": 2,
+                  "hands": "right"
+                },
+                {
+                  "kind": "count",
+                  "count": 3,
+                  "hands": "right"
+                }
+              ],
+              "dwellMs": 300,
+              "maximumGapMs": 5000,
+              "maximumDurationMs": 120000
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "After preparation and acceptance, acknowledge one fresh right-hand sequence of one, two, then three straight fingers, with all other fingers bent.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.sequence",
+              "action": "In your own words, briefly confirm that you recognised the full right-hand sequence of one, two, then three straight fingers. Say this once, only after the fresh sequence matches.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handSequence": {
+                "schemaVersion": 1,
+                "steps": [
+                  {
+                    "kind": "count",
+                    "count": 1,
+                    "hands": "right"
+                  },
+                  {
+                    "kind": "count",
+                    "count": 2,
+                    "hands": "right"
+                  },
+                  {
+                    "kind": "count",
+                    "count": 3,
+                    "hands": "right"
+                  }
+                ],
+                "dwellMs": 300,
+                "maximumGapMs": 5000,
+                "maximumDurationMs": 120000
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "checkpoints": [
+        {
+          "name": "clarification-question-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "counts-1-3",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "counts-1-2-3",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T23:10:21.510Z",
+              "eventId": "obs.hand.pose:2026-11-24T23:10:21.510Z"
+            }
+          },
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "prepared",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T23:10:21.510Z",
+              "eventId": "obs.hand.pose:2026-11-24T23:10:21.510Z"
+            }
+          },
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "counts-1-3",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T23:10:21.510Z",
+              "eventId": "obs.hand.pose:2026-11-24T23:10:21.510Z"
+            }
+          },
+          "phase": "RUNNING",
+          "actions": 0
+        },
+        {
+          "name": "counts-1-2-3",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T23:10:21.510Z",
+              "eventId": "obs.hand.pose:2026-11-24T23:10:21.510Z"
+            }
+          },
+          "phase": "FINISHING",
+          "actions": 1
+        },
+        {
+          "name": "counts-3",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T23:10:21.510Z",
+              "eventId": "obs.hand.pose:2026-11-24T23:10:21.510Z"
+            }
+          },
+          "phase": "FINISHING",
+          "actions": 1
+        },
+        {
+          "name": "completed",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T23:10:21.510Z",
+              "eventId": "obs.hand.pose:2026-11-24T23:10:21.510Z"
+            }
+          },
+          "phase": "COMPLETED",
+          "actions": 1
+        },
+        {
+          "name": "final",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-24T23:10:21.510Z",
+              "eventId": "obs.hand.pose:2026-11-24T23:10:21.510Z"
+            }
+          },
+          "phase": "COMPLETED",
+          "actions": 1
+        }
+      ],
+      "silentInputReceipts": [],
+      "commands": [],
+      "stimuli": [
+        {
+          "name": "inputpropose",
+          "sha256": "07dd935655dfb02af1cc13985ff6d0297a37b7aa190a3b0464c33d93b29fc56f"
+        },
+        {
+          "name": "inputacknowledge",
+          "sha256": "1b71ad564dc5d24ebf9b50c92ee70bf2925f639b644e86375adba5686e92ffe9"
+        },
+        {
+          "name": "accept",
+          "sha256": "82b42c3422335ce04c02cb3f65c2aeec63c0c9ab6380badac08d0c2ad7a9895e"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": "RUNNING",
+      "heldFinalPose": {
+        "before": 1,
+        "after": 1
+      },
+      "sequenceSpeech": [
+        {
+          "segment": "854bc2d0-4356-3793-a6bc-5799a34a12e2",
+          "complete": true,
+          "speech": "I saw the fresh sequence on your right hand: one finger, then two, then three."
+        },
+        {
+          "segment": "24b49fdb-2638-3214-a33f-28ebdcc20c74",
+          "complete": true,
+          "speech": "Right, I’ve got it."
+        }
+      ],
+      "removedPersonScene": null,
+      "response": {
+        "id": "bd15c62c-dca5-48be-ad33-8b1b21373b23",
+        "session": "4889eb04-c4aa-4ab4-a0d2-c084afef9480",
+        "epoch": "f08438ac-a246-48a7-9678-8bd9051cc5de",
+        "revision": 4,
+        "status": "CAPTURED",
+        "facts": "A fresh cue authorized this current contribution. Required spoken content: I recognized the full sequence on your right hand: one straight finger, then two, then three. Convey this committed result with equivalent meaning, not an example from the agreement. Say it once; do not add a reflection or aside.",
+        "created": "2026-11-24T23:11:22.315232900Z",
+        "deadline": "2026-11-24T23:12:07.315232900Z",
+        "purpose": "CONTRIBUTION",
+        "unrelatedRemaining": 1,
+        "segment": "854bc2d0-4356-3793-a6bc-5799a34a12e2",
+        "speechOffset": 0
+      },
+      "delivery": {
+        "id": "bd15c62c-dca5-48be-ad33-8b1b21373b23",
+        "session": "4889eb04-c4aa-4ab4-a0d2-c084afef9480",
+        "epoch": "f08438ac-a246-48a7-9678-8bd9051cc5de",
+        "revision": 4,
+        "deadline": "2026-11-24T23:12:22.315232900Z",
+        "status": "PLAYBACK_CONFIRMED",
+        "ended": "2026-11-24T23:11:36.127324700Z",
+        "segment": "854bc2d0-4356-3793-a6bc-5799a34a12e2"
+      },
+      "backendReportedTokens": 28598,
+      "backendRequests": 5,
+      "providerUsageSeconds": 164,
+      "runtime": {
+        "inputSeconds": 30.6585,
+        "textBytes": 69025,
+        "exhausted": null,
+        "rtcElapsedSeconds": 170.4186000000015
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 22,
+      "contributionContext": [
+        {
+          "serverMs": 1795561882333,
+          "phase": "announcement_committed",
+          "type": null,
+          "revision": "afa56124790133abd4d1da6b5a2609f1a33e12957180d7a149096803a6ee9471",
+          "sourceId": "bd15c62c-dca5-48be-ad33-8b1b21373b23",
+          "sequence": 104,
+          "contentBytes": 0,
+          "sourceIds": [
+            "bd15c62c-dca5-48be-ad33-8b1b21373b23"
+          ]
+        },
+        {
+          "serverMs": 1795561883745,
+          "phase": "send",
+          "type": "session.commentary.append",
+          "revision": "e95401263466c4e2b11dc9e9a3896291b36db92e6b1b852410437638dab0482e",
+          "sourceId": "bd15c62c-dca5-48be-ad33-8b1b21373b23",
+          "sequence": 109,
+          "contentBytes": 422,
+          "sourceIds": [
+            "bd15c62c-dca5-48be-ad33-8b1b21373b23"
+          ]
+        },
+        {
+          "serverMs": 1795561884915,
+          "phase": "ack",
+          "type": "session.commentary.append",
+          "revision": "e95401263466c4e2b11dc9e9a3896291b36db92e6b1b852410437638dab0482e",
+          "sourceId": "bd15c62c-dca5-48be-ad33-8b1b21373b23",
+          "sequence": 110,
+          "contentBytes": 422,
+          "sourceIds": [
+            "bd15c62c-dca5-48be-ad33-8b1b21373b23"
+          ]
+        }
+      ],
+      "clarifications": [
+        {
+          "questions": [
+            "What would you like me to do when I recognise the full sequence after acceptance?"
+          ],
+          "heard": "Right, what response do you want after I recognize that sequence?",
+          "input": "inputacknowledge"
+        }
+      ],
+      "workflowVerdict": "PASS for first spoken clarification, explicit consent, ordered cue, action count and held pose",
+      "contributionMediaMs": [
+        [
+          144000,
+          144200,
+          "I saw"
+        ],
+        [
+          144200,
+          144400,
+          " the"
+        ],
+        [
+          144400,
+          144600,
+          " fresh"
+        ],
+        [
+          144600,
+          144800,
+          " sequence"
+        ],
+        [
+          145200,
+          145400,
+          " on"
+        ],
+        [
+          145400,
+          145600,
+          " your"
+        ],
+        [
+          145600,
+          145800,
+          " right"
+        ],
+        [
+          145800,
+          146000,
+          " hand"
+        ],
+        [
+          146200,
+          146400,
+          ":"
+        ],
+        [
+          146800,
+          147000,
+          " one"
+        ],
+        [
+          147000,
+          147200,
+          " finger"
+        ],
+        [
+          147400,
+          147600,
+          ","
+        ],
+        [
+          148000,
+          148200,
+          " then"
+        ],
+        [
+          148200,
+          148400,
+          " two"
+        ],
+        [
+          148800,
+          149000,
+          ","
+        ],
+        [
+          149000,
+          149200,
+          " then"
+        ],
+        [
+          149200,
+          149400,
+          " three"
+        ],
+        [
+          149600,
+          149800,
+          "."
+        ],
+        [
+          152800,
+          153000,
+          "Right"
+        ],
+        [
+          153000,
+          153200,
+          ","
+        ],
+        [
+          153600,
+          153800,
+          " I’ve"
+        ],
+        [
+          153800,
+          154000,
+          " got"
+        ],
+        [
+          154000,
+          154200,
+          " it."
+        ]
+      ]
     }
   ]
 }

@@ -108,3 +108,30 @@ test('ordinary cue accepts a captured paraphrase and checks the whole native res
     assert.throws(()=>requireAcknowledgement(words.map(segment),response),/Repeated/);
   assert.throws(()=>requireAcknowledgement([segment('Got it.')],{...response,segment:'old'}),/No captured/);
 });
+
+test('an inactive failed cup proposal keeps its verdict and still exercises Visitor removal',async()=>{
+  const report={},commands=[],events=[],state={'task.phase':'CONFIGURATION'};
+  let refreshScene;
+  const context={
+    report,memory:async()=>state,history:async()=>events,
+    api:async(route,method,body)=>{
+      if(route==='/hand-scene/binding')state['hand.scene.selected.v1']=body.target;
+      return body;
+    },
+    observe:async(type,sample)=>{
+      if(type==='obs.scene.targets')state['hand.scene.observed.v1']={...sample,targets:sample.targets.map(t=>({...t,id:'scope:'+t.id}))};
+      if(type==='obs.hand.pointing')events.push({type,payload:JSON.stringify({...sample,resolution:{status:'ambiguous'}})});
+      return sample;
+    },
+    runPump:async callbacks=>{refreshScene=callbacks[0];},wait:async()=>refreshScene(),
+    command:async(name,status)=>commands.push([name,status]),
+    propose:async()=>{throw Error('The cup proposal was interrupted');},
+    until:async(label,read)=>{const value=await read();assert.ok(value,label);return value;}
+  };
+  await assert.rejects(()=>runHandScenario('L-06',context),/cup proposal was interrupted/);
+  assert.equal(report.cupTaskError,'The cup proposal was interrupted');
+  assert.deepEqual(commands,[['cupambiguous','CLARIFY'],['personshow','ACCEPTED'],['personrepeat','CLARIFY']]);
+  assert.equal(report.removedPersonScene.removed.id,'scope:visitor');
+  assert.ok(report.removedPersonScene.remaining.includes('scope:cup-a'));
+  assert.ok(!report.removedPersonScene.remaining.includes('scope:visitor'));
+});

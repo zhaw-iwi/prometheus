@@ -18,10 +18,16 @@ export function handReplyObserved({index,startMs}) {
 
 // The scripted visitor waits for an audible invitation before supplying a missing choice.
 // Semantic review still checks which choice the full prompt asked for.
-export function spokenClarification(events,beforeIds){
-  const replies=events.filter(e=>!beforeIds.includes(e.id)&&e.type==='resp.behaviour_plan'
+function completeReplies(events,beforeIds){
+  return events.filter(e=>!beforeIds.includes(e.id)&&e.type==='resp.behaviour_plan'
     &&e.provenance?.origin==='NATIVE'&&e.provenance.complete).map(e=>JSON.parse(e.payload).speech||'');
-  return replies.find(text=>/[?？]|\b(tell me|let me know|choose|pick|specify|what would|how should|what should)\b/i.test(text));
+}
+export function spokenClarification(events,beforeIds){
+  return completeReplies(events,beforeIds).find(text=>/[?？]|\b(tell me|let me know|choose|pick|specify|what would|how should|what should)\b/i.test(text));
+}
+
+export function spokenPreparation(events,beforeIds){
+  return completeReplies(events,beforeIds).find(text=>/(?:^|[.!?;:]\s*|\bplease\s+|\b(?:can|could) you\s+)(?:please\s+)?(?:demonstrate|show me|let me see)\b/i.test(text));
 }
 
 export async function playHandStimulus({pcmBase64,name}) {

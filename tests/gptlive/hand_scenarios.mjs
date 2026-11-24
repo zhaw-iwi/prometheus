@@ -126,7 +126,17 @@ export async function runHandScenario(mode,c){
     await command('cupambiguous','CLARIFY',{});
     const bind=async(id,label,destination)=>{const targets=(await memory())['hand.scene.observed.v1'].targets,target=targets.find(t=>t.id.endsWith(':'+id));assert.ok(target);await api('/hand-scene/binding','POST',{target:f.ref(target),label,destination:f.ref(scene.targets[destination])});return(await memory())['hand.scene.selected.v1'];};
     const cup=await bind('cup-a','My cup',0);ambiguous=false;await wait(750);
-    await propose('cuppropose',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,cup)));await prepare(f.point,'obs.hand.pointing');await negative(()=>f.point('left'),'obs.hand.pointing');await finish(f.point,'obs.hand.pointing');
+    let cupError;
+    try{
+      await propose('cuppropose',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,cup)));
+      await prepare(f.point,'obs.hand.pointing');await negative(()=>f.point('left'),'obs.hand.pointing');
+      await finish(f.point,'obs.hand.pointing');
+    }catch(error){
+      report.cupTaskError=error.message;
+      const state=await memory();
+      if(!['CONFIGURATION','COMPLETED','UNCERTAIN'].includes(state['task.phase']))throw error;
+      cupError=error; // Keep the failed verdict while exercising the independent direct commands.
+    }
     const visitor=await bind('visitor','Visitor',1);await command('personshow','ACCEPTED',{kind:'point',verify:m=>{const a=actionOf(m);assert.deepEqual(a.target,visitor);assert.deepEqual(a.resolved.position,{x:-3,y:2,z:0});}});
     person=false;
     const removedAt=Date.now();
@@ -139,6 +149,7 @@ export async function runHandScenario(mode,c){
     report.removedPersonScene={observationId:sceneWithoutVisitor.observationId,capturedAt:sceneWithoutVisitor.ts,
       removed:visitor,remaining:sceneWithoutVisitor.targets.map(t=>t.id)};
     await command('personrepeat','CLARIFY',{});
+    if(cupError)throw cupError;
   }else if(mode==='L-07'){
     const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}),{clarification:c.literalSequence?'inputclarify':'inputacknowledge',requireClarification:true});
     const sequence=draft.checks[0].handSequence;

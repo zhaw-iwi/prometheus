@@ -9,7 +9,7 @@ import {openValerianSession} from '../playwright/fixtures/valerian-session.mjs';
 import {captureHandFrames} from '../playwright/fixtures/hand-frames.mjs';
 import {trialCapture} from './trial_capture.mjs';
 import {handBudgetCapture} from './hand_budget_capture.mjs';
-import {playHandStimulus,handReplyObserved,spokenClarification,outboundHandAudio} from './hand_audio_input.mjs';
+import {playHandStimulus,handReplyObserved,spokenClarification,spokenPreparation,outboundHandAudio} from './hand_audio_input.mjs';
 import {startObservationPumps} from './hand_observation_pump.mjs';
 import {armingReady,speechLatency,conversationLatency,compareConversations} from './commanding_evidence.mjs';
 import {runHandScenario} from './hand_scenarios.mjs';
@@ -112,7 +112,7 @@ async function observe(type,payload,{retain=true}={}){const startedAt=Date.now()
     error=cause.message;
     throw new Error(`${type} ${payload.observationId} captured ${payload.ts}, failed after ${Date.now()-startedAt} ms: ${error}`,{cause});
   }finally{if(report.observationTimings.length<2048)report.observationTimings.push({type,id:payload.observationId,capturedAt:payload.ts,startedAt,finishedAt:Date.now(),error});else report.observationTimingsDropped++;}}
-async function propose(name,verify,{clarification,requireClarification=false}={}){const opening=await say(name);let m=await until('saved draft',async()=>{const m=await memory();return m['coordination.draft']?m:null;});
+async function propose(name,verify,{clarification,requireClarification=false}={}){let proposalTurn=await say(name);let m=await until('saved draft',async()=>{const m=await memory();return m['coordination.draft']?m:null;});
   assert.ok(!m['coordination.agreement']);assert.equal(m['task.actions']||0,0);
   if(requireClarification)assert.ok(clarification&&m['coordination.draft'].questions.length,'The unspecified response needs clarification');
   if(clarification&&m['coordination.draft'].questions.length){
@@ -120,17 +120,26 @@ async function propose(name,verify,{clarification,requireClarification=false}={}
     // that question has finished, as a person would in this happy path.
     const question=m['core.task.response'];assert.ok(question?.proposalReview);
     await until('completed clarification question',async()=>{const response=(await memory())['core.task.response'];return response?.id===question.id&&response.consumed;});
-    const heard=await until('audible invitation to clarify the missing choice',async()=>spokenClarification(await history(),opening.beforeIds));
+    const heard=await until('audible invitation to clarify the missing choice',async()=>spokenClarification(await history(),proposalTurn.beforeIds));
     await quiet();await checkpoint('clarification-question-completed');
     const previous=JSON.stringify(m['coordination.draft']);report.clarifications??=[];report.clarifications.push({questions:m['coordination.draft'].questions,heard,input:clarification});
-    await say(clarification);m=await until('clarified draft',async()=>{const next=await memory();return next['coordination.draft']&&JSON.stringify(next['coordination.draft'])!==previous?next:null;});
+    proposalTurn=await say(clarification);m=await until('clarified draft',async()=>{const next=await memory();return next['coordination.draft']&&JSON.stringify(next['coordination.draft'])!==previous?next:null;});
   }
   const draft=m['coordination.draft'];assert.deepEqual(draft.questions,[]);assert.ok(draft.checks.length>0,'Recognition preparation required');assert.equal(draft.reactions.maxActions,1);assert.equal(draft.reactions.firstAction,'ON_CUE');
   assert.ok(!m['coordination.agreement']);assert.ok(!m['task.actions']);verify(draft);report.proposal=structuredClone(draft);
   // The immediate native reply can precede the backend's preparation request.
   // Let that request finish before supplying the demonstration and its review.
-  const request=m['core.task.response'];assert.ok(request?.supportOnly);
-  await until('completed preparation request',async()=>{const response=(await memory())['core.task.response'];return response?.id===request.id&&response.consumed;});
+  const request=m['core.task.response'];
+  report.preparationPrompt=await until('completed preparation request',async()=>{
+    const state=await memory(),response=state['core.task.response'];
+    assert.deepEqual(state['coordination.draft'],draft,'Preparation terms changed');
+    assert.ok(!state['coordination.agreement']&&!state['task.actions'],'Preparation must stay inactive');
+    if(response?.supportOnly&&response.consumed&&(!request||response.id===request.id))return {id:response.id};
+    if(response)return null;
+    // A new visitor fragment can clear the occasion after Live has spoken it.
+    const heard=spokenPreparation(await history(),proposalTurn.beforeIds);
+    return heard?{heard}:null;
+  });
   await quiet();await checkpoint('preparation-request-completed');return draft;}
 async function ready(){await until('all recognition checks and completed native review',async()=>{const m=await memory(),review=m['core.task.response'];return Object.keys(m['coordination.evidence']||{}).length===m['coordination.draft'].checks.length&&review?.proposalReview&&review.consumed;});await quiet();await checkpoint('prepared');}
 async function waitForConsentRepair(){
