@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import subprocess
-from hand_paid import PLAN, EXTENSION, SECOND_EXTENSION, THIRD_EXTENSION, CONTINUATION, CONTINUATION_EXTENSION, SECOND_CONTINUATION_EXTENSION, validate, reserve, history, available_budget, checkpoint_history, restore_checkpoint
+from hand_paid import PLAN, EXTENSION, SECOND_EXTENSION, THIRD_EXTENSION, CONTINUATION, CONTINUATION_EXTENSION, SECOND_CONTINUATION_EXTENSION, L07_EXTENSION, validate, reserve, history, available_budget, checkpoint_history, restore_checkpoint
 
 
 class HandPaidBudgetTest(unittest.TestCase):
@@ -35,7 +35,7 @@ class HandPaidBudgetTest(unittest.TestCase):
             changed = copy.deepcopy(plan); changed[key] = value
             with self.assertRaises(ValueError): validate(changed, 'gpt-6.2-sol')
 
-    def test_all_prior_reservations_survive_and_continuation_stops_at_90(self):
+    def test_all_prior_reservations_survive_and_continuation_stops_at_95(self):
         with tempfile.TemporaryDirectory() as directory:
             ledger = Path(directory) / 'hand.json'
             old = checkpoint_history()
@@ -46,11 +46,12 @@ class HandPaidBudgetTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Invalid hand ledger'): reserve('L-02', directory, ledger)
             self.assertEqual(shortened,json.loads(ledger.read_text(encoding='utf-8')))
             ledger.write_text(json.dumps(old),encoding='utf-8')
-            for i in range(len(old['attempts']), 106):
-                self.assertEqual(186+5*(i-87), reserve('L-02', Path(directory) / str(i+1), ledger)['reservedUsd'])
-            with self.assertRaisesRegex(ValueError, 'exhausted'): reserve('L-02', directory, ledger)
+            with self.assertRaisesRegex(ValueError, 'invalid selection'): reserve('L-02', directory, ledger)
+            for i in range(len(old['attempts']), 107):
+                self.assertEqual(186+5*(i-87), reserve('L-07', Path(directory) / str(i+1), ledger)['reservedUsd'])
+            with self.assertRaisesRegex(ValueError, 'exhausted'): reserve('L-07', directory, ledger)
             data=history(ledger)
-            self.assertEqual(276, data['reservedUsd'])
+            self.assertEqual(281, data['reservedUsd'])
             self.assertEqual(old['attempts'], data['attempts'][:len(old['attempts'])])
             self.assertEqual(data, restore_checkpoint(ledger))
             self.assertTrue(all(a['extensionAuthorization']==EXTENSION for a in data['attempts'][22:36]))
@@ -62,7 +63,8 @@ class HandPaidBudgetTest(unittest.TestCase):
             self.assertTrue(all(a['extensionAuthorization']==THIRD_EXTENSION for a in data['attempts'][66:88]))
             self.assertTrue(all(a['extensionAuthorization']==CONTINUATION for a in data['attempts'][88:96]))
             self.assertTrue(all(a['extensionAuthorization']==CONTINUATION_EXTENSION for a in data['attempts'][96:97]))
-            self.assertTrue(all(a['extensionAuthorization']==SECOND_CONTINUATION_EXTENSION for a in data['attempts'][97:]))
+            self.assertTrue(all(a['extensionAuthorization']==SECOND_CONTINUATION_EXTENSION for a in data['attempts'][97:106]))
+            self.assertEqual(('L-07', L07_EXTENSION), (data['attempts'][106]['mode'],data['attempts'][106]['extensionAuthorization']))
             del data['attempts'][36]['extensionAuthorization']
             ledger.write_text(json.dumps(data),encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'Invalid hand ledger'): history(ledger)

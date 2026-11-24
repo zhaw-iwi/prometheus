@@ -4,8 +4,8 @@
   "baselineRevision": "025697df95ea1e1d4b62cfad9a7550a1d88e9a26",
   "budget": {
     "authorization": "hand-interaction-2026-11-23-usd50",
-    "maximumReservedUsd": 276,
-    "maximumAttempts": 106,
+    "maximumReservedUsd": 281,
+    "maximumAttempts": 107,
     "reserveUsdPerAttempt": 5,
     "ledger": "target/hand-interaction-budget.json",
     "includes": [
@@ -16,8 +16,8 @@
       "grading"
     ],
     "pricingVerified": true,
-    "allocationRevision": 12,
-    "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-second-usd20"
+    "allocationRevision": 13,
+    "extensionAuthorization": "hand-interaction-2026-11-24-l07-usd5"
   },
   "baselineCeilings": {
     "realProviderRequests": 0,

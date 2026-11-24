@@ -3,8 +3,8 @@
   "authorized": true,
   "authorization": "hand-interaction-2026-11-23-usd50",
   "dated": "2026-11-23",
-  "maximumAttempts": 106,
-  "maximumReservedUsd": 276,
+  "maximumAttempts": 107,
+  "maximumReservedUsd": 281,
   "reserveUsdPerAttempt": 5,
   "models": {
     "backend": "gpt-6.2-sol",
@@ -48,10 +48,10 @@
   },
   "stimulus": "Locally synthesized Windows speech, 24kHz mono PCM. Controlled sensor/scene observations; real provider interpretation, speech and capture. No provider synthesis or grading.",
   "rubric": "Review complete captured replies and received native audio, plus synchronized visible output. Wrong sign, side, direction, target, order, roles, terms, count, renewed consent after activation, premature execution, false cancellation, denial or completion claim fails. Missing evidence is INCONCLUSIVE. GPT-Live strict silence is unsupported by owner decision 2026-11-24; truthful optional native speech is allowed. No backend playback approval, buffering, muting or replacement TTS may make Live pass. Text/Continuous strict silence is verified separately. Sensor fixtures do not prove camera accuracy; digital receipts do not prove physical actuation. Preserve revision-1 failures; require new revision-2 evidence.",
-  "failurePolicy": "Keep every failed/crashed reservation and artifact. No refunds, ledger reset or automatic paid retries. Ten initial sessions cover L-01..08 and separate L-09 sessions. Further diagnostic attempts require explicit selection, within 106 total attempts and USD 276 reserved.",
-  "allocationRevision": 12,
-  "allocationReason": "Allocation 12 adds USD 20 to the USD 70 continuation from entry 89. Preserve all 97 prior reservations totaling USD 231. Each new selection reserves USD 5 across provider routes. The continuation cap is USD 90 and the cumulative cap is USD 276.",
+  "failurePolicy": "Keep every reservation, including failures. Allocation 13 permits only one L-07 selection. A retry requires new authorization.",
+  "allocationRevision": 13,
+  "allocationReason": "Allocation 13 authorizes one L-07 run after 106 entries and USD 276 reserved. The continuation cap is USD 95 and the cumulative cap is USD 281.",
   "acceptanceRevision": 2,
-  "extensionAuthorization": "hand-interaction-2026-11-24-live-continuation-second-usd20",
+  "extensionAuthorization": "hand-interaction-2026-11-24-l07-usd5",
   "backendReasoningEffort": "low"
 }
