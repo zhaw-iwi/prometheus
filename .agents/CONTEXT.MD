@@ -140,6 +140,8 @@ Allocation 12 subsequently raised the cap to $90 at entry 97/$231, leaving $45.
 Coordination capture compares a possible interruption during native output with
 continuous all-zero input and a recent reflected output media clock. Verified
 silent receipts stay in the transcript ledger without becoming user turns.
+L-02 passed at 98. L-06 reached stale-target rejection and L-01 reached the
+final peace sign, but their spoken answers failed. At 100/$246, $30 remained.
 See `.agents/HAND_INTERACTION_RESULTS.md` for individual outcomes. Isolated tests
 use GPT-6.2 Sol (low) and GPT-Live-1.1. Measured billing is unavailable.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,

@@ -94,7 +94,9 @@ The capture fix checks for sustained all-zero input around a caption using a
 recent reflected output clock. Missing or discontinuous coverage retains normal
 handling. Nonzero input, even below the speech detector threshold, also retains
 normal handling. A verified silent caption keeps an individually identified
-ledger receipt. Native output and explicit consent keep their existing owners. See the [attempt 97 evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-extension.json).
+ledger receipt. Native output and explicit consent keep their existing owners.
+L-02 passed at 98. L-06 reached stale-target rejection and L-01 reached the
+final peace sign, but their spoken answers failed. At 100/$246, $30 remained. See the [attempt 97 evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-extension.json).
 
 ## Findings carried into this continuation
 

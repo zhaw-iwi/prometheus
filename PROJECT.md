@@ -108,6 +108,8 @@ and regulation diagnostics remain future work.
   The ledger has 97 entries/$231 reserved, leaving $25 available.
   At entry 97, allocation 12 raised the continuation limit to $90 and the
   cumulative ceiling to $276. The starting reservation balance is $45.
+  L-02 passed at 98. L-06 reached stale-target rejection and L-01 reached the
+  final peace sign, but their spoken answers failed. At 100/$246, $30 remained.
   [Results](.agents/HAND_INTERACTION_RESULTS.md) ·
   [Restoring the latest budget checkpoint](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 

@@ -1740,3 +1740,50 @@ segmenter closed the review as `INCOMPLETE/user_interrupted` with both silent
 and voiced input controls. Next, test turn admission against time-aligned input
 audio for this case, a quiet genuine interruption, and missing or delayed audio.
 Preserve explicit consent and interruption handling. HI-12 and L-02 remain open.
+
+### Allocation 12, acoustic input checks and Live hand journeys
+
+The owner added $20 at 97 attempts/$231, raising the continuation ceiling to
+$90 and the cumulative ceiling to $276. Each selection reserves $5. The
+[portable results](checkpoints/hand-interaction-2026-11-24/live-continuation-extension-2.json)
+retain the individual reservations, reviewed speech, screenshot hashes and
+active command evidence.
+
+Attempt 97's review replay now distinguishes exact digital zero from low-level
+sound. The input sideband has no media timestamps. Capture uses continuous
+sample counts, fresh timestamped reflected output and a margin around the
+caption, including subsequent microphone samples. Quiet nonzero input, missing
+samples, late sound and captions outside the covered interval keep ordinary
+interruption handling. A silent receipt is stored as IGNORED with its original
+ID. The browser resolves that outcome without cancelling an acknowledgement-
+capable playback cue. Native speech continues independently.
+[Provider sideband timing](https://developers.openai.com/api/docs/guides/voice-server-controls?api=realtime&site_locale=en)
+
+Before the paid run, 373 focused Java tests, 48 isolated MySQL tests, six browser
+cases, 42 Node tests, 45 Python tests, nine schema examples and packaging passed.
+
+- **98, L-02, PASS** (`9224619503`). The original visitor recording ended
+  4.22 seconds before native audio began. The proposal preserved the two-hand
+  pattern, the review completed and explicit consent armed it. A fresh combined
+  cue spent one action. The independent direct request produced the same pose.
+  Both active images and the 129.78-second recording transcription were reviewed.
+  The matching renderer update was sent 2.372 seconds after the receipt commit
+  trace and acknowledged 0.767 seconds later. Live began saying it awaited
+  confirmation before the send. No preceding claim of confirmed display or
+  request for another demonstration occurred. No silent-caption receipt was
+  observed in this paid run. The silence distinction was exercised offline.
+- **99, L-06, semantic FAIL** (`fa8f083786`). The backend clarified two cups,
+  accepted the selected cup, repaired truncated consent, said “ready” once and
+  pointed at the selected Visitor. After removal, the repeat returned CLARIFY
+  and produced no motion. The complete 157.80-second audio and person-point
+  image were reviewed. Live said “I sent the second pointing for Visitor.”
+  The “I sent” caption reached the server 1.510 seconds before the CLARIFY send.
+  Earlier fresh scene updates omitted Visitor but carried no explicit statement
+  that the previous selection had disappeared.
+- **100, L-01, semantic FAIL** (`153e416371`). The full review, explicit consent,
+  two independent thumbs-up commands, fresh thumbs-up cue and one right-hand
+  peace sign passed. All three active sign images and the full local audio
+  transcription were reviewed. Live said it could point “only to registered
+  targets”, although eight robot-relative directions need no target.
+
+At entry 100 the ledger totaled $246, with $30 of the $90 continuation available.
