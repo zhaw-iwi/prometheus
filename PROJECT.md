@@ -86,17 +86,22 @@ and regulation diagnostics remain future work.
   people/items, HI-09 input sequences, HI-10 output sequences/counting and HI-11
   integrated acceptance are complete and pushed; HI-12 real-provider acceptance is
   incomplete. The owner approved $20 and $30 extensions on 2026-11-24, for a
-  cumulative $100 reservation ceiling; actual billing is unavailable.
-  Latest named signs and paired conversation/latency pass, as do all mode checks.
-  Other earlier passes do not override final native-speech contradictions,
-  clarification errors and invalid START output; person/item acceptance remains
-  incomplete. All 66 reservations/$100 are used and further paid selections fail
-  closed. The original 36-entry/$70 ledger prefix is unchanged.
+  cumulative $100 reservation ceiling, followed by another $100 authorization
+  ($200 cumulative); actual billing is unavailable.
+  Final paired conversation/latency and all mode checks pass. Final hand journeys
+  remain failed/inconclusive: native speech can contradict accepted output,
+  reviews can exceed capture bounds, provider acceptance captions can truncate,
+  and an unqualified OK request acted before clarification. Earlier complete
+  pose/counting passes remain recorded. The checkpoint ends at 88 reservations/
+  $186; $14 is unreserved, with two $5 selections available under allocation 9.
+  Final isolated tests use GPT-6.2 Sol low / GPT-Live-1.1; production settings are
+  unchanged. 363 Java units, 48 local-MySQL tests, six browser cases, 45 Python
+  tests, 16 Node tests, nine schemas and packaging pass. HI-12 remains open.
   The 2026-11-24 owner decision leaves strict silence
   unsupported in GPT-Live, preserving independent native speech; Text/Continuous
   silence is verified. Original failures remain unchanged.
   The owner authorized sequential implementation,
-  commit/push after each milestone, and now at most $100 cumulative provider spend.
+  commit/push after each milestone, and now at most $200 cumulative provider spend.
   No deployment. Evidence: [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
 - Main synchronization and Live acknowledgement hooks (2026-11-23): merged remote
@@ -10475,4 +10480,41 @@ later selected-label enrichment has three unit tests, not a claimed DB rerun.
 All 30 new paid attempts have complete local audio review and unchanged source
 manifests during execution. No deployment, agents merge, remote DB work or
 physical trials. Exact failures and required final-source retests remain in
+[.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+
+### HI-12 third-extension checkpoint: contract fixes and bounded acceptance (2026-11-24)
+
+The owner authorized another $100, for a cumulative $200 reservation ceiling.
+This checkpoint preserves all prior entries and records 22 additional attempts/
+$86, reaching 88 attempts/$186. Actual billing is unavailable. $14 remains
+unreserved; allocation 9 allows two more $5 selections, with none queued. The
+ledger minimum is now 88, so shortened history cannot reopen used allowance.
+
+Completed-task facts no longer restrict independent immediate demonstrations.
+Partial-proposal clarification updates newly supplied roles/success while complete
+agreements retain protected terms. Exact imperative acceptance uses existing
+preparation/consent guards. Live proposal narration is omitted from model output,
+and every remaining speech intent retains the runtime 350-character limit.
+Native control guidance is concise; each split sensor append keeps quiet-reference
+framing and its original expiry. The driver waits for actual native playback and
+requires distinct sequence captures spanning the agreed dwell despite slow HTTP.
+
+Isolated model evaluation progressed to GPT-6.2 Sol low / GPT-Live-1.1 without
+changing production settings. Earlier complete custom-pose and clarified-counting
+runs passed. Final paired ordinary conversation/latency and Text/Continuous
+silence/native ownership checks pass. Final L-01..08 remain failed or inconclusive:
+native statements can contradict correct backend output, long reviews can exceed
+capture bounds, acceptance input captions can truncate, and an unqualified OK
+request acted before clarification. Correct backend/visual output is not relabeled
+as complete Live acceptance. HI-12 remains **INCOMPLETE**.
+
+Verification: 363 Java unit tests in 28 suites; 48 isolated local-MySQL tests;
+six Playwright cases including both strict-silence modes and native Stop/mode/
+playback ownership; 45 Python tests, including a failing-then-passing shortened-
+ledger regression; 16 Node harness tests; nine schema examples; packaging and diff
+checks. All 22 paid attempts retain full local audio review and unchanged source
+manifests during execution. Final runtime/harness sweep is attempts 79–88; only
+documentation and the ledger-minimum preflight changed afterward. Scoped runner
+apps/schemas/accounts were cleaned; the existing local MySQL remains. No remote
+DB, deployment, agents merge or physical trials. Detailed outcomes and artifacts:
 [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).

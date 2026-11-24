@@ -13,6 +13,23 @@ import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 class LiveContextDeliveryUnitTest {
     static final UUID AGENT = UUID.randomUUID(), EPOCH = UUID.randomUUID();
+    @Test void everySplitSensorChunkRemainsQuietAndKeepsItsOriginalExpiry() {
+        var initial = snapshot("r0", "Guide");
+        var delivery = new LiveContextDelivery(initial); delivery.ready();
+        var source = UUID.randomUUID(); var expires = Instant.EPOCH.plusSeconds(3);
+        var item = new LiveContextSnapshot.Item("scene", "obs.scene.targets", "developer", List.of(source),
+                Instant.EPOCH, Instant.EPOCH, expires, "fresh", "Selected target is reference data. ".repeat(30));
+        var commands = delivery.plan(snapshot("r1", "Guide", item), List.of()).commands();
+        assertTrue(commands.size() > 1);
+        for (var command : commands) {
+            assertEquals("session.thinking.append", command.type());
+            assertTrue(command.content().startsWith("Silent context only; do not speak or act on this update."));
+            assertEquals(source, command.sourceId()); assertEquals(expires, command.expiresAt());
+            assertTrue(command.content().getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= LiveContextDelivery.MAX_APPEND_BYTES);
+            assertTrue(command.expiredAt(expires));
+            assertFalse(command.expired().content().contains("Selected target"));
+        }
+    }
     @Test void playbackCueIsVisibleBeforeProviderAcknowledgementAndRemovedOnClose() throws Exception {
         var contexts = mock(LiveAgentContextService.class);
         var initial = snapshot("r0", "Old guidance"); var owner = new ExternalSpeech(UUID.randomUUID(), EPOCH);
@@ -398,7 +415,7 @@ class LiveContextDeliveryUnitTest {
         assertEquals(4, batch.commands().size(), "One append per small fact, no removal or revision-only append");
         var first = batch.commands().getFirst();
         assertTrue(first.content().contains("2 people visible"));
-        assertTrue(first.content().contains("obs.social.context replaces prior value"));
+        assertTrue(first.content().contains("CURRENT obs.social.context;"));
         assertFalse(batch.commands().stream().anyMatch(command -> command.content().contains("removed")));
         assertEquals(social.sourceIds().getFirst(), first.sourceId());
         assertEquals(face.sourceIds().getFirst(), batch.commands().get(1).sourceId(), "Current face precedes derived counts");

@@ -115,6 +115,7 @@ public final class CoordinationMemory {
             case "PAUSED" -> "Explicitly resume, revise or stop.";
             case "FINISHING" -> "No further action is allowed. Waiting for required speech/hand playback receipts; delivery is not yet confirmed.";
             case "UNCERTAIN" -> "Final delivery is uncertain. No automatic repeat. Reflect, revise, return, or explicitly restart with a fresh budget.";
+            case "REFLECTION" -> "No active task. Its limits do not constrain new immediate requests; the backend checks each separately. Reflect, revise or explicitly restart the finished task.";
             default -> "Reflect, revise or explicitly restart the same task.";
         } + " Return to conversation is always available and preserves history. Ambiguous start over needs clarification.";
     }
@@ -155,7 +156,7 @@ public final class CoordinationMemory {
                 ? "Last accepted cue: rule " + storage.get(LAST_CUE).getAsJsonObject().get("rule").getAsInt()
                     + "; output requests do not prove physical execution. " : "";
         return prefix + cue + (key.equals(DRAFT) ? "PROPOSAL, NOT ACTIVE. Recognised preparation checks: " + evidence(storage).keySet()
-                + ". " : "Accepted agreement: ") + agreement.json();
+                + ". " : "REFLECTION".equals(stage(storage)) ? "Finished agreement (history only): " : "Accepted agreement: ") + agreement.json();
     }
     /** Voice navigation is a projection; executable terms remain in facts()/Storage in full. */
     public static String voiceFacts(Storage storage) {

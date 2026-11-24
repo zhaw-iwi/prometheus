@@ -1,5 +1,25 @@
 # GPT-Live acceptance
 
+## Hand acceptance third extension (2026-11-24)
+
+The owner approved an additional $100 reservation allocation. Allocation 9
+preserves all **78 attempts/$136** and permits at most **twelve new $5 attempts**
+(90 total/$196 reserved), below the $200 cumulative ceiling. Earlier allocations
+and their reservation amounts remain intact; new entries use
+`hand-interaction-2026-11-24-usd100-extension`. Current isolated tests use
+`OPENAI_MODEL=gpt-6.2-sol` with low reasoning and `gpt-live-1.1`, without changing
+production model settings. At most ten backend calls give a conservative bound
+of $4.6572 per attempt; all other technical caps and acceptance revision 2 remain. Missing/shortened/corrupted ledgers fail closed. No refunds or automatic
+paid retries. Run targeted offline reproductions before selecting paid cases.
+
+Checkpoint: **88 attempts/$186 reserved**, with **$14 unreserved** and two $5
+selections still available under allocation 9. No more requests are queued.
+The ledger must retain all 88 entries; shortened history rejects before spending.
+Final paired L-09 and M-01/M-02 pass; L-01..08 remain failed or inconclusive.
+See the evidence ledger for native contradictions, overlong review capture,
+truncated acceptance captions and the unqualified-OK interpretation failure.
+Do not reset the ledger or treat earlier passes as final acceptance.
+
 ## Hand acceptance second extension (2026-11-24)
 
 The owner approved another $30 after the earlier $20 extension. Allocation 6

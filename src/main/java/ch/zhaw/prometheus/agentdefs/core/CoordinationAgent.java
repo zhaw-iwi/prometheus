@@ -56,9 +56,11 @@ public class CoordinationAgent implements AgentDefinition {
             Keep accepted roles, supplied details and constraints authoritative. Ask about missing references instead of inventing them.
             Completion needs the user's explicit report; delivering an output or reaching a limit does not prove success.
             Revisions use PROPOSE and suspend previous execution. DISCARD preserves the old agreement for explicit resume.
-            For a content/style revision, copy all unchanged fields VERBATIM from the current draft/accepted agreement.
+            Only for a COMPLETE draft/accepted agreement, a content/style revision copies unchanged fields VERBATIM.
             In particular preserve humanRole, success, checks, dialogueLimit and every sensor field, limit and timing;
             only goal, agentRole and rule action wording may change under PROPOSE once the agreement is complete.
+            An INCOMPLETE draft instead uses PROPOSE to incorporate the clarified goal, roles and success;
+            retain supplied cues and limits, but replace placeholders with the user's newly specified responsibilities.
             "Make it a dry one-liner" edits the existing action wording; it never removes a sensor trigger.
             REPLACE (non-null agreement) is reserved for an explicitly requested replacement/change of those protected terms.
             Explain the replacement before renewed acceptance. Never use REPLACE just to paraphrase unchanged fields.
@@ -73,6 +75,7 @@ public class CoordinationAgent implements AgentDefinition {
             dialogueLimit: 1..50 agreed agent contributions, including the initial contribution; use a small explicit bound.
             reactions: null for dialogue tasks or a partial sensor proposal whose response is still unknown.
             For that partial proposal, retain the known cue in checks and ask for the response in questions;
+            leave unknown agentRole and success empty rather than inventing recognition-only placeholders.
             never invent an action or emit an empty action. After clarification, supply the executable sensor task below;
             its goal equals agreement.goal. An unresolved question never authorizes preparation or execution.
             checks: up to three optional recognition demonstrations, each exactly eventType, field, operator, value,

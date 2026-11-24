@@ -9,7 +9,7 @@ import {openValerianSession} from '../playwright/fixtures/valerian-session.mjs';
 import {synchronizeEmbodimentFrame} from '../playwright/fixtures/embodiment-frame.mjs';
 import {trialCapture} from './trial_capture.mjs';
 import {handBudgetCapture} from './hand_budget_capture.mjs';
-import {playHandStimulus} from './hand_audio_input.mjs';
+import {playHandStimulus,handReplyObserved} from './hand_audio_input.mjs';
 import {startObservationPumps} from './hand_observation_pump.mjs';
 import {armingReady,speechLatency,conversationLatency,compareConversations} from './commanding_evidence.mjs';
 import {runHandScenario} from './hand_scenarios.mjs';
@@ -21,9 +21,9 @@ if(permission!=='--allow-paid-provider'||!output||!/^L-0[1-9](-comparison)?$/.te
     ||!['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname))throw Error('Use the isolated authorized hand runner');
 const plan=JSON.parse(fs.readFileSync(process.env.PROMETHEUS_HAND_PAID_PLAN)),reservation=JSON.parse(fs.readFileSync(ledger));
 assert.equal(reservation.authorization,'hand-interaction-2026-11-23-usd50');
-assert.ok(reservation.attempts.length<=66&&reservation.reservedUsd<=100);
+assert.ok(reservation.attempts.length<=90&&reservation.reservedUsd<=200);
 const directory=path.dirname(path.resolve(output));
-assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===1&&a.allocationRevision===plan.allocationRevision&&a.extensionAuthorization===plan.extensionAuthorization&&path.resolve(a.artifact)===directory));
+assert.ok(reservation.attempts.some(a=>a.mode===mode&&a.reservedUsd===5&&a.allocationRevision===plan.allocationRevision&&a.extensionAuthorization===plan.extensionAuthorization&&path.resolve(a.artifact)===directory));
 fs.writeFileSync(path.join(directory,'provider-attempt.started'),new Date().toISOString(),{flag:'wx'});
 const clips=JSON.parse(fs.readFileSync(new URL('./hand-cases.json',import.meta.url))),stimulus=JSON.parse(fs.readFileSync('target/hand-interaction-audio/manifest.json'));
 assert.equal(stimulus.providerCalls,0);assert.equal(stimulus.sampleRate,24000);
@@ -54,7 +54,7 @@ async function say(name,{reply=true}={}){
   assert.equal(clip.text,clips[name]);assert.equal(createHash('sha256').update(bytes).digest('hex'),clip.sha256);console.log('Visitor: '+name);
   turn.input=await page.evaluate(playHandStimulus,{pcmBase64:bytes.toString('base64'),name});
   await until('durable user '+name,async()=>(await history()).some(e=>!turn.beforeIds.includes(e.id)&&e.type==='obs.user_utterance'));
-  if(reply){await page.waitForFunction(i=>__trial.events.slice(i).some(e=>e.type==='session.output_transcript.delta'),turn.index,{timeout:35000});await quiet();}
+  if(reply){await page.waitForFunction(handReplyObserved,{index:turn.index,startMs:turn.input.startMs},{timeout:35000});await quiet();}
   await updateTurn(turn);if(reply)assert.ok(Number.isFinite(turn.latency.speechEndToOutputMs),'Native audio missing');console.log('Reply: '+turn.spoken);return turn;
 }
 async function updateTurn(turn){turn.memory=await memory();turn.history=(await history()).filter(e=>!turn.beforeIds.includes(e.id));

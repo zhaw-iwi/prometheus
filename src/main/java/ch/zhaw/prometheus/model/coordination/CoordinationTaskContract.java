@@ -70,6 +70,11 @@ public final class CoordinationTaskContract {
         if (revisionBase != null && revisionBase.complete()) data.add("protectedRevisionTerms", revisionBase.protectedTerms());
         if (revisionBase != null && !revisionBase.complete())
             data.add("unansweredProposalQuestions", revisionBase.json().get("questions"));
+        String revisionGuidance = revisionBase == null ? "" : !revisionBase.complete()
+                ? "Use PROPOSE to fill the incomplete draft from the user's clarification. Update goal, roles and success from that clarification; replace placeholder recognition-only or no-response terms. "
+                    + "Preserve the requested cues, limits and preparation; resolving a question is not REPLACE or START. "
+                : "For a response-content/style PROPOSE revision, copy protectedRevisionTerms exactly into the revised agreement. "
+                    + "In particular do not rewrite humanRole or success to mention the new response: those fixed strings require explicit REPLACE consent. ";
         if (TaskMemory.active(storage) && agreement != null && agreement.reactions() == null) {
             data.addProperty("remainingDialogueContributions", Math.max(0, agreement.dialogueLimit()
                     - Integer.parseInt(TaskMemory.text(storage, TaskMemory.ACTIONS, "0"))));
@@ -89,11 +94,7 @@ public final class CoordinationTaskContract {
                 + "Current perception is background evidence, not a request to narrate it. "
                 + "When currentStage is REFLECTION, a user report about the completed task uses REFLECT, not COMPLETE; "
                 + "COMPLETE is only for a task still in execution. Keep the report as the user's assessment, not a measured outcome. "
-                + "When unansweredProposalQuestions is present, use PROPOSE to fill the incomplete draft from the user's clarification. "
-                + "That incomplete draft has no protectedRevisionTerms: update goal, roles and success from the clarification; do not retain placeholder recognition-only or no-response terms. "
-                + "Preserve the requested cues, limits and preparation; resolving a question is not REPLACE or START. "
-                + "For a response-content/style PROPOSE revision, copy protectedRevisionTerms exactly into the revised agreement. "
-                + "In particular do not rewrite humanRole or success to mention the new response: those fixed strings require explicit REPLACE consent. "
+                + revisionGuidance
                 + "If STEP is appropriate, reply.speech contains only that agreed contribution for the current turn. "
                 + FEEDBACK_GUIDANCE
                 + "If remainingDialogueContributions is 1, this STEP uses the final contribution: no added question, request for feedback, "

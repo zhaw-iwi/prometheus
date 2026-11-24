@@ -1,4 +1,4 @@
-"""Separate, fail-closed $50 plus owner-authorized $20 and $30 extensions. Importing this module never bills."""
+"""Separate, fail-closed $200 cumulative authorization. Importing this module never bills."""
 import hashlib
 import json
 import os
@@ -12,7 +12,8 @@ MODES = tuple(f'L-{i:02d}' for i in range(1, 10)) + ('L-09-comparison',)
 AUTHORIZATION = 'hand-interaction-2026-11-23-usd50'
 EXTENSION = 'hand-interaction-2026-11-24-usd20-extension'
 SECOND_EXTENSION = 'hand-interaction-2026-11-24-usd30-extension'
-LIMITS = dict(backendRequests=14, requestBytes=80000, inputFramingTokenAllowance=2048,
+THIRD_EXTENSION = 'hand-interaction-2026-11-24-usd100-extension'
+LIMITS = dict(backendRequests=10, requestBytes=80000, inputFramingTokenAllowance=2048,
               completionTokensPerRequest=2048, reportedTokens=250000, sessions=1,
               sessionSeconds=360, journeySeconds=390, visitorTurns=12,
               nativeInputAudioSeconds=360, nativeOutputAudioSeconds=360, nativeTextBytes=250000,
@@ -23,24 +24,31 @@ def validate(plan, model):
     if plan.get('acceptanceRevision') != 2:
         raise ValueError('Use hand acceptance revision 2; preserve earlier failures')
     if (plan.get('schema') != 'hand-paid-plan-v1' or plan.get('authorized') is not True
-            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 66
-            or plan.get('maximumReservedUsd') != 100 or plan.get('reserveUsdPerAttempt') != 1
-            or plan.get('allocationRevision') != 6 or plan.get('extensionAuthorization') != SECOND_EXTENSION):
+            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 90
+            or plan.get('maximumReservedUsd') != 200 or plan.get('reserveUsdPerAttempt') != 5
+            or plan.get('allocationRevision') != 9 or plan.get('extensionAuthorization') != THIRD_EXTENSION):
         raise ValueError('Unreviewed hand authorization')
-    if plan.get('models') != {'backend': 'gpt-5.6-luna', 'live': 'gpt-live-1'} or model != 'gpt-5.6-luna':
+    if plan.get('models') != {'backend': 'gpt-6.2-sol', 'live': 'gpt-live-1.1'} or model != 'gpt-6.2-sol' or plan.get('backendReasoningEffort') != 'low':
         raise ValueError('Unpriced hand model')
     if plan.get('limits') != LIMITS:
         raise ValueError('Missing or unreviewed hand bounds')
     if plan.get('pricingChecked') != '2026-11-24' or plan.get('pricing') != dict(
-            backendInputUsdPerMillion=.2, backendOutputUsdPerMillion=1.2, cacheWriteMultiplier=2.5,
+            backendInputUsdPerMillion=2, backendOutputUsdPerMillion=10, cacheWriteMultiplier=2.5,
             liveUsdPerMinute=.05, liveBilling='session_duration', liveCostedSeconds=420):
         raise ValueError('Unreviewed hand prices')
     # One token per UTF-8 input byte plus framing; longest listed cache-write rate.
     # GPT-Live bills elapsed session seconds, covering concurrent input/output audio/text.
-    worst = 14 * ((80000 + 2048) * .2 * 2.5 + 2048 * 1.2) / 1e6 + 7 * .05
-    if worst >= 1:
+    worst = 10 * ((80000 + 2048) * 2 * 2.5 + 2048 * 10) / 1e6 + 7 * .05
+    if worst >= 5:
         raise ValueError('Attempt exceeds reservation')
     return worst
+
+
+def _allocation_for(index):
+    if index < 28: return 4, EXTENSION
+    if index < 36: return 5, EXTENSION
+    if index < 66: return 6, SECOND_EXTENSION
+    return (7 if index < 74 else 8 if index < 78 else 9), THIRD_EXTENSION
 
 
 def history(ledger=LEDGER):
@@ -49,20 +57,20 @@ def history(ledger=LEDGER):
     data = json.loads(ledger.read_text(encoding='utf-8'))
     attempts = data.get('attempts')
     if (data.get('authorization') != AUTHORIZATION or not isinstance(attempts, list)
-            or not 36 <= len(attempts) <= 66 or any(a.get('mode') not in MODES
-                                       or a.get('reservedUsd') != (4 if i<3 else 2 if i<28 else 1)
+            or not 88 <= len(attempts) <= 90 or any(a.get('mode') not in MODES
+                                       or a.get('reservedUsd') != (4 if i<3 else 2 if i<28 else 1 if i<74 else 7 if i<78 else 5)
                                        or not a.get('artifact')
-                                       or i >= 22 and (a.get('allocationRevision') != (4 if i<28 else 5 if i<36 else 6) or a.get('extensionAuthorization') != (EXTENSION if i<36 else SECOND_EXTENSION))
+                                       or i >= 22 and (a.get('allocationRevision'), a.get('extensionAuthorization')) != _allocation_for(i)
                                        for i,a in enumerate(attempts))
             or data.get('reservedUsd') != sum(a['reservedUsd'] for a in attempts)
-            or data.get('reservedUsd') > 100):
+            or data.get('reservedUsd') > 200):
         raise ValueError('Invalid hand ledger; never replace or reset it')
     return data
 
 
 def available_budget(mode, ledger=LEDGER):
     data = history(ledger)
-    if mode not in MODES or len(data['attempts']) >= 66 or data['reservedUsd'] + 1 > 100:
+    if mode not in MODES or len(data['attempts']) >= 90 or data['reservedUsd'] + 5 > 200:
         raise ValueError('Hand budget exhausted or invalid selection; no provider call permitted')
     return data
 
@@ -73,8 +81,8 @@ def reserve(mode, artifact, ledger=LEDGER):
     descriptor = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     try:
         data = available_budget(mode, ledger)
-        data['attempts'].append({'mode': mode, 'artifact': str(Path(artifact).resolve()), 'reservedUsd': 1, 'allocationRevision': 6, 'extensionAuthorization': SECOND_EXTENSION})
-        data['reservedUsd'] += 1
+        data['attempts'].append({'mode': mode, 'artifact': str(Path(artifact).resolve()), 'reservedUsd': 5, 'allocationRevision': 9, 'extensionAuthorization': THIRD_EXTENSION})
+        data['reservedUsd'] += 5
         temporary = ledger.with_suffix('.tmp')
         temporary.write_text(json.dumps(data, indent=2) + '\n', encoding='utf-8')
         temporary.replace(ledger)

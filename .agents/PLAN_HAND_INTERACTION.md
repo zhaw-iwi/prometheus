@@ -2,16 +2,18 @@
 
 Prepared: 2026-11-23. Baseline: main `025697df`.
 Status: **HI-01 through HI-11 COMPLETE; HI-12 INCOMPLETE**.
-The owner authorized another $30 on 2026-11-24: preserve 36 attempts/$70 and
-allow at most 30 further $1 reservations, 66 attempts/$100 cumulatively.
-All 66 reservations/$100 are now used; further paid selections fail closed.
-Required Live acceptance remains open. Actual billing is unavailable.
+The owner authorized another $100 on 2026-11-24. The checkpoint now records
+88 attempts/$186 reserved; $14 remains unreserved within the $200 ceiling.
+Allocation 9 preserves earlier reservations and permits two further $5 selections
+(90 attempts/$196 at most). Failed/inconclusive reservations stay in the ledger.
+Required Live acceptance remains open; no further requests are queued. Actual
+billing is unavailable. See the final sweep in `HAND_INTERACTION_RESULTS.md`.
 HI-12 acceptance revision 2: owner decision of 2026-11-24 preserves native Live speech independence.
 Development branch: `main`; deployment branch: `agents`.
 
 The owner authorized sequential implementation on 2026-11-23: complete and verify
 one milestone, commit and push it to main, then continue to the next. The new
-OpenAI allowance was $50 and is now $100 after the $20 and $30 extensions on 2026-11-24, including failures, backend
+OpenAI allowance was $50 and is now $200 after the $20, $30 and $100 extensions on 2026-11-24, including failures, backend
 inference, native audio, synthesis and grading. Use a separate bounded ledger;
 previous exhausted authorizations do not carry forward. No deployment or physical
 robot acceptance is authorized or implied. See `HAND_INTERACTION_RESULTS.md` for
@@ -769,3 +771,38 @@ HI-12 stays **INCOMPLETE**. Offline units, isolated MySQL, mode/visual checks an
 packaging pass. See `HAND_INTERACTION_RESULTS.md` for exact scope, source manifests,
 failed reproductions and remaining work. No architecture change, rubric relaxation
 or additional paid authorization is implied by this checkpoint.
+
+### Third owner-authorized extension (2026-11-24)
+
+The owner approved an additional $100 reservation allocation after the 66-attempt/
+$100 checkpoint. Allocation 7 preserves that full ledger and allows at most 100
+new $1 reservations (166 attempts/$200 cumulative). Models, acceptance revision,
+technical caps and the $0.9587424 per-attempt bound remain unchanged; prices were
+rechecked against official documentation. The authorization is
+`hand-interaction-2026-11-24-usd100-extension`. Repair reproduced context/contract
+issues offline, then select targeted paid regressions and the final full matrix.
+Do not spend the allocation merely to repeat unexplained failures. Preserve native
+speech ownership, all earlier evidence and every failed reservation.
+
+### Targeted model evaluation within the same ceiling (2026-11-24)
+
+Attempts 67–71 retained GPT-5.6 Luna / GPT-Live-1. Attempts 72–74 evaluated
+GPT-Live-1.1 at the same verified price; input-caption failures still occurred.
+After 74 attempts/$108, allocation 8 reserved $7 per future attempt for GPT-6.2
+Sol (low) / GPT-Live-1.1, with a verified bound of $6.38008. Production model
+configuration stayed unchanged. All four allocation-8 reservations remain recorded.
+
+Allocation 9 preserves 78 attempts/$136, caps future backend requests at ten
+(previously fourteen), and reserves $5 per attempt. The verified bound is
+`10 * ((80000+2048)*2*2.5 + 2048*10)/1000000 + 7*0.05 = $4.6572`.
+At most twelve new attempts (90 total/$196 reserved) fit the existing $200
+authorization. Historical per-entry prices and identities remain unchanged; no
+refunds or automatic retries. All other technical limits and the rubric remain.
+
+The final checkpoint records 88 attempts/$186, leaving $14 unreserved. The ledger
+minimum now requires all 88 recorded attempts; shorter history fails before a new
+reservation/provider call. Only two further $5 selections remain under allocation
+9, with no requests queued. The final paired L-09 and M-01/M-02 pass; L-01..08
+remain failed or inconclusive. Full evidence and the offline regression results
+are in `HAND_INTERACTION_RESULTS.md`. HI-12 stays incomplete; speech ownership,
+capture, consent, semantic delivery and target expiry requirements are unchanged.

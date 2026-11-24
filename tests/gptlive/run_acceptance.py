@@ -277,10 +277,12 @@ def main():
                 env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS=str(plan['limits']['backendRequests']), PROMETHEUS_PROVIDER_MAX_TOKENS='250000',
                     PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
                     PROMETHEUS_PROVIDER_MAX_SPEECH_CALLS='0', OPENAI_MAX_COMPLETION_TOKENS='2048',
-                    OPENAI_REQUEST_TIMEOUT_MS='30000', PROMETHEUS_LIVE_MODEL='gpt-live-1')
+                    OPENAI_REQUEST_TIMEOUT_MS='30000', PROMETHEUS_LIVE_MODEL=plan['models']['live'],
+                    OPENAI_REASONING_EFFORT=plan['backendReasoningEffort'])
                 for purpose in ('BEHAVIOUR', 'NONVERBAL', 'DECISION', 'EXTRACTION', 'SUMMARY'):
                     env['OPENAI_ROUTES_' + purpose + '_MODEL'] = model
                     env['OPENAI_ROUTES_' + purpose + '_URL'] = 'https://api.openai.com/v1/chat/completions'
+                    env['OPENAI_ROUTES_' + purpose + '_REASONING_EFFORT'] = plan['backendReasoningEffort']
                     env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
                     env['OPENAI_ROUTES_' + purpose + '_TIMEOUT_MS'] = '30000'
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',

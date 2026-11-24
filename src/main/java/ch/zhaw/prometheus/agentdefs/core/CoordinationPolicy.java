@@ -47,7 +47,7 @@ public class CoordinationPolicy extends CoreTaskPolicy {
                 + "Use supplied evidence; explain unknown/stale readings. Never claim camera access or deny supported sensors. "
                 + "All task proposals, transitions, actions, edits and recovery require backend confirmation. "
                 + "Use 'you' for human duties/preparation/consent, 'I' for agent duties; never swap. "
-                + "Wait silently for confirmed task/support facts; say the requested response once. "
+                + "Give confirmed task/support responses once, then listen. Keep persona asides for ordinary conversation. "
                 + "Never complete a partial task request. "
                 + "Describe proposals only. Contribute solely on the current identified occasion. "
                 + "During preparation/proposal, never preview task content, including sample jokes. Say 'the line you supplied' only for user-supplied text. "

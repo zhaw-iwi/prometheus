@@ -25,7 +25,8 @@ class CoordinationAcceptanceUnitTest {
     }
     @Test void explicitAcceptanceOfReadySensorProposalDoesNotDependOnModelOutput() {
         for (String command : java.util.List.of("Yes, let's start now.", "Run it", "Please start the saved proposal now",
-                "Let's start", "let start", "lets start", "Ja, lass uns starten", "Bitte jetzt starten", "I accept")) {
+                "Let's start", "let start", "lets start", "Ja, lass uns starten", "Bitte jetzt starten", "I accept",
+                "Accept the current proposal", "Please accept the saved proposal")) {
             var fixture = new CoordinationAgentUnitTest(); fixture.propose(fixture.sensor(false), fixture.live);
             var saved = fixture.storage().get(CoordinationMemory.DRAFT).deepCopy();
             clearInvocations(fixture.gateway);
@@ -88,7 +89,8 @@ class CoordinationAcceptanceUnitTest {
         assertEquals(saved, f.storage().get(CoordinationMemory.DRAFT));
         assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT)); verifyNoInteractions(f.gateway);
         var ready = new CoordinationAgentUnitTest(); ready.propose(ready.sensor(false), ready.live);
-        for (String uncertain : java.util.List.of("Let's start tomorrow, not now", "Run it?", "\"Run it\"", "Don't start now", "yes?", "\"yes\"", "Bitte nicht starten")) {
+        for (String uncertain : java.util.List.of("Let's start tomorrow, not now", "Run it?", "\"Run it\"", "Don't start now", "yes?", "\"yes\"", "Bitte nicht starten",
+                "Accept the current proposal?", "\"Accept the current proposal\"", "Don't accept the current proposal", "Accept the current proposal tomorrow")) {
             ready.turn("START", null, uncertain, ready.live);
             assertEquals("READY", CoordinationMemory.stage(ready.storage()), uncertain);
             assertFalse(ready.storage().containsKey(CoordinationMemory.AGREEMENT));

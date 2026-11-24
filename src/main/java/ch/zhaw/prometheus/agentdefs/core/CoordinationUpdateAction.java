@@ -105,7 +105,7 @@ public class CoordinationUpdateAction extends Action {
                         + "\nSupported sensor fields: " + TaskSpec.FIELDS
                         + (ch.zhaw.prometheus.model.hand.HandFeatures.poses(storage) ? ch.zhaw.prometheus.model.task.HandPoseCondition.coordinationInstructions() : "")
                         + (ch.zhaw.prometheus.model.hand.HandEvidence.enabled(storage) ? ch.zhaw.prometheus.model.task.HandSignCondition.instructions() : "")
-                        + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. For ordinary KEEP or REFLECT replies, omit reply.speech and supply only supported nonverbal behaviour. For a confirmed task contribution, describe the required contribution in reply.speech in at most 350 characters; do not supply a long finished script. Use supported nonverbal/motion normally.")
+                        + (runtime.externalSpeech() == null ? "" : "\nLive owns spoken wording. For EVERY operation, reply.speech has at most 350 characters, overriding the general output limit. For PROPOSE and REPLACE, omit reply.speech: the backend derives preparation and review facts from the saved agreement. For ordinary KEEP or REFLECT, also omit reply.speech. For a confirmed task contribution, describe only its required content, not a long finished script. Use supported nonverbal/motion normally.")
                         + (assent ? "\nInterpret this short reply ONLY against the completed utterance: " + new JsonPrimitive(invitation)
                                 + ". It is not automatically consent. Only KEEP or START of the unchanged saved proposal is permitted. A question about future activation or changing a proposal does not authorize starting now." : "")
                         + DecorativeGestures.guidance(storage, now)
@@ -401,10 +401,10 @@ public class CoordinationUpdateAction extends Action {
                     + "Refer to the agreed action without quoting it or inventing a supplied literal line, even as a future-tense example. " + proposalNextStep(storage);
             case "REPLACE" -> "A replacement proposal was saved and the earlier task is not executing. Explain the changed terms without performing them. " + CoordinationMemory.proposalPrompt(storage);
             case "START" -> action ? "Task accepted. Give its first agreed contribution now. " + intent(speech)
-                    : "Task accepted and armed. Confirm only that you are waiting for a fresh cue: "
+                    : "Task accepted and armed. Give one brief confirmation that you are waiting for a fresh cue: "
                         + accepted.reactions().rules().stream().filter(rule -> rule.effect() == TaskSpec.Effect.ACT)
                             .map(TaskSpec.Rule::conditionDescription).collect(java.util.stream.Collectors.joining(", "))
-                        + ". Do not perform the future action, joke or perception estimate. Preparation is satisfied; waiting for a new cue does not mean recognition failed. The future task is not completed.";
+                        + ". Then yield and listen. Preparation is satisfied; the later cue permits the agreed action. No task action has happened yet.";
             case "STEP" -> "One agreed dialogue contribution is authorized. " + intent(speech);
             case "COMPLETE" -> "The user's completion report ended the task. Reflect on available evidence; this is not independently measured success.";
             case "STOP" -> "The task is stopped, not paused. No further task actions are authorized. The recorded outcome is " + TaskMemory.text(storage, CoordinationMemory.OUTCOME, "not established") + ".";

@@ -2,12 +2,14 @@
 
 Started 2026-11-23 from main `025697df`. The owner authorized sequential
 implementation, commit/push after each verified milestone, then continuation.
-Provider allowance: original $50 plus owner-approved $20 and $30 extensions on
+Provider allowance: original $50 plus owner-approved $20, $30 and $100 extensions on
 2026-11-24, including successful/failed requests and all modalities.
 Actual provider billing: **invoice total not available**.
-Cumulative reservations at the second-extension checkpoint: **$100 / 66 attempts**.
-The cumulative ceiling is **$100 / 66 attempts**. HI-12 remains **INCOMPLETE**;
-the allowance is exhausted and further paid selections fail closed. No deployment.
+Cumulative reservations entering the third extension: **$100 / 66 attempts**.
+The cumulative ceiling is **$200**. The checkpoint ends at **88 attempts/$186**,
+including **$86 reserved in this extension**. **$14 remains unreserved**; allocation
+9 permits two further $5 selections (90 total/$196 reserved). No requests are
+queued. HI-12 remains **INCOMPLETE** after the final sweep below. No deployment.
 Historical GLF/TWC ledgers remain unchanged.
 
 ## HI-01 — Contracts and compatibility baseline
@@ -723,9 +725,9 @@ HI-05/08 remain visible; this does not establish general real-room accuracy.
 All runner-owned schemas/accounts/apps are cleaned on exit; the owned loopback
 MySQL remains available for HI-12. Remote MySQL and old paid ledgers are untouched.
 
-## HI-12 - Real provider acceptance (incomplete; second extension active)
+## HI-12 - Real provider acceptance (incomplete; third extension active)
 
-Status: **INCOMPLETE; second owner-authorized extension exhausted on 2026-11-24**. The owner chose
+Status: **INCOMPLETE; third owner-authorized extension active on 2026-11-24**. The owner chose
 immediate independent native speech and accepted strict silence as unsupported in
 GPT-Live. No playback gate, backend speech approval, classification buffer,
 task-window muting or replacement TTS will be added. Text/Continuous retain strict
@@ -1362,3 +1364,144 @@ checks do not establish those missing outcomes. Preserve native speech ownership
 consent, target freshness and capture/delivery guards; do not weaken the rubric
 or add playback control to turn these failures into passes. No further paid
 requests under the exhausted authorization.
+
+### Third extension started (2026-11-24)
+
+Continued from main `c14fb24f` under the additional $100 authorization. The original
+66 entries/$100 are preserved in `target/hi12-third-extension-ledger-before.json`.
+Allocation 7 permits at most 100 further $1 attempts, 166/$200 cumulatively, with
+the same models and technical caps. Official pricing was rechecked; the bound is
+still $0.9587424. Prior matrix rows describe their source snapshots and await the
+affected regressions below.
+
+Offline reproductions expose completed-task context that fails to distinguish new
+immediate requests, contradictory protected-term guidance on incomplete drafts,
+and imperative acceptance falling through to inference. A pre-existing optional
+correction path also exceeds the 16000-byte instruction ceiling by 32 bytes.
+The focused repair preserves task limits, agreement/history, consent and delivery
+guards; it narrows context and removes redundant instructions. Exact regression
+evidence and provider outcomes will be recorded at the next checkpoint.
+
+### Third-extension progress before final sensor-context regressions
+
+Models and reservation history: attempts 67–71 use GPT-5.6 Luna/GPT-Live-1;
+72–74 use Luna/GPT-Live-1.1; 75 onward use GPT-6.2 Sol low/GPT-Live-1.1.
+Production configuration is unchanged. Allocation 8 kept the 14-call cap and
+reserved $7 (bound $6.38008); allocation 9 lowers future calls to ten, reserving
+$5 (bound $4.6572). It preserves all 78 entries/$136 and allows twelve further
+attempts under the same $200 authorization. Snapshots before reallocations are
+`target/hi12-stronger-model-ledger-before.json` (74/$108) and
+`target/hi12-ten-call-ledger-before.json` (78/$136). Actual invoice total unavailable.
+
+Every completed run below retained full received audio, local ASR and a manual
+semantic verdict; tracked source hashes were unchanged during each run. All
+artifacts are under `target/gptlive-acceptance-<suffix>`.
+
+| Attempt | Journey | Artifact suffix | Verdict and evidence |
+| --- | --- | --- | --- |
+| 67 | L-02 | `09ab30ea7e` | FAIL: model nests reply/command in agreement; strict envelope rejects before preparation/action. |
+| 68 | L-02 | `4b5c018fe0` | INCONCLUSIVE: caption arrived before observed playback; old harness aborted too early. |
+| 69 | L-02 | `eb5f99bdf4` | PASS at this source: exact ten-finger trigger/output, negative split hands, completed-task independent demo. Both images inspected. Multilingual local ASR confirms English audio despite corrupt caption fragments. |
+| 70 | L-03 | `530317c2ad` | FAIL: correct ambiguity/ring/geometry/preparation, but input acceptance truncates; backend remains inactive while native voice claims agreement. Ring image inspected. |
+| 71 | L-07 | `b0f9b750c1` | FAIL: partial clarification drops human judgement; spurious input during silence withdraws proposal review. |
+| 72 | L-07 | `29d470fdad` | FAIL: clarified roles, preparation and complete acceptance succeed; native arming adds joke/invitation, so unchanged semantic guard pauses with zero actions. |
+| 73 | L-07 | `1fd1fdac00` | INCONCLUSIVE: spurious provider input during silence withdraws clarification occasion; no later workflow tested. |
+| 74 | L-04 | `9db0b1f5e2` | FAIL: model stores preparation as unresolved question with no executable pointing rule; native prematurely asks acceptance. |
+| 75 | L-07 | `4321568d25` | FAIL: correct clarified agreement rejected because unused explanatory speech exceeds Live 350-character limit; prompt only applied that limit to contributions. |
+| 76 | L-07 | `2c2aef8c60` | INCONCLUSIVE: correct draft; delayed HTTP consumed the driver's dwell loop, leaving only one count-two capture. Recognizer correctly refuses preparation. |
+| 77 | L-07 | `68e5245fe6` | PASS: explicit partial-response clarification, exact agreement, wrong-sequence rejection, preparation/consent, one confirmed native Ready and no held-pose repeat. Full audio reviewed; captions include nonlexical fillers, not additional task content. Human judgement remains in saved terms. |
+| 78 | L-06 | `a51295a427` | FAIL: backend cup clarification, accepted cue/Ready, and rendered selected-person point are correct; native repeatedly claims unauthorized cup alignment, substitutes a cue and continues unsolicited remarks. Stale-person repeat not reached. Person image inspected. |
+
+Offline fixes and verification so far:
+
+- Completed agreements are history, with independent immediate requests separately
+  validated; exact imperative acceptance follows existing preparation/consent
+  guards. Incomplete-draft clarification replaces placeholder roles/success while
+  complete agreements retain protected terms. Reproduced failures before fixes.
+  91 focused Java tests pass (`hi12-third-fixes-unit.log`); follow-up 45 Java tests
+  pass after the remaining static revision conflict was removed.
+- A native reply wait requires caption plus actual browser playback. Six harness
+  tests pass after dwell coverage now requires distinct captures spanning the
+  hold, including a 900ms acknowledgement (`hi12-third-dwell-harness-final.log`).
+- Native control confirmations yield after their requested response. The optional
+  correction/startup path stays below 16000 UTF-8 bytes; 29 voice/context tests
+  pass (`hi12-third-control-unit-final.log`).
+- Live proposal narration is omitted; all remaining Live speech intents have the
+  existing 350-character limit. Reproduced the inconsistent prompt before repair;
+  49 Coordination tests pass (`hi12-third-proposal-limit-unit.log`).
+- Every split sensor append now retains quiet-reference framing. A new regression
+  failed before repair; 51 context-delivery/delegation/projection tests pass after
+  compacting redundant wire wording, retaining original source/expiry and the
+  five-ACK sensory performance ceiling (`hi12-third-sensor-context-unit-verified.log`).
+- Allocation-9 validation and all 45 Python acceptance tests pass
+  (`hi12-third-ten-call-harness.log`). Final DB/browser/package checks and all
+  affected paid regressions remain to be completed. HI-12 is not complete.
+
+### Third-extension final sweep and checkpoint (2026-11-24)
+
+**HI-12 INCOMPLETE.** Attempts 79–88 use the final implementation/harness source,
+GPT-6.2 Sol with low reasoning, GPT-Live-1.1 and allocation-9 limits. Every run
+retains full native captions, local full-recording ASR, provider traces and a
+separate semantic review. All 22 attempts in this extension have unchanged tracked
+source hashes during execution. Documentation was finalized afterward.
+
+| Attempt | Journey | Artifact suffix | Reviewed outcome |
+| --- | --- | --- | --- |
+| 79 | L-06 | `2c23a3e667` | FAIL: cup ambiguity clarifies without action and selected-cup preparation succeeds; native adds an unrequested user phrase, then its long review/backchannels remain incomplete. Acceptance, person output and stale-person repeat are not reached. |
+| 80 | L-03 | `c2e83f885a` | FAIL: native asks thumbs up versus ring, but backend interprets unqualified “okay sign” as ACTION/ok_ring and publishes before clarification. Later geometry/task checks are not reached. |
+| 81 | L-04 | `c721900e89` | INCONCLUSIVE: correct frames, direction, roles, preparation and one-action terms; overlong native review cannot complete capture. Acceptance/output checks are not reached. |
+| 82 | L-05 | `23aab80b46` | FAIL: backend binds the registered Display correctly; native says the target is ambiguous, offers setup again and continues unrelated remarks. Driver cannot reach quiet; task/output checks remain unverified. |
+| 83 | L-01 | `24ce59f607` | INCONCLUSIVE: correct capabilities and two independent right thumbs-up outputs, both images inspected. Correct proposal/preparation; native review is incomplete, so accepted cue/peace output is not reached. |
+| 84 | L-02 | `e68cc8c407` | FAIL despite automatic pass: exact ten-finger conditions, negative split/missing hands, one accepted task output, and independent completed-task output all pass. Both images match. Native asks the user to demonstrate again for the fully specified direct request. |
+| 85 | L-07 | `8a4fed2881` | INCONCLUSIVE: explicit missing-response clarification, exact saved sequence/roles, wrong-sequence rejection and completed preparation/review pass. Provider captions omit “proposal” from the full acceptance stimulus; backend KEEP leaves zero actions. Execution/held-pose checks are not reached. |
+| 86 | L-08 | `31f5963ace` | INCONCLUSIVE: one-through-five output and Stop after step two pass; all seven active images inspected. Prepared task terms are correct, but the same acceptance-caption truncation prevents arming. Task count and reload checks are not reached. |
+| 87 | L-09 comparison | `c1d1fadee0` | PASS: accurate ordinary identity/activity/planning replies and independent native playback; complete audio reviewed. |
+| 88 | L-09 Coordination | `000517e728` | PASS: accurate matched ordinary replies, bounded native onset comparison and one correct right-index attention command. Active image and complete audio reviewed. |
+
+The paired three-turn onset smoke comparison has Coordination minus baseline
+median **-471.30 ms** and maximum **-94.90 ms**, within the predeclared +1000/+2000 ms
+ceilings. Negative values retain native speech beginning before the visitor
+finishes. This is a three-turn smoke comparison, not a statistical latency claim.
+Minor native restarts remain in the evidence. The earlier complete L-02 (69) and
+clarified L-07 (77) passes remain recorded; they do not override these final results.
+
+Final offline verification on this implementation:
+
+- **363 Java tests / 28 suites**, zero failures/errors: Coordination, direct
+  commands, Live context/delegation/capture/segmenter, capability projection and
+  TaskResponse. `target/hi12-third-final-unit.log` and
+  `target/hi12-third-final-unit-summary.json` retain the selection/results.
+- **48 local-MySQL tests / four suites** and **six Playwright cases** pass in
+  `target/gptlive-acceptance-f557375817`: Coordination persistence, direct commands,
+  context-query budget and Live transcript ingress; Text/Continuous silent pose,
+  finite sequence and prepared hand task; native speech before blocked backend,
+  Stop/mode switching, confirmed final playback and lost-receipt uncertainty.
+  Six active count images and both native status panels were visually reviewed.
+  The final peace screenshot is after release, not proof of an active pose.
+  Providers/media are fixtures in these browser checks. M-01/M-02 pass.
+- **45 Python tests**, **16 Node harness tests**, **nine schema examples**, Maven
+  packaging with tests skipped after the above runs, and `git diff --check` pass.
+  Logs: `hi12-third-final-python.log`, `hi12-third-final-node.log`,
+  `hi12-third-final-db-browser.log`, `hi12-third-final-package.log` under `target`.
+- All runner-owned applications, random local schemas and restricted accounts
+  were cleaned. The pre-existing local MySQL remains running. No remote database,
+  deployment, agents merge, physical camera/robot or room-audibility trial.
+
+Budget reconciliation: **88 attempts/$186 reserved cumulatively**, **22/$86 in
+this extension**. The original 66/$100 and later 74/$108 and 78/$136 snapshots
+match the final ledger prefixes exactly. No refunds or resets. **$14 remains
+unreserved**; current caps allow two additional $5 selections, but none are queued.
+Actual invoice total is unavailable. Production model configuration is unchanged.
+
+After the paid sweep, the ledger minimum was advanced from 78 to 88 so shortened
+history cannot reopen used reservations. A regression reproduced acceptance of an
+87-entry ledger before this repair and rejects it afterward without mutation.
+All 45 Python tests pass again (`hi12-third-ledger-floor-verified.log`). This
+preflight-only change does not alter the implementation exercised by paid runs.
+
+Remaining acceptance work is substantive: reliable shape clarification before
+output; native wording consistent with current task/command facts; bounded,
+complete proposal reviews; complete provider capture of explicit acceptance; and
+full person/item stale-target coverage. Consent, capture, semantic delivery and
+target expiry guards remain intact. Further unchanged retries would not establish
+reliability. Keep HI-12 open and retain the accepted speech-ownership architecture.

@@ -31,6 +31,30 @@ class CoordinationVoiceUnitTest {
         assertFalse(dialogue.policy().liveActivityContext().continuation().currentOnly(), "Legacy pending work keeps its original delivery contract");
     }
     final CoordinationAgentUnitTest f = new CoordinationAgentUnitTest();
+    @ParameterizedTest @ValueSource(strings = {"completed", "stopped"})
+    void closedTaskFactsRetainTheRecordWithoutRestrictingAnIndependentDemo(String ending) {
+        var proposal = f.sensor(false);proposal.getAsJsonObject("reactions").addProperty("maxActions", 1);
+        f.propose(proposal, f.text);f.start(f.text);
+        if (ending.equals("stopped")) f.say("Stop the task", f.text);
+        else {
+            f.openCueWindow();org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any())).thenReturn("{\"speech\":\"One welcome idea\"}");
+            f.sign("rock", 1, Instant.now(), f.text);
+        }
+        assertEquals("REFLECTION", CoordinationMemory.stage(f.storage()));
+        var saved = f.storage().get(CoordinationMemory.AGREEMENT).deepCopy();
+        var actions = f.storage().get(TaskMemory.ACTIONS).deepCopy();
+        String facts = f.policy().liveActivityContext().facts();
+        assertTrue(facts.contains("No active task"));assertTrue(facts.contains("Finished agreement"));
+        assertTrue(facts.contains("new immediate requests"));
+        assertTrue(facts.contains(proposal.get("goal").getAsString()));
+        org.mockito.Mockito.when(f.gateway.infer(org.mockito.ArgumentMatchers.any())).thenReturn(
+                DirectCommandAgentsUnitTest.output("coordination", "ACTION", "HAND_SIGN", "thumbs_up", false));
+        var result = f.say("Show a right-hand thumbs up", f.live);
+        assertTrue(result.getPayload().contains("thumbs_up"));
+        assertEquals(saved, f.storage().get(CoordinationMemory.AGREEMENT));assertEquals(actions, f.storage().get(TaskMemory.ACTIONS));
+        assertEquals("REFLECTION", CoordinationMemory.stage(f.storage()));
+        assertNull(f.policy().liveActivityContext().continuation());
+    }
     @Test void returningFromReflectionRequiresNewConfirmedSpeechAndPreservesTheOutcome() {
         f.propose(f.sensor(false), f.text); f.start(f.text);
         f.say("Stop the task.", f.text);

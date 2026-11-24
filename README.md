@@ -494,14 +494,17 @@ HI-12 real OpenAI acceptance is still incomplete. Its revised mode contract
 Live hand actions and tasks carry no strict-silence guarantee; empty backend
 speech does not silence Live. No playback approval, buffering, muting or replacement
 TTS is added for this purpose. Strict silence is tested in Text and Continuous.
-Latest named-sign and conversation/latency journeys pass. Other journeys retain
-earlier passes, but final regressions expose native speech contradicting correct
-pose/point output, ambiguity handling, clarification errors and an invalid START
-response. Person/item acceptance remains incomplete. Text/Continuous silence and
-native ownership checks pass. All 66 reservations/$100 are used after the owner’s
-$20 and $30 extensions; further paid selections fail closed. Actual billing is
-unavailable. Previous failures remain recorded under
-their original rubric. See [.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
+The final paired conversation/latency check passes, as do Text/Continuous silence
+and native ownership checks. Live hand journeys remain failed or inconclusive:
+native speech can contradict accepted output, long reviews can exceed capture
+bounds, and provider input captions can truncate acceptance. An unqualified OK
+request also exposed a backend interpretation that acted before clarification.
+Earlier complete pose/counting passes remain evidence, not final acceptance.
+The third extension ends this checkpoint at 88 attempts/$186 reserved, leaving
+$14 unreserved under the $200 ceiling (two $5 selections remain in allocation 9).
+Final isolated tests use GPT-6.2 Sol (low) and GPT-Live-1.1; production model settings
+are unchanged. Actual billing is unavailable. See
+[.agents/HAND_INTERACTION_RESULTS.md](.agents/HAND_INTERACTION_RESULTS.md).
 
 Hand observations project validated fingertip gaps, spread and camera-plane axes
 into model context; missing or invalid geometry stays unknown. These measurements
@@ -525,6 +528,11 @@ Live scene context includes the selected target's user label and whether its
 virtual output mapping is current. The label stays attached to the same scoped
 target generation and scene capture, expires with that capture, and establishes
 no personal identity. Disappearance or a changed generation cannot reuse it.
+Completed agreements remain history; their action limits do not restrict a new
+independent immediate request. The backend still validates each command and
+rejects pending-output conflicts. Partial-draft clarification and protected-term
+revision receive distinct guidance. Explicit acceptance of the current/saved
+proposal, including the imperative form, still requires completed preparation.
 
 Coordination adapts one equivalent model-output encoding before validation: an
 exact typed hand condition in a preparation check or reaction rule, inside

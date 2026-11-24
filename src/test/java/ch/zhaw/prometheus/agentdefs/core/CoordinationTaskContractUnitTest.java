@@ -10,6 +10,25 @@ import ch.zhaw.prometheus.model.task.TaskResponse;
 import ch.zhaw.prometheus.model.event.SpeechProvenance;
 
 class CoordinationTaskContractUnitTest {
+    @Test void nativeProposalNeedsNoGeneratedNarrationAndEverySpeechIntentRemainsBounded() {
+        var f = new CoordinationAgentUnitTest(); var proposal = f.sensor(true);
+        var update = JsonParser.parseString(f.update("PROPOSE", proposal, "")).getAsJsonObject();
+        update.add("reply", new JsonObject());
+        when(f.gateway.infer(any())).thenReturn(update.toString());
+        f.say("Propose this recognition task, but do not start", f.live);
+        assertEquals(proposal, f.storage().get(CoordinationMemory.DRAFT));
+        assertEquals("PREPARATION", CoordinationMemory.stage(f.storage()));
+        assertTrue(f.storage().get("core.task.response").getAsJsonObject().get("supportOnly").getAsBoolean());
+        var request = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
+        verify(f.gateway).infer(request.capture());
+        String prompt = request.getValue().messages().stream().map(m -> m.getContent()).collect(java.util.stream.Collectors.joining("\n"));
+        assertTrue(prompt.contains("For EVERY operation, reply.speech has at most 350 characters"));
+        assertTrue(prompt.contains("For PROPOSE and REPLACE, omit reply.speech"));
+        when(f.gateway.infer(any())).thenReturn(f.update("PROPOSE", f.dialogue(), "x".repeat(351)));
+        f.say("Propose another activity", f.live);
+        assertEquals(proposal, f.storage().get(CoordinationMemory.DRAFT), "Oversized generated wording cannot replace the draft");
+        assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
+    }
     @Test void openCountClarificationRefinesTheProposalWithoutReplacingOrStartingIt() {
         var f = new CoordinationAgentUnitTest();
         var partial = fixtures.behaviour.HandSequenceFixture.agreement(fixtures.behaviour.HandSequenceFixture.counts("right", 1, 2, 3));
@@ -21,11 +40,17 @@ class CoordinationTaskContractUnitTest {
         f.turn("PROPOSE", resolved, "Only say Ready once. I judge your response. Keep the counts and preparation.", f.text);
         var request = org.mockito.ArgumentCaptor.forClass(ch.zhaw.prometheus.spi.InferenceRequest.class);
         verify(f.gateway).infer(request.capture());
+        String policy = request.getValue().messages().stream().map(m -> m.getContent()).collect(java.util.stream.Collectors.joining("\n"));
+        assertTrue(policy.contains("An INCOMPLETE draft instead uses PROPOSE"));
+        assertFalse(policy.contains("copy all unchanged fields VERBATIM from the current draft/accepted agreement"));
         String current = request.getValue().messages().getLast().getContent();
         var data = JsonParser.parseString(current.substring(current.lastIndexOf('\n') + 1)).getAsJsonObject();
         assertEquals(partial.get("questions"), data.get("unansweredProposalQuestions"));
         assertFalse(data.has("protectedRevisionTerms"));
+        assertFalse(current.contains("copy protectedRevisionTerms exactly"), "A partial proposal must not receive the conflicting complete-revision instruction");
         assertEquals(resolved, f.storage().get(CoordinationMemory.DRAFT));
+        assertTrue(CoordinationTaskContract.currentTurn(f.storage(), "Make the response shorter")
+                .contains("copy protectedRevisionTerms exactly"), "Completed proposal terms remain protected");
         assertFalse(f.storage().containsKey(CoordinationMemory.AGREEMENT));
         assertEquals("PREPARATION", CoordinationMemory.stage(f.storage()));
         assertEquals("0", TaskMemory.text(f.storage(), TaskMemory.ACTIONS, "0"));

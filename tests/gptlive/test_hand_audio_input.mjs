@@ -2,7 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
-import {playHandStimulus} from './hand_audio_input.mjs';
+import {playHandStimulus,handReplyObserved} from './hand_audio_input.mjs';
+
+test('a caption or received audio alone cannot finish waiting for native playback',()=>{
+  globalThis.__trial={events:[{type:'output_voice',at:10},{type:'session.output_transcript.delta',delta:'Old reply',at:11}]};
+  const scope={index:2,startMs:100};
+  try{
+    __trial.events.push({type:'session.output_transcript.delta',delta:'Hmm.',at:101});
+    assert.equal(handReplyObserved(scope),false);
+    __trial.events.push({type:'native_audio_received',at:102});assert.equal(handReplyObserved(scope),false);
+    __trial.events.push({type:'output_voice',at:99});assert.equal(handReplyObserved(scope),false);
+    __trial.events.push({type:'output_voice',at:120});assert.equal(handReplyObserved(scope),true);
+    assert.equal(handReplyObserved({index:5,startMs:100}),false,'Playback alone is not a reply caption');
+  }finally{delete globalThis.__trial;}
+});
 
 test('long PCM stimulus transfers losslessly without starving the browser poll',async()=>{
   const browser=await chromium.launch({headless:true});

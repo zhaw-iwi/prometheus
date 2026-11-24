@@ -31,16 +31,16 @@ public final class DirectCommands {
         if (!enabled(profile)) return "";
         // Live already supplies the capability-aware profile as its own section.
         return (profile.isCapabilityAwareness() ? "Direct output requests:" : " " + capabilities(profile))
-                + " One supported, unambiguous immediate demo needs no task agreement or second consent."
+                + " Supported immediate demos are independent of finished tasks/limits; no agreement or second consent."
                 + (HandFeatures.poses(profile) && HandActions.enabled(profile)
-                        ? " A specified sign/pose needs no sensor reading or task restart."
-                        : " A supported sign needs no sensor reading or task restart.")
+                        ? " Explicit signs/poses need no sensor reading or restart."
+                        : " Explicit supported signs need no sensor reading or restart.")
                 + " Hear the full request; honor silence, else acknowledge once without claiming execution."
                 + (HandActions.enabled(profile) && HandFeatures.geometry(profile)
                         ? " Clarify an OK sign: thumbs up or diver's ring; don't announce a demo yet." : "")
-                + (HandFeatures.pointing(profile)?" Pointing needs a known frame or fresh selected target. Clarify unresolved targets; never claim movement from a request alone.":"")
+                + (HandFeatures.pointing(profile)?" Pointing needs a known frame or fresh selected target; clarify unresolved targets.":"")
                 + (HandFeatures.outputSequences(profile)?" Capability queries imply no action; conditional actions need agreement.":" Capability queries imply no action; conditional/multiple actions need agreement.")
-                + " Results concern only their pending turn; never acknowledge twice.";
+                + " Use results for their pending turn only.";
     }
     public static String guidance(AgentInteractionProfile profile, boolean taskEnvelope) {
         if (!enabled(profile)) return "";

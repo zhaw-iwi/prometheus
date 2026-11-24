@@ -1,5 +1,11 @@
 // Run in the browser. Compact transfer avoids a CDP object per PCM byte, which
 // can stall the page long enough to expire the production Live status poll.
+export function handReplyObserved({index,startMs}) {
+  const events=globalThis.__trial.events.slice(index);
+  return events.some(e=>e.type==='session.output_transcript.delta'&&e.delta?.trim())
+    &&events.some(e=>e.type==='output_voice'&&e.at>=startMs);
+}
+
 export async function playHandStimulus({pcmBase64,name}) {
   const bytes=Uint8Array.from(atob(pcmBase64),value=>value.charCodeAt(0));
   const pcm=new Int16Array(bytes.buffer),samples=Float32Array.from(pcm,value=>value/32768);

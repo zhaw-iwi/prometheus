@@ -1,7 +1,19 @@
 // Harness-only regression: this is not provider, detector or application acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {runHandScenario,requireReadyContribution} from './hand_scenarios.mjs';
+import {runHandScenario,requireReadyContribution,demonstrateCount} from './hand_scenarios.mjs';
+
+test('count dwell requires distinct captures spanning the hold despite slow acknowledgements',async()=>{
+  for(const acknowledgementMs of [0,900]){
+    let clock=0;const captures=[];
+    await demonstrateCount(()=>({ts:new Date(clock).toISOString()}),300,async make=>{
+      const sample=make();captures.push(Date.parse(sample.ts));clock+=acknowledgementMs;return sample;
+    },async ms=>{clock+=ms;});
+    assert.ok(captures.length>=2);
+    assert.ok(captures.at(-1)-captures[0]>=300);
+    assert.equal(captures.length,acknowledgementMs?2:3);
+  }
+});
 
 function poseJourney({wrongOutput=false}={}) {
   const fingers=['thumb','index','middle','ring','little'];

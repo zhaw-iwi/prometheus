@@ -83,7 +83,7 @@ inside that string so event history stays inspectable.
 
 Current work is `.agents/PLAN_HAND_INTERACTION.md`: sequential HI-01 through
 HI-12 implementation, commit and push after each verified milestone, authorized
-on 2026-11-23. The cumulative provider cap is $100 after the owner-approved $20 and $30 extensions on
+on 2026-11-23. The cumulative provider cap is $200 after the owner-approved $20, $30 and $100 extensions on
 2026-11-24, including failures and all
 provider modalities; use its separate ledger, not the exhausted historical
 budgets below. New hand contracts are specifications until their implementing
@@ -111,13 +111,18 @@ persistence, enforces a 64 KiB active hand-state budget and widens event payload
 and Storage-entry columns to TEXT for the declared hand/sequence limits. Large agreements use an
 explicit bounded voice projection; full terms remain authoritative in Storage.
 README documents the database widening and saved-instance adoption.
-HI-12 acceptance is incomplete. Latest named signs and paired conversation/latency
-pass; other earlier passes do not override final native-speech contradictions,
-clarification errors and invalid START output. Person/item acceptance remains
-unresolved. Text/Continuous silence and native ownership checks pass. The second
-extension is exhausted: all 66 attempts/$100 reserved, with the original 36/$70
-entries unchanged. Further paid selections fail closed. Actual billing is unavailable. See
-`.agents/HAND_INTERACTION_RESULTS.md` for exact outcomes and required retests.
+HI-12 acceptance is incomplete. The final paired conversation/latency check and
+Text/Continuous silence/native ownership checks pass. Final hand journeys remain
+failed or inconclusive due to native speech contradicting accepted output,
+overlong review capture, truncated provider acceptance captions, and an OK-shape
+interpretation that acts before clarification. Earlier complete pose/counting
+passes do not override those final results. The third-extension checkpoint ends
+at 88 attempts/$186 reserved, with $14 unreserved under the $200 ceiling; allocation
+9 permits two further $5 selections. Final isolated acceptance uses GPT-6.2 Sol
+(low) with GPT-Live-1.1; production settings are unchanged. Completed-task facts,
+partial-proposal guidance, Live speech-intent limits and split sensor context
+were repaired without changing ownership or consent/capture guards. Actual billing
+is unavailable. See `.agents/HAND_INTERACTION_RESULTS.md` for evidence and open work.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,
 preserving immediate native speech without playback approval, buffering or muting.
 Strict silent hand commands/tasks remain a Text/Continuous requirement. Revised
