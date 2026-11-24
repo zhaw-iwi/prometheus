@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionMultiStateGames;
+import ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGames;
+import ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGamesEnglish;
 import ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGames;
 import ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGamesEnglish;
 import ch.zhaw.prometheus.model.Agent;
@@ -25,7 +27,7 @@ import ch.zhaw.prometheus.model.policy.PromptMessageAssembler;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 class GalaDinnerCaptureRecoveryUnitTest {
-    @ParameterizedTest @ValueSource(strings = {"gala", "swiss-de", "swiss-en"})
+    @ParameterizedTest @ValueSource(strings = {"gala", "swiss-de", "swiss-en", "openi-de", "openi-en"})
     void startingDuringDepartureGracePublishesTheCaptureNeededToCompletePreparation(String variant) {
         var f = new Fixture(variant);
         f.group(0);
@@ -126,6 +128,8 @@ class GalaDinnerCaptureRecoveryUnitTest {
             agent = switch (variant) {
                 case "swiss-de" -> new SwissRoboticsDayReceptionMultiStateGames().createAgent();
                 case "swiss-en" -> new SwissRoboticsDayReceptionMultiStateGamesEnglish().createAgent();
+                case "openi-de" -> new OpenIReceptionMultiStateGames().createAgent();
+                case "openi-en" -> new OpenIReceptionMultiStateGamesEnglish().createAgent();
                 default -> new GalaDinnerReceptionMultiStateGames().createAgent();
             };
             storage = ((GalaDinnerPolicy) agent.getCurrentState().ownPolicy()).storage();

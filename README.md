@@ -583,6 +583,8 @@ experiment-specific application definitions as Spring beans via
 | `usecases.gala_dinner_reception_multi_state_games` | Gala reception with multi-state RPS preparation and person guessing, without co-created tasks. |
 | `usecases.swiss_robotics_day_reception_multi_state_games` | Swiss Robotics Day 2026 reception with the same multi-state RPS preparation and person guessing, plus event-specific information. |
 | `usecases.swiss_robotics_day_reception_multi_state_games_en` | English-default Swiss Robotics Day reception, sharing the German entry's event facts and game implementation. |
+| `usecases.open_i_reception_multi_state_games` | Open-i 2026 reception with the same multi-state RPS preparation and person guessing, plus event-specific information. |
+| `usecases.open_i_reception_multi_state_games_en` | English-default Open-i reception, sharing the German entry's event facts and game implementation. |
 | `tdsr.aisha.*` | Arabic Invest Qatar stage-host agents using a versioned approved-answer catalog and semantic gestures. |
 | `tdsr.core.<language>.*` | TDSR core guessing-game, social-context, RPS, and tour-conversation agents for `de`, `en`, `fr`, `it`, and `babylon`. |
 | `tdsr.shhd.<language>.*` | SHHD scene agents for `de`, `en`, `fr`, `it`, and `babylon`. |
@@ -630,6 +632,36 @@ Allow the new catalog key for the access code, then create a fresh instance.
 The event policy persists across reload and reset. Existing Gala definitions and
 saved instances keep their event setting. The clone offers conversation,
 information and the two games; co-created tasks remain unavailable.
+
+### Open-i Reception
+
+**Gigi - Open-i with multi-state RPS and guessing game**
+(`usecases.open_i_reception_multi_state_games`) and its English-default entry
+**Gigi - Open-i with multi-state RPS and guessing game (English)**
+(`usecases.open_i_reception_multi_state_games_en`) are a third clone of the Gala
+games variant for [Open-i 2026](https://www.open-i.swiss/de), NZZ Connect's
+innovation conference on Thursday, 26 November 2026 at Kongresshaus Zürich.
+They behave exactly like the two Swiss Robotics Day entries: same state machine,
+policies, person cards, multi-state RPS countdown, guessing, presence-controlled
+GPT-Live and persisted default language. Only the greeting, state labels
+(`Open-i …`), profile tag `demo.gigi.open_i` and event reference differ.
+
+The [Open-i reference](src/main/resources/ch/zhaw/prometheus/agentdefs/usecases/openi/reference.json)
+shares the SML, IWI, SIRA Lab and GIGI facts and adds the focus themes, partners,
+2026 ticket categories, the published Blue/Purple/Science/Pitching Stage
+programme, and Kongresshaus address and public-transport directions. These were
+checked on 23 November 2026. The official information page leaves its date field
+empty, so the date comes from the official Innovation Challenge timeline;
+Guidle and messen.de listings give the same date. Stage times carry no day label
+and do not establish live progress. Open-i publishes no sold-out status, door
+sales, booth location or Wi-Fi information; Gigi refers such questions to the
+Open-i team. ZHAW is listed as an Innovation Partner; Gigi does not claim an
+organiser role.
+
+Live instructions reach about 13,990 bytes, within the 14,400-byte regression
+ceiling, so keep further reference additions small. Allow the new keys for the
+access code, restart the backend and create fresh instances; existing Gala and
+Swiss Robotics Day instances are unchanged.
 
 ### Gala Dinner Reception
 

@@ -36,6 +36,16 @@ public class ApplicationAgentDefinitionConfiguration {
     }
 
     @Bean
+    AgentDefinition openIReceptionMultiStateGames() {
+        return new ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGames();
+    }
+
+    @Bean
+    AgentDefinition openIReceptionMultiStateGamesEnglish() {
+        return new ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGamesEnglish();
+    }
+
+    @Bean
     AgentDefinition tdsrAishaInvestQatarQa() {
         return new ch.zhaw.prometheus.agentdefs.tdsr.aisha.Aisha();
     }

@@ -235,7 +235,9 @@ PROMETHEUS currently provides:
   a two-second camera-departure grace including audio, fresh sessions after confirmed departure and
   restrained facial-change embodiment. One packaged, sourced reference supplies
   institutional/event facts across Gala policies; audit URLs stay outside model
-  context. Spoken guidance uses djee-djee while the stored name stays GIGI.
+  context. Swiss Robotics Day and Open-i German/English clones of the games
+  variant differ only by event policy entity and sourced event reference.
+  Spoken guidance uses djee-djee while the stored name stays GIGI.
   Setup, instruction-budget verification and physical limits are in README;
 - a regulation foundation with persisted specifications, snapshot context,
   modulation values, internal events, reset behavior, and tests;

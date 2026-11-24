@@ -80,6 +80,7 @@ class LiveSessionSmokeIntegrationTest {
                 "usecases.gala_dinner_reception_rps_preparation", "usecases.gala_dinner_reception_multi_state_games",
                 "usecases.swiss_robotics_day_reception_multi_state_games",
                 "usecases.swiss_robotics_day_reception_multi_state_games_en",
+                "usecases.open_i_reception_multi_state_games", "usecases.open_i_reception_multi_state_games_en",
                 "core.rock_scissor_paper", "core.role_clarification_guessing_game", "core.social_context_sensitivity",
                 "usecases.healthcare.guessing_game", "usecases.healthcare.guessing_game_user_guess",
                 "usecases.healthcare.healthcare_conversation", "usecases.healthcare.smart_goal_coaching",

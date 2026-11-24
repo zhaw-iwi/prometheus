@@ -14,6 +14,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReception;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionMultiStateGames;
 import ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionRpsPreparation;
+import ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGames;
+import ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGamesEnglish;
 import ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGames;
 import ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGamesEnglish;
 import ch.zhaw.prometheus.agentdefs.usecases.gala.GalaDinnerGamesPolicy;
@@ -34,14 +36,16 @@ import ch.zhaw.prometheus.spi.LanguageModelGateway;
 class GalaDinnerReceptionIntegrationTest {
     static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> tutorialVariants() {
         return java.util.stream.Stream.of(GalaDinnerReceptionRpsPreparation.KEY, GalaDinnerReceptionMultiStateGames.KEY,
-                        SwissRoboticsDayReceptionMultiStateGames.KEY, SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY)
+                        SwissRoboticsDayReceptionMultiStateGames.KEY, SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY,
+                        OpenIReceptionMultiStateGames.KEY, OpenIReceptionMultiStateGamesEnglish.KEY)
                 .flatMap(key -> java.util.stream.Stream.of("ROBOT", "COCKPIT")
                         .map(embodiment -> org.junit.jupiter.params.provider.Arguments.of(key, embodiment)));
     }
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {
-            SwissRoboticsDayReceptionMultiStateGames.KEY, SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY})
+            SwissRoboticsDayReceptionMultiStateGames.KEY, SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY,
+            OpenIReceptionMultiStateGames.KEY, OpenIReceptionMultiStateGamesEnglish.KEY})
     void preparationCaptureIsPublishedDuringGraceAndRecoveredWithPersistedProgress(String key) {
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
@@ -88,7 +92,7 @@ class GalaDinnerReceptionIntegrationTest {
                         data.toString()), OutputProfile.FULL_PLAN);
             }
             stored = agents.findById(id).orElseThrow();
-            assertEquals("Swiss Robotics Day rock-scissor-paper countdown", stored.getCurrentState().getName());
+            assertEquals(setting(key) + " rock-scissor-paper countdown", stored.getCurrentState().getName());
             assertTrue(stored.getStorage().get("gala.rps_prepared").getAsBoolean());
             verify(language, times(1)).infer(any());
         } finally { ownership.release(id, session); }
@@ -97,8 +101,8 @@ class GalaDinnerReceptionIntegrationTest {
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.MethodSource("tutorialVariants")
     void tutorialProgressPlaybackAndFreshCaptureSurvivePersistence(String key, String embodiment) {
-        boolean english = SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY.equals(key);
-        String setting = english || SwissRoboticsDayReceptionMultiStateGames.KEY.equals(key) ? "Swiss Robotics Day" : "Gala";
+        boolean english = english(key);
+        String setting = setting(key);
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
@@ -268,11 +272,12 @@ class GalaDinnerReceptionIntegrationTest {
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {GalaDinnerReceptionMultiStateGames.KEY,
-            SwissRoboticsDayReceptionMultiStateGames.KEY, SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY})
+            SwissRoboticsDayReceptionMultiStateGames.KEY, SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY,
+            OpenIReceptionMultiStateGames.KEY, OpenIReceptionMultiStateGamesEnglish.KEY})
     void gamesOnlyCloneKeepsItsPolicyAndRejectsTasksAcrossReloadAndReset(String key) {
-        boolean english = SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY.equals(key);
-        boolean swiss = english || SwissRoboticsDayReceptionMultiStateGames.KEY.equals(key);
-        String setting = swiss ? "Swiss Robotics Day" : "Gala";
+        boolean english = english(key);
+        String setting = setting(key);
+        boolean swiss = "Swiss Robotics Day".equals(setting), openI = "Open-i".equals(setting);
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
         admin.replaceAllowedAgentTypes(access.getId(), List.of(key));
@@ -307,10 +312,32 @@ class GalaDinnerReceptionIntegrationTest {
                     for (var state : loaded.reachableStates())
                         assertInstanceOf(ch.zhaw.prometheus.agentdefs.usecases.gala.SwissRoboticsDayPolicy.class, state.ownPolicy());
                 }
+                if (openI) {
+                    String instructions = new LiveVoicePolicyAdapter().instructions(loaded);
+                    assertEquals(english ? "en" : "de", loaded.getLanguageCode());
+                    assertTrue(instructions.contains(english ? "English by default" : "German by default"));
+                    assertTrue(instructions.contains(english ? "Welcome to Open-i!" : "Willkommen an der Open-i!"));
+                    assertTrue(instructions.contains("26. November 2026"));
+                    assertTrue(instructions.contains("Kongresshaus Zürich"));
+                    assertFalse(instructions.contains("Gala"));
+                    assertFalse(instructions.contains("Swiss Robotics Day"));
+                    for (var state : loaded.reachableStates())
+                        assertInstanceOf(ch.zhaw.prometheus.agentdefs.usecases.gala.OpenIPolicy.class, state.ownPolicy());
+                }
                 assertFalse(loaded.listStates().contains("Gala co-created task"));
             } finally { ownership.release(id, session); }
             demo.reset(code, id);
         }
+    }
+
+    private static boolean english(String key) {
+        return SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY.equals(key) || OpenIReceptionMultiStateGamesEnglish.KEY.equals(key);
+    }
+
+    private static String setting(String key) {
+        if (key.startsWith("usecases.open_i")) return "Open-i";
+        if (key.startsWith("usecases.swiss_robotics_day")) return "Swiss Robotics Day";
+        return "Gala";
     }
 
     private void hand(String code, UUID id, String sign, String capture) {

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +36,21 @@ final class GalaDinnerReference {
     static String context(boolean activities) { return activities ? CONTEXT : RECEPTION_CONTEXT; }
     static String context(boolean activities, boolean coCreatedTasks) {
         return !activities ? RECEPTION_CONTEXT : coCreatedTasks ? CONTEXT : GAMES_CONTEXT;
+    }
+
+    /** Approved institutional sections shared by event clones; Gala event/venue sections stay separate. */
+    static final Set<String> INSTITUTION_SECTIONS = Set.of("sml", "iwi", "sira", "gigi");
+
+    /** Render the shared institutional facts followed by one event's own sourced sections. */
+    static String eventContext(String resource, String title) {
+        var event = load(resource);
+        var sections = new ArrayList<>(DOCUMENT.sections().stream()
+                .filter(section -> INSTITUTION_SECTIONS.contains(section.id())).toList());
+        var sourceIds = sections.stream().flatMap(section -> section.sourceIds().stream()).collect(Collectors.toSet());
+        var sources = new ArrayList<>(DOCUMENT.sources().stream().filter(source -> sourceIds.contains(source.id())).toList());
+        sources.addAll(event.sources());
+        sections.addAll(event.sections());
+        return render(new Document(event.recordedOn(), sources, sections), true, false, title);
     }
 
     private static Document load() {

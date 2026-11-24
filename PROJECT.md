@@ -82,6 +82,27 @@ and regulation diagnostics remain future work.
 
 ### Current milestone state
 
+- Open-i clone (2026-11-23): added `usecases.open_i_reception_multi_state_games`
+  and its `_en` English-default entry, cloning the Swiss Robotics Day pair for
+  Open-i 2026 (Thursday, 26 November 2026, Kongresshaus Zürich). Graph, policies,
+  person cards, countdown, guessing, Live lifecycle and language persistence are
+  unchanged. Only the greeting, `Open-i …` state labels, profile tag and a new
+  sourced reference differ. That reference comes from the official open-i.swiss
+  and Kongresshaus pages, checked on 2026-11-23; the date comes from the official
+  Innovation Challenge timeline because the information page's date field is
+  empty. `GalaDinnerReference.eventContext` now holds the shared
+  institutional-facts merge; Swiss output is unchanged. The new `OpenIPolicy`
+  entity uses the existing single-table policy hierarchy, so no schema migration
+  is needed. Live instructions peak at 13,988 of the 14,400-byte ceiling.
+  Verification passed 244 focused Gala/Swiss/Open-i unit cases on a JDK 21 fork,
+  including Open-i countdown and capture recovery. It also passed 63
+  disposable-MySQL cases: Gala integration including Open-i tutorial, capture
+  recovery and reload/reset, plus the capability, Live-catalog, registry and
+  Coordination suites. The schema and account were removed afterwards. The full
+  Java suite, JS/browser checks, real-provider speech, camera and physical robot
+  trials were not run. Allow the keys, restart the backend and create fresh
+  instances.
+
 - Agents synchronization (2026-11-23): local agents now contains origin/agents
   through `c1e885f8` (TWC/GLF promotion, robot embodiment, CORS and Heroku v171
   records), main `025697df` and swiss-robo-day `55a3fc33`. Shared framework

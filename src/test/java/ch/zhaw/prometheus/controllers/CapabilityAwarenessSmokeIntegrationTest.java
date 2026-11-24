@@ -56,6 +56,8 @@ class CapabilityAwarenessSmokeIntegrationTest {
                     || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionMultiStateGames.KEY)
                     || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGames.KEY)
                     || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGamesEnglish.KEY)
+                    || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGames.KEY)
+                    || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGamesEnglish.KEY)
                     || definition.key().equals(ch.zhaw.prometheus.agentdefs.usecases.GalaDinnerReceptionSingleState.KEY);
             assertEquals(aware, definition.capabilityAwareness(), definition.key());
             assertEquals(aware, definition.createAgent().getInteractionProfile().isCapabilityAwareness(), definition.key());

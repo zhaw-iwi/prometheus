@@ -1,0 +1,77 @@
+{
+  "recordedOn": "2026-11-23",
+  "sources": [
+    {
+      "id": "openi26-home",
+      "description": "Official Open-i (NZZ Connect) homepage, focus themes and ticket page checked on 2026-11-23; ticket prices are a dated snapshot and no sold-out or door-sale status was published.",
+      "urls": ["https://www.open-i.swiss/de", "https://www.open-i.swiss/de/themen", "https://www.open-i.swiss/de/tickets"]
+    },
+    {
+      "id": "openi26-date",
+      "description": "Official Innovation Challenge timeline naming 26 November 2026 as Open-i 2026, checked on 2026-11-23. The official information page leaves its date field empty; Guidle and messen.de listings give the same date.",
+      "urls": ["https://www.open-i.swiss/de/innovation-challenge/ablauf", "https://www.open-i.swiss/de/information"]
+    },
+    {
+      "id": "openi26-partners",
+      "description": "Official partner page checked on 2026-11-23; tiers and names only.",
+      "urls": ["https://www.open-i.swiss/de/partner"]
+    },
+    {
+      "id": "openi26-programme",
+      "description": "Official stage programmes checked on 2026-11-23. Stage pages give times without a day label; published plan only, not evidence of live progress or delays.",
+      "urls": [
+        "https://www.open-i.swiss/de/programm",
+        "https://www.open-i.swiss/de/programm/blue-stage",
+        "https://www.open-i.swiss/de/programm/purple-stage",
+        "https://www.open-i.swiss/de/programm/programm-science-stage",
+        "https://www.open-i.swiss/de/programm/pitching-stage-pro"
+      ]
+    },
+    {
+      "id": "openi26-venue",
+      "description": "Open-i names Kongresshaus Zürich as venue; postal address, entrances and public transport from the official Kongresshaus travel page, checked on 2026-11-23. No Open-i entrance assignment or live transport was checked.",
+      "urls": ["https://www.open-i.swiss/de/information", "https://kongresshaus.ch/de/erleben/anreise"]
+    }
+  ],
+  "sections": [
+    {
+      "id": "event",
+      "title": "Open-i 2026",
+      "sourceIds": ["openi26-home", "openi26-date", "openi26-partners"],
+      "facts": [
+        "Donnerstag, 26. November 2026 im Kongresshaus Zürich. Innovationskonferenz von NZZ Connect mit vier Fokusthemen: AI & Robotics, Defense & Space, Energy & Fusion, Health & Lifestyle; dazu Innovation Challenge und Swiss Technology Award.",
+        "Partner u. a.: Content Partner ETH Zürich; Innovation Partner Google Cloud, Helbling, Innosuisse, Universität Zürich und ZHAW; Initiativpartner Kanton Zürich (Amt für Wirtschaft); Alliance Partner CSEM und Philip Morris Switzerland.",
+        "Tickets 2026 laut Website: Konferenz CHF 890, VIP CHF 1'090, Start-up CHF 250, Studierende CHF 99, über den NZZ-Connect-Ticketshop. Keine Angaben zu Restplätzen oder Tageskasse."
+      ]
+    },
+    {
+      "id": "programme",
+      "title": "Programm laut veröffentlichten Bühnenplänen",
+      "sourceIds": ["openi26-programme"],
+      "facts": [
+        "Blue Stage, AI & Robotics: 08:30 Begrüssung; 08:35 Keynote Marco Tempest (ETH Zürich); 09:00 Raffaello D'Andrea (Verity) zu KI in der physischen Welt; 09:20 Jason Corkill (Rapidata) zu menschlicher Intelligenz für KI; 09:40 RoboRunway mit Nils Müller (TRENDONE); 10:00–10:40 Netzwerkpause; 10:40 Panel zu humanoiden Robotern (Helbling, Enact Intelligence); 11:00 Panel Physical AI und neue Chips (CSEM, Sonova, Pointcloud, QBIT Capital); 11:30 Europas Wettbewerbsfähigkeit (Thierry Kneissler, Katharina Göppinger); 11:50 Swiss-Technology-Award-Gewinner; 12:05–13:50 Mittag.",
+        "Blue Stage, Health & Lifestyle: 13:50 Innovationsallianz Schweiz; 14:15 Selina Hehl mit ChatGPT zur Psychologie digitaler Begleiter; 14:40 Longevity-Panel (Heike Bischoff-Ferrari, Marc P. Bernegger); 15:05 Medicine 2050 mit UZH-Start-up-Pitches; ab 15:30 Netzwerkpause.",
+        "Purple Stage: 10:45–12:05 Defense & Space (Skyler Chan/GRU Space, Barbara Frei-Spreiter/Beyond Gravity, Marianne Janik/Google Cloud, Serge Bavaud/NDB; 11:45 ZHAW-Panel zur Raumfahrt); 13:55–15:30 Energy & Fusion (Melanie Windridge, NZZ-Podcast Quantensprung live, Helical Fusion, Synhelion/SWISS/Pilatus, Christoph Frei); 16:10 Spark Award (ETH Zürich); 16:30 Jörg Wuttke zu Innovation und Geopolitik; 16:45 Ditaji Kambundji; 17:05 Panel Innovationsökosystem Schweiz (Effy Vayena, Lars Frolund, Tjarko Leifer/Gravis Robotics); 17:35–19:00 Abschluss und Farewell-Apéro.",
+        "Science Stage 09:00–17:10: Sessions von ETH, UZH, isolutions und CSEM, 13:30 Design Sprint der ZHAW, 16:50 David Hemmi (CSEM) zu KI-geführter Robotik. Pitching Stage (CSEM): 10:10 und 12:15 Start-up-Pitches, 15:10 CSEM Digital Journey Award.",
+        "Zeitangaben sind geplant, kein bestätigter Live-Fortschritt; keinen bereits begonnenen, verschobenen oder abgesagten Programmpunkt unterstellen."
+      ]
+    },
+    {
+      "id": "venue",
+      "title": "Ort und Anreise",
+      "sourceIds": ["openi26-venue"],
+      "facts": [
+        "Kongresshaus Zürich, Gotthardstrasse 5, 8002 Zürich; zentral nahe Hauptbahnhof, Bahnhofstrasse und Bahnhof Stadelhofen. Eingänge Kongresshaus u. a. Claridenstrasse 5 und Beethovenstrasse 8.",
+        "Ab Zürich HB Tram 7, 10 oder 13 bis Stockerstrasse (ca. 5 Minuten zu Fuss) oder Tram 11 bis Bürkliplatz (ca. 4 Minuten); ab Stadelhofen Tram 8 oder 11 bis Bürkliplatz; vom Flughafen per S-Bahn/IC zum HB. Keine Echtzeit-Verbindungen oder Fahrplangarantie."
+      ]
+    },
+    {
+      "id": "practical_limits",
+      "title": "Auskunft vor Ort",
+      "sourceIds": ["openi26-home", "openi26-venue"],
+      "facts": [
+        "Für aktuelle Änderungen, Räume, Check-in und organisatorische Fragen das Open-i-Team vor Ort fragen. Kein bestätigter SIRA-/GIGI-Standplatz, keine Menü-/Allergen- oder WLAN-Angaben und kein Wissen über den aktuellen Aufenthaltsort von Personen. ZHAW ist Innovation Partner; keine offizielle Veranstalterrolle für SIRA/GIGI behaupten."
+      ]
+    }
+  ]
+}

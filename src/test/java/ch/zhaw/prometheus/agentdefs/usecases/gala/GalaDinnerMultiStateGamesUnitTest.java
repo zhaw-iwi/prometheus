@@ -128,11 +128,13 @@ class GalaDinnerMultiStateGamesUnitTest {
         verify(gateway, times(2)).infer(any());
     }
 
-    @ParameterizedTest @ValueSource(strings = {"gala", "swiss-de", "swiss-en"})
+    @ParameterizedTest @ValueSource(strings = {"gala", "swiss-de", "swiss-en", "openi-de", "openi-en"})
     void readyLeadInAndSlowCountdownSurviveYesWithoutRestartingOrMovingFreshness(String variant) {
         var selected = switch (variant) {
             case "swiss-de" -> new ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGames();
             case "swiss-en" -> new ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGamesEnglish();
+            case "openi-de" -> new ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGames();
+            case "openi-en" -> new ch.zhaw.prometheus.agentdefs.usecases.OpenIReceptionMultiStateGamesEnglish();
             default -> definition;
         };
         var playing = selected.createAgent();
@@ -141,7 +143,7 @@ class GalaDinnerMultiStateGamesUnitTest {
         put(storage, RPS_PREPARED, "true");
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_RPS", ""));
         playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER,
-                variant.equals("swiss-en") ? "Let's play Rock, Paper, Scissors" : "Schere Stein Papier bitte"), runtime);
+                variant.endsWith("-en") ? "Let's play Rock, Paper, Scissors" : "Schere Stein Papier bitte"), runtime);
         var policy = (GalaDinnerPolicy) playing.getCurrentState().ownPolicy();
         String intro = text(storage, GalaDinnerRps.INTRO, ""), round = text(storage, GalaDinnerRounds.ID, "");
         String lastInput = text(storage, LAST_INPUT, "");
@@ -162,7 +164,7 @@ class GalaDinnerMultiStateGamesUnitTest {
             assertFalse(storage.containsKey(CAPTURE_ID));
         }
         var owner = runtime.externalSpeech();
-        var speech = playing.recordExternalSpeech(variant.equals("swiss-en") ? "Get ready. Rock … Paper … Scissors." : "Mach dich bereit. Schere … Stein … Papier.",
+        var speech = playing.recordExternalSpeech(variant.endsWith("-en") ? "Get ready. Rock … Paper … Scissors." : "Mach dich bereit. Schere … Stein … Papier.",
                 new ch.zhaw.prometheus.model.event.SpeechProvenance(
                         ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
                         "slow-countdown", ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, List.of(), true));
