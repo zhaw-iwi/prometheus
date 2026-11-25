@@ -3,7 +3,7 @@
   "baseReservedUsd": 316,
   "addedCapUsd": 40,
   "continuationCapUsd": 170,
-  "cumulativeReservedUsd": 336,
+  "cumulativeReservedUsd": 341,
   "reservations": [
     {
       "mode": "L-06-visitor",
@@ -29,6 +29,13 @@
     {
       "mode": "L-05",
       "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-be83a5548f",
+      "reservedUsd": 5,
+      "allocationRevision": 18,
+      "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
+    },
+    {
+      "mode": "L-04",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-748dda520e",
       "reservedUsd": 5,
       "allocationRevision": 18,
       "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
@@ -2419,6 +2426,568 @@
         "heard": "The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition. We will review the terms before acceptance. I'll check. Thanks, I heard you."
       },
       "commandSpeechOrdering": {},
+      "visitorAtSessionStart": null,
+      "selectedVisitor": null,
+      "personPointError": null,
+      "clarificationWindows": {},
+      "additional": {}
+    },
+    {
+      "attempt": 119,
+      "mode": "L-04",
+      "artifact": "gptlive-acceptance-748dda520e",
+      "verdict": "PASS",
+      "finding": "Reviewed complete received audio, native transcript and both digital images. A wrong direction spent no action. After preparation, review, consent and a fresh cue the right hand pointed to the robot’s own right once. The independent request rendered the left hand pointing to its own left. Repeated native backchannels made no contrary claim.",
+      "automatedPassed": true,
+      "error": null,
+      "sourceRevision": "2cff24c6ec0891cf02ffa477bab905620f68c904",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "da97f53ef85d04a1e883d480164afe32fe24f418c4a7b8c92f6866933906344c",
+      "journeySha256": "b1f3e129a0c62b88fb8bbd16728fab3dc98274b492cc8bf2014b7b5b59ae8a4b",
+      "spoken": " Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. [tongue click] Okay. I’ll wait for your demonstration; the proposal is saved and not active. Please show right-hand pointing right in the unmirrored camera view so we can check recognition and review the terms. You demonstrated the cue; now you’d accept, then give a fresh cue while I point once to my own right, and we see if it goes to my right, which looks left from the front; one action total. Start? I heard you. Got it, task accepted and armed; waiting for a fresh right-hand pointing right in the unmirrored camera plane. Mm-hmm. Mm-hmm. I'll check. Mm-hmm. [tongue click] Mm-hmm. Mm-hmm. Mm-hmm.",
+      "admitted": [
+        {
+          "id": "fd83f188-0aa8-43be-aaf6-2dcc70efaeed",
+          "text": "I face the camera, so my left is image right Propose, but wait for my demonstration and acceptance. When I point to my left with my right index, point to your own right with your right hand once I demonstrate and judge the digital direction. You point, one action total, use default timing"
+        },
+        {
+          "id": "f36b146f-826d-4395-908f-8f21db19f4aa",
+          "text": "I accept the current proposal"
+        },
+        {
+          "id": "bc5867d2-6ce6-49c0-9f54-d342a7beeba1",
+          "text": "Point to your own left with your left hand"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "134f92f5-eaa0-41c6-bc41-1536985b9193",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "20e5603d-bd3f-460d-b838-41a1c818c34b",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "9a86d50e-4b35-42e8-b89a-073045663a2d",
+          "speech": "Mm-hmm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "e0eecc24-801b-4fca-b5a4-7b7e1aa1203e",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "853b57b6-2830-4d2c-b426-afc9ad4fd040",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "dce9b3c1-e9af-42f3-a52b-618f5819c3cf",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "af164e01-d161-4a05-b87d-1d3aa0f37206",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "7d87262b-7f5c-460a-8c82-fd299f45e13b",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "0379825c-24c2-4cf7-bd5d-095c627c0b03",
+          "speech": "mm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "10910dd7-870b-4f1d-a345-4aecc586d370",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "0f7bb9a2-d5d4-4c3a-8fa2-540d09e56c9d",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "07a694e4-03de-4812-ad19-c22fedd7e65c",
+          "speech": "Mm-hmm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "c31a62bc-3b67-4276-9954-88cc0f5b7b82",
+          "speech": "[tongue click]",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "e20b4bf9-868d-4ca9-bb58-63aab240e938",
+          "speech": "Okay. I’ll wait for your demonstration; the proposal is saved and not active. Please show right-hand pointing right in the unmirrored camera view so we can check recognition and review the terms.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "6c835e77-5ca3-4b48-b172-f8e9d6c0d9a7",
+          "speech": "You demonstrated the cue; now you’d accept, then give a fresh cue while I point once to my own right, and we see if it goes to my right, which looks left from the front; one action total. Start?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "b804aba0-bcff-4b44-9415-6219c69466b1",
+          "speech": "I heard you.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "ace48269-5732-445e-a5b8-cb82e0cfc644",
+          "speech": "Got it, task accepted and armed; waiting for a fresh right-hand pointing right in the unmirrored camera plane.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "8cf17cf6-48ef-48e1-bc2b-e17c4f98c6cd",
+          "speech": "Mm-hmm.",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "860a22ce-da9c-48f2-b2e8-c6bec2e2a9c6",
+          "speech": "Mm-hmm.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "18a6d12e-149e-4b70-a7b9-913bc62ead7c",
+          "speech": "I'll check. Mm-hmm. [tongue click] Mm-hmm. Mm-hmm.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "420a07b6-3b31-4252-b24f-271b3eb34395",
+          "speech": "Mm-hmm.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "38af6792903dc181cf38fa54d2f41019c75a694d8c45b2b2bf8eedf61ce8ba54",
+            "duration": 129.78,
+            "segments": [
+              {
+                "start": 5.78,
+                "end": 39.24,
+                "text": " Okay, I'll wait for your demonstration.",
+                "logprob": -0.23699680755012914
+              },
+              {
+                "start": 39.24,
+                "end": 41.64,
+                "text": " The proposal is saved and not active.",
+                "logprob": -0.23699680755012914
+              },
+              {
+                "start": 41.64,
+                "end": 46.88,
+                "text": " Please show right hand pointing right in the unmeared cam review so we can check recognition",
+                "logprob": -0.23699680755012914
+              },
+              {
+                "start": 46.88,
+                "end": 55.56,
+                "text": " and review the terms.",
+                "logprob": -0.23699680755012914
+              },
+              {
+                "start": 55.56,
+                "end": 57.52,
+                "text": " You demonstrated the queue.",
+                "logprob": -0.23699680755012914
+              },
+              {
+                "start": 57.52,
+                "end": 63.16,
+                "text": " Now you'd accept, then give a fresh Q while I point once to my own right, and we see if",
+                "logprob": -0.21866979405104395
+              },
+              {
+                "start": 63.16,
+                "end": 66.76,
+                "text": " it goes to my right, which looks left from the front.",
+                "logprob": -0.21866979405104395
+              },
+              {
+                "start": 66.76,
+                "end": 67.96,
+                "text": " One action total.",
+                "logprob": -0.21866979405104395
+              },
+              {
+                "start": 67.96,
+                "end": 75.46,
+                "text": " Start.",
+                "logprob": -0.21866979405104395
+              },
+              {
+                "start": 75.46,
+                "end": 80.84,
+                "text": " I heard you.",
+                "logprob": -0.21866979405104395
+              },
+              {
+                "start": 80.84,
+                "end": 81.84,
+                "text": " Got it.",
+                "logprob": -0.21866979405104395
+              },
+              {
+                "start": 81.84,
+                "end": 87.4,
+                "text": " Task accepted and armed, waiting for a fresh right hand pointing right in the unmerried",
+                "logprob": -0.21866979405104395
+              },
+              {
+                "start": 87.4,
+                "end": 114.72,
+                "text": " camera plane. I'll check.",
+                "logprob": -0.576516580581665
+              }
+            ]
+          }
+        ]
+      },
+      "images": [
+        {
+          "name": "task-L-04.png",
+          "sha256": "66fe3facc6b380828359cbd16d72a218e9045a64b712297091f55c747b9405f4"
+        },
+        {
+          "name": "directionshow.png",
+          "sha256": "0c47f7f8f514eff52a9ffefe91059ba58b4d7f2c7013dedba8f9fe45164b17b1"
+        }
+      ],
+      "renderChecks": [
+        {
+          "name": "task-L-04",
+          "eventId": "a5ed3bda-19bd-49b8-8c0e-0066dc674f40",
+          "phase": "holding",
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "point",
+            "hand": "right_hand",
+            "action": {
+              "kind": "point",
+              "effector": "right_hand",
+              "direction": "right",
+              "frame": {
+                "id": "valerian.robot",
+                "revision": 1,
+                "space": "robot_local",
+                "mirrored": false
+              }
+            },
+            "display": null,
+            "warnings": []
+          },
+          "irisPixels": 432,
+          "glError": 0
+        },
+        {
+          "name": "directionshow",
+          "eventId": "a31a9b63-8b3e-4209-a637-7b0c61367b8a",
+          "phase": "holding",
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "point",
+            "hand": "left_hand",
+            "action": {
+              "kind": "point",
+              "effector": "left_hand",
+              "direction": "left",
+              "frame": {
+                "id": "valerian.robot",
+                "revision": 1,
+                "space": "robot_local",
+                "mirrored": false
+              }
+            },
+            "display": null,
+            "warnings": []
+          },
+          "irisPixels": 433,
+          "glError": 0
+        }
+      ],
+      "phase": "COMPLETED",
+      "actions": 1,
+      "outcome": "LIMIT_REACHED",
+      "proposal": {
+        "goal": "Test one digital robot-right point in response to your right index pointing to your left (unmirrored image-right).",
+        "humanRole": "Demonstrate the cue, accept the proposal, repeat the cue, and judge the digital direction.",
+        "agentRole": "Wait for a fresh cue after acceptance, then point digitally once to my own right with my right hand.",
+        "success": "You judge whether the single digital point went to the robot's own right, which appears left from the front.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pointing",
+            "minConfidence": 0,
+            "handPoint": {
+              "handedness": "right",
+              "direction": "right",
+              "frame": {
+                "id": "hand-live-camera",
+                "revision": 1,
+                "space": "camera_image",
+                "mirrored": false
+              }
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Test one digital robot-right point in response to your right index pointing to your left (unmirrored image-right).",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pointing",
+              "action": "Point digitally to the robot's own right with the right hand.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPoint": {
+                "handedness": "right",
+                "direction": "right",
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": [
+        {
+          "id": "a5ed3bda-19bd-49b8-8c0e-0066dc674f40",
+          "motion": {
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "direction": "right",
+                "frame": {
+                  "id": "valerian.robot",
+                  "revision": 1,
+                  "space": "robot_local",
+                  "mirrored": false
+                }
+              }
+            }
+          }
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "prepared",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T11:52:29.111Z",
+              "eventId": "obs.hand.pointing:2026-11-25T11:52:29.111Z"
+            }
+          },
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "completed",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T11:52:29.111Z",
+              "eventId": "obs.hand.pointing:2026-11-25T11:52:29.111Z"
+            }
+          },
+          "phase": "COMPLETED",
+          "actions": 1
+        },
+        {
+          "name": "final",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T11:52:29.111Z",
+              "eventId": "obs.hand.pointing:2026-11-25T11:52:29.111Z"
+            }
+          },
+          "phase": "COMPLETED",
+          "actions": 1
+        }
+      ],
+      "silentInputReceipts": [],
+      "commands": [
+        {
+          "name": "directionshow",
+          "result": {
+            "sourcePosition": 412,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "left_hand",
+                "direction": "left",
+                "frame": {
+                  "id": "valerian.robot",
+                  "revision": 1,
+                  "space": "robot_local",
+                  "mirrored": false
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "bc5867d2-6ce6-49c0-9f54-d342a7beeba1",
+            "position": 412
+          },
+          "delivery": [
+            {
+              "serverMs": 1795607610864,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "f3c6080541814fd9dd02620c059ee6c7dcef5dbdb40b0d44022a1cff0958dd55",
+              "sourceId": "bc5867d2-6ce6-49c0-9f54-d342a7beeba1",
+              "sequence": 193,
+              "contentBytes": 335,
+              "sourceIds": [
+                "bc5867d2-6ce6-49c0-9f54-d342a7beeba1"
+              ]
+            },
+            {
+              "serverMs": 1795607611726,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "f3c6080541814fd9dd02620c059ee6c7dcef5dbdb40b0d44022a1cff0958dd55",
+              "sourceId": "bc5867d2-6ce6-49c0-9f54-d342a7beeba1",
+              "sequence": 194,
+              "contentBytes": 335,
+              "sourceIds": [
+                "bc5867d2-6ce6-49c0-9f54-d342a7beeba1"
+              ]
+            }
+          ],
+          "renderer": null
+        }
+      ],
+      "stimuli": [
+        {
+          "name": "directionpropose",
+          "sha256": "2cfcc116a66ef67504c2dc1f36fcc5dec7841483dba9e074a6603de9be0aefac"
+        },
+        {
+          "name": "accept",
+          "sha256": "82b42c3422335ce04c02cb3f65c2aeec63c0c9ab6380badac08d0c2ad7a9895e"
+        },
+        {
+          "name": "directionshow",
+          "sha256": "74582815a6d549c92160c1bc159abe54e144a5120ce0fbe9abf872fd5e10d27d"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": "RUNNING",
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": null,
+      "response": {},
+      "delivery": null,
+      "backendReportedTokens": 29097,
+      "backendRequests": 4,
+      "providerUsageSeconds": 115,
+      "runtime": {
+        "inputSeconds": 27.1685,
+        "textBytes": 60578,
+        "exhausted": null,
+        "rtcElapsedSeconds": 133.513
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 482,
+      "contributionContext": [],
+      "cupTaskError": null,
+      "preparationPrompt": {
+        "id": "cd8b5e74-6662-4f2c-a456-a9570a4d9554"
+      },
+      "commandSpeechOrdering": {
+        "directionshow": {
+          "observed_before_result_sent": " Mm-hmm. Mm-hmm.",
+          "undetermined": " I'll check.",
+          "observed_after_result_ack": " Mm-hmm. [tongue click] Mm-hmm. Mm-hmm. Mm-hmm."
+        }
+      },
       "visitorAtSessionStart": null,
       "selectedVisitor": null,
       "personPointError": null,

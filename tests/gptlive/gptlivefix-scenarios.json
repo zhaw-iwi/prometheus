@@ -23,6 +23,8 @@
     }
   },
   "meaningExamples": [
+    {"id": "single-acknowledgement-aside", "confirmed": "Acknowledge the point at the Display once in your own words.", "spoken": "I'm here. I caught your point at the Display.", "verdict": "EQUIVALENT", "reason": "One complete acknowledgement, preceded by an incidental remark."},
+    {"id": "duplicate-acknowledgement", "confirmed": "Acknowledge the point at the Display once in your own words.", "spoken": "I caught your point at the Display. Yes, I saw you point there.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Acknowledges the same cue twice."},
     {"id": "sign-paraphrase", "confirmed": "Show scissors.", "spoken": "Make a scissor sign.", "verdict": "EQUIVALENT", "reason": "Same sign and human action."},
     {"id": "wrong-sign", "confirmed": "Show scissors.", "spoken": "Show rock.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Changes the agreed sign."},
     {"id": "wrong-role", "confirmed": "You show scissors; I offer one welcome.", "spoken": "I show scissors; you offer the welcome.", "verdict": "MATERIAL_DIFFERENCE", "reason": "Reverses roles."},

@@ -71,7 +71,9 @@ public final class TaskResponse {
         private String purposeGuidance() {
             return switch (purpose) {
                 case CONTRIBUTION -> "\nCONTRIBUTION requires the actual authorized task content. Arming/waiting is not that content. "
-                        + "An accepted fresh cue requests execution even if an earlier agreement used ON_CUE. A newly composed requested joke may match.";
+                        + "An accepted fresh cue requests execution even if an earlier agreement used ON_CUE. A newly composed requested joke may match. "
+                        + "For a single acknowledgement in the speaker's own words, a brief conversational aside can coexist with one complete acknowledgement. "
+                        + "A second acknowledgement, a changed condition, a new request or a contradiction fails. Honour any explicit wording or silence constraint.";
                 case ARMING -> "\nARMING requires only accepted/armed/waiting confirmation, without the future action. "
                         + "A present-tense 'I'm waiting for your sign/cue' suffices; it need not repeat all agreed terms. "
                         + "Activation now with the action explicitly deferred to a future cue also confirms arming: "

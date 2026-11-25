@@ -49,9 +49,11 @@ public class CoordinationCueAction extends CoreTaskUpdateAction {
                 String exact = literalSpeech(rule, spoken);
                 String facts = exact != null ? "Say this exact line once, then listen: " + new JsonPrimitive(exact)
                         : "A fresh cue authorized this current contribution. Required spoken content: " + intent
-                        + " Convey this committed result with equivalent meaning, not an example from the agreement. Say it once; do not add a reflection or aside.";
+                        + " Convey this committed result with equivalent meaning, not an example from the agreement. Say it once.";
                 var response = getStorage().get(CoreTaskVoice.RESPONSE).getAsJsonObject().deepCopy();
-                response.addProperty("facts", facts); response.addProperty("contributionOnly", true); getStorage().put(CoreTaskVoice.RESPONSE, response);
+                // Keep the delivery style instruction out of the verifier's semantic reference.
+                response.addProperty("facts", exact == null ? facts + " End after the contribution." : facts);
+                response.addProperty("contributionOnly", true); getStorage().put(CoreTaskVoice.RESPONSE, response);
                 TaskResponse.contribution(getStorage(), facts, exact);
             }
         }
