@@ -2114,3 +2114,33 @@ retain complete received-audio reviews, native turns and command timing.
 For the following L-05/L-06 rehearsals the visitor requests one natural
 acknowledgement. Check the recorded response and action count against those
 spoken terms. The original dictated-line results keep their verdicts.
+
+| Attempt | Journey | What the visitor could do |
+| --- | --- | --- |
+| 117 | L-06, FAIL | The opening needed a choice between two cups. Live instead asked whether to point or watch. After selection, rehearsal, consent, the single natural acknowledgement, the right-hand Visitor point and the clarification after removal all worked. |
+| 118 | L-05, FAIL | Live correctly grounded the registered Display, reviewed the terms and heard consent. The visitor heard one recognition acknowledgement after the cue. The verifier received “I'm here. I caught your point at the Display.” and returned AMBIGUOUS. The task stopped at UNCERTAIN before the direct point. |
+| 119 | L-04, PASS | Reviewed received audio and both renderer images. The robot used its right hand to point to its own right after the fresh cue, then used its left hand to point to its own left on a separate request. Wrong cues spent no action. |
+| 120 | L-07, INCONCLUSIVE | The visitor heard a complete question about the missing response. The driver waited on an unconsumed review marker and never answered. The draft remained inactive. This run did not reach sequence recognition. |
+| 121 | L-08, PASS | All ten digital holding frames were inspected. The first count reached five, Stop held the second at two, and the prepared task counted to three once. The user heard the correct demonstration request, review and fresh-cue instruction. Reload did not replay the action. |
+| 122 | Full L-06, INCONCLUSIVE | Live asked which cup and withheld motion, reviewed the prepared terms through “Shall we start?”, pointed at the selected Visitor and requested reselection after removal. The review capture remained incomplete. The runner never supplied consent for the cup task, so the post-consent path was untested in this run. |
+
+The complete L-08 proposal reply first expressed uncertainty about verifying a pose before the visitor demonstrated one. It then correctly explained how to demonstrate the pose. The review confirmed recognition, the visitor accepted and the next cue triggered the agreed count. This qualifies under the meaning-based rubric. Local transcription also emitted trailing digits. Decoded audio from 162 seconds through the 181.14-second end had peak amplitude 0.000031, and local voice activity ended at 161.392 seconds. Native captions and received voice telemetry ended with the fresh-cue instruction.
+
+The full L-06 camera now holds the ambiguous ray during the spoken request. The existing quiet pointing update supplies the matching fresh candidate labels. At 122 Live asked which cup after acknowledgement of the command result. The Visitor point rendered at the mapped destination. A repeat after removal produced zero motion and a request to select again.
+
+The L-06 review recording contains the complete invitation. The provider also produced a visitor caption, `{"schemaVersion`, at browser time 77.634 seconds, between the cup proposal stimulus ending at 55.183 seconds and the next visitor stimulus starting at 124.786 seconds. The backend admitted this fragment. It ignored a separate later fragment on proven digital silence. The stored trace cannot establish uninterrupted backend PCM coverage around the first fragment. A local regression showed that a new caption over proven digital silence was admitted if it arrived before the first assistant caption. The repair applies the same PCM and clock checks on either side of that caption boundary. Quiet nonzero input, missing samples, delayed nonzero samples and older unrelated captions remain admissible. The run at 122 predates this repair.
+
+For L-05, generation still asks Live to finish after the agreed acknowledgement. The verifier now evaluates the committed meaning separately, so a brief conversational aside may accompany one acknowledgement in the visitor’s own words. Exact wording and single-action constraints still apply. For L-07 the test visitor can now answer the missing-response question when the current turn has a finished, audible question and the same inactive draft. Replaying the recorded captions and voice activity from attempt 120 through the updated test visitor yielded the missing-response question after quiet. Both changes await their respective full paid checks.
+
+**Next provider checks.** One full L-05 run should reach the natural acknowledgement and direct Display point. One full L-06 run should carry the prepared cup task through acceptance while preserving target clarification and removal. One full L-07 run should answer the missing-response question and verify ordered input, wrong-cue rejection, one acknowledgement and no retrigger on a held final pose. At $5 per reservation these three selections require another $15 of authorization. All eight reservations in allocation 18 remain recorded, including partial and failed runs.
+
+**Integrated verification.** The final isolated MySQL run (`c4491de083`) passed
+64 Java checks across 11 suites and all 13 Playwright cases. They covered native
+speech during blocked backend work, final playback and lost acknowledgements,
+Text/Continuous silence, selected-person removal, registered destinations and
+the input/output sequence rehearsals. The separate contribution/association
+suite (`afe6024dce`) passed 64 checks. All 45 Python tests, 27 Node tests and nine
+hand contracts passed. The Maven package built. Restoring into an empty temporary
+ledger reproduced all 122 original reservations and rejected the next paid
+selection. The evidence concerns the digital renderer and received audio.
+Physical robot, microphone and speaker trials remain unmeasured.

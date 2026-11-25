@@ -133,8 +133,12 @@ and regulation diagnostics remain future work.
   Attempt 114 verified the selected-person point and zero motion after removal.
   On the repeat, Live said “I’ll check.” The runner stopped during delivery of
   the clarification, 344 ms after send. Guidance after acknowledgement remains
-  unverified. All $130 is reserved at 114 entries/$316 cumulatively.
-  HI-12 remains open.
+  unverified in that attempt.
+  HI-12 remains open after allocation 18. L-04 directional pointing, L-08 output
+  counting and the focused L-06 Visitor point/removal passed. Full L-05, L-06
+  and L-07 still need real-provider confirmation. All $40 of this allocation is
+  reserved, bringing the continuation to $170 and the cumulative ledger to
+  122 entries/$356.
   [Results](.agents/HAND_INTERACTION_RESULTS.md) ·
   [Restoring the latest budget checkpoint](.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 

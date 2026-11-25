@@ -7,8 +7,10 @@ which local credentials, audio and database prerequisites must be recreated.
 
 ## Current hand acceptance allocation
 
-Attempt 114 used allocation 17’s $5 reservation. The $130 continuation is fully
-reserved at 114 attempts/$316 cumulatively. The focused selection
+Allocation 18 is exhausted at 122 entries and $356 reserved cumulatively,
+including $170 for the continuation. The portable handoff restores all eight
+reservations in this allocation. New paid runs need further authorization.
+The focused selection
 `--hand-interaction L-06-visitor --paid-core hand-live` starts Live with Visitor selected,
 then checks a direct point and a repeat after removal. A passing focused run
 covers only those two turns of L-06. The driver observes eight seconds after the

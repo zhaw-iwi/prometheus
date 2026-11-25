@@ -894,5 +894,12 @@ window. All $130 of the continuation is reserved at 114 entries/$316. See the
 Allocation 18 adds $40 at entry 114/$316, for a $170 continuation and a $356
 cumulative ceiling. Run L-06-visitor first, then the three pointing journeys,
 the two sequence journeys, and affected integrated verification. Review each
-selection. A brief provisional acknowledgement may bridge backend latency;
-when the visitor needs clarification, verify the substantive next step.
+selection. Native backchannels are allowed. Any explicit bridging workaround
+is a last resort. When a visitor needs clarification, verify the next step.
+
+HI-12 remains open after allocation 18. L-04 directional pointing, L-08 output
+counting and the focused L-06 Visitor point/removal passed. Full L-05, L-06
+and L-07 still need real-provider confirmation. All $40 of this allocation is
+reserved, bringing the continuation to $170 and the cumulative ledger to
+122 entries/$356.
+See the [ordered verification results](HAND_INTERACTION_RESULTS.md#ordered-hi-12-acceptance-under-allocation-18).

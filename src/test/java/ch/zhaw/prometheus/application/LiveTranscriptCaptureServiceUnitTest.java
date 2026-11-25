@@ -20,8 +20,9 @@ import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 
 class LiveTranscriptCaptureServiceUnitTest {
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(strings = {"zero", "quiet", "delayed", "missing", "older-caption"})
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"zero", "zero-before-review", "quiet", "quiet-before-review", "delayed", "missing", "older-caption"})
     void reviewInterruptionRequiresContinuousSilentInputToIgnoreAReceipt(String input) throws Exception {
+        boolean beforeReview = input.endsWith("-before-review");
         var ingress = mock(LiveTranscriptIngressService.class);
         when(ingress.commit(any(), any(), any(), any())).thenReturn(Optional.empty());
         var clock = mock(Clock.class);
@@ -35,7 +36,7 @@ class LiveTranscriptCaptureServiceUnitTest {
             for (int end = 58_000; end <= 67_000; end += 100) {
                 now.set(end);
                 var pcm = new byte[4800];
-                if (input.equals("quiet") && end == 62_500 || input.equals("delayed") && end == 63_200) pcm[0] = 1;
+                if (input.startsWith("quiet") && end == 62_500 || input.equals("delayed") && end == 63_200) pcm[0] = 1;
                 if (!input.equals("missing") || end < 62_500 || end > 63_400) {
                     var audio = new com.google.gson.JsonObject();
                     audio.addProperty("type", "session.input_audio.append");
@@ -48,7 +49,8 @@ class LiveTranscriptCaptureServiceUnitTest {
                 if (end <= 62_900) java.util.Arrays.fill(pcm, (byte) 64);
                 output.addProperty("delta", Base64.getEncoder().encodeToString(pcm));
                 capture.receive(output);
-                if (end == 62_300) capture.receive(caption("output", "first", 60_800, 62_400, "Preparation is complete."));
+                // Provider text can precede the first assistant caption even while its reflected media clock is current.
+                if (end == (beforeReview ? 62_700 : 62_300)) capture.receive(caption("output", "first", 60_800, 62_400, "Preparation is complete."));
                 if (end == 62_600) {
                     // A delayed caption can predate the uninterrupted digital-zero span.
                     int start = input.equals("older-caption") ? 57_000 : 62_400;
@@ -62,14 +64,14 @@ class LiveTranscriptCaptureServiceUnitTest {
             verify(ingress, atLeast(2)).commit(any(), any(), segments.capture(), any());
             var users = segments.getAllValues().stream().filter(s -> s.speaker() == ch.zhaw.prometheus.application.live.LiveTranscriptSegmenter.Speaker.USER).toList();
             assertEquals(1, users.size()); assertEquals("Mm-mm", users.getFirst().text());
-            if (input.equals("zero")) {
+            if (input.startsWith("zero")) {
                 assertEquals("silent_input_audio", users.getFirst().reason());
                 assertEquals("IGNORED", users.getFirst().closure().name());
                 assertTrue(segments.getAllValues().stream().anyMatch(s -> s.closure().name().equals("COMPLETE")
                         && s.text().equals("Preparation is complete. Shall we start?")));
             } else {
                 assertNotEquals("IGNORED", users.getFirst().closure().name());
-                assertTrue(segments.getAllValues().stream().anyMatch(s -> s.reason().equals("user_interrupted")));
+                if (!beforeReview) assertTrue(segments.getAllValues().stream().anyMatch(s -> s.reason().equals("user_interrupted")));
             }
             verify(ingress, times(3)).receipt(any(), any(), any());
         } finally { service.shutdown(); }

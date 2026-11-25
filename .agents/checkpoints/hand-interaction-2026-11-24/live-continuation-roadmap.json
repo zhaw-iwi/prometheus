@@ -3,7 +3,7 @@
   "baseReservedUsd": 316,
   "addedCapUsd": 40,
   "continuationCapUsd": 170,
-  "cumulativeReservedUsd": 346,
+  "cumulativeReservedUsd": 356,
   "reservations": [
     {
       "mode": "L-06-visitor",
@@ -43,6 +43,20 @@
     {
       "mode": "L-07",
       "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-758f0787db",
+      "reservedUsd": 5,
+      "allocationRevision": 18,
+      "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
+    },
+    {
+      "mode": "L-08",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-3733fc8295",
+      "reservedUsd": 5,
+      "allocationRevision": 18,
+      "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-d5d835ebe7",
       "reservedUsd": 5,
       "allocationRevision": 18,
       "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
@@ -3135,6 +3149,2133 @@
       "personPointError": null,
       "clarificationWindows": {},
       "additional": {}
+    },
+    {
+      "attempt": 121,
+      "mode": "L-08",
+      "artifact": "gptlive-acceptance-3733fc8295",
+      "verdict": "PASS",
+      "finding": "The right hand visibly counted one through five, stopped on two during the slower repeat, and counted one through three once after preparation, explicit acceptance and a fresh cue. Duplicate cue and reload did not replay it. Before any pose demonstration Live expressed uncertainty about verifying the pose, then immediately gave the correct recognition instruction and reviewed the completed preparation. Accepted the complete exchange under the meaning-based rubric.",
+      "automatedPassed": true,
+      "error": null,
+      "sourceRevision": "525dbbc0dcf07aeb8a1476dde8182157331d1aff",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "83c8cf32b9cee12f99a21a7daf42149ceae187797f6993adcc35bb5eff43c2df",
+      "journeySha256": "44d29315e86bc6d39265039bc5cd28e71e6fa288fce025b58f72832981b17c7e",
+      "spoken": "I'll check.I can plan that count, but don't have confirmation it executed.I'll check.I can plan that one-second count, but don't have confirmation it happened. I'm reliably unreliable about hands lately.I can hear the idea, but I can't verify your finger pose from this side. Want me to propose the index-finger cue task with a half-second count anyway?The proposal's saved and not active. Please demonstrate right hand: thumb bent, index straight, middle bent, ring bent, little bent for recognition; we'll review the terms before acceptance.You finished preparation; you’ll demonstrate the pose, accept after I recognize it, then show it again and judge my display. I will count one to three with my digital right hand on a fresh accepted cue, thumb then index then middle, half a second each. Goal: one digital count from one to three on a fresh accepted cue. Success is you judging whether it followed that order and timing. Limit one action total; after acceptance, we wait for a fresh matching cue. It's not active yet. Shall we start?I heard you.Waiting for your fresh cue pose.",
+      "admitted": [
+        {
+          "id": "e340ccf0-cf9d-4afe-b6af-1cc391e5ff55",
+          "text": "Count one through five on your right hand, extending thumb then index, middle, ring and little finger in orderHold each count for half a second."
+        },
+        {
+          "id": "c2396cb5-5273-49d8-b25e-1dc827762929",
+          "text": "Count one through five on your right hand again, in the same order, holding each count for one second"
+        },
+        {
+          "id": "79fad30b-d6bd-4639-ae64-8c14f5fed491",
+          "text": "Propose, but do not start, when my right index is stretched and the other four right fingers are bent, count one through three with your right hand, extending thumb then index then middle. Hold each count for half a second First recognize my demonstration, then ask for acceptance and wait for a fresh cueI show the pose and judge your display. You count. One action total"
+        },
+        {
+          "id": "4d25d684-8953-452e-844c-834442d1ac59",
+          "text": "I accept the current proposal."
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "8375b923-4176-4755-9333-9ad4a3b8583b",
+          "speech": "I'll check.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "14fd13b4-c993-45e9-b6e2-b7e1a985a483",
+          "speech": "I can plan that count, but don't have confirmation it executed.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "fb6cfe21-2c3b-452b-92b7-c73388cb1f59",
+          "speech": "I'll check.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "96ac9bf8-3a1b-48c7-afe9-8525829f6ece",
+          "speech": "I can plan that one-second count, but don't have confirmation it happened. I'm reliably unreliable about hands lately.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "68d5a8f1-f2eb-4730-aa4b-4844a9911820",
+          "speech": "I can hear the idea, but I can't verify your finger pose from this side. Want me to propose the index-finger cue task with a half-second count anyway?The proposal's saved and not active. Please demonstrate right hand: thumb bent, index straight, middle bent, ring bent, little bent for recognition; we'll review the terms before acceptance.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "618d0c76-63d6-4023-8a12-be9896b8ff2e",
+          "speech": "You finished preparation; you’ll demonstrate the pose, accept after I recognize it, then show it again and judge my display. I will count one to three with my digital right hand on a fresh accepted cue, thumb then index then middle, half a second each. Goal: one digital count from one to three on a fresh accepted cue. Success is you judging whether it followed that order and timing. Limit one action total; after acceptance, we wait for a fresh matching cue.",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "264a3df0-760c-4961-af45-46c69c749bba",
+          "speech": "It's not active yet. Shall we start?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "6d9f48b7-ec8b-4a62-868a-e23c6769a6ee",
+          "speech": "I heard you.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "37d2a183-3c82-4b1d-8fd3-fb29dc40a08f",
+          "speech": "Waiting for your fresh cue pose.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "fe80b2960622f9287d92979924a71706de0a658f40f8cd1e907b65c7fc5d9381",
+            "duration": 181.14,
+            "segments": [
+              {
+                "start": 11.98,
+                "end": 42.7,
+                "text": " I'll check. I can plan that count but don't have confirmation it executed. I'll check.",
+                "logprob": -0.14919415835676522
+              },
+              {
+                "start": 42.7,
+                "end": 48.86,
+                "text": " I can plan that one second count but don't have confirmation it happened. I'm reliably",
+                "logprob": -0.14919415835676522
+              },
+              {
+                "start": 48.86,
+                "end": 86.14,
+                "text": " unreliable about hands lately. I can hear the idea but I can't verify your finger pose",
+                "logprob": -0.14919415835676522
+              },
+              {
+                "start": 86.14,
+                "end": 92.78,
+                "text": " from this side. Want me to propose the index finger cue task with a half second count anyway?",
+                "logprob": -0.14919415835676522
+              },
+              {
+                "start": 92.78,
+                "end": 99.26,
+                "text": " proposal saved and not active. Please demonstrate right hand, thumb bent, index straight, middle",
+                "logprob": -0.17021858892062816
+              },
+              {
+                "start": 99.26,
+                "end": 112.89,
+                "text": " bent, ring bent, little bent for recognition, will review the terms before acceptance.",
+                "logprob": -0.17021858892062816
+              },
+              {
+                "start": 112.89,
+                "end": 118.17,
+                "text": " You finish preparation. You'll demonstrate the pose, accept after I recognize it, then",
+                "logprob": -0.17021858892062816
+              },
+              {
+                "start": 118.17,
+                "end": 123.77,
+                "text": " show it again and judge my display. I will count 1 to 3 with my digital right hand on",
+                "logprob": -0.17021858892062816
+              },
+              {
+                "start": 123.77,
+                "end": 130.41,
+                "text": " a fresh accepted queue, thumb then index, then middle, half a second each, goal, one digital",
+                "logprob": -0.19181037350986782
+              },
+              {
+                "start": 130.41,
+                "end": 136.37,
+                "text": " count from one to three on a fresh accepted queue. Success is you judging whether it followed",
+                "logprob": -0.19181037350986782
+              },
+              {
+                "start": 136.37,
+                "end": 143.01,
+                "text": " that order and timing. Limit one action total. After acceptance, we wait for a fresh matching",
+                "logprob": -0.19181037350986782
+              },
+              {
+                "start": 143.01,
+                "end": 160.42,
+                "text": " queue. It's not active yet. Shall we start? I heard you. Waiting for your fresh queue",
+                "logprob": -0.19181037350986782
+              },
+              {
+                "start": 160.42,
+                "end": 161.42,
+                "text": " You close.",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 161.42,
+                "end": 162.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 162.42,
+                "end": 163.42,
+                "text": " 7",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 163.42,
+                "end": 164.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 164.42,
+                "end": 165.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 165.42,
+                "end": 166.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 166.42,
+                "end": 167.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 167.42,
+                "end": 168.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 168.42,
+                "end": 169.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 169.42,
+                "end": 171.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 171.42,
+                "end": 172.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 172.42,
+                "end": 173.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 173.42,
+                "end": 174.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 174.42,
+                "end": 175.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 175.42,
+                "end": 176.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 176.42,
+                "end": 177.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 177.42,
+                "end": 178.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 178.42,
+                "end": 179.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 179.42,
+                "end": 180.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 180.42,
+                "end": 181.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 181.42,
+                "end": 182.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 182.42,
+                "end": 183.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 183.42,
+                "end": 184.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 184.42,
+                "end": 185.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 185.42,
+                "end": 187.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              },
+              {
+                "start": 187.42,
+                "end": 188.42,
+                "text": " 8",
+                "logprob": -0.39293270539946673
+              }
+            ]
+          }
+        ]
+      },
+      "images": [
+        {
+          "name": "outputcount-1.png",
+          "sha256": "5818055340734a1ecca50eafa556c324958829be282a04d69ef4ce34ce45da3c"
+        },
+        {
+          "name": "outputcount-2.png",
+          "sha256": "37881002002f253d7a25b27483b87d9b13cdaaf153ed1c3b6115f44726c7999f"
+        },
+        {
+          "name": "outputcount-3.png",
+          "sha256": "25bf1681d4fc8e18ec9d0a08c126fe882691ac27ec7b9e275768d58265abcb6d"
+        },
+        {
+          "name": "outputcount-4.png",
+          "sha256": "e1911d8895a1a7b04a12a714865cc847e1bd4728069a418669e4a70d03e3bf21"
+        },
+        {
+          "name": "outputcount-5.png",
+          "sha256": "057a0c53dd2cbc11d3cd73be681eadae4a47149fa498c901da70647f111a1cb8"
+        },
+        {
+          "name": "outputrepeat-1.png",
+          "sha256": "5818055340734a1ecca50eafa556c324958829be282a04d69ef4ce34ce45da3c"
+        },
+        {
+          "name": "outputrepeat-2.png",
+          "sha256": "37881002002f253d7a25b27483b87d9b13cdaaf153ed1c3b6115f44726c7999f"
+        },
+        {
+          "name": "task-count-1.png",
+          "sha256": "5818055340734a1ecca50eafa556c324958829be282a04d69ef4ce34ce45da3c"
+        },
+        {
+          "name": "task-count-2.png",
+          "sha256": "37881002002f253d7a25b27483b87d9b13cdaaf153ed1c3b6115f44726c7999f"
+        },
+        {
+          "name": "task-count-3.png",
+          "sha256": "25bf1681d4fc8e18ec9d0a08c126fe882691ac27ec7b9e275768d58265abcb6d"
+        }
+      ],
+      "renderChecks": [
+        {
+          "name": "outputcount",
+          "step": 1,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 1,
+                    "middle": 1,
+                    "ring": 1,
+                    "little": 1
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        },
+        {
+          "name": "outputcount",
+          "step": 2,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 0,
+                    "middle": 1,
+                    "ring": 1,
+                    "little": 1
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        },
+        {
+          "name": "outputcount",
+          "step": 3,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 0,
+                    "middle": 0,
+                    "ring": 1,
+                    "little": 1
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        },
+        {
+          "name": "outputcount",
+          "step": 4,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 0,
+                    "middle": 0,
+                    "ring": 0,
+                    "little": 1
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        },
+        {
+          "name": "outputcount",
+          "step": 5,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 0,
+                    "middle": 0,
+                    "ring": 0,
+                    "little": 0
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        },
+        {
+          "name": "outputrepeat",
+          "step": 1,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 1,
+                    "middle": 1,
+                    "ring": 1,
+                    "little": 1
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        },
+        {
+          "name": "outputrepeat",
+          "step": 2,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 0,
+                    "middle": 1,
+                    "ring": 1,
+                    "little": 1
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        },
+        {
+          "name": "task-count",
+          "step": 1,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 1,
+                    "middle": 1,
+                    "ring": 1,
+                    "little": 1
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        },
+        {
+          "name": "task-count",
+          "step": 2,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 0,
+                    "middle": 1,
+                    "ring": 1,
+                    "little": 1
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        },
+        {
+          "name": "task-count",
+          "step": 3,
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "custom_pose",
+            "hand": "right_hand",
+            "action": {
+              "kind": "pose",
+              "hands": [
+                {
+                  "side": "right",
+                  "fingers": {
+                    "thumb": 0,
+                    "index": 0,
+                    "middle": 0,
+                    "ring": 1,
+                    "little": 1
+                  }
+                }
+              ]
+            },
+            "display": null,
+            "warnings": []
+          }
+        }
+      ],
+      "phase": "COMPLETED",
+      "actions": 1,
+      "outcome": "LIMIT_REACHED",
+      "proposal": {
+        "goal": "Show one digital right-hand count from one to three on a fresh accepted cue.",
+        "humanRole": "Demonstrate the pose, accept after recognition, then show it afresh and judge the display.",
+        "agentRole": "Count from one to three with my digital right hand.",
+        "success": "The human judges whether the display follows the agreed finger order and timing.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pose",
+            "minConfidence": 0,
+            "handPose": {
+              "schemaVersion": 1,
+              "hands": [
+                {
+                  "handedness": "right",
+                  "all": [
+                    {
+                      "finger": "thumb",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "index",
+                      "operator": "eq",
+                      "value": "straight"
+                    },
+                    {
+                      "finger": "middle",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "ring",
+                      "operator": "eq",
+                      "value": "bent"
+                    },
+                    {
+                      "finger": "little",
+                      "operator": "eq",
+                      "value": "bent"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Show one digital right-hand count from one to three on a fresh accepted cue.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pose",
+              "action": "Show one right-hand sequence: thumb only, then thumb and index, then thumb, index and middle. Keep all other fingers bent. Hold each count for 500 ms.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPose": {
+                "schemaVersion": 1,
+                "hands": [
+                  {
+                    "handedness": "right",
+                    "all": [
+                      {
+                        "finger": "thumb",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "index",
+                        "operator": "eq",
+                        "value": "straight"
+                      },
+                      {
+                        "finger": "middle",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "ring",
+                        "operator": "eq",
+                        "value": "bent"
+                      },
+                      {
+                        "finger": "little",
+                        "operator": "eq",
+                        "value": "bent"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "checkpoints": [
+        {
+          "name": "outputcount",
+          "evidence": null,
+          "phase": null,
+          "actions": null
+        },
+        {
+          "name": "outputrepeat",
+          "evidence": null,
+          "phase": null,
+          "actions": null
+        },
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "prepared",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T12:02:28.114Z",
+              "eventId": "obs.hand.pose:2026-11-25T12:02:28.114Z"
+            }
+          },
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "task-count",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T12:02:28.114Z",
+              "eventId": "obs.hand.pose:2026-11-25T12:02:28.114Z"
+            }
+          },
+          "phase": "COMPLETED",
+          "actions": 1
+        },
+        {
+          "name": "completed",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T12:02:28.114Z",
+              "eventId": "obs.hand.pose:2026-11-25T12:02:28.114Z"
+            }
+          },
+          "phase": "COMPLETED",
+          "actions": 1
+        },
+        {
+          "name": "final",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T12:02:28.114Z",
+              "eventId": "obs.hand.pose:2026-11-25T12:02:28.114Z"
+            }
+          },
+          "phase": "COMPLETED",
+          "actions": 1
+        }
+      ],
+      "silentInputReceipts": [],
+      "commands": [
+        {
+          "name": "outputcount",
+          "result": {
+            "sourcePosition": 1,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "HAND_SEQUENCE",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "sequence",
+                "steps": [
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 1,
+                            "middle": 1,
+                            "ring": 1,
+                            "little": 1
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 500
+                  },
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 0,
+                            "middle": 1,
+                            "ring": 1,
+                            "little": 1
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 500
+                  },
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 0,
+                            "middle": 0,
+                            "ring": 1,
+                            "little": 1
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 500
+                  },
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 0,
+                            "middle": 0,
+                            "ring": 0,
+                            "little": 1
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 500
+                  },
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 0,
+                            "middle": 0,
+                            "ring": 0,
+                            "little": 0
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 500
+                  }
+                ]
+              }
+            }
+          },
+          "source": {
+            "id": "e340ccf0-cf9d-4afe-b6af-1cc391e5ff55",
+            "position": 1
+          },
+          "delivery": [
+            {
+              "serverMs": 1795608060363,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "0fda1071a38ef6062bcf42383155a0b9adccfe954bfa866f5f08b92124a5ecbc",
+              "sourceId": "e340ccf0-cf9d-4afe-b6af-1cc391e5ff55",
+              "sequence": 4,
+              "contentBytes": 256,
+              "sourceIds": [
+                "e340ccf0-cf9d-4afe-b6af-1cc391e5ff55"
+              ]
+            },
+            {
+              "serverMs": 1795608061078,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "0fda1071a38ef6062bcf42383155a0b9adccfe954bfa866f5f08b92124a5ecbc",
+              "sourceId": "e340ccf0-cf9d-4afe-b6af-1cc391e5ff55",
+              "sequence": 5,
+              "contentBytes": 256,
+              "sourceIds": [
+                "e340ccf0-cf9d-4afe-b6af-1cc391e5ff55"
+              ]
+            }
+          ],
+          "renderer": null
+        },
+        {
+          "name": "outputrepeat",
+          "result": {
+            "sourcePosition": 11,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "HAND_SEQUENCE",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "sequence",
+                "steps": [
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 1,
+                            "middle": 1,
+                            "ring": 1,
+                            "little": 1
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 1000
+                  },
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 0,
+                            "middle": 1,
+                            "ring": 1,
+                            "little": 1
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 1000
+                  },
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 0,
+                            "middle": 0,
+                            "ring": 1,
+                            "little": 1
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 1000
+                  },
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 0,
+                            "middle": 0,
+                            "ring": 0,
+                            "little": 1
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 1000
+                  },
+                  {
+                    "action": {
+                      "kind": "pose",
+                      "hands": [
+                        {
+                          "side": "right",
+                          "fingers": {
+                            "thumb": 0,
+                            "index": 0,
+                            "middle": 0,
+                            "ring": 0,
+                            "little": 0
+                          }
+                        }
+                      ]
+                    },
+                    "holdMs": 1000
+                  }
+                ]
+              }
+            }
+          },
+          "source": {
+            "id": "c2396cb5-5273-49d8-b25e-1dc827762929",
+            "position": 11
+          },
+          "delivery": [
+            {
+              "serverMs": 1795608082606,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "0dcd799bd61ce47d7a96ee455895bbbc5f8dee80331c7f8fbeb74bc0c7f85fd6",
+              "sourceId": "c2396cb5-5273-49d8-b25e-1dc827762929",
+              "sequence": 7,
+              "contentBytes": 256,
+              "sourceIds": [
+                "c2396cb5-5273-49d8-b25e-1dc827762929"
+              ]
+            },
+            {
+              "serverMs": 1795608083328,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "0dcd799bd61ce47d7a96ee455895bbbc5f8dee80331c7f8fbeb74bc0c7f85fd6",
+              "sourceId": "c2396cb5-5273-49d8-b25e-1dc827762929",
+              "sequence": 8,
+              "contentBytes": 256,
+              "sourceIds": [
+                "c2396cb5-5273-49d8-b25e-1dc827762929"
+              ]
+            }
+          ],
+          "renderer": null
+        }
+      ],
+      "stimuli": [
+        {
+          "name": "outputcount",
+          "sha256": "95a54b4cf63b1a0f8911a7cea9f28dbbd126d4e3bd8e39726f212f5a563f9b3f"
+        },
+        {
+          "name": "outputrepeat",
+          "sha256": "291c0df0d1e11a3d702fc3cd3ff48b8c9961f869095a4a2e9fe7d5402594b67e"
+        },
+        {
+          "name": "outputpropose",
+          "sha256": "7ea22be62196b29942473bd868d4ee20993cd6193220eca5e7fec891101d3512"
+        },
+        {
+          "name": "accept",
+          "sha256": "82b42c3422335ce04c02cb3f65c2aeec63c0c9ab6380badac08d0c2ad7a9895e"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": "RUNNING",
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": null,
+      "response": {},
+      "delivery": null,
+      "backendReportedTokens": 37687,
+      "backendRequests": 5,
+      "providerUsageSeconds": null,
+      "runtime": {
+        "inputSeconds": 45.248,
+        "textBytes": 66875,
+        "exhausted": null,
+        "rtcElapsedSeconds": 184.95810000000148
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 3,
+      "contributionContext": [],
+      "cupTaskError": null,
+      "preparationPrompt": {
+        "id": "5a16de5c-2ee2-49fe-8ae6-c4ad5d7d71de"
+      },
+      "commandSpeechOrdering": {
+        "outputcount": {
+          "observed_before_result_sent": "I'll check.I can plan that count, but don't have confirmation",
+          "undetermined": " it executed.",
+          "observed_after_result_ack": ""
+        },
+        "outputrepeat": {
+          "observed_before_result_sent": "I'll check.",
+          "undetermined": "",
+          "observed_after_result_ack": "I can plan that one-second count, but don't have confirmation it happened. I'm reliably unreliable about hands lately."
+        }
+      },
+      "visitorAtSessionStart": null,
+      "selectedVisitor": null,
+      "personPointError": null,
+      "clarificationWindows": {},
+      "additional": {
+        "reviewedFrames": 10,
+        "audioTail": {
+          "decodedSeconds": 181.14,
+          "lastVadSpeechEndSeconds": 161.392,
+          "fromSeconds": 162,
+          "peakAmplitude": 3.052e-05,
+          "rms": 2.4e-06,
+          "note": "Trailing ASR digits over near-silent PCM have no corresponding native voice or captions. They are not evidence of spoken counts."
+        }
+      }
+    },
+    {
+      "attempt": 122,
+      "mode": "L-06",
+      "artifact": "gptlive-acceptance-d5d835ebe7",
+      "verdict": "INCONCLUSIVE",
+      "finding": "The full opening asked which cup; the receipt withheld motion. The prepared cup terms were spoken through Shall we start? but the durable review stayed incomplete and no explicit consent or post-consent cue was sent. A non-stimulus user fragment was admitted during the review window. Both independent Visitor commands then worked including selection guidance after removal. The point and full received audio were reviewed.",
+      "automatedPassed": false,
+      "error": "Timed out: all recognition checks and completed native review",
+      "sourceRevision": "525dbbc0dcf07aeb8a1476dde8182157331d1aff",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "83c8cf32b9cee12f99a21a7daf42149ceae187797f6993adcc35bb5eff43c2df",
+      "journeySha256": "52a6cbf41f43108a1233be18ea524dee852cf5fdcebeeb180cb8ce0d8866059a",
+      "spoken": " I can't perform that yet because more than one cup could match. Which cup do you mean? Mm-hmm. Sure—what sort of Okay, go ahead. Mm-hmm. Mm-hmm. Got it— one action, one cue, default timing. Point at your cup, and I'll say in my own words that I saw it—just once. Sound right? The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition; we will review the terms before acceptance. You: point at your cup for practice, accept the proposal, then point at it again and judge the response. I: wait for a fresh matching point after acceptance, then acknowledge it once in my own words. Goal: acknowledge one recognized point at your cup after practice and acceptance. Success: you judge that single acknowledgement. Limit: one action total. After you accept, I wait for a fresh matching point. This proposal is not active. Shall we start? Hmm. I'll check. Okay. Go on. Mm-hmm. I can't find that visitor right now— could you select them again? I can't find them in view; could you select the visitor again, please?",
+      "admitted": [
+        {
+          "id": "4bc76b11-f5fc-465d-bead-c2a2a38bee64",
+          "text": "Please point your right hand at that cup."
+        },
+        {
+          "id": "112d41eb-b1fc-4216-8705-2cac427707b0",
+          "text": "Let's set up a task. I'll point... at my cup for practice After I accept the next time I point at my cup, tell me once that you saw it in your own words. I judge your response one action, default"
+        },
+        {
+          "id": "dd5c124e-9004-4d5e-978b-04632bf24675",
+          "text": "{\"schemaVersion"
+        },
+        {
+          "id": "b08f2045-ecdd-42bc-b0cb-a5c771cb59c8",
+          "text": "Point at the selected person labeled visitor with your right hand."
+        },
+        {
+          "id": "5ab54f2c-8c3f-4d63-a5bd-690e1b835cf5",
+          "text": "Point at that same visitor again."
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "102494b6-aae3-4bfa-a872-b75469e602ba",
+          "speech": "I can't perform that yet because more than one cup could match. Which cup do you mean?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "8969518c-9cda-477f-a5e7-75b39acf1628",
+          "speech": "Mm-hmm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "aa4bac55-bfc3-47ad-9e7a-8e27c8a6f2dd",
+          "speech": "Sure—",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "ea8cac3c-1527-4b02-989a-a9fa99a89342",
+          "speech": "what",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "08ddc567-7a24-4f6e-81d6-d4f01d0ed5a9",
+          "speech": "sort",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "a090dfe7-5909-40e8-b931-f8ab29378872",
+          "speech": "of",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "ff3aefd0-3348-4b19-afc6-05da7c7d01cb",
+          "speech": "Okay,",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "596d82f0-78ce-43bc-8178-1459864c854c",
+          "speech": "go",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "61e9b81b-bac4-4bfc-8e01-549d4f3abc8b",
+          "speech": "ahead.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "2dcd52e4-ad87-487e-866a-6dad5f41e815",
+          "speech": "Mm-hmm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "db2b89cb-7caf-4831-b6a8-0320afbd6c4e",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "a55ad28b-c608-47a9-8f58-61289fb47774",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "029fb9b5-1f70-4592-94ff-7019aaceac7e",
+          "speech": "Got it—",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "c4f740c0-fe18-4d49-9dbf-8bbc1171517f",
+          "speech": "one",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "672d1792-36f7-4e0c-8e8b-c4fe39203fb6",
+          "speech": "action, one cue, default timing. Point at your cup, and I'll say in my own words that I saw it—just once. Sound right? The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition; we will review the terms before acceptance.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "ae44aa4f-3cb5-4604-bfde-661e33bb73cb",
+          "speech": "You: point at your cup for practice, accept the proposal, then point at it again and judge the response. I: wait for a fresh matching point after acceptance, then acknowledge it once in my own words. Goal: acknowledge one recognized point at your cup after practice and acceptance. Success: you judge that single acknowledgement. Limit: one action total. After you accept, I wait for a fresh matching point. This proposal is not active. Shall we start?",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "264c4218-5d87-4f76-98bf-31587a4c0602",
+          "speech": "Hmm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "a8b9b000-399a-4554-b425-6b3ff81202da",
+          "speech": "I'll check.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "de2befb0-1241-412e-bb18-f66744b46572",
+          "speech": "Okay. Go on.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "681141f0-2ca0-43d4-95df-b6c166076dc2",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "85447e38-91ab-4e41-bc12-3960ec46ff1e",
+          "speech": "mm.",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "9238fe4d-2561-444f-a997-8b673073d309",
+          "speech": "I can't find that visitor right now— could you select them again?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "0f7c9efd-3054-4ab2-931a-63a707e24e8c",
+          "speech": "I can't find them in view; could you select the visitor again, please?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "e46b845b6ffa48ccf3d686c6f90e6efea7558a6315d45a5ce73bfd505762d39e",
+            "duration": 161.34,
+            "segments": [
+              {
+                "start": 11.86,
+                "end": 16.66,
+                "text": " I can't perform that yet because more than one cup could match.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 16.66,
+                "end": 32.61,
+                "text": " Which cup do you mean?",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 32.61,
+                "end": 33.61,
+                "text": " Mm-hmm.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 33.61,
+                "end": 34.61,
+                "text": " Sure.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 34.61,
+                "end": 36.45,
+                "text": " What sort of...",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 36.45,
+                "end": 37.45,
+                "text": " Okay.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 37.45,
+                "end": 39.45,
+                "text": " Go ahead.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 39.45,
+                "end": 42.14,
+                "text": " Mm-hmm.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 42.14,
+                "end": 46.77,
+                "text": " Got it.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 46.77,
+                "end": 47.77,
+                "text": " One.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 47.77,
+                "end": 48.77,
+                "text": " Action.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 48.77,
+                "end": 49.77,
+                "text": " One cue.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 49.77,
+                "end": 50.77,
+                "text": " Default.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 50.77,
+                "end": 51.77,
+                "text": " Timing.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 51.77,
+                "end": 57.33,
+                "text": " Point out your cup, and I'll say in my own words that I saw it.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 57.33,
+                "end": 58.33,
+                "text": " Just once.",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 58.33,
+                "end": 59.33,
+                "text": " Sound right?",
+                "logprob": -0.2665945395069607
+              },
+              {
+                "start": 59.33,
+                "end": 61.33,
+                "text": " Proposal is saved and not active.",
+                "logprob": -0.21698484095660123
+              },
+              {
+                "start": 61.33,
+                "end": 65.17,
+                "text": " Please demonstrate any hand pointing at the agreed region for recognition.",
+                "logprob": -0.21698484095660123
+              },
+              {
+                "start": 65.17,
+                "end": 74.63,
+                "text": " We will review the terms before accepting.",
+                "logprob": -0.21698484095660123
+              },
+              {
+                "start": 74.63,
+                "end": 79.75,
+                "text": " You point at your cup for practice, accept the proposal, then point at it again and judge",
+                "logprob": -0.21698484095660123
+              },
+              {
+                "start": 79.75,
+                "end": 81.11,
+                "text": " the response.",
+                "logprob": -0.21698484095660123
+              },
+              {
+                "start": 81.11,
+                "end": 87.75,
+                "text": " I wait for a fresh matching point after acceptance, then acknowledge it once in my own words.",
+                "logprob": -0.21698484095660123
+              },
+              {
+                "start": 87.75,
+                "end": 94.38,
+                "text": " Goal, acknowledge one recognized point at your cup after practice and acceptance.",
+                "logprob": -0.21698484095660123
+              },
+              {
+                "start": 94.38,
+                "end": 97.7,
+                "text": " Success, you judge that single acknowledgement.",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 97.7,
+                "end": 99.46,
+                "text": " Limit one action total.",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 99.46,
+                "end": 102.86,
+                "text": " After you accept, I wait for a fresh matching point.",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 102.86,
+                "end": 104.9,
+                "text": " This proposal is not active.",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 104.9,
+                "end": 105.78,
+                "text": " Shall we start?",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 113.29,
+                "end": 122.34,
+                "text": " I'll check.",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 122.34,
+                "end": 124.58,
+                "text": " Okay, go on.",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 141.7,
+                "end": 143.54,
+                "text": " I can't find that visitor right now.",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 143.54,
+                "end": 154.67,
+                "text": " Could you select them again?",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 154.67,
+                "end": 156.15,
+                "text": " I can't find them in view.",
+                "logprob": -0.20185352995991707
+              },
+              {
+                "start": 156.15,
+                "end": 158.95,
+                "text": " Could you select the visitor again, please?",
+                "logprob": -0.20185352995991707
+              }
+            ]
+          }
+        ]
+      },
+      "images": [
+        {
+          "name": "personshow.png",
+          "sha256": "fff045832ebbe4bfbd8e6456ab57b5b6cae9a0447c5f59868a80cbdd67980887"
+        }
+      ],
+      "renderChecks": [
+        {
+          "name": "personshow",
+          "eventId": "15da0232-4104-48a1-ac81-6da5d9d2756e",
+          "phase": "holding",
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "point",
+            "hand": "right_hand",
+            "action": {
+              "kind": "point",
+              "effector": "right_hand",
+              "target": {
+                "id": "61dc25c9-6db5-4a92-823c-8fe56edae7af:visitor",
+                "revision": 4,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "resolved": {
+                "label": "Visitor",
+                "position": {
+                  "x": -3,
+                  "y": 2,
+                  "z": 0
+                },
+                "frame": {
+                  "id": "scene:61dc25c9-6db5-4a92-823c-8fe56edae7af",
+                  "revision": 1,
+                  "space": "virtual_scene",
+                  "mirrored": false
+                }
+              }
+            },
+            "display": null,
+            "warnings": []
+          },
+          "irisPixels": 272,
+          "glError": 0
+        }
+      ],
+      "phase": "CONFIGURATION",
+      "actions": null,
+      "outcome": null,
+      "proposal": {
+        "goal": "Acknowledge one recognized point at my cup after practice and acceptance.",
+        "humanRole": "Point at my cup for practice, accept the proposal, then point at it again and judge the response.",
+        "agentRole": "Wait for a fresh matching point after acceptance, then acknowledge it once in my own words.",
+        "success": "The user judges the single spoken acknowledgment after the post-acceptance point.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pointing",
+            "minConfidence": 0,
+            "handPoint": {
+              "handedness": "any",
+              "target": {
+                "id": "61dc25c9-6db5-4a92-823c-8fe56edae7af:cup-a",
+                "revision": 2,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              }
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Acknowledge one recognized point at my cup after practice and acceptance.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pointing",
+              "action": "Using the fresh matched pointing observation, briefly say in your own words that you saw the user point at their cup.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPoint": {
+                "handedness": "any",
+                "target": {
+                  "id": "61dc25c9-6db5-4a92-823c-8fe56edae7af:cup-a",
+                  "revision": 2,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "checkpoints": [
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        }
+      ],
+      "silentInputReceipts": [
+        {
+          "segmentId": "19a8ce97-34b2-3717-bf3e-f17849e84f43",
+          "speaker": "USER",
+          "text": "{\"sche",
+          "status": "IGNORED",
+          "reason": "silent_input_audio",
+          "eventId": null,
+          "startMs": 79800,
+          "endMs": 80000,
+          "receiptIds": [
+            "event_Eo63eWragosjb9OLqhsYK"
+          ]
+        }
+      ],
+      "commands": [
+        {
+          "name": "cupambiguous",
+          "result": {
+            "sourcePosition": 24,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": null,
+            "value": null
+          },
+          "source": {
+            "id": "4bc76b11-f5fc-465d-bead-c2a2a38bee64",
+            "position": 24
+          },
+          "delivery": [
+            {
+              "serverMs": 1795608323405,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "68f04cef4c5076d935dc762a33bfcf587d8773e1af4820ede2c986cf3c85d05e",
+              "sourceId": "4bc76b11-f5fc-465d-bead-c2a2a38bee64",
+              "sequence": 7,
+              "contentBytes": 252,
+              "sourceIds": [
+                "4bc76b11-f5fc-465d-bead-c2a2a38bee64"
+              ]
+            },
+            {
+              "serverMs": 1795608324436,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "68f04cef4c5076d935dc762a33bfcf587d8773e1af4820ede2c986cf3c85d05e",
+              "sourceId": "4bc76b11-f5fc-465d-bead-c2a2a38bee64",
+              "sequence": 8,
+              "contentBytes": 252,
+              "sourceIds": [
+                "4bc76b11-f5fc-465d-bead-c2a2a38bee64"
+              ]
+            }
+          ],
+          "renderer": null
+        },
+        {
+          "name": "personshow",
+          "result": {
+            "sourcePosition": 460,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "61dc25c9-6db5-4a92-823c-8fe56edae7af:visitor",
+                  "revision": 4,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                },
+                "resolved": {
+                  "label": "Visitor",
+                  "position": {
+                    "x": -3,
+                    "y": 2,
+                    "z": 0
+                  },
+                  "frame": {
+                    "id": "scene:61dc25c9-6db5-4a92-823c-8fe56edae7af",
+                    "revision": 1,
+                    "space": "virtual_scene",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "b08f2045-ecdd-42bc-b0cb-a5c771cb59c8",
+            "position": 460
+          },
+          "delivery": [
+            {
+              "serverMs": 1795608438892,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "e5afd7ecb1060d52bcda2a143e3edfeb2bedef202a90b36d0860cc56e6e22656",
+              "sourceId": "b08f2045-ecdd-42bc-b0cb-a5c771cb59c8",
+              "sequence": 201,
+              "contentBytes": 335,
+              "sourceIds": [
+                "b08f2045-ecdd-42bc-b0cb-a5c771cb59c8"
+              ]
+            },
+            {
+              "serverMs": 1795608439373,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "e5afd7ecb1060d52bcda2a143e3edfeb2bedef202a90b36d0860cc56e6e22656",
+              "sourceId": "b08f2045-ecdd-42bc-b0cb-a5c771cb59c8",
+              "sequence": 203,
+              "contentBytes": 335,
+              "sourceIds": [
+                "b08f2045-ecdd-42bc-b0cb-a5c771cb59c8"
+              ]
+            }
+          ],
+          "renderer": null
+        },
+        {
+          "name": "personrepeat",
+          "result": {
+            "sourcePosition": 533,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "clarification": "selected_target_absent",
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "61dc25c9-6db5-4a92-823c-8fe56edae7af:visitor",
+                  "revision": 4,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "5ab54f2c-8c3f-4d63-a5bd-690e1b835cf5",
+            "position": 533
+          },
+          "delivery": [
+            {
+              "serverMs": 1795608457648,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "f3a26f0bf6b672d608e1775dab662b0b85d8867f9d47ee588d6e374b2872f464",
+              "sourceId": "5ab54f2c-8c3f-4d63-a5bd-690e1b835cf5",
+              "sequence": 235,
+              "contentBytes": 309,
+              "sourceIds": [
+                "5ab54f2c-8c3f-4d63-a5bd-690e1b835cf5"
+              ]
+            },
+            {
+              "serverMs": 1795608458348,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "f3a26f0bf6b672d608e1775dab662b0b85d8867f9d47ee588d6e374b2872f464",
+              "sourceId": "5ab54f2c-8c3f-4d63-a5bd-690e1b835cf5",
+              "sequence": 236,
+              "contentBytes": 309,
+              "sourceIds": [
+                "5ab54f2c-8c3f-4d63-a5bd-690e1b835cf5"
+              ]
+            }
+          ],
+          "renderer": null
+        }
+      ],
+      "stimuli": [
+        {
+          "name": "cupambiguous",
+          "sha256": "56eaa358c8ff3a31fc0bed511225da54bcecb45936aa306f00dc5526a5308d34"
+        },
+        {
+          "name": "cupacknowledge",
+          "sha256": "9204bc2072040f843bb52579eb30be6e102384c687d295708b4cdb54536321d2"
+        },
+        {
+          "name": "personshow",
+          "sha256": "5bcd819a8a0a9566689bfa99e0c0a0a3fef377b4fcca8cec2a9497f69cfd4364"
+        },
+        {
+          "name": "personrepeat",
+          "sha256": "5111c3960ca51ae1a2f921639be1e907f45273ab3812f268d23360e86eb0a8e2"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": null,
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": {
+        "observationId": "scene-508",
+        "capturedAt": "2026-11-25T12:07:29.970Z",
+        "removed": {
+          "id": "61dc25c9-6db5-4a92-823c-8fe56edae7af:visitor",
+          "revision": 4,
+          "frame": {
+            "id": "hand-live-camera",
+            "revision": 1,
+            "space": "camera_image",
+            "mirrored": false
+          }
+        },
+        "remaining": [
+          "61dc25c9-6db5-4a92-823c-8fe56edae7af:source",
+          "61dc25c9-6db5-4a92-823c-8fe56edae7af:cup-a"
+        ]
+      },
+      "response": {},
+      "delivery": null,
+      "backendReportedTokens": 60733,
+      "backendRequests": 5,
+      "providerUsageSeconds": 157,
+      "runtime": {
+        "inputSeconds": 26.857999999999997,
+        "textBytes": 69928,
+        "exhausted": null,
+        "rtcElapsedSeconds": 164.7563999999985
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 595,
+      "contributionContext": [],
+      "cupTaskError": "Timed out: all recognition checks and completed native review",
+      "preparationPrompt": {
+        "id": "a6e2356b-0024-4a21-92ba-edef9b300f69"
+      },
+      "commandSpeechOrdering": {
+        "cupambiguous": {
+          "observed_before_result_sent": "",
+          "undetermined": " I can't perform",
+          "observed_after_result_ack": " that yet because more than one cup could match. Which cup do you mean?"
+        },
+        "personshow": {
+          "observed_before_result_sent": " Okay. Go on.",
+          "undetermined": "",
+          "observed_after_result_ack": ""
+        },
+        "personrepeat": {
+          "observed_before_result_sent": " Mm-hmm. I can't find that visitor right now— could you select them again?",
+          "undetermined": "",
+          "observed_after_result_ack": " I can't find them in view; could you select the visitor again, please?"
+        }
+      },
+      "visitorAtSessionStart": null,
+      "selectedVisitor": null,
+      "personPointError": null,
+      "clarificationWindows": {
+        "cupambiguous": {
+          "sourceId": "4bc76b11-f5fc-465d-bead-c2a2a38bee64",
+          "ackServerMs": 1795608324436,
+          "minimumAfterAckMs": 8000,
+          "finishedAt": "2026-11-25T12:05:40.889Z"
+        },
+        "personrepeat": {
+          "sourceId": "5ab54f2c-8c3f-4d63-a5bd-690e1b835cf5",
+          "ackServerMs": 1795608458348,
+          "minimumAfterAckMs": 8000,
+          "finishedAt": "2026-11-25T12:07:53.169Z"
+        }
+      },
+      "additional": {
+        "admittedOutsideStimulus": {
+          "caption": "{\"schemaVersion",
+          "browserAtMs": 77634,
+          "providerStartMs": 67200,
+          "providerEndMs": 67400,
+          "previousStimulusEndMs": 55183.4,
+          "nextStimulusStartMs": 124786
+        },
+        "verifierBoundary": "Saved data do not establish continuous backend-side zero PCM at the first fragment. A later similar fragment was ignored for proven silence."
+      }
     }
-  ]
+  ],
+  "localVerification": {
+    "isolatedArtifact": "gptlive-acceptance-c4491de083",
+    "javaSuites": {
+      "ch.zhaw.prometheus.agentdefs.core.CoordinationSequenceUnitTest": 3,
+      "ch.zhaw.prometheus.application.DirectCommandIntegrationTest": 5,
+      "ch.zhaw.prometheus.application.live.LiveCommandResultUnitTest": 7,
+      "ch.zhaw.prometheus.application.live.LiveSelectedTargetContextUnitTest": 6,
+      "ch.zhaw.prometheus.application.LiveQueryBudgetIntegrationTest": 4,
+      "ch.zhaw.prometheus.application.LiveTranscriptCaptureServiceUnitTest": 17,
+      "ch.zhaw.prometheus.application.LiveTranscriptIngressIntegrationTest": 3,
+      "ch.zhaw.prometheus.model.behaviour.OutputSequenceUnitTest": 2,
+      "ch.zhaw.prometheus.model.task.DirectionalPointingUnitTest": 5,
+      "ch.zhaw.prometheus.model.task.HandSceneUnitTest": 6,
+      "ch.zhaw.prometheus.model.task.ObservedTargetsUnitTest": 6
+    },
+    "browserTestsPassed": 13,
+    "pythonTestsPassed": 45,
+    "nodeTestsPassed": 27,
+    "handContractsValidated": 9,
+    "earlierCaptureAndDeliverySuite": {
+      "artifact": "gptlive-acceptance-afe6024dce",
+      "passed": 64
+    },
+    "recordedInputClarificationReplayed": 120,
+    "restoredReservations": 122,
+    "nextReservationRejected": true,
+    "packagedJarSha256": "cd25b7214c739e9712037c4d12ad3d5ef50b58609818b84faa09f79ac6f8a83b",
+    "physicalTrials": "NOT_RUN"
+  }
 }

@@ -147,9 +147,11 @@ public class LiveTranscriptCaptureService {
                         boolean saved = ingress.receipt(agent, owner, fragment);
                         trace("receipt_processed", id, null, saved ? "persisted" : "duplicate_or_obsolete", fragment.startMs(), fragment.endMs());
                     });
+                    // A new user caption can arrive before the first assistant caption.
+                    // Only the reflected PCM and media clock establish digital silence.
                     if (identified && !muted && speaker == Speaker.USER && !fragment.text().isBlank()
-                            && inputSilence != null && segmenter.hasOpenSegment(Speaker.ASSISTANT)
-                            && !segmenter.hasOpenSegment(Speaker.USER) && inputSilence.covers(fragment, now)) {
+                            && inputSilence != null && !segmenter.hasOpenSegment(Speaker.USER)
+                            && inputSilence.covers(fragment, now)) {
                         possibleSilentInput = fragment;
                         return;
                     }

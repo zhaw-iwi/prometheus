@@ -2,8 +2,21 @@
 
 HI-01 through HI-11 are complete. HI-12 remains open. The historical implementation
 checkpoint was `82d12bc7`. The latest findings and reservations are in
-[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l06-visitor.json)
+[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-roadmap.json)
 and the final section of [the results](HAND_INTERACTION_RESULTS.md).
+
+## Current HI-12 status after allocation 18
+
+HI-12 remains open after allocation 18. L-04 directional pointing, L-08 output
+counting and the focused L-06 Visitor point/removal passed. Full L-05, L-06
+and L-07 still need real-provider confirmation. All $40 of this allocation is
+reserved, bringing the continuation to $170 and the cumulative ledger to
+122 entries/$356.
+
+GPT-Live owns verbal replies to visitor utterances. The backend owns nonverbal
+output, task state and deliberate contributions initiated by the task. The
+runs used the existing quiet context and delegation paths. An explicit
+latency-bridging workaround remains a last resort.
 
 ## Start here
 
@@ -186,10 +199,10 @@ tests. These results are historical evidence, not tests run on the new device.
 
 ## Carry the spending history across devices
 
-Allocation 17 added $5 for the two-turn L-06-visitor run after entry 113. Across
-backend inference and GPT-Live, all $130 of the continuation from attempt 89 is
-reserved. The cumulative ledger has 114 entries and $316 reserved.
-Obtain fresh owner authorization before increasing it. Invoices are unavailable.
+Allocation 18 added $40 at 114 entries/$316. All eight $5 reservations are
+recorded. The continuation from attempt 89 has reserved $170, with 122 entries
+and $356 reserved cumulatively. The runner rejects additional paid selections.
+The reservations cover backend and Live calls. Actual invoiced charges are unknown.
 
 Restore historical reservations before any paid selection. The helper verifies the
 original canonical checksum and the complete tracked continuation prefix. It only

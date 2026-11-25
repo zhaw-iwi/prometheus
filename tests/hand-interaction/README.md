@@ -296,9 +296,9 @@ browser/Java selections. Keep the existing developer model configuration unchang
 
 The enforced plan is `tests/gptlive/hand-paid-plan.json`. Its separate persistent
 ledger is `target/hand-interaction-budget.json`; never reset it or refund a failed
-attempt. Attempt 114 used allocation 17’s $5 reservation for the two-turn L-06-visitor
-point and removal check. The ledger reached $130 for the continuation and
-$316 cumulatively at 114 attempts. Restore the latest committed ledger using the
+attempt. Allocation 18 is exhausted. The ledger reached $170 for the continuation
+and $356 cumulatively at 122 attempts. The focused Visitor run at 115 verified
+the point and the clarification after removal. Restore the latest ledger using the
 [handoff](../../.agents/HANDOFF_HAND_INTERACTION_2026-11-24.md).
 Each attempt permits one six-minute native session, ten backend requests, 80,000
 UTF-8 bytes per request, 2,048 completion tokens per call and twelve visitor
