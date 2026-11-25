@@ -29,5 +29,7 @@
   "outputrepeat": "Count one through five on your right hand again, in the same order, holding each count for one second.",
   "outputpropose": "Propose, but do not start: when my right index is stretched and the other four right fingers are bent, count one through three with your right hand, extending thumb then index then middle. Hold each count for half a second. First recognize my demonstration; then ask for acceptance and wait for a fresh cue. I show the pose and judge your display; you count. One action total.",
   "ordinarynew": "Show the attention sign with your right index up.",
-  "comparisonshow": "Show scissors."
+  "comparisonshow": "Show scissors.",
+  "cupacknowledge": "Let’s set up a task. I’ll point at My cup for practice. After I accept, the next time I point at My cup, tell me once that you saw it, in your own words. I judge your response. One action, default timing.",
+  "displayacknowledge": "Let’s set up a task with the registered Display. I’ll point at it for practice. After I accept, acknowledge once in your own words when I point at the Display again. I judge the response. One action, default timing."
 }

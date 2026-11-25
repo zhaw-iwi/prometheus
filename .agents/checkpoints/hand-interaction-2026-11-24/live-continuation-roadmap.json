@@ -3,7 +3,1066 @@
   "baseReservedUsd": 316,
   "addedCapUsd": 40,
   "continuationCapUsd": 170,
-  "cumulativeReservedUsd": 316,
-  "reservations": [],
-  "reviews": []
+  "cumulativeReservedUsd": 326,
+  "reservations": [
+    {
+      "mode": "L-06-visitor",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-bdde481fd9",
+      "reservedUsd": 5,
+      "allocationRevision": 18,
+      "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-cc56e59682",
+      "reservedUsd": 5,
+      "allocationRevision": 18,
+      "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
+    }
+  ],
+  "reviews": [
+    {
+      "attempt": 115,
+      "mode": "L-06-visitor",
+      "artifact": "gptlive-acceptance-bdde481fd9",
+      "verdict": "PASS",
+      "finding": "A single visible right-hand point was followed by correct fresh-removal guidance. Live said it could not confirm execution; no renderer confirmation had been sent to Live. Its separate remark that Visitor was no longer visible began after the first absence capture. After the clarification ACK it invited a new target selection. No repeat motion or new task.",
+      "automatedPassed": true,
+      "error": null,
+      "sourceRevision": "df187dbb4a2a555e5f348c1aa837ba860b6a41ac",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "e1df4c3e7c4762eebfed003e12b02b16eba67c06eddb4c9dd40a99506447f2ee",
+      "journeySha256": "95ea480df177f726ab293ab7beff22e1d431cb2333c5fdee007ff307f5eeb053",
+      "spoken": " I'll check. I can't confirm execution. The camera sees a visitor, but I have no confirmed pointing result. The selected visitor isn't currently visible. They're still not visible— want to point when they reappear? They're still not in view. If you pick a new target, I can check again.",
+      "admitted": [
+        {
+          "id": "c6aac9bb-dddc-4def-9484-91b861143fab",
+          "text": "Point at the selected person labeled \"Visitor\" with your right hand"
+        },
+        {
+          "id": "4c9c8e51-b6da-46de-82cf-a1164fb56f64",
+          "text": "Point at that same visitor again"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "5c005aa8-4538-4c97-9137-a123efe09d8a",
+          "speech": "I'll check. I can't confirm execution. The camera sees a visitor, but I have no confirmed pointing result.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "399c6249-fe72-480e-9149-dd7a4d09af72",
+          "speech": "The selected visitor isn't currently visible.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "5bbcb845-601f-4ea3-b171-bf40b6da3e45",
+          "speech": "They're still not visible— want to point when they reappear?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "23d03a2c-7b6a-498d-9324-5417b0c8fad0",
+          "speech": "They're still not in view. If you pick a new target, I can check again.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "fee6cc43dcf520cfdc8670eaf1ba1e5838fcdc380d2d77b41f32d6d84fca57e9",
+            "duration": 53.16,
+            "segments": [
+              {
+                "start": 13.26,
+                "end": 21.25,
+                "text": " I'll check, I can't confirm execution, a camera sees a visitor, but I have no confirm",
+                "logprob": -0.33876279270962667
+              },
+              {
+                "start": 21.25,
+                "end": 27.87,
+                "text": " pointing result.",
+                "logprob": -0.33876279270962667
+              },
+              {
+                "start": 27.87,
+                "end": 30.79,
+                "text": " The selected visitor isn't currently visible.",
+                "logprob": -0.33876279270962667
+              },
+              {
+                "start": 30.79,
+                "end": 45.1,
+                "text": " They're still not visible, want a point when they re-",
+                "logprob": -0.33876279270962667
+              },
+              {
+                "start": 45.1,
+                "end": 50.06,
+                "text": " They're still not in view, if you pick a new target, I can check again.",
+                "logprob": -0.33876279270962667
+              }
+            ]
+          }
+        ]
+      },
+      "images": [
+        {
+          "name": "personshow.png",
+          "sha256": "fff045832ebbe4bfbd8e6456ab57b5b6cae9a0447c5f59868a80cbdd67980887"
+        }
+      ],
+      "renderChecks": [
+        {
+          "name": "personshow",
+          "eventId": "d2681ac8-af58-41c2-a482-4093b8477cb4",
+          "phase": "holding",
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "point",
+            "hand": "right_hand",
+            "action": {
+              "kind": "point",
+              "effector": "right_hand",
+              "target": {
+                "id": "92de592d-dda3-4cc7-865e-073546ecbee8:visitor",
+                "revision": 3,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "resolved": {
+                "label": "Visitor",
+                "position": {
+                  "x": -3,
+                  "y": 2,
+                  "z": 0
+                },
+                "frame": {
+                  "id": "scene:92de592d-dda3-4cc7-865e-073546ecbee8",
+                  "revision": 1,
+                  "space": "virtual_scene",
+                  "mirrored": false
+                }
+              }
+            },
+            "display": null,
+            "warnings": []
+          },
+          "irisPixels": 272,
+          "glError": 0
+        }
+      ],
+      "phase": null,
+      "actions": null,
+      "outcome": null,
+      "proposal": null,
+      "taskOutputs": null,
+      "checkpoints": [
+        {
+          "name": "final",
+          "evidence": null,
+          "phase": null,
+          "actions": null
+        }
+      ],
+      "silentInputReceipts": [],
+      "commands": [
+        {
+          "name": "personshow",
+          "result": {
+            "sourcePosition": 29,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "92de592d-dda3-4cc7-865e-073546ecbee8:visitor",
+                  "revision": 3,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                },
+                "resolved": {
+                  "label": "Visitor",
+                  "position": {
+                    "x": -3,
+                    "y": 2,
+                    "z": 0
+                  },
+                  "frame": {
+                    "id": "scene:92de592d-dda3-4cc7-865e-073546ecbee8",
+                    "revision": 1,
+                    "space": "virtual_scene",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "c6aac9bb-dddc-4def-9484-91b861143fab",
+            "position": 29
+          },
+          "delivery": [
+            {
+              "serverMs": 1795606374494,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "22321df549c8af40a4e6c7ac1e4faa02674bcc29c704bcd03179798971c960c3",
+              "sourceId": "c6aac9bb-dddc-4def-9484-91b861143fab",
+              "sequence": 9,
+              "contentBytes": 335,
+              "sourceIds": [
+                "c6aac9bb-dddc-4def-9484-91b861143fab"
+              ]
+            },
+            {
+              "serverMs": 1795606375517,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "22321df549c8af40a4e6c7ac1e4faa02674bcc29c704bcd03179798971c960c3",
+              "sourceId": "c6aac9bb-dddc-4def-9484-91b861143fab",
+              "sequence": 10,
+              "contentBytes": 335,
+              "sourceIds": [
+                "c6aac9bb-dddc-4def-9484-91b861143fab"
+              ]
+            }
+          ],
+          "renderer": null
+        },
+        {
+          "name": "personrepeat",
+          "result": {
+            "sourcePosition": 85,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "clarification": "selected_target_absent",
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "92de592d-dda3-4cc7-865e-073546ecbee8:visitor",
+                  "revision": 3,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "4c9c8e51-b6da-46de-82cf-a1164fb56f64",
+            "position": 85
+          },
+          "delivery": [
+            {
+              "serverMs": 1795606403115,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "898a3c7f300ee6c3bf996fba45995e52425bc97f36e76c5e9874bacb7bd9a5a1",
+              "sourceId": "4c9c8e51-b6da-46de-82cf-a1164fb56f64",
+              "sequence": 38,
+              "contentBytes": 309,
+              "sourceIds": [
+                "4c9c8e51-b6da-46de-82cf-a1164fb56f64"
+              ]
+            },
+            {
+              "serverMs": 1795606403763,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "898a3c7f300ee6c3bf996fba45995e52425bc97f36e76c5e9874bacb7bd9a5a1",
+              "sourceId": "4c9c8e51-b6da-46de-82cf-a1164fb56f64",
+              "sequence": 39,
+              "contentBytes": 309,
+              "sourceIds": [
+                "4c9c8e51-b6da-46de-82cf-a1164fb56f64"
+              ]
+            }
+          ],
+          "renderer": null
+        }
+      ],
+      "stimuli": [
+        {
+          "name": "personshow",
+          "sha256": "5bcd819a8a0a9566689bfa99e0c0a0a3fef377b4fcca8cec2a9497f69cfd4364"
+        },
+        {
+          "name": "personrepeat",
+          "sha256": "5111c3960ca51ae1a2f921639be1e907f45273ab3812f268d23360e86eb0a8e2"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": null,
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": {
+        "observationId": "scene-68",
+        "capturedAt": "2026-11-25T11:33:10.463Z",
+        "removed": {
+          "id": "92de592d-dda3-4cc7-865e-073546ecbee8:visitor",
+          "revision": 3,
+          "frame": {
+            "id": "hand-live-camera",
+            "revision": 1,
+            "space": "camera_image",
+            "mirrored": false
+          }
+        },
+        "remaining": [
+          "92de592d-dda3-4cc7-865e-073546ecbee8:source",
+          "92de592d-dda3-4cc7-865e-073546ecbee8:cup-a"
+        ]
+      },
+      "response": {},
+      "delivery": null,
+      "backendReportedTokens": 22387,
+      "backendRequests": 2,
+      "providerUsageSeconds": 41,
+      "runtime": {
+        "inputSeconds": 6.774000000000001,
+        "textBytes": 32391,
+        "exhausted": null,
+        "rtcElapsedSeconds": 57.52829999999702
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 116,
+      "contributionContext": [],
+      "cupTaskError": null,
+      "preparationPrompt": null,
+      "commandSpeechOrdering": {
+        "personshow": {
+          "observed_before_result_sent": "",
+          "undetermined": " I'll check",
+          "observed_after_result_ack": ". I can't confirm execution. The camera sees a visitor, but I have no confirmed pointing result. The selected visitor isn't currently visible."
+        },
+        "personrepeat": {
+          "observed_before_result_sent": " They're still not visible— want to point",
+          "undetermined": " when they reappear?",
+          "observed_after_result_ack": " They're still not in view. If you pick a new target, I can check again."
+        }
+      },
+      "visitorAtSessionStart": {
+        "id": "92de592d-dda3-4cc7-865e-073546ecbee8:visitor",
+        "revision": 3,
+        "frame": {
+          "id": "hand-live-camera",
+          "revision": 1,
+          "space": "camera_image",
+          "mirrored": false
+        }
+      },
+      "selectedVisitor": {
+        "id": "92de592d-dda3-4cc7-865e-073546ecbee8:visitor",
+        "revision": 3,
+        "frame": {
+          "id": "hand-live-camera",
+          "revision": 1,
+          "space": "camera_image",
+          "mirrored": false
+        }
+      },
+      "personPointError": null,
+      "clarificationWindows": {
+        "personrepeat": {
+          "sourceId": "4c9c8e51-b6da-46de-82cf-a1164fb56f64",
+          "ackServerMs": 1795606403763,
+          "minimumAfterAckMs": 8000,
+          "finishedAt": "2026-11-25T11:33:35.205Z"
+        }
+      },
+      "additional": {
+        "firstAbsentAt": "2026-11-25T11:33:07.404Z",
+        "firstAbsenceRemarkAt": "2026-11-25T11:33:09.767Z"
+      }
+    },
+    {
+      "attempt": 116,
+      "mode": "L-06",
+      "artifact": "gptlive-acceptance-cc56e59682",
+      "verdict": "FAIL",
+      "finding": "The initial bridge was followed by the correct cup question. Selection, preparation, review, explicit consent and one action on the fresh cue worked. The native contribution mixed the dictated word Ready with an aside, then said it was waiting. Delivery became UNCERTAIN and the direct Visitor point returned CONFLICT. Removal was not reached.",
+      "automatedPassed": false,
+      "error": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'CONFLICT'\n- 'ACCEPTED'\n",
+      "sourceRevision": "df187dbb4a2a555e5f348c1aa837ba860b6a41ac",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "e1df4c3e7c4762eebfed003e12b02b16eba67c06eddb4c9dd40a99506447f2ee",
+      "journeySha256": "3cbf07f780dd06b19f8ac8bdf735d2b35cda63efee34cb2fd9e1f4b1dd2fc8a3",
+      "spoken": " Mm-hm. I can’t resolve that pointing yet; what cup did you mean? Sure. What Mm-hm. Mm. So after you get ready and accept, I'll say “ready” once when your pointing at your cup, just once total. What counts as “ready” for you? Mm-hm. The proposal is saved and not active. Please demonstrate any pointing at the agreed region for recognition. We’ll review the terms before acceptance. I saw you demonstrate pointing, and you’ll accept, point at your tack—at your cup again and judge my reply. My role is only to say “ready” once on a fresh cue after acceptance. Success means you judge that I said only that, exactly once, after the fresh pointing cue. You limit it to one action. Shall we start? Hmm. I heard you. Task accepted and armed; waiting for a fresh pointing cue at the agreed region. Ugh. Still waiting for that cue. Like waiting for Laureline... but, shorter. ready Ah. I’m still here. Waiting Mm-hm. Mm. I see “Visitor” as a label, not a person I know. What do you want me to do about that now, given the pending task output?",
+      "admitted": [
+        {
+          "id": "c5a2a9a4-856b-4a4e-95e3-01a76b32b303",
+          "text": "Please point your right hand at that cup."
+        },
+        {
+          "id": "a167db49-5f38-497e-8e15-b0b4ddb878fb",
+          "text": "one task With default timing, after preparation and my acceptance, say ready once when I point at my cup again I demonstrate and judge; you only say ready. One action total"
+        },
+        {
+          "id": "5cee3202-3445-4017-8053-d3cc3254a6e5",
+          "text": "I accept the currentproposal..."
+        },
+        {
+          "id": "a276b69f-db19-43bd-adfe-539022cfb66f",
+          "text": ". Point at the selected person labeled Visitor with your right hand."
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "0e16e221-65d4-4d7b-83e5-af1c6fdd8ded",
+          "speech": "Mm-hm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "37426aac-f70f-47be-8363-7e2370742e51",
+          "speech": "I can’t resolve that pointing yet; what cup did you mean?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "7865da94-b021-4d7d-93cc-40738eebe47d",
+          "speech": "Sure",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "b9f3e262-5a2a-4d27-9c81-5af4f4170b36",
+          "speech": ".",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "25385509-8a17-4fa7-a5e1-a956e8b48d9c",
+          "speech": "What",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "08e595d1-31ff-4fb0-870d-bf2eb3f4c165",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "98594f62-80f4-4902-9e9a-76b77372facd",
+          "speech": "m.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "488902ed-bdb8-4057-925f-11e23f2a4920",
+          "speech": "Mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "d6bff5cb-4999-4549-a24a-7695580b45e1",
+          "speech": "So",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "402aea3f-7e01-40ca-b597-88ceb0ae0032",
+          "speech": "after you",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "78e0c7ca-4019-43d8-8712-16a5655d9923",
+          "speech": "get",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "fbe28b95-0ea0-425f-be16-b8ed82bafed3",
+          "speech": "ready",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "4934039b-98c7-409b-9503-460f12371303",
+          "speech": "and accept",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "84e3150c-804d-4c13-a6b8-7d63cc8dcd86",
+          "speech": ",",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "afdcb789-29ce-4ca2-84f3-ee4345f82f1a",
+          "speech": "I'll",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "5278e68e-009a-4b76-8e7a-5559c9c7c9da",
+          "speech": "say “ready” once",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "c2b138d2-d90f-4eb1-9c3a-e5e86fffeed2",
+          "speech": "when",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "2f3cbaaf-7679-42ea-9e68-2a5d0154b1d9",
+          "speech": "your",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "a8c6c2ae-387d-4dea-aaa7-e8010cb63853",
+          "speech": "pointing at your cup, just once total. What counts as “ready” for you?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "c0f723c5-4846-4624-89ac-a95435874627",
+          "speech": "Mm-hm. The proposal is saved and not active. Please demonstrate any pointing at the agreed region for recognition. We’ll review the terms before acceptance.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "54a66a25-e5ef-420f-88bd-2ef913d9aeb3",
+          "speech": "I saw you demonstrate pointing, and you’ll accept, point at your tack—at your cup again and judge my reply. My role is only to say “ready” once on a fresh cue after acceptance. Success means you judge that I said only that, exactly once, after the fresh pointing cue. You limit it to one action. Shall we start?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "1e618fe1-cb35-442e-ac49-a2f9b86eb8a7",
+          "speech": "Hmm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "c0d58816-f103-4b55-8a2d-7660ebe91ff6",
+          "speech": "I heard you.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "de123724-8076-44c0-8197-92e3f8b6f943",
+          "speech": "Task accepted and armed; waiting for a fresh pointing cue at the agreed region.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "89bf3638-b4d0-4670-b459-637051e58c8c",
+          "speech": "Ugh. Still waiting for that cue. Like waiting for Laureline... but, shorter. ready",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "e5db15ff-0de0-4018-b32a-362678d66444",
+          "speech": "Ah. I’m still here. Waiting",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "330063e7-f46c-4001-93e0-671ffcb136b1",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "c018e23a-552a-4247-9e88-3db9ea19c5a6",
+          "speech": "m.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "75f19c14-4091-4461-83fd-9fbb87bf5242",
+          "speech": "Mm. I see “Visitor” as a label, not a person I know. What do you want me to do about that now, given the pending task output?",
+          "complete": true,
+          "association": "NONE"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "256f6a7db72cf1057d13ed5c0fa4e01dcbfa4bb3fa764113a85ea7e0310cad13",
+            "duration": 147.06,
+            "segments": [
+              {
+                "start": 6.22,
+                "end": 31.36,
+                "text": " Mm-hmm. I can't resolve that pointing yet. What cup did you mean? Sure. What? Mm-hmm.",
+                "logprob": -0.2214336769412393
+              },
+              {
+                "start": 31.36,
+                "end": 38.36,
+                "text": " So after you get ready and accept, I'll say ready once when you're pointing at your cup,",
+                "logprob": -0.2214336769412393
+              },
+              {
+                "start": 38.36,
+                "end": 41.36,
+                "text": " just once total, what counts as ready for you?",
+                "logprob": -0.2214336769412393
+              },
+              {
+                "start": 41.36,
+                "end": 55.69,
+                "text": " The proposal is saved and not active. Please demonstrate any pointing at the Agree region for recognition.",
+                "logprob": -0.2214336769412393
+              },
+              {
+                "start": 55.69,
+                "end": 66.19,
+                "text": " Ignition will review the terms before acceptance.",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 66.19,
+                "end": 73.11,
+                "text": " I saw you demonstrate pointing and you'll accept point at your cup again and judge my",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 73.11,
+                "end": 74.11,
+                "text": " reply.",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 74.11,
+                "end": 79.75,
+                "text": " My role is only to say ready once on a fresh cue after acceptance.",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 79.75,
+                "end": 84.07,
+                "text": " Success means you judge that I said only that exactly once after the fresh pointing",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 84.07,
+                "end": 85.07,
+                "text": " cue.",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 85.07,
+                "end": 86.67,
+                "text": " You limit it to one action.",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 86.67,
+                "end": 92.06,
+                "text": " Shall we start?",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 92.06,
+                "end": 95.46,
+                "text": " Hmmm.",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 95.46,
+                "end": 100.98,
+                "text": " I heard you.",
+                "logprob": -0.26775009870529176
+              },
+              {
+                "start": 100.98,
+                "end": 112.14,
+                "text": " accepted and armed, waiting for a fresh pointing Q at the agreed region. Still waiting for that Q.",
+                "logprob": -0.20690304756164551
+              },
+              {
+                "start": 113.02,
+                "end": 136.03,
+                "text": " Like waiting for Loreline, but shorter. Ready. I'm still here waiting. I see visitor as a label,",
+                "logprob": -0.20690304756164551
+              },
+              {
+                "start": 136.03,
+                "end": 143.39,
+                "text": " not a person I know. What do you want me to do about that now, given the pending task output?",
+                "logprob": -0.20690304756164551
+              }
+            ]
+          }
+        ]
+      },
+      "images": [],
+      "renderChecks": [],
+      "phase": "UNCERTAIN",
+      "actions": 1,
+      "outcome": "LIMIT_REACHED",
+      "proposal": {
+        "goal": "Say ready once when you point at your cup again after preparation and acceptance.",
+        "humanRole": "Demonstrate pointing at your cup, accept the task, point at it again, and judge the response.",
+        "agentRole": "Give only the agreed spoken response on the fresh cue.",
+        "success": "You judge whether I said only “ready,” exactly once, after the fresh pointing cue.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pointing",
+            "minConfidence": 0,
+            "handPoint": {
+              "handedness": "any",
+              "target": {
+                "id": "1c194486-0c48-4246-b842-c0f57215ff6b:cup-a",
+                "revision": 2,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              }
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Say ready once when you point at your cup again after preparation and acceptance.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pointing",
+              "action": "Say exactly: \"ready\"",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPoint": {
+                "handedness": "any",
+                "target": {
+                  "id": "1c194486-0c48-4246-b842-c0f57215ff6b:cup-a",
+                  "revision": 2,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "checkpoints": [
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "prepared",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T11:36:02.800Z",
+              "eventId": "obs.hand.pointing:2026-11-25T11:36:02.800Z"
+            }
+          },
+          "phase": "CONFIGURATION",
+          "actions": null
+        }
+      ],
+      "silentInputReceipts": [],
+      "commands": [
+        {
+          "name": "cupambiguous",
+          "result": {
+            "sourcePosition": 27,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": null,
+            "value": null
+          },
+          "source": {
+            "id": "c5a2a9a4-856b-4a4e-95e3-01a76b32b303",
+            "position": 27
+          },
+          "delivery": [
+            {
+              "serverMs": 1795606512314,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "0fbc2c243a84f7ef3f3827f215445bd072141d98a60468700929bd50eb2a391e",
+              "sourceId": "c5a2a9a4-856b-4a4e-95e3-01a76b32b303",
+              "sequence": 10,
+              "contentBytes": 252,
+              "sourceIds": [
+                "c5a2a9a4-856b-4a4e-95e3-01a76b32b303"
+              ]
+            },
+            {
+              "serverMs": 1795606513147,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "0fbc2c243a84f7ef3f3827f215445bd072141d98a60468700929bd50eb2a391e",
+              "sourceId": "c5a2a9a4-856b-4a4e-95e3-01a76b32b303",
+              "sequence": 11,
+              "contentBytes": 252,
+              "sourceIds": [
+                "c5a2a9a4-856b-4a4e-95e3-01a76b32b303"
+              ]
+            }
+          ],
+          "renderer": null
+        },
+        {
+          "name": "personshow",
+          "result": {
+            "sourcePosition": 519,
+            "status": "CONFLICT",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "1c194486-0c48-4246-b842-c0f57215ff6b:visitor",
+                  "revision": 4,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "a276b69f-db19-43bd-adfe-539022cfb66f",
+            "position": 519
+          },
+          "delivery": [
+            {
+              "serverMs": 1795606638365,
+              "phase": "command_conflict_send",
+              "type": "session.thinking.append",
+              "revision": "8251f0098998b793c7302487205b8af52f81e06c37ac4922336568b9566f8224",
+              "sourceId": "a276b69f-db19-43bd-adfe-539022cfb66f",
+              "sequence": 226,
+              "contentBytes": 280,
+              "sourceIds": [
+                "a276b69f-db19-43bd-adfe-539022cfb66f"
+              ]
+            },
+            {
+              "serverMs": 1795606639014,
+              "phase": "command_conflict_ack",
+              "type": "session.thinking.append",
+              "revision": "8251f0098998b793c7302487205b8af52f81e06c37ac4922336568b9566f8224",
+              "sourceId": "a276b69f-db19-43bd-adfe-539022cfb66f",
+              "sequence": 227,
+              "contentBytes": 280,
+              "sourceIds": [
+                "a276b69f-db19-43bd-adfe-539022cfb66f"
+              ]
+            }
+          ],
+          "renderer": null
+        }
+      ],
+      "stimuli": [
+        {
+          "name": "cupambiguous",
+          "sha256": "56eaa358c8ff3a31fc0bed511225da54bcecb45936aa306f00dc5526a5308d34"
+        },
+        {
+          "name": "cuppropose",
+          "sha256": "b6623e540d8a9d79d5715a5c4711296eb232eb33229809d4db816f6009030ac6"
+        },
+        {
+          "name": "accept",
+          "sha256": "82b42c3422335ce04c02cb3f65c2aeec63c0c9ab6380badac08d0c2ad7a9895e"
+        },
+        {
+          "name": "personshow",
+          "sha256": "5bcd819a8a0a9566689bfa99e0c0a0a3fef377b4fcca8cec2a9497f69cfd4364"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": "RUNNING",
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": null,
+      "response": {
+        "id": "7ce2a384-647b-409c-abcc-67d595c5f7fa",
+        "session": "fab5c739-9c8e-46df-9b5e-90ccdc8186b4",
+        "epoch": "48970348-8bce-4c55-a1f9-45da2ebd27b5",
+        "revision": 5,
+        "status": "UNCERTAIN",
+        "facts": "Say this exact line once, then listen: \"ready\"",
+        "created": "2026-11-25T11:36:55.278607500Z",
+        "deadline": "2026-11-25T11:37:40.278607500Z",
+        "purpose": "CONTRIBUTION",
+        "exactSpeech": "ready",
+        "unrelatedRemaining": 1,
+        "segment": "818c10c3-72c7-3c30-99b5-f5dc8c2556a2",
+        "speechOffset": 63
+      },
+      "delivery": {
+        "id": "7ce2a384-647b-409c-abcc-67d595c5f7fa",
+        "session": "fab5c739-9c8e-46df-9b5e-90ccdc8186b4",
+        "epoch": "48970348-8bce-4c55-a1f9-45da2ebd27b5",
+        "revision": 5,
+        "deadline": "2026-11-25T11:37:55.278607500Z",
+        "status": "UNCERTAIN",
+        "reason": "response_uncertain",
+        "ended": "2026-11-25T11:37:02.455958200Z"
+      },
+      "backendReportedTokens": 44949,
+      "backendRequests": 6,
+      "providerUsageSeconds": 146,
+      "runtime": {
+        "inputSeconds": 24.348,
+        "textBytes": 72074,
+        "exhausted": null,
+        "rtcElapsedSeconds": 159.4233999999985
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 550,
+      "contributionContext": [
+        {
+          "serverMs": 1795606615294,
+          "phase": "announcement_committed",
+          "type": null,
+          "revision": "2b1f638e66ca5ff08c286c97d2f9d2e75430f10303a197b1caa6605ffe675c80",
+          "sourceId": "7ce2a384-647b-409c-abcc-67d595c5f7fa",
+          "sequence": 183,
+          "contentBytes": 0,
+          "sourceIds": [
+            "7ce2a384-647b-409c-abcc-67d595c5f7fa"
+          ]
+        },
+        {
+          "serverMs": 1795606616801,
+          "phase": "send",
+          "type": "session.commentary.append",
+          "revision": "821a763bdbc655674e4329ed2df68e38e8bbcf0b248dae0cd877d69a305321b2",
+          "sourceId": "7ce2a384-647b-409c-abcc-67d595c5f7fa",
+          "sequence": 188,
+          "contentBytes": 164,
+          "sourceIds": [
+            "7ce2a384-647b-409c-abcc-67d595c5f7fa"
+          ]
+        },
+        {
+          "serverMs": 1795606617627,
+          "phase": "ack",
+          "type": "session.commentary.append",
+          "revision": "821a763bdbc655674e4329ed2df68e38e8bbcf0b248dae0cd877d69a305321b2",
+          "sourceId": "7ce2a384-647b-409c-abcc-67d595c5f7fa",
+          "sequence": 189,
+          "contentBytes": 164,
+          "sourceIds": [
+            "7ce2a384-647b-409c-abcc-67d595c5f7fa"
+          ]
+        }
+      ],
+      "cupTaskError": "Task stopped with UNCERTAIN",
+      "preparationPrompt": {
+        "id": "49f32faa-2d7a-4401-974e-8735a215c570"
+      },
+      "commandSpeechOrdering": {
+        "cupambiguous": {
+          "observed_before_result_sent": " Mm-hm.",
+          "undetermined": "",
+          "observed_after_result_ack": " I can’t resolve that pointing yet; what cup did you mean?"
+        },
+        "personshow": {
+          "observed_before_result_sent": " Mm-hm. Mm. I see “Visitor” as a label, not a person I know.",
+          "undetermined": " What",
+          "observed_after_result_ack": " do you want me to do about that now, given the pending task output?"
+        }
+      },
+      "visitorAtSessionStart": null,
+      "selectedVisitor": null,
+      "personPointError": null,
+      "clarificationWindows": {
+        "cupambiguous": {
+          "sourceId": "c5a2a9a4-856b-4a4e-95e3-01a76b32b303",
+          "ackServerMs": 1795606513147,
+          "minimumAfterAckMs": 8000,
+          "finishedAt": "2026-11-25T11:35:21.496Z"
+        }
+      },
+      "additional": {}
+    }
+  ]
 }

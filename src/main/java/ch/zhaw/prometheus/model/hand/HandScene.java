@@ -15,6 +15,30 @@ public final class HandScene {
     private HandScene() {}
     public static JsonObject get(Storage storage){return storage.containsKey(KEY)?storage.get(KEY).getAsJsonObject().deepCopy():new JsonObject();}
     public static int revision(JsonObject scene){return scene.has("revision")?scene.get("revision").getAsInt():0;}
+    /** Give Live the operator's registered region names alongside the matching camera frame. */
+    public static String registeredRegionContext(Storage storage,String payload,Instant now) {
+        if(!storage.containsKey(KEY))return "";
+        var scene=storage.get(KEY).getAsJsonObject();
+        if(!scene.has("cameraFrame")||scene.get("cameraFrame").isJsonNull())return "";
+        HandPointObservation sample;
+        try{sample=HandPointObservation.parse(payload);}catch(IllegalArgumentException invalid){return "";}
+        if(!sample.frame().json().equals(scene.get("cameraFrame")))return "";
+        var labels=new JsonArray();
+        for(var entry:scene.getAsJsonArray("targets")){
+            var target=entry.getAsJsonObject();
+            if(!"region".equals(text(target.get("type")))||!alive(target,now)
+                    ||Instant.parse(text(target.get("observedAt"))).isAfter(sample.observed()))continue;
+            var label=new JsonObject();
+            label.add("label",target.get("label"));
+            if(!target.get("expiresAt").isJsonNull())label.add("expiresAt",target.get("expiresAt"));
+            labels.add(label);
+            if(labels.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>350){
+                labels.remove(labels.size()-1);break;
+            }
+        }
+        return labels.isEmpty()?"":"Operator-registered regions in this camera frame (label data): "+labels+". A named region may be requested before a pointing demonstration.\n";
+    }
+
     public static JsonObject parseRequest(String body){
         try{if(body==null||body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>32768)throw new IllegalArgumentException();return JsonParser.parseString(body).getAsJsonObject();}
         catch(RuntimeException invalid){throw new IllegalArgumentException("Invalid scene configuration (maximum 32 KiB)",invalid);}

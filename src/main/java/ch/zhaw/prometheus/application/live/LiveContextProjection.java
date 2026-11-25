@@ -88,6 +88,8 @@ public class LiveContextProjection {
                     : assembler.toPromptMessage(event).getContent();
             if (Event.TYPE_SCENE_TARGETS.equals(event.getType()) && freshness.equals("fresh"))
                 text = agent.handTargetContext(event.getPayload(), now) + text;
+            if (Event.TYPE_HAND_POINTING.equals(event.getType()) && freshness.equals("fresh"))
+                text = agent.registeredHandRegionContext(event.getPayload(), now) + text;
             if (text.isBlank()) continue;
             String key = event.getId() == null ? "unpersisted-" + index : event.getId().toString();
             var ids = event.getId() == null ? List.<UUID>of() : List.of(event.getId());

@@ -39,6 +39,25 @@ class LiveSelectedTargetContextUnitTest {
     LiveContextSnapshot.Item item(Instant at) {
         return project(at).items().stream().filter(i -> i.type().equals(Event.TYPE_SCENE_TARGETS)).findFirst().orElseThrow();
     }
+    @Test void configuredRegionsReachLiveAsScopedFrameDataAndExpire() {
+        var pointing=fixtures.behaviour.PointingFixture.observation("hand-one","right",now);
+        var first=append(Event.observation(Event.TYPE_HAND_POINTING,"camera",pointing.toString()),now);
+        var initial=project(now);
+        var request=fixtures.behaviour.HandSceneFixture.request(1);
+        request.getAsJsonArray("targets").get(0).getAsJsonObject().addProperty("expiresAt",now.plusSeconds(2).toString());
+        HandScene.configure(storage,scope,request,agent.getEventHistory(),now);
+        var projected=project(now);
+        var item=projected.items().stream().filter(e->e.type().equals(Event.TYPE_HAND_POINTING)).findFirst().orElseThrow();
+        assertTrue(item.text().contains("\"label\":\"Display\""));
+        assertEquals(List.of(first.getId()),item.sourceIds());
+        assertTrue(project(now.plusSeconds(2)).items().stream().noneMatch(e->e.text().contains("Operator-registered regions")));
+        var changed=pointing.deepCopy();changed.getAsJsonObject("frame").addProperty("revision",2);
+        assertTrue(agent.registeredHandRegionContext(changed.toString(),now).isEmpty());
+        var delivery=new LiveContextDelivery(initial);delivery.ready();
+        assertTrue(delivery.plan(projected,List.of()).commands().stream().anyMatch(c->
+                c.type().equals("session.thinking.append")&&c.content().contains("Display")&&c.sourceId().equals(first.getId())));
+    }
+
     @Test void selectedAliasUsesTheExistingFreshSceneSourceAndOnlyQuietDelivery() {
         var event = append(capture(now, true), now);var before = project(now);
         assertFalse(item(now).text().contains("selectedTarget"));bind("Visitor", true, now);

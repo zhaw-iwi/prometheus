@@ -83,7 +83,11 @@ export async function runHandScenario(mode,c){
   const prepare=async(make,type)=>{await emit(make,type);await ready();await zero();await accept();};
   const finish=async(make,type,kind,verify)=>{const before=(await c.history()).map(e=>e.id);
     const cue=await emit(make,type);await observe(type||'obs.hand.pose',cue);assert.equal((await memory())['task.actions'],1);await complete();
-    const after=await c.history();if(mode==='L-05'||mode==='L-06')requireReadyContribution(after,before);
+    const after=await c.history();
+    if(mode==='L-05'||mode==='L-06'){
+      report.cueSpeech=contributionSegments(after,before);
+      requireAcknowledgement(report.cueSpeech,(await memory())['task.response']);
+    }
     const outputs=after.filter(e=>!before.includes(e.id)&&e.type==='resp.behaviour_plan').map(e=>({id:e.id,...JSON.parse(e.payload)}));
     report.taskOutputs=outputs;if(verify){const hands=outputs.filter(p=>p.motion?.handAction);assert.equal(hands.length,1);verify(actionOf(hands[0].motion));}
     if(kind)await render('task-'+mode,kind,outputs.find(p=>p.motion?.handAction).id);
@@ -116,7 +120,7 @@ export async function runHandScenario(mode,c){
     await command('directionshow','ACCEPTED',{kind:'point',verify:m=>pointing(actionOf(m),'left','left_hand')});
   }else if(mode==='L-05'){
     await framePump();const scene=await api('/hand-scene','POST',f.sceneConfig());const target=f.ref(scene.targets[0]);report.scene=scene;
-    await propose('displaypropose',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,target)));
+    await propose('displayacknowledge',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,target)));
     await negative(()=>f.point('left'),'obs.hand.pointing');await prepare(f.point,'obs.hand.pointing');await negative(()=>f.point('left'),'obs.hand.pointing');await finish(f.point,'obs.hand.pointing');
     await command('displayshow','ACCEPTED',{kind:'point',verify:m=>{const a=actionOf(m);assert.deepEqual(a.target,target);assert.equal(a.effector,'right_hand');assert.ok(Math.abs(a.resolved.position.x-3.2)<.001);}});
   }else if(mode==='L-06'||mode==='L-06-visitor'){
@@ -144,7 +148,7 @@ export async function runHandScenario(mode,c){
       await command('cupambiguous','CLARIFY',{});
       cup=await bind(await detected('cup-a'),'My cup',0);ambiguous=false;await wait(750);
       try{
-        await propose('cuppropose',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,cup)));
+        await propose('cupacknowledge',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,cup)));
         await prepare(f.point,'obs.hand.pointing');await negative(()=>f.point('left'),'obs.hand.pointing');
         await finish(f.point,'obs.hand.pointing');
       }catch(error){

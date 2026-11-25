@@ -2090,3 +2090,27 @@ The [portable evidence](checkpoints/hand-interaction-2026-11-24/live-continuatio
 includes both command receipts, turn timing, local audio review and the render
 record. All **$130 of the continuation** is reserved at **114 entries/$316
 cumulatively**. Full L-06 and HI-12 remain open.
+
+## Ordered HI-12 acceptance under allocation 18
+
+The owner added $40 at entry 114/$316. Each paid selection reserves $5 across
+Live and backend inference. The continuation limit is $170 at 122 entries/$356.
+Live owns immediate user-facing speech. The backend owns task state, nonverbal
+output and deliberate task contributions. A provisional reply can be evaluated
+in context. An explicit bridging mechanism is a last resort for a demonstrated
+hard case. The [portable results](checkpoints/hand-interaction-2026-11-24/live-continuation-roadmap.json)
+retain complete received-audio reviews, native turns and command timing.
+
+- **115, focused L-06-visitor, PASS.** The digital right hand pointed once.
+  After removal, Live received the backend clarification and told the visitor,
+  “If you pick a new target, I can check again.” The earlier visibility remark
+  followed the first fresh absent scene. No second motion was published.
+- **116, full L-06, FAIL.** Live asked which cup, the proposal stayed inactive
+  through preparation, and explicit consent armed it. The fresh cue spent one
+  action. The visitor had specifically requested “Ready” once. Live mixed it
+  with an aside. Delivery became UNCERTAIN and the subsequent point conflicted
+  with the pending output. The robot correctly withheld the conflicting point.
+
+For the following L-05/L-06 rehearsals the visitor requests one natural
+acknowledgement. Check the recorded response and action count against those
+spoken terms. The original dictated-line results keep their verdicts.
