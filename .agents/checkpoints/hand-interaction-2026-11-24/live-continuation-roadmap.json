@@ -3,7 +3,7 @@
   "baseReservedUsd": 316,
   "addedCapUsd": 40,
   "continuationCapUsd": 170,
-  "cumulativeReservedUsd": 326,
+  "cumulativeReservedUsd": 336,
   "reservations": [
     {
       "mode": "L-06-visitor",
@@ -15,6 +15,20 @@
     {
       "mode": "L-06",
       "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-cc56e59682",
+      "reservedUsd": 5,
+      "allocationRevision": 18,
+      "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
+    },
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-49e0b95641",
+      "reservedUsd": 5,
+      "allocationRevision": 18,
+      "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
+    },
+    {
+      "mode": "L-05",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-be83a5548f",
       "reservedUsd": 5,
       "allocationRevision": 18,
       "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
@@ -1062,6 +1076,1353 @@
           "finishedAt": "2026-11-25T11:35:21.496Z"
         }
       },
+      "additional": {}
+    },
+    {
+      "attempt": 117,
+      "mode": "L-06",
+      "artifact": "gptlive-acceptance-49e0b95641",
+      "verdict": "FAIL",
+      "finding": "The opening correctly withheld motion but asked whether to point or watch instead of which cup. After selection, practice, review and explicit consent, one fresh cue received one meaningful acknowledgement and playback was confirmed. The direct right-hand Visitor point rendered and fresh removal elicited a new selection with no repeat motion. The full workflow is open on the initial clarification.",
+      "automatedPassed": true,
+      "error": null,
+      "sourceRevision": "26fb61b830dc3dc4bbdb87806a52974d50f4248a",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "30be4b9155867ad68bbe5ece6a0b9df2fa157136a4b63845ccbdb93dd64c202e",
+      "journeySha256": "9f5aaa74faafd44fa5c7b0700eca6917414eddb5b086c8dc48e80e7d45da43ad",
+      "spoken": " I'll check. Thanks for waiting; I can't resolve your pointing-to-cup right now. Was that a request for me to point, or me to watch your hand and comment? I can also just describe what I notice on your cue. Not to be the galaxy's slowest pointer, but here we are. Quick check: watch your hand, or something else? Mm-hmm. Sure, what Okay Mm-hmm. Got it. Mm-hmm. Thanks, that sounds like a simple “say once when I see your point at the cup,” with you deciding if it worked. Quick check: do you want it to trigger only once or every time you point? The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition; we will review the terms before acceptance. Sorry, that was my jump; let's review what you just did. I saw you point at your cup for practice. Proposal: wait for a fresh point at your cup after you accept, then acknowledge once in my own words. You judge success. One action total. Start accepts this; shall we start? I heard you. Task accepted and armed; I'm waiting for a fresh pointing cue. I saw you point at your cup. I'll check. Thanks for waiting; the plan's accepted, but I can't confirm it rendered yet. Did you see the avatar point to the visitor? Mm-hmm. I can't yet see that selection in the scene, want me to wait until you reselect it?",
+      "admitted": [
+        {
+          "id": "487939bc-e8ad-4ecb-84a9-46444bc41824",
+          "text": "Please point your right hand at that cup.\""
+        },
+        {
+          "id": "d70d51cc-9252-47b1-9bb2-19b26fe734d6",
+          "text": "Let's set up a task I'll point at my cup for practice. After I accept, the next time I point at my cup, tell me once that you saw it in your own words I judge your response. One action, default timing."
+        },
+        {
+          "id": "e8bdbbdc-7826-47ba-8d57-341ef2d09f31",
+          "text": "I accept the current proposal. Proposal."
+        },
+        {
+          "id": "89e4988e-f713-4de3-927a-1bcce3d6d074",
+          "text": "Point at the selected person labeled Visitor with your right hand."
+        },
+        {
+          "id": "252f2efd-50b4-4c84-bb6d-50d4b006dd51",
+          "text": "Point at that same Visitor again."
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "a702fff1-1774-42f3-985c-b3e1ee73e13d",
+          "speech": "I'll check.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "37f05fbb-f552-43df-8ac1-3fb6ccf09133",
+          "speech": "Thanks for waiting; I can't resolve your pointing-to-cup right now. Was that a request for me to point, or me to watch your hand and comment?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "1dfc7642-7ec4-458d-b946-200d24207fd4",
+          "speech": "I can also just describe what I notice on your cue. Not to be the galaxy's slowest pointer, but here we are. Quick check: watch your hand, or something else?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "9ae0efd8-bf61-4ae5-8bcf-e8205774be36",
+          "speech": "Mm-hmm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "0ecefab3-d5db-4acc-bfd8-1a26bb6ef24e",
+          "speech": "Sure",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "4535c89b-17a7-4d4a-acdd-0bba90cbbb48",
+          "speech": ",",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "b94ff82f-c5df-4d2f-8221-185be3620aa9",
+          "speech": "what",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "19a2a238-628e-4cf7-9029-c1e1b0114664",
+          "speech": "Okay",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "1edf76bb-220e-4a29-afa2-10f1e7bf04df",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "8f721188-5512-4908-b2c9-121f722972cc",
+          "speech": "mm.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "022416ec-e671-4e65-9237-36365efeb1f3",
+          "speech": "Got",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "948dd170-89d8-4b00-ba4c-7cbeceb38566",
+          "speech": "it.",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "e5c7cf74-803b-4444-a98d-975eb5eca136",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "8ff31aa8-390e-4e9d-ac24-9710856b4783",
+          "speech": "mm. Thanks, that sounds like a simple “say once when I see your point at the cup,” with you deciding if it worked. Quick check: do you want it to trigger only once or every time you point? The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition; we will review the terms before acceptance.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "b0361ffb-b8ce-4853-acb8-2b5e1b2292a2",
+          "speech": "Sorry, that was my jump; let's review what you just did. I saw you point at your cup for practice. Proposal: wait for a fresh point at your cup after you accept, then acknowledge once in my own words. You judge success. One action total. Start accepts this; shall we start?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "37d818a4-9b7f-4142-8d7d-5a644d3b642f",
+          "speech": "I heard",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "54a34349-2bb4-4674-adab-e6cae631b1fd",
+          "speech": "you",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "6868a913-d1fc-4278-aa27-befc490551ec",
+          "speech": ".",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "e63d3c23-4b78-4acf-a9ed-d328ec57de96",
+          "speech": "Task accepted and armed; I'm waiting for a fresh pointing cue.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "e1b921ad-014b-40e2-a930-56a2dce7f770",
+          "speech": "I saw you point at your cup.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "043f1855-982f-424d-b7c5-7e3adb9cdb75",
+          "speech": "I'll check.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "8150fb59-0244-4beb-9bf3-38b33eed8c75",
+          "speech": "Thanks for waiting; the plan's accepted, but I can't confirm it rendered yet. Did you see the avatar point to the visitor?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "87128694-fd72-4844-b21a-ffbfcab0f7eb",
+          "speech": "Mm-h",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "7d263613-be32-48f0-8cc3-2e55bc3c3ed5",
+          "speech": "mm.",
+          "complete": false,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "542f4437-6bf1-4ada-9081-1ae7236852c3",
+          "speech": "I can't yet see that selection in the scene, want me to wait until you reselect it?",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "305d63c3f732d3c7a68c40e43a8c043a99207f361f94f9bac3975130654f51a7",
+            "duration": 199.86,
+            "segments": [
+              {
+                "start": 6.42,
+                "end": 7.42,
+                "text": " I'll check.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 7.42,
+                "end": 11.3,
+                "text": " Thanks for waiting.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 11.3,
+                "end": 14.3,
+                "text": " I can't resolve your pointing to cup right now.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 14.3,
+                "end": 17.3,
+                "text": " Was that a request for me to point?",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 17.3,
+                "end": 19.3,
+                "text": " Or me to watch?",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 19.3,
+                "end": 27.57,
+                "text": " Your hand and comment.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 27.57,
+                "end": 30.57,
+                "text": " I can also just describe what I noticed on your queue.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 30.57,
+                "end": 34.57,
+                "text": " Not to be the galaxy's slowest pointer, but here we are.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 34.57,
+                "end": 35.57,
+                "text": " Quick check.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 35.57,
+                "end": 48.94,
+                "text": " Watch your hand or something else?",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 48.94,
+                "end": 49.94,
+                "text": " Sure.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 49.94,
+                "end": 53.53,
+                "text": " What?",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 53.53,
+                "end": 57.12,
+                "text": " Okay.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 57.12,
+                "end": 60.97,
+                "text": " Mm-hmm.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 60.97,
+                "end": 61.97,
+                "text": " Got it.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 61.97,
+                "end": 62.97,
+                "text": " Uh-huh.",
+                "logprob": -0.18360643608625546
+              },
+              {
+                "start": 62.97,
+                "end": 69.45,
+                "text": " Thanks, that sounds like a simple say once when I see your point at the cup, with you deciding",
+                "logprob": -0.19984213057018463
+              },
+              {
+                "start": 69.45,
+                "end": 71.45,
+                "text": " if it worked.",
+                "logprob": -0.19984213057018463
+              },
+              {
+                "start": 71.45,
+                "end": 72.45,
+                "text": " Quick check.",
+                "logprob": -0.19984213057018463
+              },
+              {
+                "start": 72.45,
+                "end": 76.65,
+                "text": " Do you want it to trigger only once or every time you point?",
+                "logprob": -0.19984213057018463
+              },
+              {
+                "start": 76.65,
+                "end": 79.09,
+                "text": " The proposal is saved and not active.",
+                "logprob": -0.19984213057018463
+              },
+              {
+                "start": 79.09,
+                "end": 83.05,
+                "text": " Please demonstrate any hand pointing at the agreed region for recognition.",
+                "logprob": -0.19984213057018463
+              },
+              {
+                "start": 83.05,
+                "end": 85.45,
+                "text": " We will review the terms before acceptance.",
+                "logprob": -0.19984213057018463
+              },
+              {
+                "start": 85.45,
+                "end": 92.19,
+                "text": " Sorry, that was my jump.",
+                "logprob": -0.19984213057018463
+              },
+              {
+                "start": 92.19,
+                "end": 93.79,
+                "text": " Let's review what you just did.",
+                "logprob": -0.19984213057018463
+              },
+              {
+                "start": 93.79,
+                "end": 96.43,
+                "text": " I saw you point at your cup for practice,",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 96.43,
+                "end": 100.51,
+                "text": " proposal, wait for a fresh point at your cup after you accept,",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 100.51,
+                "end": 103.15,
+                "text": " then acknowledge once in my own words.",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 103.15,
+                "end": 104.47,
+                "text": " You judge success.",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 104.47,
+                "end": 107.21,
+                "text": " One action total, start accepts this.",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 107.21,
+                "end": 117.72,
+                "text": " Shall we start?",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 117.72,
+                "end": 124.81,
+                "text": " I heard you.",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 124.81,
+                "end": 126.61,
+                "text": " Task accepted and armed.",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 126.61,
+                "end": 138.47,
+                "text": " I'm waiting for a fresh point in queue.",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 138.47,
+                "end": 159.79,
+                "text": " I saw you point at your cup.",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 159.79,
+                "end": 166.3,
+                "text": " I'll check.",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 166.3,
+                "end": 169.02,
+                "text": " Thanks for waiting, the plan's accepted,",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 169.02,
+                "end": 171.42,
+                "text": " but I can't confirm it rendered yet.",
+                "logprob": -0.11980484509468078
+              },
+              {
+                "start": 171.42,
+                "end": 173.98,
+                "text": " Did you see the avatar point to the visitor?",
+                "logprob": -0.34309309646487235
+              },
+              {
+                "start": 183.46,
+                "end": 186.22,
+                "text": " I can't yet see that selection in the scene.",
+                "logprob": -0.34309309646487235
+              },
+              {
+                "start": 186.22,
+                "end": 188.62,
+                "text": " Want me to wait until you re-select it?",
+                "logprob": -0.34309309646487235
+              },
+              {
+                "start": 188.62,
+                "end": 190.62,
+                "text": " You",
+                "logprob": -0.9882165491580963
+              }
+            ]
+          }
+        ]
+      },
+      "images": [
+        {
+          "name": "personshow.png",
+          "sha256": "fff045832ebbe4bfbd8e6456ab57b5b6cae9a0447c5f59868a80cbdd67980887"
+        }
+      ],
+      "renderChecks": [
+        {
+          "name": "personshow",
+          "eventId": "78e1e229-bda1-4f14-9108-856ba7c2687f",
+          "phase": "holding",
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "point",
+            "hand": "right_hand",
+            "action": {
+              "kind": "point",
+              "effector": "right_hand",
+              "target": {
+                "id": "9017a224-8c71-433c-9859-bc622fecaa9a:visitor",
+                "revision": 4,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "resolved": {
+                "label": "Visitor",
+                "position": {
+                  "x": -3,
+                  "y": 2,
+                  "z": 0
+                },
+                "frame": {
+                  "id": "scene:9017a224-8c71-433c-9859-bc622fecaa9a",
+                  "revision": 1,
+                  "space": "virtual_scene",
+                  "mirrored": false
+                }
+              }
+            },
+            "display": null,
+            "warnings": []
+          },
+          "irisPixels": 272,
+          "glError": 0
+        }
+      ],
+      "phase": "COMPLETED",
+      "actions": 1,
+      "outcome": "LIMIT_REACHED",
+      "proposal": {
+        "goal": "Acknowledge one recognized point at My cup after practice and acceptance.",
+        "humanRole": "Point at My cup for practice, accept the proposal, then point at My cup again and judge the response.",
+        "agentRole": "Wait for a fresh matching point after acceptance, then acknowledge it once in my own words.",
+        "success": "The user judges whether the single spoken acknowledgment accurately reflects their point at My cup.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pointing",
+            "minConfidence": 0,
+            "handPoint": {
+              "handedness": "any",
+              "target": {
+                "id": "9017a224-8c71-433c-9859-bc622fecaa9a:cup-a",
+                "revision": 2,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              }
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Acknowledge one recognized point at My cup after practice and acceptance.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pointing",
+              "action": "Briefly say in your own words that you saw the user point at their cup, based on the fresh matching observation.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPoint": {
+                "handedness": "any",
+                "target": {
+                  "id": "9017a224-8c71-433c-9859-bc622fecaa9a:cup-a",
+                  "revision": 2,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": [
+        {
+          "id": "e1b921ad-014b-40e2-a930-56a2dce7f770",
+          "speech": "I saw you point at your cup."
+        }
+      ],
+      "checkpoints": [
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "prepared",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T11:44:29.261Z",
+              "eventId": "obs.hand.pointing:2026-11-25T11:44:29.261Z"
+            }
+          },
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "completed",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T11:44:29.261Z",
+              "eventId": "obs.hand.pointing:2026-11-25T11:44:29.261Z"
+            }
+          },
+          "phase": "COMPLETED",
+          "actions": 1
+        },
+        {
+          "name": "final",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T11:44:29.261Z",
+              "eventId": "obs.hand.pointing:2026-11-25T11:44:29.261Z"
+            }
+          },
+          "phase": "COMPLETED",
+          "actions": 1
+        }
+      ],
+      "silentInputReceipts": [],
+      "commands": [
+        {
+          "name": "cupambiguous",
+          "result": {
+            "sourcePosition": 31,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": null,
+            "value": null
+          },
+          "source": {
+            "id": "487939bc-e8ad-4ecb-84a9-46444bc41824",
+            "position": 31
+          },
+          "delivery": [
+            {
+              "serverMs": 1795606992785,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "6b2ec673979a05961db73fa97aedc9b1123ad6ff8a2a8fa08718dcc73143359b",
+              "sourceId": "487939bc-e8ad-4ecb-84a9-46444bc41824",
+              "sequence": 16,
+              "contentBytes": 252,
+              "sourceIds": [
+                "487939bc-e8ad-4ecb-84a9-46444bc41824"
+              ]
+            },
+            {
+              "serverMs": 1795606993478,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "6b2ec673979a05961db73fa97aedc9b1123ad6ff8a2a8fa08718dcc73143359b",
+              "sourceId": "487939bc-e8ad-4ecb-84a9-46444bc41824",
+              "sequence": 17,
+              "contentBytes": 252,
+              "sourceIds": [
+                "487939bc-e8ad-4ecb-84a9-46444bc41824"
+              ]
+            }
+          ],
+          "renderer": null
+        },
+        {
+          "name": "personshow",
+          "result": {
+            "sourcePosition": 589,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "9017a224-8c71-433c-9859-bc622fecaa9a:visitor",
+                  "revision": 4,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                },
+                "resolved": {
+                  "label": "Visitor",
+                  "position": {
+                    "x": -3,
+                    "y": 2,
+                    "z": 0
+                  },
+                  "frame": {
+                    "id": "scene:9017a224-8c71-433c-9859-bc622fecaa9a",
+                    "revision": 1,
+                    "space": "virtual_scene",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "89e4988e-f713-4de3-927a-1bcce3d6d074",
+            "position": 589
+          },
+          "delivery": [
+            {
+              "serverMs": 1795607145328,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "9910a3015165fa2b21567a17defe36c226535b7ca1713e09e561add5e6e3a736",
+              "sourceId": "89e4988e-f713-4de3-927a-1bcce3d6d074",
+              "sequence": 291,
+              "contentBytes": 335,
+              "sourceIds": [
+                "89e4988e-f713-4de3-927a-1bcce3d6d074"
+              ]
+            },
+            {
+              "serverMs": 1795607146006,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "9910a3015165fa2b21567a17defe36c226535b7ca1713e09e561add5e6e3a736",
+              "sourceId": "89e4988e-f713-4de3-927a-1bcce3d6d074",
+              "sequence": 292,
+              "contentBytes": 335,
+              "sourceIds": [
+                "89e4988e-f713-4de3-927a-1bcce3d6d074"
+              ]
+            }
+          ],
+          "renderer": null
+        },
+        {
+          "name": "personrepeat",
+          "result": {
+            "sourcePosition": 679,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "clarification": "selected_target_absent",
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "9017a224-8c71-433c-9859-bc622fecaa9a:visitor",
+                  "revision": 4,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "source": {
+            "id": "252f2efd-50b4-4c84-bb6d-50d4b006dd51",
+            "position": 679
+          },
+          "delivery": [
+            {
+              "serverMs": 1795607167978,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "035ebb16352b502c90a949c2f181ff5f65e50dec9ef789e099f3678697aac29e",
+              "sourceId": "252f2efd-50b4-4c84-bb6d-50d4b006dd51",
+              "sequence": 329,
+              "contentBytes": 309,
+              "sourceIds": [
+                "252f2efd-50b4-4c84-bb6d-50d4b006dd51"
+              ]
+            },
+            {
+              "serverMs": 1795607168698,
+              "phase": "command_clarify_ack",
+              "type": "session.thinking.append",
+              "revision": "035ebb16352b502c90a949c2f181ff5f65e50dec9ef789e099f3678697aac29e",
+              "sourceId": "252f2efd-50b4-4c84-bb6d-50d4b006dd51",
+              "sequence": 330,
+              "contentBytes": 309,
+              "sourceIds": [
+                "252f2efd-50b4-4c84-bb6d-50d4b006dd51"
+              ]
+            }
+          ],
+          "renderer": null
+        }
+      ],
+      "stimuli": [
+        {
+          "name": "cupambiguous",
+          "sha256": "56eaa358c8ff3a31fc0bed511225da54bcecb45936aa306f00dc5526a5308d34"
+        },
+        {
+          "name": "cupacknowledge",
+          "sha256": "9204bc2072040f843bb52579eb30be6e102384c687d295708b4cdb54536321d2"
+        },
+        {
+          "name": "accept",
+          "sha256": "82b42c3422335ce04c02cb3f65c2aeec63c0c9ab6380badac08d0c2ad7a9895e"
+        },
+        {
+          "name": "personshow",
+          "sha256": "5bcd819a8a0a9566689bfa99e0c0a0a3fef377b4fcca8cec2a9497f69cfd4364"
+        },
+        {
+          "name": "personrepeat",
+          "sha256": "5111c3960ca51ae1a2f921639be1e907f45273ab3812f268d23360e86eb0a8e2"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": "RUNNING",
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": {
+        "observationId": "scene-662",
+        "capturedAt": "2026-11-25T11:46:00.676Z",
+        "removed": {
+          "id": "9017a224-8c71-433c-9859-bc622fecaa9a:visitor",
+          "revision": 4,
+          "frame": {
+            "id": "hand-live-camera",
+            "revision": 1,
+            "space": "camera_image",
+            "mirrored": false
+          }
+        },
+        "remaining": [
+          "9017a224-8c71-433c-9859-bc622fecaa9a:source",
+          "9017a224-8c71-433c-9859-bc622fecaa9a:cup-a"
+        ]
+      },
+      "response": {
+        "id": "88264d51-54cf-4e45-b6e2-5efb0f78a4d5",
+        "session": "7370c029-5961-492d-9cc9-d1a9febe9a3e",
+        "epoch": "1e7f12b7-e86a-4675-af9e-2b88f3e628ff",
+        "revision": 5,
+        "status": "CAPTURED",
+        "facts": "A fresh cue authorized this current contribution. Required spoken content: I saw you point at your cup. Convey this committed result with equivalent meaning, not an example from the agreement. Say it once; do not add a reflection or aside.",
+        "created": "2026-11-25T11:45:16.228147200Z",
+        "deadline": "2026-11-25T11:46:01.228147200Z",
+        "purpose": "CONTRIBUTION",
+        "unrelatedRemaining": 1,
+        "segment": "3d6f3ce0-8dc0-3362-95b8-3ff7e418c716",
+        "speechOffset": 0
+      },
+      "delivery": {
+        "id": "88264d51-54cf-4e45-b6e2-5efb0f78a4d5",
+        "session": "7370c029-5961-492d-9cc9-d1a9febe9a3e",
+        "epoch": "1e7f12b7-e86a-4675-af9e-2b88f3e628ff",
+        "revision": 5,
+        "deadline": "2026-11-25T11:46:16.228147200Z",
+        "status": "PLAYBACK_CONFIRMED",
+        "ended": "2026-11-25T11:45:26.482382900Z",
+        "segment": "3d6f3ce0-8dc0-3362-95b8-3ff7e418c716"
+      },
+      "backendReportedTokens": 71001,
+      "backendRequests": 8,
+      "providerUsageSeconds": 191,
+      "runtime": {
+        "inputSeconds": 29.3925,
+        "textBytes": 89719,
+        "exhausted": null,
+        "rtcElapsedSeconds": 202.82170000000298
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 737,
+      "contributionContext": [],
+      "cupTaskError": null,
+      "preparationPrompt": {
+        "id": "d1568b5f-6b79-45ff-9de1-323d7e799477"
+      },
+      "commandSpeechOrdering": {
+        "cupambiguous": {
+          "observed_before_result_sent": " I'll check. Thanks for waiting;",
+          "undetermined": " I can't resolve your pointing-to-cup",
+          "observed_after_result_ack": " right now. Was that a request for me to point, or me to watch your hand and comment? I can also just describe what I notice on your cue. Not to be the galaxy's slowest pointer, but here we are. Quick check: watch your hand, or something else? Mm-hmm."
+        },
+        "personshow": {
+          "observed_before_result_sent": " I'll check.",
+          "undetermined": "",
+          "observed_after_result_ack": " Thanks for waiting; the plan's accepted, but I can't confirm it rendered yet. Did you see the avatar point to the visitor?"
+        },
+        "personrepeat": {
+          "observed_before_result_sent": " Mm-hmm. I can't yet see that selection in the scene, want me to wait until you reselect",
+          "undetermined": " it?",
+          "observed_after_result_ack": ""
+        }
+      },
+      "visitorAtSessionStart": null,
+      "selectedVisitor": null,
+      "personPointError": null,
+      "clarificationWindows": {
+        "cupambiguous": {
+          "sourceId": "487939bc-e8ad-4ecb-84a9-46444bc41824",
+          "ackServerMs": 1795606993478,
+          "minimumAfterAckMs": 8000,
+          "finishedAt": "2026-11-25T11:43:41.225Z"
+        },
+        "personrepeat": {
+          "sourceId": "252f2efd-50b4-4c84-bb6d-50d4b006dd51",
+          "ackServerMs": 1795607168698,
+          "minimumAfterAckMs": 8000,
+          "finishedAt": "2026-11-25T11:46:20.295Z"
+        }
+      },
+      "additional": {
+        "cupTask": "PASS",
+        "selectedVisitorAndRemoval": "PASS"
+      }
+    },
+    {
+      "attempt": 118,
+      "mode": "L-05",
+      "artifact": "gptlive-acceptance-be83a5548f",
+      "verdict": "FAIL",
+      "finding": "Registered Display was correctly grounded, rehearsed and reviewed. After consent the post-cue native segment joined an unsolicited aside to the correct acknowledgement. The authoritative capture became UNCERTAIN and the direct Display point was not reached.",
+      "automatedPassed": false,
+      "error": "Task stopped with UNCERTAIN",
+      "sourceRevision": "26fb61b830dc3dc4bbdb87806a52974d50f4248a",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "30be4b9155867ad68bbe5ece6a0b9df2fa157136a4b63845ccbdb93dd64c202e",
+      "journeySha256": "460fe2401d6a092bfb66be93634d7898d87ee42cc8cebaf466ffa8a6e53bb04c",
+      "spoken": " Sure Yeah, Go ahead. Got it, sounds like Yes. The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition. We will review the terms before acceptance. I'll check. Thanks, I heard you. You pointed at the Display to confirm recognition. You'll point at the Display, accept, then point again and judge the one acknowledgement in my own words. Goal: acknowledge one fresh post-acceptance point at the Display. Success is your judgment of that timing. Limit is one action total. Start accepts these terms. Shall we start? I heard you. Got it — I'm waiting for a fresh point at the Display. Quiet as deep space... I'm here. I caught your point at the Display.",
+      "admitted": [
+        {
+          "id": "cd967004-05a3-4227-b6f2-455e797916dc",
+          "text": "Let's set up a task with the registered display. I'll point at it for After I accept, acknowledge once in your own words when I point at the display again I judge the, one action, default"
+        },
+        {
+          "id": "e631a244-1529-495f-8440-6a19b21ff1aa",
+          "text": "I accept the current proposal"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "0b867289-3043-45e4-b2a3-3cb6ac28039d",
+          "speech": "Sure",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "d7b812f7-38c6-4914-856f-b50e8a48fe5e",
+          "speech": "Yeah,",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "2a1e99cb-0ef7-4407-8906-5826305dd0f5",
+          "speech": "Go",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "4cea0484-d069-494f-8da2-98122a007150",
+          "speech": "ahead",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "71104da0-3f96-4dc1-8f71-a61e24c6114a",
+          "speech": ".",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "5dae96ec-317a-4900-8057-a26b4ad18ae5",
+          "speech": "Got it",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "8d1e2de9-f8a2-4505-8bfa-8f5ca4cc5a88",
+          "speech": ",",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "b4190fac-95af-4de1-83e9-a0b930a1824e",
+          "speech": "sounds",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "dce93959-8880-4139-b22c-0f65ee6b58d4",
+          "speech": "like",
+          "complete": false,
+          "association": "NONE"
+        },
+        {
+          "id": "9c366c21-932b-4bf4-9ca9-7b94e34eb743",
+          "speech": "Yes.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "18962383-40dd-4458-a445-c2e6137c052f",
+          "speech": "The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition. We will review the terms before acceptance. I'll check. Thanks, I heard you.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "6f784a48-787f-4a8f-a34d-360f00bf6b22",
+          "speech": "You pointed at the Display to confirm recognition. You'll point at the Display, accept, then point again and judge the one acknowledgement in my own words. Goal: acknowledge one fresh post-acceptance point at the Display. Success is your judgment of that timing. Limit is one action total. Start accepts these terms. Shall we start?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "6e01d556-e7ba-4c2f-aef2-bae8bb763655",
+          "speech": "I heard you.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "d31a3746-0839-47fc-abbb-46073afe06f8",
+          "speech": "Got it — I'm waiting for a fresh point at the Display.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "ca98c457-1d41-421e-8c77-1f4152c1989c",
+          "speech": "Quiet as deep space... I'm here. I caught your point at the Display.",
+          "complete": true,
+          "association": "NONE"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "0b67d7393e77d7ad9a12702c79d738c66aba4741174eb2dddbc1f29d750c995f",
+            "duration": 105.48,
+            "segments": [
+              {
+                "start": 6.29,
+                "end": 8.29,
+                "text": " Sure",
+                "logprob": -0.3428130839020014
+              },
+              {
+                "start": 8.69,
+                "end": 10.53,
+                "text": " Yeah",
+                "logprob": -0.3428130839020014
+              },
+              {
+                "start": 10.53,
+                "end": 11.81,
+                "text": " Go ahead",
+                "logprob": -0.3428130839020014
+              },
+              {
+                "start": 11.81,
+                "end": 16.43,
+                "text": " got it",
+                "logprob": -0.3428130839020014
+              },
+              {
+                "start": 16.95,
+                "end": 19.43,
+                "text": " Sounds like",
+                "logprob": -0.3428130839020014
+              },
+              {
+                "start": 19.43,
+                "end": 32.3,
+                "text": " Yes, the proposal is saved and not active",
+                "logprob": -0.3428130839020014
+              },
+              {
+                "start": 32.3,
+                "end": 39.34,
+                "text": " Please demonstrate any hand pointing at the agreed region for recognition. We will review the terms before acceptance",
+                "logprob": -0.3428130839020014
+              },
+              {
+                "start": 40.58,
+                "end": 42.58,
+                "text": " I'll check",
+                "logprob": -0.3428130839020014
+              },
+              {
+                "start": 43.18,
+                "end": 45.18,
+                "text": " Thanks, I heard you",
+                "logprob": -0.3428130839020014
+              },
+              {
+                "start": 45.18,
+                "end": 56.22,
+                "text": " You pointed at the display to confirm recognition.",
+                "logprob": -0.24218239326669713
+              },
+              {
+                "start": 56.22,
+                "end": 63.02,
+                "text": " You'll point at the display, accept, then point again and judge the one acknowledgement in my own words.",
+                "logprob": -0.24218239326669713
+              },
+              {
+                "start": 63.02,
+                "end": 67.02,
+                "text": " Goal, acknowledge one fresh post acceptance point at the display.",
+                "logprob": -0.24218239326669713
+              },
+              {
+                "start": 67.02,
+                "end": 71.42,
+                "text": " Success is your judgment of that timing. Limit is one action in total.",
+                "logprob": -0.24218239326669713
+              },
+              {
+                "start": 71.42,
+                "end": 74.22,
+                "text": " Start accepts these terms. Shall we start?",
+                "logprob": -0.24218239326669713
+              },
+              {
+                "start": 74.22,
+                "end": 89.9,
+                "text": " I heard you. Got it. I'm waiting for a fresh point at the display.",
+                "logprob": -0.24218239326669713
+              },
+              {
+                "start": 89.9,
+                "end": 98.02,
+                "text": " Quiet is deep space. I'm here.",
+                "logprob": -0.2995957691561092
+              },
+              {
+                "start": 98.02,
+                "end": 100.02,
+                "text": " I caught your point at the display.",
+                "logprob": -0.2995957691561092
+              }
+            ]
+          }
+        ]
+      },
+      "images": [],
+      "renderChecks": [],
+      "phase": "UNCERTAIN",
+      "actions": 1,
+      "outcome": "LIMIT_REACHED",
+      "proposal": {
+        "goal": "Acknowledge a fresh point at the registered Display once after acceptance.",
+        "humanRole": "Point at the Display for the recognition check, accept the task, then point at it again and judge the acknowledgment.",
+        "agentRole": "Give one brief spoken acknowledgment in my own words when the fresh cue is recognized.",
+        "success": "The user judges whether the single acknowledgment appropriately follows their post-acceptance point at the Display.",
+        "questions": [],
+        "checks": [
+          {
+            "eventType": "obs.hand.pointing",
+            "minConfidence": 0,
+            "handPoint": {
+              "handedness": "any",
+              "target": {
+                "id": "9272d37d-468d-420e-9bcb-015a87cc6691:display",
+                "revision": 1,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              }
+            }
+          }
+        ],
+        "dialogueLimit": 4,
+        "reactions": {
+          "goal": "Acknowledge a fresh point at the registered Display once after acceptance.",
+          "maxActions": 1,
+          "rules": [
+            {
+              "eventType": "obs.hand.pointing",
+              "action": "Briefly acknowledge in your own words that the point at the Display was recognized.",
+              "effect": "ACT",
+              "minConfidence": 0,
+              "samples": 1,
+              "cooldownSeconds": 3,
+              "handPoint": {
+                "handedness": "any",
+                "target": {
+                  "id": "9272d37d-468d-420e-9bcb-015a87cc6691:display",
+                  "revision": 1,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          ],
+          "sessionBound": true,
+          "firstAction": "ON_CUE"
+        }
+      },
+      "taskOutputs": null,
+      "checkpoints": [
+        {
+          "name": "preparation-request-completed",
+          "evidence": {},
+          "phase": "CONFIGURATION",
+          "actions": null
+        },
+        {
+          "name": "prepared",
+          "evidence": {
+            "0": {
+              "observed": "2026-11-25T11:48:23.010Z",
+              "eventId": "obs.hand.pointing:2026-11-25T11:48:23.010Z"
+            }
+          },
+          "phase": "CONFIGURATION",
+          "actions": null
+        }
+      ],
+      "silentInputReceipts": [],
+      "commands": [],
+      "stimuli": [
+        {
+          "name": "displayacknowledge",
+          "sha256": "be0a692193dd56f2541022c48c6c29ee1208d996663c5a72819334a773dc83a1"
+        },
+        {
+          "name": "accept",
+          "sha256": "82b42c3422335ce04c02cb3f65c2aeec63c0c9ab6380badac08d0c2ad7a9895e"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": "RUNNING",
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": null,
+      "response": {
+        "id": "1b7179a7-2048-4b5d-a66e-ceac64d8f1d2",
+        "session": "dbd62c4d-6927-40a8-a0df-72f484d8f105",
+        "epoch": "2d27ef3b-c2ca-4dfe-87ea-f664c1ccc0dd",
+        "revision": 4,
+        "status": "UNCERTAIN",
+        "facts": "A fresh cue authorized this current contribution. Required spoken content: I caught your point at the Display. Convey this committed result with equivalent meaning, not an example from the agreement. Say it once; do not add a reflection or aside.",
+        "created": "2026-11-25T11:49:10.412069800Z",
+        "deadline": "2026-11-25T11:49:55.412069800Z",
+        "purpose": "CONTRIBUTION",
+        "unrelatedRemaining": 1,
+        "segment": "74d4711f-f095-3b29-93b7-45ed0b2543fe",
+        "speechOffset": 23
+      },
+      "delivery": {
+        "id": "1b7179a7-2048-4b5d-a66e-ceac64d8f1d2",
+        "session": "dbd62c4d-6927-40a8-a0df-72f484d8f105",
+        "epoch": "2d27ef3b-c2ca-4dfe-87ea-f664c1ccc0dd",
+        "revision": 4,
+        "deadline": "2026-11-25T11:50:10.412069800Z",
+        "status": "UNCERTAIN",
+        "reason": "response_uncertain",
+        "ended": "2026-11-25T11:49:18.791401900Z"
+      },
+      "backendReportedTokens": 18961,
+      "backendRequests": 4,
+      "providerUsageSeconds": 102,
+      "runtime": {
+        "inputSeconds": 18.764000000000003,
+        "textBytes": 52393,
+        "exhausted": null,
+        "rtcElapsedSeconds": 109.12620000000298
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 393,
+      "contributionContext": [
+        {
+          "serverMs": 1795607350441,
+          "phase": "announcement_committed",
+          "type": null,
+          "revision": "d6b5890f9af7f0d9714e985a24fbc5cd3401cd7f44b57a4f75d1b8e5a34f92d5",
+          "sourceId": "1b7179a7-2048-4b5d-a66e-ceac64d8f1d2",
+          "sequence": 149,
+          "contentBytes": 0,
+          "sourceIds": [
+            "1b7179a7-2048-4b5d-a66e-ceac64d8f1d2"
+          ]
+        },
+        {
+          "serverMs": 1795607351726,
+          "phase": "send",
+          "type": "session.commentary.append",
+          "revision": "c2c8c43a3611de4cea1196b3ac047b1dd184ca2efc957d2f115b0004a6d5a702",
+          "sourceId": "1b7179a7-2048-4b5d-a66e-ceac64d8f1d2",
+          "sequence": 154,
+          "contentBytes": 364,
+          "sourceIds": [
+            "1b7179a7-2048-4b5d-a66e-ceac64d8f1d2"
+          ]
+        },
+        {
+          "serverMs": 1795607352472,
+          "phase": "ack",
+          "type": "session.commentary.append",
+          "revision": "c2c8c43a3611de4cea1196b3ac047b1dd184ca2efc957d2f115b0004a6d5a702",
+          "sourceId": "1b7179a7-2048-4b5d-a66e-ceac64d8f1d2",
+          "sequence": 155,
+          "contentBytes": 364,
+          "sourceIds": [
+            "1b7179a7-2048-4b5d-a66e-ceac64d8f1d2"
+          ]
+        }
+      ],
+      "cupTaskError": null,
+      "preparationPrompt": {
+        "heard": "The proposal is saved and not active. Please demonstrate any hand pointing at the agreed region for recognition. We will review the terms before acceptance. I'll check. Thanks, I heard you."
+      },
+      "commandSpeechOrdering": {},
+      "visitorAtSessionStart": null,
+      "selectedVisitor": null,
+      "personPointError": null,
+      "clarificationWindows": {},
       "additional": {}
     }
   ]

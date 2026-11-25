@@ -130,7 +130,8 @@ export async function runHandScenario(mode,c){
     const scene=await api('/hand-scene','POST',f.sceneConfig(true));report.scene=scene;
     const fresh=()=>observe('obs.scene.targets',f.targets({ambiguous,person}),{retain:false});
     await fresh();
-    await c.runPump(focused?[fresh]:[fresh,()=>observe('obs.hand.pointing',f.point(null),{retain:false})]);
+    const ray=()=>observe('obs.hand.pointing',f.point(ambiguous?'right':null),{retain:false});
+    if(focused)await c.runPump([fresh]);
     const detected=async id=>{
       const target=(await memory())['hand.scene.observed.v1'].targets.find(t=>t.id.endsWith(':'+id));
       assert.ok(target,'Missing detected '+id);
@@ -145,6 +146,8 @@ export async function runHandScenario(mode,c){
       const ambiguousCue=await emit(f.point,'obs.hand.pointing');
       const pointEvent=(await c.history()).find(e=>e.type==='obs.hand.pointing'&&JSON.parse(e.payload).observationId===ambiguousCue.observationId);
       assert.equal(JSON.parse(pointEvent.payload).resolution.status,'ambiguous');
+      // Keep the visitor's pointing sample current throughout the spoken request.
+      await c.runPump([fresh,ray]);
       await command('cupambiguous','CLARIFY',{});
       cup=await bind(await detected('cup-a'),'My cup',0);ambiguous=false;await wait(750);
       try{

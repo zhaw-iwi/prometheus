@@ -111,7 +111,7 @@ test('ordinary cue accepts a captured paraphrase and checks the whole native res
 
 function visitorJourney(){
   const report={},commands=[],events=[],state={'task.phase':'CONFIGURATION'};
-  let refreshScene;
+  let refreshScene,refreshRay;
   const context={
     report,memory:async()=>state,history:async()=>events,
     api:async(route,method,body)=>{
@@ -123,8 +123,14 @@ function visitorJourney(){
       if(type==='obs.hand.pointing')events.push({type,payload:JSON.stringify({...sample,resolution:{status:'ambiguous'}})});
       return sample;
     },
-    runPump:async callbacks=>{refreshScene=callbacks[0];},wait:async()=>refreshScene(),
-    command:async(name,status)=>commands.push([name,status]),
+    runPump:async callbacks=>{[refreshScene,refreshRay]=callbacks;},wait:async()=>refreshScene(),
+    command:async(name,status)=>{
+      commands.push([name,status]);
+      if(refreshRay){
+        const sample=await refreshRay();
+        assert.equal(sample.direction,name==='cupambiguous'?'right':null);
+      }
+    },
     propose:async()=>{throw Error('The cup proposal was interrupted');},
     until:async(label,read)=>{const value=await read();assert.ok(value,label);return value;}
   };
