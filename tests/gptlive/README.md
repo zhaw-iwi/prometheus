@@ -7,9 +7,9 @@ which local credentials, audio and database prerequisites must be recreated.
 
 ## Current hand acceptance allocation
 
-Allocation 15 permits up to four individually selected open journeys and raises the continuation that began at 88 attempts/$186 to $120.
+Allocation 16 permits one L-06 verification and raises the continuation that began at 88 attempts/$186 to $125.
 Each selection reserves $5 across backend inference and native Live. The cumulative
-ceiling is 112 attempts/$306. See the latest hand interaction handoff for the current ledger.
+ceiling is 113 attempts/$311. See the latest hand interaction handoff for the current ledger.
 The L-02 report records command delivery and individual native caption/audio
 observations under each direct turn's `commandTiming`. Clock overlap and missing
 evidence leave ordering undetermined. The local PCM, outgoing RTP counters

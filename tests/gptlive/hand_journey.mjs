@@ -22,10 +22,9 @@ if(permission!=='--allow-paid-provider'||!output||!/^L-0[1-9](-comparison)?$/.te
     ||!['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname))throw Error('Use the isolated authorized hand runner');
 const plan=JSON.parse(fs.readFileSync(process.env.PROMETHEUS_HAND_PAID_PLAN)),reservation=JSON.parse(fs.readFileSync(ledger));
 assert.equal(reservation.authorization,'hand-interaction-2026-11-23-usd50');
-assert.ok(['L-04','L-05','L-06','L-07','L-08'].includes(mode));
-const selections=reservation.attempts.length-108;
-assert.ok(selections>=1&&selections<=4&&reservation.reservedUsd===286+5*selections
-  &&reservation.attempts.slice(88).reduce((sum,a)=>sum+a.reservedUsd,0)===100+5*selections);
+assert.equal(mode,'L-06');
+assert.ok(reservation.attempts.length===113&&reservation.reservedUsd===311
+  &&reservation.attempts.slice(88).reduce((sum,a)=>sum+a.reservedUsd,0)===125);
 const directory=path.dirname(path.resolve(output));
 const selected=reservation.attempts.at(-1);
 assert.ok(selected.mode===mode&&selected.reservedUsd===5&&selected.allocationRevision===plan.allocationRevision
