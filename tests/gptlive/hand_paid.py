@@ -1,4 +1,4 @@
-"""Fail-closed $130 continuation from the immutable 88-attempt/$186 checkpoint. Importing never bills."""
+"""Fail-closed $170 continuation from the immutable 88-attempt/$186 checkpoint. Importing never bills."""
 import hashlib
 import json
 import os
@@ -22,6 +22,7 @@ L07_VERIFICATION = 'hand-interaction-2026-11-24-l07-verification-usd5'
 WORKFLOW_EXTENSION = 'hand-interaction-2026-11-24-workflow-usd20'
 L06_VERIFICATION = 'hand-interaction-2026-11-25-l06-verification-usd5'
 L06_VISITOR = 'hand-interaction-2026-11-25-l06-visitor-usd5'
+ROADMAP = 'hand-interaction-2026-11-25-roadmap-usd40'
 OPEN_JOURNEYS = ('L-04', 'L-05', 'L-06', 'L-07', 'L-08')
 LIMITS = dict(backendRequests=10, requestBytes=80000, inputFramingTokenAllowance=2048,
               completionTokensPerRequest=2048, reportedTokens=250000, sessions=1,
@@ -34,9 +35,9 @@ def validate(plan, model):
     if plan.get('acceptanceRevision') != 2:
         raise ValueError('Use hand acceptance revision 2; preserve earlier failures')
     if (plan.get('schema') != 'hand-paid-plan-v1' or plan.get('authorized') is not True
-            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 114
-            or plan.get('maximumReservedUsd') != 316 or plan.get('reserveUsdPerAttempt') != 5
-            or plan.get('allocationRevision') != 17 or plan.get('extensionAuthorization') != L06_VISITOR):
+            or plan.get('authorization') != AUTHORIZATION or plan.get('maximumAttempts') != 122
+            or plan.get('maximumReservedUsd') != 356 or plan.get('reserveUsdPerAttempt') != 5
+            or plan.get('allocationRevision') != 18 or plan.get('extensionAuthorization') != ROADMAP):
         raise ValueError('Unreviewed hand authorization')
     if plan.get('models') != {'backend': 'gpt-6.2-sol', 'live': 'gpt-live-1.1'} or model != 'gpt-6.2-sol' or plan.get('backendReasoningEffort') != 'low':
         raise ValueError('Unpriced hand model')
@@ -55,6 +56,7 @@ def validate(plan, model):
 
 
 def _allocation_for(index):
+    if index >= 114: return 18, ROADMAP
     if index == 113: return 17, L06_VISITOR
     if index == 112: return 16, L06_VERIFICATION
     if index >= 108: return 15, WORKFLOW_EXTENSION
@@ -91,6 +93,7 @@ def checkpoint_history():
         ('live-continuation-workflow.json', 108, 286, 20, 120),
         ('live-continuation-l06-verification.json', 112, 306, 5, 125),
         ('live-continuation-l06-visitor.json', 113, 311, 5, 130),
+        ('live-continuation-roadmap.json', 114, 316, 40, 170),
     ]:
         topup = json.loads((CHECKPOINT / filename).read_text(encoding='utf-8'))
         added = topup['reservations']
@@ -121,27 +124,28 @@ def history(ledger=LEDGER):
     data = json.loads(ledger.read_text(encoding='utf-8'))
     attempts = data.get('attempts')
     if (data.get('authorization') != AUTHORIZATION or not isinstance(attempts, list)
-            or not 113 <= len(attempts) <= 114 or any(a.get('mode') not in MODES
+            or not 114 <= len(attempts) <= 122 or any(a.get('mode') not in MODES
                                        or 106 <= i < 108 and a.get('mode') != 'L-07'
                                        or 108 <= i < 112 and a.get('mode') not in OPEN_JOURNEYS
                                        or i == 112 and a.get('mode') != 'L-06'
-                                       or i == 113 and a.get('mode') != 'L-06-visitor'
+                                       or i in (113,114) and a.get('mode') != 'L-06-visitor'
                                        or a.get('reservedUsd') != (4 if i<3 else 2 if i<28 else 1 if i<74 else 7 if i<78 else 5)
                                        or not a.get('artifact')
                                        or i >= 22 and (a.get('allocationRevision'), a.get('extensionAuthorization')) != _allocation_for(i)
                                        for i,a in enumerate(attempts))
             or data.get('reservedUsd') != sum(a['reservedUsd'] for a in attempts)
-            or data.get('reservedUsd') > 316):
+            or data.get('reservedUsd') > 356):
         raise ValueError('Invalid hand ledger; never replace or reset it')
     saved = checkpoint_history()['attempts']
-    if attempts[:len(saved)] != saved or sum(a['reservedUsd'] for a in attempts[88:]) > 130:
+    if attempts[:len(saved)] != saved or sum(a['reservedUsd'] for a in attempts[88:]) > 170:
         raise ValueError('Invalid hand ledger: checkpoint prefix or continuation cap')
     return data
 
 
 def available_budget(mode, ledger=LEDGER):
     data = history(ledger)
-    if mode != 'L-06-visitor' or len(data['attempts']) >= 114 or data['reservedUsd'] + 5 > 316:
+    if (mode not in MODES or len(data['attempts']) == 114 and mode != 'L-06-visitor'
+            or len(data['attempts']) >= 122 or data['reservedUsd'] + 5 > 356):
         raise ValueError('Hand budget exhausted or invalid selection; no provider call permitted')
     return data
 

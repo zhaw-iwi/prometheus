@@ -17,12 +17,14 @@ import {commandTiming,controlTimings,interruptedCommandSource,observeClarificati
 
 const [permission,output]=process.argv.slice(2),mode=process.env.PROMETHEUS_HAND_MODE;
 const base=process.env.PROMETHEUS_BASE_URL,ledger=process.env.PROMETHEUS_HAND_BUDGET_LEDGER;
-if(permission!=='--allow-paid-provider'||!output||mode!=='L-06-visitor'||!ledger||!base
+if(permission!=='--allow-paid-provider'||!output||!/^L-(0[1-9]|06-visitor|09-comparison)$/.test(mode)||!ledger||!base
     ||!['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname))throw Error('Use the isolated authorized hand runner');
 const plan=JSON.parse(fs.readFileSync(process.env.PROMETHEUS_HAND_PAID_PLAN)),reservation=JSON.parse(fs.readFileSync(ledger));
 assert.equal(reservation.authorization,'hand-interaction-2026-11-23-usd50');
-assert.ok(reservation.attempts.length===114&&reservation.reservedUsd===316
-  &&reservation.attempts.slice(88).reduce((sum,a)=>sum+a.reservedUsd,0)===130);
+const count=reservation.attempts.length;
+assert.ok(count>=115&&count<=122&&reservation.reservedUsd===316+(count-114)*5
+  &&reservation.attempts.slice(88).reduce((sum,a)=>sum+a.reservedUsd,0)===reservation.reservedUsd-186);
+assert.equal(reservation.attempts[114].mode,'L-06-visitor');
 const directory=path.dirname(path.resolve(output));
 const selected=reservation.attempts.at(-1);
 assert.ok(selected.mode===mode&&selected.reservedUsd===5&&selected.allocationRevision===plan.allocationRevision
@@ -95,7 +97,7 @@ async function command(name,status,{kind,verify}={}){
   turn.commandSource={id:source.id,position:receipt.sourcePosition};
   // A visual command permits, but does not require, a spoken acknowledgement.
   // Leave time for its confirmed result to reach Live before the next visitor turn.
-  if(mode==='L-06-visitor'&&status==='CLARIFY'&&receipt.status==='CLARIFY'){
+  if((mode==='L-06-visitor'||mode==='L-06')&&status==='CLARIFY'&&receipt.status==='CLARIFY'){
     turn.clarificationObservation=await observeClarificationReply(source.id,{until,wait,quiet,
       readContext:async()=>(await api(agentPath+'/live/sessions/'+handle)).context.recent});
   }else{

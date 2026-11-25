@@ -890,3 +890,9 @@ delivery, before acknowledgement, so follow-up guidance remains inconclusive.
 The revised local driver waits through acknowledgement and an observation
 window. All $130 of the continuation is reserved at 114 entries/$316. See the
 [review](HAND_INTERACTION_RESULTS.md) and the [checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l06-visitor.json).
+
+Allocation 18 adds $40 at entry 114/$316, for a $170 continuation and a $356
+cumulative ceiling. Run L-06-visitor first, then the three pointing journeys,
+the two sequence journeys, and affected integrated verification. Review each
+selection. A brief provisional acknowledgement may bridge backend latency;
+when the visitor needs clarification, verify the substantive next step.
