@@ -876,3 +876,10 @@ removal notifications passed an isolated browser rehearsal. Their effect on
 real-provider speech remains unverified. The ledger closes at 113 reservations
 and $311 cumulatively, with the $125 continuation fully reserved. See the
 [reviewed run](HAND_INTERACTION_RESULTS.md) and [current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l06-verification.json).
+
+Allocation 17 authorizes one $5 L-06-visitor run from entry 113/$311. Start
+the session with Visitor selected and mapped, capture one right-hand point,
+then obtain a fresh scene without Visitor and repeat the request. Review
+native audio, motion and exact-turn result delivery. A focused verdict covers
+these two direct commands. Full L-06 retains the cup workflow. The continuation
+ceiling is $130 and the cumulative ceiling is 114 entries/$316.

@@ -121,15 +121,22 @@ test('selected person point and removal reach the Live transport for their own t
     await page.getByRole('button',{name:'Robot',exact:true}).click();
     await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-ready','true');
     await page.getByTestId('gptlive-tab').click();
-    await page.getByTestId('gptlive-start').click();
-    await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
-    providerId=(await get('/__live-fixture/latest')).providerId;
     await observe('obs.hand.pointing',point(null));
     const scene=await (await post(path+'/hand-scene',sceneConfig(true))).json();
     await refreshScene();
-    const selected=ref(sceneReceipt.targets.find(t=>t.id.endsWith(':visitor')));
+    const currentVisitor=()=>ref(sceneReceipt.targets.find(t=>t.id.endsWith(':visitor')));
+    const selectVisitor=target=>post(path+'/hand-scene/binding',{target,label:'Visitor',destination:ref(scene.targets[1])});
+    let selected=currentVisitor();
     pump=startObservationPumps([refreshScene]);
-    await post(path+'/hand-scene/binding',{target:selected,label:'Visitor',destination:ref(scene.targets[1])});
+    await selectVisitor(selected);
+    await page.getByTestId('gptlive-start').click();
+    await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
+    providerId=(await get('/__live-fixture/latest')).providerId;
+    const current=currentVisitor();
+    if(current.revision!==selected.revision||current.id!==selected.id){
+      await selectVisitor(current);
+      selected=current;
+    }
     await post('/__live-fixture/direct-command',{operation:'KEEP',agreement:null,reply:{},
       command:{intent:'ACTION',kind:'POINT',value:{kind:'point',effector:'right_hand',target:selected},silent:false}});
     const first=await ask('Point at the selected person labelled Visitor with your right hand.','ACCEPTED','This direct point needs no agreement change or consent.');

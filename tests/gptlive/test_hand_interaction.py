@@ -157,11 +157,11 @@ class HandInteractionContractTest(unittest.TestCase):
         for legacy in ('rock', 'scissor', 'paper'):
             invalid = copy.deepcopy(self.examples['motion']); invalid['action']['sign'] = legacy
             with self.assertRaises(ValidationError): self.validate('motion', invalid)
-        self.assertEqual(311, manifest()['budget']['maximumReservedUsd'])
+        self.assertEqual(316, manifest()['budget']['maximumReservedUsd'])
 
     def test_runner_rejects_paid_journeys_and_mixed_selections_before_database_access(self):
         runner = ROOT / 'tests/gptlive/run_acceptance.py'
-        for args in ([ '--hand-interaction', name] for name in JOURNEYS):
+        for args in ([ '--hand-interaction', name] for name in (*JOURNEYS, 'L-06-visitor')):
             result = subprocess.run([sys.executable, '-B', str(runner), *args], capture_output=True, text=True, timeout=15)
             self.assertNotEqual(0, result.returncode)
             self.assertIn('require --paid-core hand-live; no provider access', result.stdout + result.stderr)

@@ -17,14 +17,12 @@ import {commandTiming,controlTimings,interruptedCommandSource} from './hand_comm
 
 const [permission,output]=process.argv.slice(2),mode=process.env.PROMETHEUS_HAND_MODE;
 const base=process.env.PROMETHEUS_BASE_URL,ledger=process.env.PROMETHEUS_HAND_BUDGET_LEDGER;
-if(permission!=='--allow-paid-provider'||!output||!/^L-0[1-9](-comparison)?$/.test(mode||'')
-    ||mode.endsWith('-comparison')&&mode!=='L-09-comparison'||!ledger||!base
+if(permission!=='--allow-paid-provider'||!output||mode!=='L-06-visitor'||!ledger||!base
     ||!['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname))throw Error('Use the isolated authorized hand runner');
 const plan=JSON.parse(fs.readFileSync(process.env.PROMETHEUS_HAND_PAID_PLAN)),reservation=JSON.parse(fs.readFileSync(ledger));
 assert.equal(reservation.authorization,'hand-interaction-2026-11-23-usd50');
-assert.equal(mode,'L-06');
-assert.ok(reservation.attempts.length===113&&reservation.reservedUsd===311
-  &&reservation.attempts.slice(88).reduce((sum,a)=>sum+a.reservedUsd,0)===125);
+assert.ok(reservation.attempts.length===114&&reservation.reservedUsd===316
+  &&reservation.attempts.slice(88).reduce((sum,a)=>sum+a.reservedUsd,0)===130);
 const directory=path.dirname(path.resolve(output));
 const selected=reservation.attempts.at(-1);
 assert.ok(selected.mode===mode&&selected.reservedUsd===5&&selected.allocationRevision===plan.allocationRevision
@@ -209,10 +207,16 @@ try{
   const agent=await api('/demo/agents','POST',{agentDefinitionKey:definition});agentPath='/demo/agents/'+agent.id;report.agentId=agent.id;
   await openValerianSession(page,base+`/valerian/?agentId=${agent.id}`,code);
   await page.evaluate(captureHandFrames);
-  await page.getByRole('button',{name:'Robot',exact:true}).click();await page.getByTestId('gptlive-tab').click();await page.getByTestId('gptlive-settings').locator(':scope > summary').click();
-  await page.locator('#gptlive_voice').selectOption('willow');await page.getByTestId('gptlive-start').click();await page.waitForFunction(()=>['Active','Error'].includes(document.getElementById('gptlive_status').textContent));
-  assert.equal(await page.getByTestId('gptlive-status').textContent(),'Active');
-  await runHandScenario(mode,{api:(suffix,method,body)=>api(agentPath+suffix,method,body),page,report,plan,directory,say,command,observe,memory,history,until,quiet,wait,checkpoint,render,propose,ready,accept,complete,zero,runPump,stopPump,sequenceFrames,captureMedia,conversationLatency,compareConversations});
+  await page.getByRole('button',{name:'Robot',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('[data-testid="embodiment-stage"]').dataset.ready==='true');
+  await page.getByTestId('gptlive-tab').click();await page.getByTestId('gptlive-settings').locator(':scope > summary').click();
+  const startLive=async()=>{
+    await page.locator('#gptlive_voice').selectOption('willow');await page.getByTestId('gptlive-start').click();
+    await page.waitForFunction(()=>['Active','Error'].includes(document.getElementById('gptlive_status').textContent));
+    assert.equal(await page.getByTestId('gptlive-status').textContent(),'Active');
+  };
+  if(mode!=='L-06-visitor')await startLive();
+  await runHandScenario(mode,{startLive,api:(suffix,method,body)=>api(agentPath+suffix,method,body),page,report,plan,directory,say,command,observe,memory,history,until,quiet,wait,checkpoint,render,propose,ready,accept,complete,zero,runPump,stopPump,sequenceFrames,captureMedia,conversationLatency,compareConversations});
   await stopPump();assert.deepEqual(report.browserErrors,[]);assert.ok(report.network.every(e=>!/speech-synthesis|speech-approvals|behaviours\/.*\/speech/.test(e.path)),'Competing output Speech route');report.automatedPassed=true;
 }catch(error){report.error=error.message;report.errorStack=error.stack;process.exitCode=1;}
 finally{

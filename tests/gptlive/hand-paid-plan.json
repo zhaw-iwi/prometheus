@@ -3,8 +3,8 @@
   "authorized": true,
   "authorization": "hand-interaction-2026-11-23-usd50",
   "dated": "2026-11-23",
-  "maximumAttempts": 113,
-  "maximumReservedUsd": 311,
+  "maximumAttempts": 114,
+  "maximumReservedUsd": 316,
   "reserveUsdPerAttempt": 5,
   "models": {
     "backend": "gpt-6.2-sol",
@@ -48,10 +48,10 @@
   },
   "stimulus": "Locally synthesized Windows speech, 24kHz mono PCM. Controlled sensor/scene observations; real provider interpretation, speech and capture. No provider synthesis or grading.",
   "rubric": "Accept different wording that communicates the agreed meaning and gives the visitor a correct next step. Require a literal spoken line only when the visitor explicitly specifies its wording. Review complete captured replies and received native audio, plus synchronized visible output. Wrong sign, side, direction, target, order, roles, terms, count, renewed consent after activation, premature execution, false cancellation, denial or completion claim fails. Missing evidence is INCONCLUSIVE. GPT-Live strict silence is unsupported by owner decision 2026-11-24; truthful optional native speech is allowed. No backend playback approval, buffering, muting or replacement TTS may make Live pass. Text/Continuous strict silence is verified separately. Sensor fixtures do not prove camera accuracy; digital receipts do not prove physical actuation. Preserve revision-1 failures; require new revision-2 evidence.",
-  "failurePolicy": "Keep every reservation, including failures. Allocation 16 permits one L-06 verification of pointing and target removal. A retry requires fresh authorization.",
-  "allocationRevision": 16,
-  "allocationReason": "Allocation 16 adds USD 5 after 112 entries and USD 306 reserved. The continuation cap is USD 125 and the cumulative cap is USD 311.",
+  "failurePolicy": "Keep every reservation, including failures. Allocation 17 permits one L-06-visitor session, limited to the selected-person point and fresh removal. A retry requires fresh authorization.",
+  "allocationRevision": 17,
+  "allocationReason": "Allocation 17 adds USD 5 after 113 entries and USD 311 reserved. The continuation cap is USD 130 and the cumulative cap is USD 316.",
   "acceptanceRevision": 2,
-  "extensionAuthorization": "hand-interaction-2026-11-25-l06-verification-usd5",
+  "extensionAuthorization": "hand-interaction-2026-11-25-l06-visitor-usd5",
   "backendReasoningEffort": "low"
 }

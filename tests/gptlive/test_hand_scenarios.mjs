@@ -109,7 +109,7 @@ test('ordinary cue accepts a captured paraphrase and checks the whole native res
   assert.throws(()=>requireAcknowledgement([segment('Got it.')],{...response,segment:'old'}),/No captured/);
 });
 
-test('an inactive failed cup proposal keeps its verdict and still exercises Visitor removal',async()=>{
+function visitorJourney(){
   const report={},commands=[],events=[],state={'task.phase':'CONFIGURATION'};
   let refreshScene;
   const context={
@@ -128,10 +128,56 @@ test('an inactive failed cup proposal keeps its verdict and still exercises Visi
     propose:async()=>{throw Error('The cup proposal was interrupted');},
     until:async(label,read)=>{const value=await read();assert.ok(value,label);return value;}
   };
+  return {context,commands,report,state};
+}
+
+test('focused Visitor verification preselects the person and sends only the two direct requests',async()=>{
+  const {context,commands,report,state}=visitorJourney();
+  let starts=0;
+  context.startLive=async()=>{
+    starts++;
+    assert.equal(state['hand.scene.selected.v1'].id,'scope:visitor');
+    state['hand.scene.observed.v1'].targets.find(t=>t.id==='scope:visitor').revision=2;
+    assert.deepEqual(commands,[]);
+  };
+  context.command=async(name,status,options)=>{
+    commands.push([name,status]);
+    if(name==='personshow')options.verify({handAction:{schemaVersion:1,action:{effector:'right_hand',
+      target:state['hand.scene.selected.v1'],resolved:{position:{x:-3,y:2,z:0}}}}});
+    return {memory:{'command.lastResult':{clarification:'selected_target_absent'}}};
+  };
+  context.checkpoint=async name=>assert.equal(name,'final');
+  await runHandScenario('L-06-visitor',context);
+  assert.deepEqual(commands,[['personshow','ACCEPTED'],['personrepeat','CLARIFY']]);
+  assert.equal(starts,1);
+  assert.equal(report.selectedVisitor.id,'scope:visitor');
+  assert.equal(report.visitorAtSessionStart.revision,1);
+  assert.equal(report.selectedVisitor.revision,2);
+  assert.deepEqual(report.removedPersonScene.remaining,['scope:source','scope:cup-a']);
+});
+
+test('an inactive failed cup proposal keeps its verdict and still exercises Visitor removal',async()=>{
+  const {context,commands,report}=visitorJourney();
   await assert.rejects(()=>runHandScenario('L-06',context),/cup proposal was interrupted/);
   assert.equal(report.cupTaskError,'The cup proposal was interrupted');
   assert.deepEqual(commands,[['cupambiguous','CLARIFY'],['personshow','ACCEPTED'],['personrepeat','CLARIFY']]);
   assert.equal(report.removedPersonScene.removed.id,'scope:visitor');
   assert.ok(report.removedPersonScene.remaining.includes('scope:cup-a'));
   assert.ok(!report.removedPersonScene.remaining.includes('scope:visitor'));
+});
+
+test('a failed first Visitor command still checks removal and keeps its failure',async()=>{
+  const {context,commands,report}=visitorJourney();
+  context.startLive=async()=>{};
+  context.command=async(name,status)=>{
+    commands.push([name,status]);
+    if(name==='personshow'){
+      report.turns=[{name,input:{startMs:100}}];
+      throw Error('No first point rendered');
+    }
+    return {memory:{'command.lastResult':{clarification:'selected_target_absent'}}};
+  };
+  await assert.rejects(()=>runHandScenario('L-06-visitor',context),/No first point rendered/);
+  assert.deepEqual(commands,[['personshow','ACCEPTED'],['personrepeat','CLARIFY']]);
+  assert.equal(report.personPointError,'No first point rendered');
 });

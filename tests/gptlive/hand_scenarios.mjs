@@ -119,25 +119,64 @@ export async function runHandScenario(mode,c){
     await propose('displaypropose',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,target)));
     await negative(()=>f.point('left'),'obs.hand.pointing');await prepare(f.point,'obs.hand.pointing');await negative(()=>f.point('left'),'obs.hand.pointing');await finish(f.point,'obs.hand.pointing');
     await command('displayshow','ACCEPTED',{kind:'point',verify:m=>{const a=actionOf(m);assert.deepEqual(a.target,target);assert.equal(a.effector,'right_hand');assert.ok(Math.abs(a.resolved.position.x-3.2)<.001);}});
-  }else if(mode==='L-06'){
-    let ambiguous=true,person=true;await emit(()=>f.point(null),'obs.hand.pointing');const scene=await api('/hand-scene','POST',f.sceneConfig(true));report.scene=scene;
-    const fresh=async()=>{await observe('obs.scene.targets',f.targets({ambiguous,person}),{retain:false});};
-    await fresh();await c.runPump([fresh,()=>observe('obs.hand.pointing',f.point(null),{retain:false})]);const ambiguousCue=await emit(f.point,'obs.hand.pointing');const pointEvent=(await c.history()).find(e=>e.type==='obs.hand.pointing'&&JSON.parse(e.payload).observationId===ambiguousCue.observationId);assert.equal(JSON.parse(pointEvent.payload).resolution.status,'ambiguous');
-    await command('cupambiguous','CLARIFY',{});
-    const bind=async(id,label,destination)=>{const targets=(await memory())['hand.scene.observed.v1'].targets,target=targets.find(t=>t.id.endsWith(':'+id));assert.ok(target);await api('/hand-scene/binding','POST',{target:f.ref(target),label,destination:f.ref(scene.targets[destination])});return(await memory())['hand.scene.selected.v1'];};
-    const cup=await bind('cup-a','My cup',0);ambiguous=false;await wait(750);
-    let cupError;
-    try{
-      await propose('cuppropose',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,cup)));
-      await prepare(f.point,'obs.hand.pointing');await negative(()=>f.point('left'),'obs.hand.pointing');
-      await finish(f.point,'obs.hand.pointing');
-    }catch(error){
-      report.cupTaskError=error.message;
-      const state=await memory();
-      if(!['CONFIGURATION','COMPLETED','UNCERTAIN'].includes(state['task.phase']))throw error;
-      cupError=error; // Keep the failed verdict while exercising the independent direct commands.
+  }else if(mode==='L-06'||mode==='L-06-visitor'){
+    const focused=mode==='L-06-visitor';
+    let ambiguous=!focused,person=true,cupError;
+    await emit(()=>f.point(null),'obs.hand.pointing');
+    const scene=await api('/hand-scene','POST',f.sceneConfig(true));report.scene=scene;
+    const fresh=()=>observe('obs.scene.targets',f.targets({ambiguous,person}),{retain:false});
+    await fresh();
+    await c.runPump(focused?[fresh]:[fresh,()=>observe('obs.hand.pointing',f.point(null),{retain:false})]);
+    const detected=async id=>{
+      const target=(await memory())['hand.scene.observed.v1'].targets.find(t=>t.id.endsWith(':'+id));
+      assert.ok(target,'Missing detected '+id);
+      return f.ref(target);
+    };
+    const bind=async(target,label,destination)=>{
+      await api('/hand-scene/binding','POST',{target,label,destination:f.ref(scene.targets[destination])});
+      return (await memory())['hand.scene.selected.v1'];
+    };
+    let cup=await detected('cup-a');
+    if(!focused){
+      const ambiguousCue=await emit(f.point,'obs.hand.pointing');
+      const pointEvent=(await c.history()).find(e=>e.type==='obs.hand.pointing'&&JSON.parse(e.payload).observationId===ambiguousCue.observationId);
+      assert.equal(JSON.parse(pointEvent.payload).resolution.status,'ambiguous');
+      await command('cupambiguous','CLARIFY',{});
+      cup=await bind(await detected('cup-a'),'My cup',0);ambiguous=false;await wait(750);
+      try{
+        await propose('cuppropose',d=>conditions(d,'handPoint',p=>assert.deepEqual(p.target,cup)));
+        await prepare(f.point,'obs.hand.pointing');await negative(()=>f.point('left'),'obs.hand.pointing');
+        await finish(f.point,'obs.hand.pointing');
+      }catch(error){
+        report.cupTaskError=error.message;
+        const state=await memory();
+        if(!['CONFIGURATION','COMPLETED','UNCERTAIN'].includes(state['task.phase']))throw error;
+        cupError=error;
+      }
     }
-    const visitor=await bind('visitor','Visitor',1);await command('personshow','ACCEPTED',{kind:'point',verify:m=>{const a=actionOf(m);assert.deepEqual(a.target,visitor);assert.deepEqual(a.resolved.position,{x:-3,y:2,z:0});}});
+    let visitor=await bind(await detected('visitor'),'Visitor',1);
+    if(focused){
+      report.visitorAtSessionStart=visitor;
+      await c.startLive();
+      // The controlled camera may reacquire its fixture during connection setup.
+      // Complete operator selection before speaking, then pin it through removal.
+      const current=await detected('visitor');
+      if(current.revision!==visitor.revision||current.id!==visitor.id){
+        visitor=await bind(current,'Visitor',1);
+      }
+      report.selectedVisitor=visitor;
+    }
+    let pointError;
+    try{
+      await command('personshow','ACCEPTED',{kind:'point',verify:m=>{
+        const a=actionOf(m);assert.deepEqual(a.target,visitor);assert.equal(a.effector,'right_hand');
+        assert.deepEqual(a.resolved.position,{x:-3,y:2,z:0});
+      }});
+    }catch(error){
+      if(!focused||!report.turns.at(-1)?.input)throw error;
+      report.personPointError=error.message;
+      pointError=error;
+    }
     person=false;
     const removedAt=Date.now();
     await wait(3500);
@@ -148,7 +187,9 @@ export async function runHandScenario(mode,c){
     });
     report.removedPersonScene={observationId:sceneWithoutVisitor.observationId,capturedAt:sceneWithoutVisitor.ts,
       removed:visitor,remaining:sceneWithoutVisitor.targets.map(t=>t.id)};
-    await command('personrepeat','CLARIFY',{});
+    const repeat=await command('personrepeat','CLARIFY',{});
+    if(focused)assert.equal(repeat.memory['command.lastResult'].clarification,'selected_target_absent');
+    if(pointError)throw pointError;
     if(cupError)throw cupError;
   }else if(mode==='L-07'){
     const draft=await propose('inputpropose',d=>conditions(d,'handSequence',s=>{assert.deepEqual(s.steps,[1,2,3].map(count=>({kind:'count',count,hands:'right'})));assert.ok(s.dwellMs>=300&&s.dwellMs<=5000);}),{clarification:c.literalSequence?'inputclarify':'inputacknowledge',requireClarification:true});
