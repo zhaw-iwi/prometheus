@@ -1,6 +1,11 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {test,expect} from './fixtures/offline-ui-assets.mjs';
 import {pointingResult} from '../fixtures/hand-landmarks.mjs';
+import {openValerianSession} from './fixtures/valerian-session.mjs';
+import {hardware} from './fixtures/native-hardware.mjs';
+import {captureHandFrames} from './fixtures/hand-frames.mjs';
+import {point, ref, sceneConfig, targets} from '../gptlive/hand_fixtures.mjs';
+import {startObservationPumps} from '../gptlive/hand_observation_pump.mjs';
 
 test('detected cup selection prepares a cue and maps output while expired labels stay retired',async({page,context,request},info)=>{
   test.skip(!process.env.PROMETHEUS_ADMIN_TOKEN||process.env.PROMETHEUS_LIVE_EXPECT_ENABLED!=='true','Use the enabled disposable MySQL runner');
@@ -62,4 +67,97 @@ test('detected cup selection prepares a cue and maps output while expired labels
     await page.reload();await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-hand-phase','preview');await expect(page.locator('#embodiment_summary')).toContainText('toward My cup');await page.locator('#embodiment_panel').screenshot({path:info.outputPath('point-at-cup-history-390.png')});
     writeFileSync(info.outputPath('dynamic-evidence.json'),JSON.stringify({reference,agreement,receipt},null,2));expect(errors).toEqual([]);
   }finally{await request.post('/__live-fixture/inference/release');await page.close();await request.delete(path,{headers});await request.delete('/__live-fixture/coordination-proposal');await request.delete('/__live-fixture/direct-command');}
+});
+
+test('selected person point and removal reach the Live transport for their own turns',async({page,context,request},info)=>{
+  test.skip(process.env.PROMETHEUS_LIVE_EXPECT_ENABLED!=='true'||!process.env.PROMETHEUS_ADMIN_TOKEN,'Use the enabled disposable fixture runner');
+  const admin={'X-Prometheus-Admin-Token':process.env.PROMETHEUS_ADMIN_TOKEN};
+  const code=Math.random().toString(36).slice(2,7).toUpperCase();
+  const access=await (await request.post('/admin/access-codes',{headers:admin,data:{code,enabled:true}})).json();
+  await request.put(`/admin/access-codes/${access.id}/agent-types`,{headers:admin,data:{agentTypeKeys:['core.coordination']}});
+  const headers={'X-Prometheus-Access-Code':code};
+  const agent=await (await request.post('/demo/agents',{headers,data:{agentDefinitionKey:'core.coordination'}})).json();
+  const path=`/demo/agents/${agent.id}`;
+  const get=async route=>(await request.get(route,{headers})).json();
+  const post=async(route,data)=>{
+    const response=await request.post(route,{headers,data});
+    expect(response.ok(),route+' HTTP '+response.status()).toBe(true);
+    return response;
+  };
+  const observe=(type,payload)=>post(path+'/acknowledge?profile=full_plan',{kind:'observation',actor:'controlled-camera',type,payload:JSON.stringify(payload)});
+  let person=true,pump,sceneReceipt,providerId;
+  const refreshScene=async()=>{
+    const capture=await observe('obs.scene.targets',targets({person}));
+    sceneReceipt=JSON.parse((await capture.json()).sceneCapture);
+  };
+  const history=()=>get(path+'/live/history');
+  const handOutputs=events=>events.filter(e=>{
+    if(e.type!=='resp.behaviour_plan')return false;
+    const motion=JSON.parse(e.payload).motion;
+    return motion?.handAction||motion?.handSign;
+  });
+  const ask=async(text,status,expectedFacts)=>{
+    await post('/__live-fixture/speak/'+providerId,{speaker:'USER',text});
+    let userId,receipt,messages;
+    await expect.poll(async()=>{
+      const events=await history();
+      const index=events.findIndex(e=>e.type==='obs.user_utterance'&&e.payload===text);
+      if(index<0)return false;
+      userId=events[index].id;
+      const values=await get(path+'/storage');
+      const last=values.find(v=>v.key==='command.lastResult');
+      receipt=last&&JSON.parse(last.value);
+      if(receipt?.sourcePosition!==index||receipt.status!==status)return false;
+      const {commands}=await get('/__live-fixture/latest');
+      messages=commands.map(JSON.parse).filter(c=>c.type==='session.thinking.append'&&c.content?.includes('COMMAND RESULT for user turn '+userId));
+      return messages.some(c=>c.content.includes(expectedFacts));
+    },{timeout:20000}).toBe(true);
+    return {userId,receipt,messages};
+  };
+  await hardware(context);
+  try{
+    await openValerianSession(page,`/valerian/?agentId=${agent.id}`,code);
+    await page.evaluate(captureHandFrames);
+    await page.getByRole('button',{name:'Robot',exact:true}).click();
+    await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-ready','true');
+    await page.getByTestId('gptlive-tab').click();
+    await page.getByTestId('gptlive-start').click();
+    await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
+    providerId=(await get('/__live-fixture/latest')).providerId;
+    await observe('obs.hand.pointing',point(null));
+    const scene=await (await post(path+'/hand-scene',sceneConfig(true))).json();
+    await refreshScene();
+    const selected=ref(sceneReceipt.targets.find(t=>t.id.endsWith(':visitor')));
+    pump=startObservationPumps([refreshScene]);
+    await post(path+'/hand-scene/binding',{target:selected,label:'Visitor',destination:ref(scene.targets[1])});
+    await post('/__live-fixture/direct-command',{operation:'KEEP',agreement:null,reply:{},
+      command:{intent:'ACTION',kind:'POINT',value:{kind:'point',effector:'right_hand',target:selected},silent:false}});
+    const first=await ask('Point at the selected person labelled Visitor with your right hand.','ACCEPTED','This direct point needs no agreement change or consent.');
+    expect(first.receipt.handAction.action.resolved.position).toEqual({x:-3,y:2,z:0});
+    const outputs=handOutputs(await history());
+    expect(outputs).toHaveLength(1);
+    const removedAt=Date.now();
+    person=false;
+    await expect.poll(()=>Date.parse(sceneReceipt.ts)>=removedAt
+      &&sceneReceipt.targets.some(t=>t.id.endsWith(':cup-a'))
+      &&!sceneReceipt.targets.some(t=>t.id===selected.id)).toBe(true);
+    const removal=sceneReceipt;
+    const repeat=await ask('Point at that same Visitor again.','CLARIFY','The selected target was absent from the current scene.');
+    expect(repeat.receipt.clarification).toBe('selected_target_absent');
+    expect(repeat.messages.some(m=>m.content.includes('Ask for a fresh target selection.'))).toBe(true);
+    expect(handOutputs(await history()).map(e=>e.id)).toEqual([outputs[0].id]);
+    const frame=await page.waitForFunction(id=>window.__handFrames.get(id),outputs[0].id);
+    const {image,...render}=await frame.jsonValue();
+    await frame.dispose();
+    expect(render.pose.hand).toBe('right_hand');
+    expect(render.pose.action.target).toEqual(selected);
+    expect(render.glError).toBe(0);
+    expect(render.irisPixels).toBeGreaterThan(100);
+    writeFileSync(info.outputPath('selected-visitor.png'),Buffer.from(image.split(',')[1],'base64'));
+    writeFileSync(info.outputPath('point-and-removal.json'),JSON.stringify({first,repeat,removal,render,handEventId:outputs[0].id},null,2));
+  }finally{
+    if(pump){pump.running=false;await pump.done;}
+    await page.close();await request.delete('/__live-fixture/direct-command');await request.delete(path,{headers});
+  }
+  expect(pump.error).toBeNull();
 });

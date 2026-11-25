@@ -2003,3 +2003,50 @@ cases with disposable local MySQL, including four sequence rehearsals and two
 native speech-ownership regressions. The 45 Python tests, 18 focused Node tests,
 nine contract examples and Maven packaging also passed. The local ledger and
 portable restoration agree, and the preflight rejects further paid selections.
+
+## L-06 point and removal verification, 2026-11-25
+
+**Attempt 113 failed L-06 at the opening request. The selected-person commands
+were never reached.** The visitor asked the robot to point its right hand at
+“that cup” with two cups in view. The backend returned `CLARIFY`, issued zero
+hand motions and left the task inactive. Live said “I can't point right now”,
+offered a demo and later suggested a hand-sign reaction. Any natural question
+that disambiguated the cups would have been acceptable. The received audio
+continued with backchannels until the 35-second quiet wait expired.
+
+The run (`02f900f35a`, revision `d72aa4dd`) contained one visitor audio
+stimulus. The provider also produced a separate input fragment, `[truncated`.
+The correct cup receipt refers to the original visitor turn at history
+position 26. On the server clock, the first “I can't” caption arrived at
+07:15:59.039 UTC, 104 ms before the visitor command's timestamp of
+07:15:59.143457 UTC. The browser clock bracket for that caption ends at
+07:15:59.121 UTC. The first audible activity falls later, between
+07:15:59.428 and 07:15:59.780 UTC. The two saved context snapshots together
+cover sequences 1 through 70 without gaps and contain no command-result send
+or acknowledgement for the cup. Live had begun the denial before the backend
+could return its decision. Local transcription of the complete 47.10-second
+recording corroborates the denial and repeated backchannels. The driver now
+retains timing for interrupted direct commands with a matching receipt.
+
+An isolated browser rehearsal started directly at the selected Visitor. The
+backend accepted one right-hand point at the mapped position `(-3, 2, 0)`.
+The holding frame shows the digital right arm extended toward the marker.
+The scripted Live transport received the accepted-plan notice with the first
+turn ID. The notice identified the request as sufficient authority and left
+rendering unconfirmed. A fresh scene then contained the source and a cup,
+with Visitor absent. The repeat returned `CLARIFY / selected_target_absent`,
+sent guidance to ask for a fresh selection under the second turn ID, and
+produced no additional hand output. This rehearsal verifies the application
+and transport. Native phrasing following these two notices is still unverified.
+
+Offline verification passed seven Java command-result tests, two browser cases
+in the disposable MySQL run (`45829e331c`), 23 Node tests, 45 Python tests and
+nine contract examples. Restoring the portable checkpoint reproduced the local
+ledger exactly, and the budget preflight rejected another L-06 reservation.
+
+All **$125 of the continuation** is reserved. There are **113 entries and
+$311 cumulatively reserved**. Actual billing and physical robot behavior were
+unmeasured. The [portable evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-l06-verification.json)
+contains the reservation, received speech, backend receipt and context trace
+coverage. For a future funded check of the two notifications, make the selected
+person the first visitor request. The full L-06 cup workflow remains open.

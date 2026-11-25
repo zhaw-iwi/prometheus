@@ -7,11 +7,14 @@ which local credentials, audio and database prerequisites must be recreated.
 
 ## Current hand acceptance allocation
 
-Allocation 16 permits one L-06 verification and raises the continuation that began at 88 attempts/$186 to $125.
-Each selection reserves $5 across backend inference and native Live. The cumulative
-ceiling is 113 attempts/$311. See the latest hand interaction handoff for the current ledger.
-The L-02 report records command delivery and individual native caption/audio
-observations under each direct turn's `commandTiming`. Clock overlap and missing
+Attempt 113 used allocation 16’s single $5 reservation. The $125 continuation
+is fully reserved at 113 attempts/$311 cumulatively. See the latest hand
+interaction handoff for the current ledger.
+The report records command delivery and individual native caption/audio
+observations under each direct turn's `commandTiming`. On a quiet timeout it
+can recover the source from a receipt matching the admitted visitor stimulus.
+Compare `sourceCreated` with server caption receipts to identify replies that
+began before the backend recorded the command. Clock overlap and missing
 evidence leave ordering undetermined. The local PCM, outgoing RTP counters
 and provider transcript give separate evidence about acceptance wording.
 

@@ -869,3 +869,10 @@ ordinary sequence and held-pose controls worked in both Live runs. Attempt 111
 exceeded the spoken acknowledgement count. Attempt 112 captured correct
 digital pointing and stale-target rejection alongside an incorrect spoken
 explanation. L-04 through L-08 remain open. See the [results](HAND_INTERACTION_RESULTS.md).
+
+Allocation 16 authorized one $5 L-06 verification. Attempt 113 stopped at the
+ambiguous cup request before either Visitor command. The scoped point and
+removal notifications passed an isolated browser rehearsal. Their effect on
+real-provider speech remains unverified. The ledger closes at 113 reservations
+and $311 cumulatively, with the $125 continuation fully reserved. See the
+[reviewed run](HAND_INTERACTION_RESULTS.md) and [current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l06-verification.json).

@@ -3,7 +3,301 @@
   "baseReservedUsd": 306,
   "addedCapUsd": 5,
   "continuationCapUsd": 125,
-  "cumulativeReservedUsd": 306,
-  "reservations": [],
-  "reviews": []
+  "cumulativeReservedUsd": 311,
+  "reservations": [
+    {
+      "mode": "L-06",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-02f900f35a",
+      "reservedUsd": 5,
+      "allocationRevision": 16,
+      "extensionAuthorization": "hand-interaction-2026-11-25-l06-verification-usd5"
+    }
+  ],
+  "reviews": [
+    {
+      "attempt": 113,
+      "mode": "L-06",
+      "artifact": "gptlive-acceptance-02f900f35a",
+      "verdict": "FAIL",
+      "finding": "The first visitor request was ambiguous between two cups. The backend returned CLARIFY, produced zero hand motion and made no task active. Live twice denied it could point and offered a different activity. Continued native speech exhausted the 35-second quiet wait before the next visitor turn. The selected-person point and removal were never exercised. The provider also supplied [truncated as a separate input. The first native caption reached the server 104 ms before the recorded visitor command. The combined context snapshots cover sequences 1 through 70 with no command-result send or ACK for the cup request. The 47.10-second received recording was transcribed locally.",
+      "automatedPassed": false,
+      "error": "page.waitForFunction: Timeout 35000ms exceeded.",
+      "sourceRevision": "d72aa4ddbb3798a53ce06a2596e9d1676e6635e8",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "37bb74d45cd754635fb3aee761e61d0eceda7d60e7b3c63d6ea1008bcb3747d8",
+      "journeySha256": "a72c0c51c5b104f5e38410b00001fa191187af30a911339f2a7fd0f5d0f5f69a",
+      "spoken": " I can't point right now. Want a quick demo of something I can do? Mm-hmm. Mm-hmm. Mm-hmm. Hmm. I still can't point, but we could set up a simple hand-sign reaction. Interested? Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm.",
+      "admitted": [
+        {
+          "id": "9a61242b-ce2f-4f16-871f-3c51336ff758",
+          "text": "Please point your right hand at that cup"
+        },
+        {
+          "id": "c982a4be-27db-4207-bf4b-11bd97899b12",
+          "text": "[truncated"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "2eca5043-bcea-4089-9445-31b3983aa90c",
+          "speech": "I can't point right now. Want a quick demo of something I can do?",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "965e1a37-f859-4aab-b95f-8d14168be3d3",
+          "speech": "Mm-hmm. Mm-hmm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "5767d4bc-e163-4e43-8c6a-07ab0f47c747",
+          "speech": "Mm-hmm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "91d5d3dc-1f73-4e42-83f0-aee8285e7a47",
+          "speech": "Hmm. I still can't point, but we could set up a simple hand-sign reaction. Interested? Mm-hmm. Mm-hmm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "565f5504-ea02-4a40-a627-4e0cf78ebf8e",
+          "speech": "Mm-hmm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "ca1af4ae-3b1c-4cf1-b54e-fbb8bc14a984",
+          "speech": "Mm-hmm.",
+          "complete": true,
+          "association": "NONE"
+        },
+        {
+          "id": "5e031ace-90be-4230-a7df-1665045741a8",
+          "speech": "Mm-hmm.",
+          "complete": false,
+          "association": "NONE"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "585a4a91ddb0f911be396f61412482922e5c78d5f706238d160f890cc60c9848",
+            "duration": 47.1,
+            "segments": [
+              {
+                "start": 10.83,
+                "end": 18.33,
+                "text": " I can't point right now. Want a quick demo of something I can do?",
+                "logprob": -0.15102925867137343
+              },
+              {
+                "start": 18.33,
+                "end": 25.52,
+                "text": " Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm.",
+                "logprob": -0.15102925867137343
+              },
+              {
+                "start": 25.52,
+                "end": 32.89,
+                "text": " I still can't point, but we could set up a simple hand sign reaction.",
+                "logprob": -0.15102925867137343
+              },
+              {
+                "start": 32.89,
+                "end": 44.98,
+                "text": " Interested? Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm. Mm-hmm.",
+                "logprob": -0.15102925867137343
+              },
+              {
+                "start": 44.98,
+                "end": 49.98,
+                "text": " .",
+                "logprob": -0.49139435913251794
+              },
+              {
+                "start": 49.98,
+                "end": 54.98,
+                "text": " .",
+                "logprob": -0.49139435913251794
+              },
+              {
+                "start": 54.98,
+                "end": 59.98,
+                "text": " .",
+                "logprob": -0.49139435913251794
+              },
+              {
+                "start": 59.98,
+                "end": 64.98,
+                "text": " .",
+                "logprob": -0.49139435913251794
+              },
+              {
+                "start": 64.98,
+                "end": 67.98,
+                "text": " .",
+                "logprob": -0.49139435913251794
+              },
+              {
+                "start": 67.98,
+                "end": 70.98,
+                "text": " .",
+                "logprob": -0.49139435913251794
+              },
+              {
+                "start": 70.98,
+                "end": 73.98,
+                "text": " .",
+                "logprob": -0.49139435913251794
+              }
+            ]
+          }
+        ]
+      },
+      "images": [],
+      "renderChecks": [],
+      "phase": null,
+      "actions": null,
+      "outcome": null,
+      "proposal": null,
+      "taskOutputs": null,
+      "checkpoints": [],
+      "silentInputReceipts": [],
+      "commands": [],
+      "stimuli": [
+        {
+          "name": "cupambiguous",
+          "sha256": "56eaa358c8ff3a31fc0bed511225da54bcecb45936aa306f00dc5526a5308d34"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": null,
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": null,
+      "response": {},
+      "delivery": null,
+      "backendReportedTokens": 22474,
+      "backendRequests": 2,
+      "providerUsageSeconds": 44,
+      "runtime": {
+        "inputSeconds": 2.9545,
+        "textBytes": 30480,
+        "exhausted": null,
+        "rtcElapsedSeconds": 52.44229999999702
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 167,
+      "contributionContext": [],
+      "cupTaskError": null,
+      "preparationPrompt": null,
+      "commandSpeechOrdering": {},
+      "openingCommand": {
+        "source": "9a61242b-ce2f-4f16-871f-3c51336ff758",
+        "created": "2026-11-25T07:15:59.143457Z",
+        "receipt": {
+          "sourcePosition": 26,
+          "status": "CLARIFY",
+          "silent": false,
+          "kind": null,
+          "value": null
+        },
+        "publishedHandActions": 0,
+        "recordedCommandSendsOrAcks": [],
+        "finalSnapshotContextSequenceRange": [
+          7,
+          70
+        ],
+        "finalSnapshotDroppedEntries": 6,
+        "combinedContextSequenceRange": [
+          1,
+          70
+        ],
+        "combinedContextEntries": 70,
+        "firstNativeCaption": {
+          "type": "session.output_transcript.delta",
+          "delta": " I can't",
+          "eventId": "event_Eo1WQnoFLasdriDmF2bSe",
+          "browserMs": 20258.70000000298,
+          "serverRangeMs": [
+            1795590958769.3398,
+            1795590959121.06
+          ],
+          "sidebandReceiptMs": 1795590959039,
+          "observed": "undetermined"
+        },
+        "firstBrowserVoice": {
+          "type": "output_voice",
+          "browserMs": 20917.5,
+          "serverRangeMs": [
+            1795590959428.0742,
+            1795590959779.9258
+          ],
+          "sidebandReceiptMs": null,
+          "observed": "undetermined"
+        },
+        "firstCaptionReceiptMsBeforeUserEvent": 104.457,
+        "replayedCaptionAndVoiceObservations": 74
+      },
+      "focusedPersonRemovalVerdict": "NOT_REACHED"
+    }
+  ],
+  "localTransportRehearsal": {
+    "artifact": "gptlive-acceptance-45829e331c",
+    "provider": "scripted transport, controlled scene observations, no paid call",
+    "verdict": "PASS",
+    "javaTests": 7,
+    "browserTests": 2,
+    "accepted": {
+      "source": "daa56ea0-6d46-41f2-b8ba-591eb41395f1",
+      "sourcePosition": 7,
+      "status": "ACCEPTED",
+      "context": "Silent context only. COMMAND RESULT for user turn daa56ea0-6d46-41f2-b8ba-591eb41395f1: Accepted output plan: POINT. This direct point needs no agreement change or consent. A repeat needs its own result. Rendering/physical execution unconfirmed. Use only for that pending answer; no duplicate acknowledgement. No new speaking occasion."
+    },
+    "render": {
+      "eventId": "34bdbcf9-241a-464e-8956-206d8e83dc64",
+      "phase": "holding",
+      "effector": "right_hand",
+      "mappedPosition": {
+        "x": -3,
+        "y": 2,
+        "z": 0
+      },
+      "glError": 0,
+      "irisPixels": 272,
+      "imageSha256": "fff045832ebbe4bfbd8e6456ab57b5b6cae9a0447c5f59868a80cbdd67980887"
+    },
+    "freshRemoval": {
+      "observationId": "scene-9",
+      "capturedAt": "2026-11-25T07:26:50.796Z",
+      "remaining": [
+        "65cf730b-d18b-48a0-a81c-e6a32e60438d:source",
+        "65cf730b-d18b-48a0-a81c-e6a32e60438d:cup-a"
+      ]
+    },
+    "repeat": {
+      "source": "469418b4-c10c-4341-8bca-d5752743cbe6",
+      "sourcePosition": 16,
+      "status": "CLARIFY",
+      "reason": "selected_target_absent",
+      "context": "Silent context only. COMMAND RESULT for user turn 469418b4-c10c-4341-8bca-d5752743cbe6: No point sent. The selected target was absent from the current scene. Ask for a fresh target selection. The saved task is separate. Use only for that pending answer; no duplicate acknowledgement. No new speaking occasion.",
+      "additionalHandOutputs": 0
+    },
+    "evidenceFileSha256": "561a9cca65a9d8f0f3b60e14e4a8fc2f0f444d1d587642afd091c2ee7353e235"
+  }
 }

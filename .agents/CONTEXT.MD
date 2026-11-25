@@ -158,8 +158,12 @@ ordinary runs spent one action and holding three kept it at one. In attempt
 attempt 112 rendered a direct point at Visitor and withheld motion after
 removal. Live incorrectly asked the visitor to change the cup agreement.
 Point results now carry the reason for a rejected target and distinguish an
-immediate point from task consent. The $120 continuation is fully reserved
-at 112 entries/$306 cumulatively. HI-12 remains open.
+immediate point from task consent. In 113 Live denied it could point at the
+ambiguous cup. The visitor commands for a selected person and subsequent
+removal were never reached. An isolated browser test verified both updated
+command notifications and one rendered point with a scripted Live provider.
+All $125 of continuation funding is reserved at 113 entries/$311 cumulatively.
+HI-12 remains open.
 See `.agents/HAND_INTERACTION_RESULTS.md` for individual outcomes. Isolated tests
 use GPT-6.2 Sol (low) and GPT-Live-1.1. Measured billing is unavailable.
 On 2026-11-24 the owner accepted strict silence as unsupported in GPT-Live,

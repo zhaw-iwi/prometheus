@@ -13,7 +13,7 @@ import {playHandStimulus,handReplyObserved,spokenClarification,spokenPreparation
 import {startObservationPumps} from './hand_observation_pump.mjs';
 import {armingReady,speechLatency,conversationLatency,compareConversations} from './commanding_evidence.mjs';
 import {runHandScenario} from './hand_scenarios.mjs';
-import {commandTiming,controlTimings} from './hand_command_timing.mjs';
+import {commandTiming,controlTimings,interruptedCommandSource} from './hand_command_timing.mjs';
 
 const [permission,output]=process.argv.slice(2),mode=process.env.PROMETHEUS_HAND_MODE;
 const base=process.env.PROMETHEUS_BASE_URL,ledger=process.env.PROMETHEUS_HAND_BUDGET_LEDGER;
@@ -60,9 +60,9 @@ async function until(label,read,ms=45000){const deadline=Date.now()+ms;while(Dat
 async function quiet(){await page.waitForFunction(()=>performance.now()-(__trial.lastVoice||0)>1200
   &&performance.now()-(__handBudget.lastNativeVoice||0)>1200
   &&performance.now()-(__trial.lastOutputCaption||0)>3500,null,{timeout:35000});}
-async function say(name,{reply=true}={}){
+async function say(name,{reply=true,directCommand=false}={}){
   assert.ok(report.turns.length<12,'Visitor-turn cap');await quiet();const before=await history(),prior=await memory();
-  const turn={name,intendedInput:clips[name],beforeIds:before.map(e=>e.id),beforeAgreement:prior['coordination.agreement'],
+  const turn={name,directCommand,intendedInput:clips[name],beforeIds:before.map(e=>e.id),beforeAgreement:prior['coordination.agreement'],
     beforeActions:prior['task.actions'],beforeCommandCount:prior['command.handledTurns']?.length||0,index:await page.evaluate(()=>__trial.events.length)};
   report.turns.push(turn);const clip=stimulus.clips[name],bytes=fs.readFileSync(path.join('target/hand-interaction-audio',clip.file));
   turn.clock=await page.evaluate(async()=>{
@@ -90,7 +90,7 @@ async function render(name,kind,eventId){
 }
 const plans=events=>events.filter(e=>e.type==='resp.behaviour_plan').map(e=>({id:e.id,...JSON.parse(e.payload)}));
 async function command(name,status,{kind,verify}={}){
-  const turn=await say(name,{reply:status!=='ACCEPTED'});
+  const turn=await say(name,{reply:status!=='ACCEPTED',directCommand:true});
   const receipt=await until('command '+name,async()=>{const m=await memory();
     return m['command.handledTurns']?.length===turn.beforeCommandCount+1 ? m['command.lastResult'] : null;});
   const source=(await history())[receipt.sourcePosition];assert.equal(source.type,'obs.user_utterance');assert.ok(!turn.beforeIds.includes(source.id));
@@ -225,8 +225,11 @@ finally{
   if(agentPath){report.finalStorage=await memory().catch(()=>null);report.history=await history().catch(()=>null);if(handle)report.finalSession=await api(`${agentPath}/live/sessions/${handle}`).catch(()=>null);}
   retainDiagnostics(report.finalSession);
   report.silentInputReceipts=[...silentInputReceipts.values()];
-  for(const turn of report.turns.filter(t=>t.commandSource || t.name==='poseshow')){
-    turn.commandTiming=commandTiming(turn,[...contextTraces.values()],providerEvents);
+  for(const turn of report.turns.filter(t=>t.directCommand)){
+    const storage=turn.memory??(turn===report.turns.at(-1)?report.finalStorage:null);
+    turn.commandSource??=interruptedCommandSource(turn,report.history,storage?.['command.lastResult']);
+    turn.commandTiming=commandTiming({...turn,memory:storage},[...contextTraces.values()],providerEvents);
+    if(turn.commandSource)turn.commandTiming.sourceCreated=report.history?.[turn.commandSource.position]?.createdDate;
   }
   report.controlTimings=controlTimings(report);
   await browser?.close();report.finishedAt=new Date().toISOString();fs.writeFileSync(output,JSON.stringify(report,null,2));

@@ -4,7 +4,16 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 import {playHandStimulus,handReplyObserved} from './hand_audio_input.mjs';
-import {commandTiming,controlTimings} from './hand_command_timing.mjs';
+import {commandTiming,controlTimings,interruptedCommandSource} from './hand_command_timing.mjs';
+
+test('a timed-out command recovers the exact matching receipt despite a later stray transcript',()=>{
+  const turn={beforeIds:['old'],intendedInput:'Please point at that cup.'};
+  const user=(id,payload)=>({id,payload,type:'obs.user_utterance'});
+  const history=[user('old','Please point at that cup.'),user('cup','Please point at that cup'),user('extra','[truncated')];
+  assert.deepEqual(interruptedCommandSource(turn,history,{sourcePosition:1}),{id:'cup',position:1});
+  for(const receipt of [{sourcePosition:0},{sourcePosition:2},{sourcePosition:3},null])
+    assert.equal(interruptedCommandSource(turn,history,receipt),null);
+});
 
 test('only exact-turn send and ACK bracket each observed fragment, retaining overlap',()=>{
   const turn={commandSource:{id:'pose-turn'},clock:{sent:100,received:104,serverTimeMs:1000},

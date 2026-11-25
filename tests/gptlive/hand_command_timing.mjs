@@ -1,3 +1,14 @@
+// A silent-period timeout can leave the backend receipt available only during teardown.
+export function interruptedCommandSource(turn,history,receipt) {
+  const position=receipt?.sourcePosition;
+  if(!Number.isInteger(position)||position<0)return null;
+  const source=history?.[position];
+  if(source?.type!=='obs.user_utterance'||!source.id||turn.beforeIds.includes(source.id))return null;
+  const words=text=>text?.toLowerCase().match(/[\p{L}\p{N}]+/gu)?.join(' ');
+  const intended=words(turn.intendedInput);
+  return intended&&words(source.payload)===intended?{id:source.id,position}:null;
+}
+
 // The browser and backend sample different clocks. Keep a bracket, including
 // drift, and report receipt of evidence rather than the model's decision time.
 export function commandTiming(turn, traces, diagnostics) {
