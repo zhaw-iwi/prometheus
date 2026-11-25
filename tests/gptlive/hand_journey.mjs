@@ -9,7 +9,7 @@ import {openValerianSession} from '../playwright/fixtures/valerian-session.mjs';
 import {captureHandFrames} from '../playwright/fixtures/hand-frames.mjs';
 import {trialCapture} from './trial_capture.mjs';
 import {handBudgetCapture} from './hand_budget_capture.mjs';
-import {playHandStimulus,handReplyObserved,spokenClarification,spokenPreparation,outboundHandAudio} from './hand_audio_input.mjs';
+import {playHandStimulus,handReplyObserved,spokenClarification,receivedClarification,spokenPreparation,outboundHandAudio} from './hand_audio_input.mjs';
 import {startObservationPumps} from './hand_observation_pump.mjs';
 import {armingReady,speechLatency,conversationLatency,compareConversations} from './commanding_evidence.mjs';
 import {runHandScenario} from './hand_scenarios.mjs';
@@ -125,8 +125,19 @@ async function propose(name,verify,{clarification,requireClarification=false}={}
     // A saved partial draft can precede its spoken question. Answer only after
     // that question has finished, as a person would in this happy path.
     const question=m['core.task.response'];assert.ok(question?.proposalReview);
-    await until('completed clarification question',async()=>{const response=(await memory())['core.task.response'];return response?.id===question.id&&response.consumed;});
-    const heard=await until('audible invitation to clarify the missing choice',async()=>spokenClarification(await history(),proposalTurn.beforeIds));
+    const heard=await until('audible invitation to clarify the missing choice',async()=>{
+      const state=await memory(),response=state['core.task.response'];
+      assert.deepEqual(state['coordination.draft'],m['coordination.draft']);
+      assert.ok(!state['coordination.agreement']&&!state['task.actions']);
+      if(response&&response.id!==question.id)return;
+      if(response?.consumed){
+        const recorded=spokenClarification(await history(),proposalTurn.beforeIds);
+        if(recorded)return recorded;
+      }
+      const captured=await page.evaluate(index=>({events:__trial.events.slice(index)
+        .filter(e=>e.type==='session.output_transcript.delta'||e.type==='output_voice'),now:performance.now()}),proposalTurn.index);
+      return receivedClarification(captured.events,captured.now);
+    });
     await quiet();await checkpoint('clarification-question-completed');
     const previous=JSON.stringify(m['coordination.draft']);report.clarifications??=[];report.clarifications.push({questions:m['coordination.draft'].questions,heard,input:clarification});
     proposalTurn=await say(clarification);m=await until('clarified draft',async()=>{const next=await memory();return next['coordination.draft']&&JSON.stringify(next['coordination.draft'])!==previous?next:null;});

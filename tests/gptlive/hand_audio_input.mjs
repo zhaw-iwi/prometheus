@@ -26,6 +26,17 @@ export function spokenClarification(events,beforeIds){
   return completeReplies(events,beforeIds).find(text=>/[?？]|\b(tell me|let me know|choose|pick|specify|what would|how should|what should)\b/i.test(text));
 }
 
+// A visitor can answer a complete, audible question while the saved draft is inactive.
+export function receivedClarification(events,now){
+  const captions=events.filter(e=>e.type==='session.output_transcript.delta'&&e.delta);
+  const last=captions.at(-1);
+  if(!last||now-last.at<3500)return;
+  const voices=events.filter(e=>e.type==='output_voice');
+  if(!voices.some(e=>e.at>=last.at-1000&&e.at<=last.at+2500)||now-voices.at(-1).at<1200)return;
+  const words=captions.map(e=>e.delta).join('').trim();
+  if(/\b(?:what|which|how)\b[^.!?？]{0,320}\b(?:respond|response|do|say|react|acknowledge)\b[^.!?？]*[?？]\s*$/iu.test(words))return words;
+}
+
 export function spokenPreparation(events,beforeIds){
   const invitation=/(?:^|[.!?;:]\s*|\bplease\s+|\b(?:can|could) you\s+)(?:please\s+)?(?:demonstrate|show me|let me see)\b/i;
   const preparationStep=/\b(?:after|when|once|first) you (?:point|show|hold|demonstrate|make)\b[^.!?]*\b(?:check|recognition|review|preparation)\b/i;

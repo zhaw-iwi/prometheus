@@ -3,7 +3,7 @@
   "baseReservedUsd": 316,
   "addedCapUsd": 40,
   "continuationCapUsd": 170,
-  "cumulativeReservedUsd": 341,
+  "cumulativeReservedUsd": 346,
   "reservations": [
     {
       "mode": "L-06-visitor",
@@ -36,6 +36,13 @@
     {
       "mode": "L-04",
       "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-748dda520e",
+      "reservedUsd": 5,
+      "allocationRevision": 18,
+      "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
+    },
+    {
+      "mode": "L-07",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-758f0787db",
       "reservedUsd": 5,
       "allocationRevision": 18,
       "extensionAuthorization": "hand-interaction-2026-11-25-roadmap-usd40"
@@ -2988,6 +2995,141 @@
           "observed_after_result_ack": " Mm-hmm. [tongue click] Mm-hmm. Mm-hmm. Mm-hmm."
         }
       },
+      "visitorAtSessionStart": null,
+      "selectedVisitor": null,
+      "personPointError": null,
+      "clarificationWindows": {},
+      "additional": {}
+    },
+    {
+      "attempt": 120,
+      "mode": "L-07",
+      "artifact": "gptlive-acceptance-758f0787db",
+      "verdict": "INCONCLUSIVE",
+      "finding": "The received audio contained a complete question about the missing response. The saved draft stayed inactive. The runner waited for consumption of the proposal-review marker and never sent the clarification. No sequence was demonstrated or action spent.",
+      "automatedPassed": false,
+      "error": "Timed out: completed clarification question",
+      "sourceRevision": "ddd4e6bdf83d9750b134d9e43e1e4e1ef3e10c3f",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "d9317a6c38c0dbac3bcd1a477d5fe3c80dbc739940b7ed2b14d2d9fcda680d53",
+      "journeySha256": "ab0c11623fe290200f7e560bc17be44a4370d2fbdfe50f78314a0634baa7f1c9",
+      "spoken": "Sure—after we recognize your demo, I propose a right-hand sequence of one, two, then three fingers spread, then we see how you'd like me to respond; what kind of response would you prefer?I've got a draft ready: a right-hand sequence of one, two, then three fingers extended with the others bent; I'd wait to recognize your demonstration, and only after you accept would a fresh sequence count as the cue. What should I do when I recognize the full sequence after you accept?",
+      "admitted": [
+        {
+          "id": "71c04953-e6fe-4b26-a052-c64269ea9a1a",
+          "text": "Propose an ordered right-hand cue: one, two, then three stretched fingers with the others bent; first recognize my demonstration and wait for acceptance. I have not chosen your response yet"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "23dff53e-12c9-4213-b5b9-92248a07b3f6",
+          "speech": "Sure—after we recognize your demo, I propose a right-hand sequence of one, two, then three fingers spread, then we see how you'd like me to respond; what kind of response would you prefer?I've got a draft ready: a right-hand sequence of one, two, then three fingers extended with the others bent; I'd wait to recognize your demonstration, and only after you accept would a fresh sequence count as the cue. What should I do when I recognize the full sequence after you accept?",
+          "complete": false,
+          "association": "NONE"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "a44e532911c5ff329228fd53bfaf47ab9b44ec72026d2f78f2e27b6107be9572",
+            "duration": 95.52,
+            "segments": [
+              {
+                "start": 17.9,
+                "end": 24.42,
+                "text": " Sure, after we recognize your demo, I propose a right-hand sequence of one, two, then three",
+                "logprob": -0.16591459070726977
+              },
+              {
+                "start": 24.42,
+                "end": 28.98,
+                "text": " fingers spread, then we see how you'd like me to respond, what kind of response would",
+                "logprob": -0.16591459070726977
+              },
+              {
+                "start": 28.98,
+                "end": 29.98,
+                "text": " you prefer?",
+                "logprob": -0.16591459070726977
+              },
+              {
+                "start": 29.98,
+                "end": 35.82,
+                "text": " I've got a draft ready, a right-hand sequence of one, two, then three fingers extended with",
+                "logprob": -0.16591459070726977
+              },
+              {
+                "start": 35.82,
+                "end": 41.14,
+                "text": " the other's bent, I'd wait to recognize your demonstration, and only after you accept what",
+                "logprob": -0.16591459070726977
+              },
+              {
+                "start": 41.14,
+                "end": 46.78,
+                "text": " a fresh sequence count as a queue, what should I do when I recognize the full sequence after",
+                "logprob": -0.16591459070726977
+              },
+              {
+                "start": 46.78,
+                "end": 47.78,
+                "text": " you accept.",
+                "logprob": -0.7387051482995352
+              }
+            ]
+          }
+        ]
+      },
+      "images": [],
+      "renderChecks": [],
+      "phase": "CONFIGURATION",
+      "actions": null,
+      "outcome": null,
+      "proposal": null,
+      "taskOutputs": null,
+      "checkpoints": [],
+      "silentInputReceipts": [],
+      "commands": [],
+      "stimuli": [
+        {
+          "name": "inputpropose",
+          "sha256": "07dd935655dfb02af1cc13985ff6d0297a37b7aa190a3b0464c33d93b29fc56f"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "acceptedPhase": null,
+      "heldFinalPose": null,
+      "sequenceSpeech": null,
+      "removedPersonScene": null,
+      "response": {},
+      "delivery": null,
+      "backendReportedTokens": 10080,
+      "backendRequests": 1,
+      "providerUsageSeconds": 86,
+      "runtime": {
+        "inputSeconds": 14.2945,
+        "textBytes": 35106,
+        "exhausted": null,
+        "rtcElapsedSeconds": 99.23229999999702
+      },
+      "pumpError": null,
+      "failedObservations": [],
+      "observationCount": 0,
+      "contributionContext": [],
+      "cupTaskError": null,
+      "preparationPrompt": null,
+      "commandSpeechOrdering": {},
       "visitorAtSessionStart": null,
       "selectedVisitor": null,
       "personPointError": null,

@@ -172,9 +172,10 @@ public class Agent {
         if(storage.containsKey(ch.zhaw.prometheus.model.hand.ObservedTargets.KEY))result.add("observed",new com.google.gson.Gson().toJsonTree(ch.zhaw.prometheus.model.hand.ObservedTargets.fresh(storage,java.time.Instant.now())));
         return result;
     }
-    public String registeredHandRegionContext(String payload,java.time.Instant now){
+    public String handPointingContext(String payload,java.time.Instant now){
         return ch.zhaw.prometheus.model.hand.HandFeatures.targets(getInteractionProfile())
-                ? ch.zhaw.prometheus.model.hand.HandScene.registeredRegionContext(storage,payload,now) : "";
+                ? ch.zhaw.prometheus.model.hand.HandScene.pointingContext(storage,payload,now,
+                        ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile())) : "";
     }
     public String handTargetContext(String scenePayload,java.time.Instant now){
         return ch.zhaw.prometheus.model.hand.HandFeatures.dynamicTargets(getInteractionProfile())

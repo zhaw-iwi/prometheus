@@ -52,10 +52,34 @@ class LiveSelectedTargetContextUnitTest {
         assertEquals(List.of(first.getId()),item.sourceIds());
         assertTrue(project(now.plusSeconds(2)).items().stream().noneMatch(e->e.text().contains("Operator-registered regions")));
         var changed=pointing.deepCopy();changed.getAsJsonObject("frame").addProperty("revision",2);
-        assertTrue(agent.registeredHandRegionContext(changed.toString(),now).isEmpty());
+        assertTrue(agent.handPointingContext(changed.toString(),now).isEmpty());
         var delivery=new LiveContextDelivery(initial);delivery.ready();
         assertTrue(delivery.plan(projected,List.of()).commands().stream().anyMatch(c->
                 c.type().equals("session.thinking.append")&&c.content().contains("Display")&&c.sourceId().equals(first.getId())));
+    }
+
+    @Test void ambiguousRayCarriesFreshMatchingLabelsWithoutSelectingOrSpeaking() {
+        var raw=ObservedTargetsFixture.snapshot(now,
+                ObservedTargetsFixture.target("cup-a","cup",.65,.5,.1,.1,now),
+                ObservedTargetsFixture.target("cup-b","cup",.85,.5,.1,.1,now));
+        var sceneEvent=Event.observation(Event.TYPE_SCENE_TARGETS,"camera",raw.toString());
+        assertTrue(ObservedTargets.admit(storage,scope,sceneEvent,now));
+        var candidates=new JsonArray();
+        ObservedTargets.fresh(storage,now).forEach(target->candidates.add(HandScene.ref(target).json()));
+        var sample=fixtures.behaviour.PointingFixture.observation("hand-one","right",now);
+        var resolution=sample.getAsJsonObject("resolution");
+        resolution.addProperty("status","ambiguous");resolution.add("candidates",candidates);
+        var before=project(now);
+        var point=append(Event.observation(Event.TYPE_HAND_POINTING,"camera",sample.toString()),now);
+        var delivery=new LiveContextDelivery(before);delivery.ready();
+        var changes=delivery.plan(project(now),List.of()).commands().stream()
+                .filter(c->c.content().contains("multiple detected targets")).toList();
+        assertEquals(1,changes.size());assertEquals(point.getId(),changes.getFirst().sourceId());
+        assertEquals("session.thinking.append",changes.getFirst().type());
+        assertTrue(changes.getFirst().content().contains("\"cup\",\"cup\""));
+        assertFalse(storage.containsKey(ObservedTargets.SELECTED));
+        var later=now.plusMillis(500);capture(later,false);
+        assertFalse(agent.handPointingContext(sample.toString(),later).contains("multiple detected targets"));
     }
 
     @Test void selectedAliasUsesTheExistingFreshSceneSourceAndOnlyQuietDelivery() {

@@ -1,4 +1,4 @@
-import {spokenClarification,spokenPreparation} from './hand_audio_input.mjs';
+import {spokenClarification,receivedClarification,spokenPreparation} from './hand_audio_input.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -100,6 +100,17 @@ test('the visitor waits through a backchannel for the actual clarification promp
   assert.equal(spokenClarification(early,['prior']),undefined);
   for(const speech of ['What would you like me to do?', 'Please tell me how to respond.'])
     assert.equal(spokenClarification([...early,event('ask',speech)],['prior']),speech);
+});
+
+test('the visitor may answer a finished audible missing-response question in the current turn',()=>{
+  const words=delta=>({type:'session.output_transcript.delta',delta,at:1000});
+  const voice={type:'output_voice',at:1450};
+  const question='What should I do when I recognize the full sequence after you accept?';
+  assert.equal(receivedClarification([words(question),voice],5000),question);
+  assert.equal(receivedClarification([words(question)],5000),undefined);
+  assert.equal(receivedClarification([words(question),voice],2600),undefined);
+  for(const partial of ['What should I','Shall we start?','What should I do? I will'])
+    assert.equal(receivedClarification([words(partial),voice],5000),undefined);
 });
 
 test('a completed preparation instruction survives withdrawal of its temporary context',()=>{

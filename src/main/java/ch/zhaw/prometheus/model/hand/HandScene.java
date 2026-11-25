@@ -15,13 +15,26 @@ public final class HandScene {
     private HandScene() {}
     public static JsonObject get(Storage storage){return storage.containsKey(KEY)?storage.get(KEY).getAsJsonObject().deepCopy():new JsonObject();}
     public static int revision(JsonObject scene){return scene.has("revision")?scene.get("revision").getAsInt():0;}
-    /** Give Live the operator's registered region names alongside the matching camera frame. */
-    public static String registeredRegionContext(Storage storage,String payload,Instant now) {
+    /** Quiet context for the same camera sample that produced the projected candidates. */
+    public static String pointingContext(Storage storage,String payload,Instant now,boolean includeDetected) {
+        HandPointObservation sample;
+        try{sample=HandPointObservation.parse(payload);}catch(IllegalArgumentException invalid){return "";}
+        String registered=registeredRegionContext(storage,sample,now);
+        if(!includeDetected||!"ambiguous".equals(text(sample.resolution().get("status"))))return registered;
+
+        var candidates=sample.resolution().getAsJsonArray("candidates");
+        var labels=new JsonArray();
+        for(var target:ObservedTargets.near(storage,sample,now)){
+            if(candidates.contains(ref(target).json()))labels.add(target.get("label"));
+        }
+        if(labels.size()<2)return registered;
+        return "The pointing ray intersects multiple detected targets (label data): "+labels
+                +". The destination for this ray needs a selection.\n"+registered;
+    }
+    private static String registeredRegionContext(Storage storage,HandPointObservation sample,Instant now) {
         if(!storage.containsKey(KEY))return "";
         var scene=storage.get(KEY).getAsJsonObject();
         if(!scene.has("cameraFrame")||scene.get("cameraFrame").isJsonNull())return "";
-        HandPointObservation sample;
-        try{sample=HandPointObservation.parse(payload);}catch(IllegalArgumentException invalid){return "";}
         if(!sample.frame().json().equals(scene.get("cameraFrame")))return "";
         var labels=new JsonArray();
         for(var entry:scene.getAsJsonArray("targets")){
