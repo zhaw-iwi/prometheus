@@ -3,7 +3,614 @@
   "baseReservedUsd": 311,
   "addedCapUsd": 5,
   "continuationCapUsd": 130,
-  "cumulativeReservedUsd": 311,
-  "reservations": [],
-  "reviews": []
+  "cumulativeReservedUsd": 316,
+  "reservations": [
+    {
+      "mode": "L-06-visitor",
+      "artifact": "D:\\VSCWorkSpace\\prometheus\\target\\gptlive-acceptance-cd25e79b9e",
+      "reservedUsd": 5,
+      "allocationRevision": 17,
+      "extensionAuthorization": "hand-interaction-2026-11-25-l06-visitor-usd5"
+    }
+  ],
+  "reviews": [
+    {
+      "attempt": 114,
+      "artifact": "gptlive-acceptance-cd25e79b9e",
+      "mode": "L-06-visitor",
+      "sourceRevision": "e1dafe5083a50cce02482200f67b942d4102e7b9",
+      "sourceChangedDuringRun": [],
+      "sourceManifestSha256": "f6e4f6794cd422bb3cbae527c4079c641f7c49e227f46b9c485b5c860d07c28a",
+      "journeySha256": "38c1257f86fdd5022b042936c67f2f51b1b4cf8c87c7468f55669d02ab80b1c9",
+      "automatedPassed": true,
+      "verdict": "INCONCLUSIVE",
+      "firstPointVerdict": "PASS",
+      "repeatMotionVerdict": "PASS",
+      "repeatNativeGuidanceVerdict": "INCONCLUSIVE",
+      "finding": "One right-hand point rendered and the initial native answer correctly described an accepted plan. The fresh removal suppressed the repeat. The only native reply to the repeat was “I’ll check.” It began before the absence result was sent. Local Stop closed delivery 344 ms after the send with no ACK. Whether Live would have asked for a fresh selection remains unverified.",
+      "selectionAtStart": {
+        "id": "2f4a775e-7749-4bb9-b840-919fdfbb66db:visitor",
+        "revision": 3,
+        "frame": {
+          "id": "hand-live-camera",
+          "revision": 1,
+          "space": "camera_image",
+          "mirrored": false
+        }
+      },
+      "selectionAtFirstRequest": {
+        "id": "2f4a775e-7749-4bb9-b840-919fdfbb66db:visitor",
+        "revision": 3,
+        "frame": {
+          "id": "hand-live-camera",
+          "revision": 1,
+          "space": "camera_image",
+          "mirrored": false
+        }
+      },
+      "freshRemoval": {
+        "observationId": "scene-69",
+        "capturedAt": "2026-11-25T10:01:46.597Z",
+        "removed": {
+          "id": "2f4a775e-7749-4bb9-b840-919fdfbb66db:visitor",
+          "revision": 3,
+          "frame": {
+            "id": "hand-live-camera",
+            "revision": 1,
+            "space": "camera_image",
+            "mirrored": false
+          }
+        },
+        "remaining": [
+          "2f4a775e-7749-4bb9-b840-919fdfbb66db:source",
+          "2f4a775e-7749-4bb9-b840-919fdfbb66db:cup-a"
+        ]
+      },
+      "admitted": [
+        {
+          "id": "46a67a26-b5fa-4a67-9a79-15e3cd734dc1",
+          "text": "Point it at the selected person labelled visitor with your right hand"
+        },
+        {
+          "id": "2ab12c81-cf82-4c76-b754-75b05019956c",
+          "text": "Point at that same visitor again"
+        }
+      ],
+      "nativeSegments": [
+        {
+          "id": "c0b60562-95e9-4d08-b4d4-8a2c29adfaac",
+          "speech": "I planned to point at the selected visitor with my right hand.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "8182eb7e-601e-4293-a831-f6e5a7bb83a8",
+          "speech": "Rendering isn't confirmed yet.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        },
+        {
+          "id": "4e27d9b5-a8a1-4368-b4a2-0f8ca4440689",
+          "speech": "I'll check.",
+          "complete": true,
+          "association": "AMBIGUOUS"
+        }
+      ],
+      "localReceivedAudio": {
+        "method": "local faster-whisper base.en int8; complete received audio; no provider upload or grading",
+        "physicalAudibility": "NOT_RUN",
+        "versions": {
+          "faster-whisper": "1.2.1",
+          "ctranslate2": "4.9.1",
+          "av": "16.1.0"
+        },
+        "modelWeights": {
+          "models--Systran--faster-whisper-base.en\\snapshots\\3d3d5dee26484f91867d81cb899cfcf72b96be6c\\model.bin": "2a166925539a16005f14ff328359f9b9adb9dc4fb631bb3b227526862e93e2ef"
+        },
+        "files": [
+          {
+            "file": "native-output-0.webm",
+            "sha256": "7a383d8d9a15a7554e14aa49a84e11316dc3277a9c68bb0ed49a2c3cf951db3d",
+            "duration": 38.46,
+            "segments": [
+              {
+                "start": 15.47,
+                "end": 19.47,
+                "text": " I planned to point at the selected visitor with my right hand.",
+                "logprob": -0.22799492293390736
+              },
+              {
+                "start": 21.07,
+                "end": 33.06,
+                "text": " Rendering isn't confirmed yet. I'll check.",
+                "logprob": -0.22799492293390736
+              }
+            ]
+          }
+        ]
+      },
+      "renderChecks": [
+        {
+          "name": "personshow",
+          "eventId": "66ac4c9d-41a1-457b-8771-6259054f2e02",
+          "phase": "holding",
+          "pose": {
+            "gesture": "NONE",
+            "face": "neutral",
+            "faceLabel": "",
+            "intensity": 0,
+            "gaze": [
+              0,
+              0
+            ],
+            "gazeLabel": "",
+            "focus": "",
+            "energy": 0.35,
+            "stillness": 0.75,
+            "sign": "point",
+            "hand": "right_hand",
+            "action": {
+              "kind": "point",
+              "effector": "right_hand",
+              "target": {
+                "id": "2f4a775e-7749-4bb9-b840-919fdfbb66db:visitor",
+                "revision": 3,
+                "frame": {
+                  "id": "hand-live-camera",
+                  "revision": 1,
+                  "space": "camera_image",
+                  "mirrored": false
+                }
+              },
+              "resolved": {
+                "label": "Visitor",
+                "position": {
+                  "x": -3,
+                  "y": 2,
+                  "z": 0
+                },
+                "frame": {
+                  "id": "scene:2f4a775e-7749-4bb9-b840-919fdfbb66db",
+                  "revision": 1,
+                  "space": "virtual_scene",
+                  "mirrored": false
+                }
+              }
+            },
+            "display": null,
+            "warnings": []
+          },
+          "irisPixels": 272,
+          "glError": 0
+        }
+      ],
+      "images": [
+        {
+          "name": "personshow.png",
+          "sha256": "fff045832ebbe4bfbd8e6456ab57b5b6cae9a0447c5f59868a80cbdd67980887"
+        }
+      ],
+      "physicalAudibility": "NOT_RUN",
+      "turns": [
+        {
+          "name": "personshow",
+          "stimulus": "Point at the selected person labelled Visitor with your right hand.",
+          "clipSha256": "5bcd819a8a0a9566689bfa99e0c0a0a3fef377b4fcca8cec2a9497f69cfd4364",
+          "source": {
+            "id": "46a67a26-b5fa-4a67-9a79-15e3cd734dc1",
+            "position": 29
+          },
+          "sourceCreated": "2026-11-25T10:01:31.461851Z",
+          "commandReceipt": {
+            "sourcePosition": 29,
+            "status": "ACCEPTED",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "2f4a775e-7749-4bb9-b840-919fdfbb66db:visitor",
+                  "revision": 3,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                },
+                "resolved": {
+                  "label": "Visitor",
+                  "position": {
+                    "x": -3,
+                    "y": 2,
+                    "z": 0
+                  },
+                  "frame": {
+                    "id": "scene:2f4a775e-7749-4bb9-b840-919fdfbb66db",
+                    "revision": 1,
+                    "space": "virtual_scene",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "spoken": "I planned to point at the selected visitor with my right hand. Rendering isn't confirmed yet.",
+          "delivery": [
+            {
+              "serverMs": 1795600891580,
+              "phase": "command_accepted_send",
+              "type": "session.thinking.append",
+              "revision": "0b65e7f1bb1c32032aae212adc11723421924fdf81cc6d39bcdfc193d5cf19a1",
+              "sourceId": "46a67a26-b5fa-4a67-9a79-15e3cd734dc1",
+              "sequence": 11,
+              "contentBytes": 335,
+              "sourceIds": [
+                "46a67a26-b5fa-4a67-9a79-15e3cd734dc1"
+              ]
+            },
+            {
+              "serverMs": 1795600892295,
+              "phase": "command_accepted_ack",
+              "type": "session.thinking.append",
+              "revision": "0b65e7f1bb1c32032aae212adc11723421924fdf81cc6d39bcdfc193d5cf19a1",
+              "sourceId": "46a67a26-b5fa-4a67-9a79-15e3cd734dc1",
+              "sequence": 12,
+              "contentBytes": 335,
+              "sourceIds": [
+                "46a67a26-b5fa-4a67-9a79-15e3cd734dc1"
+              ]
+            }
+          ],
+          "rendererNotification": null,
+          "nativeCaptionTiming": [
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " I planned",
+              "eventId": "event_Eo46egiF5fIzhqIx5Gxip",
+              "browserMs": 28755.19999999553,
+              "serverRangeMs": [
+                1795600892856.5806,
+                1795600893079.5193
+              ],
+              "sidebandReceiptMs": 1795600893084,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " to point",
+              "eventId": "event_Eo46fgSSZzb7DtUOScdXx",
+              "browserMs": 29234.09999999404,
+              "serverRangeMs": [
+                1795600893335.4329,
+                1795600893558.4673
+              ],
+              "sidebandReceiptMs": 1795600893567,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " at the",
+              "eventId": "event_Eo46gw0Bw62pfgOFExIWh",
+              "browserMs": 29802.59999999404,
+              "serverRangeMs": [
+                1795600893903.876,
+                1795600894127.0242
+              ],
+              "sidebandReceiptMs": 1795600894131,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " selected",
+              "eventId": "event_Eo46gNZ8qwpu7cAGXM2k6",
+              "browserMs": 29980.79999999702,
+              "serverRangeMs": [
+                1795600894082.058,
+                1795600894305.242
+              ],
+              "sidebandReceiptMs": 1795600894321,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " visitor",
+              "eventId": "event_Eo46gQAg1ENdpuWchkIFt",
+              "browserMs": 30387.39999999851,
+              "serverRangeMs": [
+                1795600894488.6174,
+                1795600894711.8823
+              ],
+              "sidebandReceiptMs": 1795600894722,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " with",
+              "eventId": "event_Eo46h3UfkVFKwJHNx90Vf",
+              "browserMs": 30878.89999999851,
+              "serverRangeMs": [
+                1795600894980.0684,
+                1795600895203.4314
+              ],
+              "sidebandReceiptMs": 1795600895209,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " my",
+              "eventId": "event_Eo46hjOXVz9I0n79CROhV",
+              "browserMs": 31126.69999999553,
+              "serverRangeMs": [
+                1795600895227.8435,
+                1795600895451.2563
+              ],
+              "sidebandReceiptMs": 1795600895454,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " right",
+              "eventId": "event_Eo46hhItpfTwiEhZei8DX",
+              "browserMs": 31293.59999999404,
+              "serverRangeMs": [
+                1795600895394.727,
+                1795600895618.173
+              ],
+              "sidebandReceiptMs": 1795600895626,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " hand",
+              "eventId": "event_Eo46hNWhYXLv6QIraLCHj",
+              "browserMs": 31491.89999999851,
+              "serverRangeMs": [
+                1795600895593.007,
+                1795600895816.4927
+              ],
+              "sidebandReceiptMs": 1795600895819,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": ".",
+              "eventId": "event_Eo46h0oWoDccAlL3PT6Uo",
+              "browserMs": 31660.79999999702,
+              "serverRangeMs": [
+                1795600895761.8901,
+                1795600895985.41
+              ],
+              "sidebandReceiptMs": 1795600895989,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " Rendering",
+              "eventId": "event_Eo46kT8Ij7jnFcNaZvajz",
+              "browserMs": 34503.39999999851,
+              "serverRangeMs": [
+                1795600898604.2058,
+                1795600898828.294
+              ],
+              "sidebandReceiptMs": 1795600898811,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " isn't",
+              "eventId": "event_Eo46lr3kcw6zlBDg7pnMl",
+              "browserMs": 34910.39999999851,
+              "serverRangeMs": [
+                1795600899011.165,
+                1795600899235.3347
+              ],
+              "sidebandReceiptMs": 1795600899240,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " confirmed",
+              "eventId": "event_Eo46ljOqAzrunB4Q8impC",
+              "browserMs": 35067.59999999404,
+              "serverRangeMs": [
+                1795600899168.3496,
+                1795600899392.5505
+              ],
+              "sidebandReceiptMs": 1795600899397,
+              "observed": "observed_after_result_ack"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " yet.",
+              "eventId": "event_Eo46lXtSJxIFJTn011AIx",
+              "browserMs": 35679.29999999702,
+              "serverRangeMs": [
+                1795600899779.9883,
+                1795600900004.3118
+              ],
+              "sidebandReceiptMs": 1795600900008,
+              "observed": "observed_after_result_ack"
+            }
+          ],
+          "firstAudibleActivity": {
+            "type": "output_voice",
+            "browserMs": 29332.5,
+            "serverRangeMs": [
+              1795600893433.823,
+              1795600893656.877
+            ],
+            "sidebandReceiptMs": null,
+            "observed": "observed_after_result_ack"
+          },
+          "latency": {
+            "speechEndToOutputMs": 9896.116666669648,
+            "legacyNearEndOnsetMs": 9896.116666669648
+          }
+        },
+        {
+          "name": "personrepeat",
+          "stimulus": "Point at that same Visitor again.",
+          "clipSha256": "5111c3960ca51ae1a2f921639be1e907f45273ab3812f268d23360e86eb0a8e2",
+          "source": {
+            "id": "2ab12c81-cf82-4c76-b754-75b05019956c",
+            "position": 75
+          },
+          "sourceCreated": "2026-11-25T10:01:55.867647Z",
+          "commandReceipt": {
+            "sourcePosition": 75,
+            "status": "CLARIFY",
+            "silent": false,
+            "kind": "POINT",
+            "value": null,
+            "clarification": "selected_target_absent",
+            "handAction": {
+              "schemaVersion": 1,
+              "action": {
+                "kind": "point",
+                "effector": "right_hand",
+                "target": {
+                  "id": "2f4a775e-7749-4bb9-b840-919fdfbb66db:visitor",
+                  "revision": 3,
+                  "frame": {
+                    "id": "hand-live-camera",
+                    "revision": 1,
+                    "space": "camera_image",
+                    "mirrored": false
+                  }
+                }
+              }
+            }
+          },
+          "spoken": "I'll check.",
+          "delivery": [
+            {
+              "serverMs": 1795600915966,
+              "phase": "command_clarify_send",
+              "type": "session.thinking.append",
+              "revision": "34afa132abef39a0cc6f991ecc8deb9d83f0deb08458e12ea4ba7c3c6f919825",
+              "sourceId": "2ab12c81-cf82-4c76-b754-75b05019956c",
+              "sequence": 33,
+              "contentBytes": 309,
+              "sourceIds": [
+                "2ab12c81-cf82-4c76-b754-75b05019956c"
+              ]
+            }
+          ],
+          "rendererNotification": null,
+          "nativeCaptionTiming": [
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " I'll",
+              "eventId": "event_Eo46vs6BWeI28Tk2qtaF3",
+              "browserMs": 45672.89999999851,
+              "serverRangeMs": [
+                1795600909981.013,
+                1795600909987.3867
+              ],
+              "sidebandReceiptMs": 1795600910003,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": " check",
+              "eventId": "event_Eo46wrzXVYqeOPJSeqFL4",
+              "browserMs": 45876.09999999404,
+              "serverRangeMs": [
+                1795600910184.1929,
+                1795600910190.6072
+              ],
+              "sidebandReceiptMs": 1795600910207,
+              "observed": "observed_before_result_sent"
+            },
+            {
+              "type": "session.output_transcript.delta",
+              "delta": ".",
+              "eventId": "event_Eo46wxFGweGHr3banTByO",
+              "browserMs": 46101,
+              "serverRangeMs": [
+                1795600910409.0703,
+                1795600910415.5295
+              ],
+              "sidebandReceiptMs": 1795600910440,
+              "observed": "observed_before_result_sent"
+            }
+          ],
+          "firstAudibleActivity": {
+            "type": "output_voice",
+            "browserMs": 46192.39999999851,
+            "serverRangeMs": [
+              1795600910500.461,
+              1795600910506.9387
+            ],
+            "sidebandReceiptMs": null,
+            "observed": "observed_before_result_sent"
+          },
+          "latency": {
+            "speechEndToOutputMs": 1455.0750000029802,
+            "legacyNearEndOnsetMs": 1455.0750000029802
+          }
+        }
+      ],
+      "sessionClose": {
+        "serverMs": 1795600916310,
+        "phase": "session_closed_during_delivery",
+        "type": null,
+        "revision": "f644ddfa060929e667be2bda5c010160b15ce9296d7d9178088b92143a296fa2",
+        "sourceId": null,
+        "sequence": 34,
+        "contentBytes": 0,
+        "sourceIds": []
+      },
+      "sessionCloseReason": "local_stop",
+      "contextDropped": 0,
+      "millisecondsFromClarifySendToClose": 344,
+      "backendRequests": 2,
+      "backendReportedTokens": 22288,
+      "providerUsageSeconds": 35,
+      "nativeBudget": {
+        "inputSeconds": 6.774000000000001,
+        "textBytes": 26528,
+        "exhausted": null,
+        "rtcElapsedSeconds": 46.15870000000298
+      },
+      "observations": 87,
+      "failedObservations": [],
+      "handPlanIds": [
+        "66ac4c9d-41a1-457b-8771-6259054f2e02"
+      ],
+      "endingAgreement": null,
+      "endingTaskActions": null,
+      "browserErrors": []
+    }
+  ],
+  "localObservationWindow": {
+    "artifact": "gptlive-acceptance-0ba4da4508",
+    "provider": "scripted",
+    "verdict": "PASS",
+    "clarification": "selected_target_absent",
+    "window": {
+      "sourceId": "ef868b16-b344-4753-82b0-aaf397805a1a",
+      "ackServerMs": 1795601103242,
+      "minimumAfterAckMs": 8000,
+      "finishedAt": "2026-11-25T10:05:12.092Z"
+    },
+    "elapsedMsFromAck": 8850,
+    "handEventId": "01fb8bc1-aa3f-4af6-bd13-c211df11150a",
+    "evidenceSha256": "cea345c53636df47415936810c7aca1ca9d3c9337202c41c988216f2baef6582",
+    "firstRehearsalWithStaleSelection": "721e0644e3",
+    "preflightPass": "32a00733a3",
+    "originalPaidTraceSatisfiesWindow": false,
+    "checksPassed": {
+      "java": 7,
+      "browser": 1,
+      "node": 26,
+      "python": 45,
+      "contractExamples": 9
+    }
+  }
 }

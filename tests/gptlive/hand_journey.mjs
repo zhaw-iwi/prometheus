@@ -13,7 +13,7 @@ import {playHandStimulus,handReplyObserved,spokenClarification,spokenPreparation
 import {startObservationPumps} from './hand_observation_pump.mjs';
 import {armingReady,speechLatency,conversationLatency,compareConversations} from './commanding_evidence.mjs';
 import {runHandScenario} from './hand_scenarios.mjs';
-import {commandTiming,controlTimings,interruptedCommandSource} from './hand_command_timing.mjs';
+import {commandTiming,controlTimings,interruptedCommandSource,observeClarificationReply} from './hand_command_timing.mjs';
 
 const [permission,output]=process.argv.slice(2),mode=process.env.PROMETHEUS_HAND_MODE;
 const base=process.env.PROMETHEUS_BASE_URL,ledger=process.env.PROMETHEUS_HAND_BUDGET_LEDGER;
@@ -95,7 +95,14 @@ async function command(name,status,{kind,verify}={}){
   turn.commandSource={id:source.id,position:receipt.sourcePosition};
   // A visual command permits, but does not require, a spoken acknowledgement.
   // Leave time for its confirmed result to reach Live before the next visitor turn.
-  if(status==='ACCEPTED')await wait(8000);await quiet();await updateTurn(turn);
+  if(mode==='L-06-visitor'&&status==='CLARIFY'&&receipt.status==='CLARIFY'){
+    turn.clarificationObservation=await observeClarificationReply(source.id,{until,wait,quiet,
+      readContext:async()=>(await api(agentPath+'/live/sessions/'+handle)).context.recent});
+  }else{
+    if(status==='ACCEPTED')await wait(8000);
+    await quiet();
+  }
+  await updateTurn(turn);
   assert.equal(receipt.status,status);assert.equal(receipt.silent,false,'Live stimulus does not request strict silence');
   assert.deepEqual(turn.memory['coordination.agreement'],turn.beforeAgreement,'Direct command mutated agreement');assert.equal(turn.memory['task.actions'],turn.beforeActions,'Direct command spent task budget');
   const all=await history();const produced=plans(all.slice(receipt.sourcePosition+1)).filter(p=>p.motion?.handAction||p.motion?.handSign);

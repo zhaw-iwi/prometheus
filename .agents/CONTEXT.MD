@@ -162,7 +162,10 @@ immediate point from task consent. In 113 Live denied it could point at the
 ambiguous cup. The visitor commands for a selected person and subsequent
 removal were never reached. An isolated browser test verified both updated
 command notifications and one rendered point with a scripted Live provider.
-All $125 of continuation funding is reserved at 113 entries/$311 cumulatively.
+Attempt 114 verified the selected-person point and zero motion after removal.
+On the repeat, Live said “I’ll check.” The runner stopped during delivery of
+the clarification, 344 ms after send. Guidance after acknowledgement remains
+unverified. All $130 is reserved at 114 entries/$316 cumulatively.
 HI-12 remains open.
 See `.agents/HAND_INTERACTION_RESULTS.md` for individual outcomes. Isolated tests
 use GPT-6.2 Sol (low) and GPT-Live-1.1. Measured billing is unavailable.

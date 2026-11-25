@@ -883,3 +883,10 @@ then obtain a fresh scene without Visitor and repeat the request. Review
 native audio, motion and exact-turn result delivery. A focused verdict covers
 these two direct commands. Full L-06 retains the cup workflow. The continuation
 ceiling is $130 and the cumulative ceiling is 114 entries/$316.
+
+Attempt 114 passed the first point and fresh-removal motion checks. The
+visitor heard “I’ll check” on the repeat. The runner closed during clarification
+delivery, before acknowledgement, so follow-up guidance remains inconclusive.
+The revised local driver waits through acknowledgement and an observation
+window. All $130 of the continuation is reserved at 114 entries/$316. See the
+[review](HAND_INTERACTION_RESULTS.md) and the [checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l06-visitor.json).

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {chromium} from '@playwright/test';
 import {playHandStimulus,handReplyObserved} from './hand_audio_input.mjs';
-import {commandTiming,controlTimings,interruptedCommandSource} from './hand_command_timing.mjs';
+import {commandTiming,controlTimings,interruptedCommandSource,observeClarificationReply} from './hand_command_timing.mjs';
 
 test('a timed-out command recovers the exact matching receipt despite a later stray transcript',()=>{
   const turn={beforeIds:['old'],intendedInput:'Please point at that cup.'};
@@ -111,4 +111,22 @@ test('a completed preparation instruction survives withdrawal of its temporary c
   const nextStep="After you point at the mapped cup for the check, we’ll review terms before any acceptance.";
   assert.equal(spokenPreparation([event('new',nextStep)],[]),nextStep);
   assert.equal(spokenPreparation([event('other','When you point I will say ready.')],[]),undefined);
+});
+
+test('the final observation window starts after the exact clarification ACK and drains native speech',async()=>{
+  const send={sequence:33,phase:'command_clarify_send',sourceId:'repeat',serverMs:5966};
+  const closed={sequence:34,phase:'session_closed_during_delivery',serverMs:6310};
+  const ack={phase:'command_clarify_ack',sourceId:'repeat',serverMs:7000};
+  const steps=[];
+  let trace=[send,closed];
+  const options={readContext:async()=>trace,wait:async ms=>steps.push(ms),quiet:async()=>steps.push('quiet'),
+    until:async(label,read)=>{const found=await read();if(!found)throw Error(label);return found;}};
+  await assert.rejects(()=>observeClarificationReply('repeat',options),/clarification delivery/);
+  trace=[send,{...ack,sourceId:'another-turn'}];
+  await assert.rejects(()=>observeClarificationReply('repeat',options),/clarification delivery/);
+  assert.deepEqual(steps,[]);
+  trace=[send,ack];
+  const window=await observeClarificationReply('repeat',options);
+  assert.deepEqual(steps,[8000,'quiet']);
+  assert.equal(window.ackServerMs,7000);
 });

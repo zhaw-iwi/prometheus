@@ -2050,3 +2050,43 @@ unmeasured. The [portable evidence](checkpoints/hand-interaction-2026-11-24/live
 contains the reservation, received speech, backend receipt and context trace
 coverage. For a future funded check of the two notifications, make the selected
 person the first visitor request. The full L-06 cup workflow remains open.
+
+## L-06 selected Visitor and fresh removal, 2026-11-25
+
+**Attempt 114 passed the first point and the removal motion check. The
+spoken response to removal is inconclusive.** This focused run used real
+GPT-Live and backend inference, two spoken requests and a controlled digital
+scene (`cd25e79b9e`, source `e1dafe50`). Visitor was selected before Live
+started. The same selection and revision were current at the first request.
+The run exercised the two direct commands without the cup negotiation.
+
+| Visitor request | Backend and renderer | What the visitor heard |
+| --- | --- | --- |
+| Point at the selected Visitor with the right hand | `ACCEPTED`. One right-hand point at the mapped position `(-3, 2, 0)`. The saved holding frame shows the arm extended toward the marker. | “I planned to point at the selected visitor with my right hand. Rendering isn't confirmed yet.” The first caption reached the server 789 ms after Live acknowledged the accepted plan. No renderer confirmation was delivered to Live in the recorded command timeline. |
+| Point at that same Visitor again | The fresh scene contained the source and cup with Visitor absent. The backend returned `CLARIFY / selected_target_absent`. No second hand plan was published. | “I’ll check.” The first caption arrived 5.963 s before the clarification was sent. The native recording contains no fresh-selection guidance. |
+
+The complete 38.46-second received recording and the native captions agree.
+On the server clock the clarification was sent at 10:01:55.966 UTC. The trace
+recorded `session_closed_during_delivery` at 10:01:56.310 UTC with no ACK.
+The local runner had treated silence after the provisional reply as the end
+of the exchange. The trial therefore cannot establish what Live would have
+said on receipt. Both user turns were admitted, the automated motion checks
+passed, and there were no failed sensor deliveries or changes to task state.
+Actual billing and physical robot behavior were unmeasured.
+
+A scripted browser rehearsal encountered a new target revision during session
+setup. The focused driver verifies the selection again before the first visitor
+request and pins that reference through removal. After the paid trial, the
+driver was updated to wait for the exact-turn clarification ACK, observe eight
+more seconds, and drain ongoing speech before Stop. This changes only the
+acceptance measurement. Live keeps immediate speech ownership. The revised
+browser rehearsal (`0ba4da4508`) remained active for 8.850 seconds after the
+matched ACK. Replaying the original paid trace could not satisfy that check.
+Seven Java tests, the browser case, 26 Node tests, 45 Python tests and nine
+contract examples passed. Restoring the portable ledger reproduces all 114
+reservations, and preflight rejects another paid selection.
+
+The [portable evidence](checkpoints/hand-interaction-2026-11-24/live-continuation-l06-visitor.json)
+includes both command receipts, turn timing, local audio review and the render
+record. All **$130 of the continuation** is reserved at **114 entries/$316
+cumulatively**. Full L-06 and HI-12 remain open.

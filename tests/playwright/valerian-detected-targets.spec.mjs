@@ -3,6 +3,7 @@ import {test,expect} from './fixtures/offline-ui-assets.mjs';
 import {pointingResult} from '../fixtures/hand-landmarks.mjs';
 import {openValerianSession} from './fixtures/valerian-session.mjs';
 import {hardware} from './fixtures/native-hardware.mjs';
+import {observeClarificationReply} from '../gptlive/hand_command_timing.mjs';
 import {captureHandFrames} from './fixtures/hand-frames.mjs';
 import {point, ref, sceneConfig, targets} from '../gptlive/hand_fixtures.mjs';
 import {startObservationPumps} from '../gptlive/hand_observation_pump.mjs';
@@ -129,7 +130,9 @@ test('selected person point and removal reach the Live transport for their own t
     let selected=currentVisitor();
     pump=startObservationPumps([refreshScene]);
     await selectVisitor(selected);
+    const opening=page.waitForResponse(r=>r.url().endsWith('/live/sessions')&&r.status()===201);
     await page.getByTestId('gptlive-start').click();
+    const {handle}=await (await opening).json();
     await expect(page.getByTestId('gptlive-status')).toHaveText('Active');
     providerId=(await get('/__live-fixture/latest')).providerId;
     const current=currentVisitor();
@@ -152,6 +155,15 @@ test('selected person point and removal reach the Live transport for their own t
     const repeat=await ask('Point at that same Visitor again.','CLARIFY','The selected target was absent from the current scene.');
     expect(repeat.receipt.clarification).toBe('selected_target_absent');
     expect(repeat.messages.some(m=>m.content.includes('Ask for a fresh target selection.'))).toBe(true);
+    const observation=await observeClarificationReply(repeat.userId,{
+      readContext:async()=>(await get(path+'/live/sessions/'+handle)).context.recent,
+      until:async(label,read,timeout)=>{
+        let ack;
+        await expect.poll(async()=>Boolean(ack=await read()),{message:label,timeout}).toBe(true);
+        return ack;
+      },
+      wait:ms=>page.waitForTimeout(ms),quiet:()=>expect(page.getByTestId('gptlive-status')).toHaveText('Active')
+    });
     expect(handOutputs(await history()).map(e=>e.id)).toEqual([outputs[0].id]);
     const frame=await page.waitForFunction(id=>window.__handFrames.get(id),outputs[0].id);
     const {image,...render}=await frame.jsonValue();
@@ -161,7 +173,7 @@ test('selected person point and removal reach the Live transport for their own t
     expect(render.glError).toBe(0);
     expect(render.irisPixels).toBeGreaterThan(100);
     writeFileSync(info.outputPath('selected-visitor.png'),Buffer.from(image.split(',')[1],'base64'));
-    writeFileSync(info.outputPath('point-and-removal.json'),JSON.stringify({first,repeat,removal,render,handEventId:outputs[0].id},null,2));
+    writeFileSync(info.outputPath('point-and-removal.json'),JSON.stringify({first,repeat,removal,render,observation,handEventId:outputs[0].id},null,2));
   }finally{
     if(pump){pump.running=false;await pump.done;}
     await page.close();await request.delete('/__live-fixture/direct-command');await request.delete(path,{headers});

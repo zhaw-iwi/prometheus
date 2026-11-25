@@ -2,7 +2,7 @@
 
 HI-01 through HI-11 are complete. HI-12 remains open. The historical implementation
 checkpoint was `82d12bc7`. The latest findings and reservations are in
-[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l06-verification.json)
+[the current checkpoint](checkpoints/hand-interaction-2026-11-24/live-continuation-l06-visitor.json)
 and the final section of [the results](HAND_INTERACTION_RESULTS.md).
 
 ## Start here
@@ -143,6 +143,15 @@ the scripted Live transport. For a future funded voice check, start with the
 selected Visitor and repeat after fresh removal. Keep the full cup workflow
 as a separate acceptance case. See the [latest results](HAND_INTERACTION_RESULTS.md).
 
+Attempt 114 started with Visitor selected. The digital robot pointed once and
+Live accurately described the accepted plan. With Visitor absent from a fresh
+scene, the backend withheld motion. The only captured reply to the repeat
+was “I’ll check.” The runner closed the session during delivery of the
+clarification, 344 ms after send. Native guidance after acknowledgement is
+unverified. The focused driver now waits for the exact clarification ACK,
+observes another eight seconds and drains trailing native speech. Review
+natural wording and the full received audio. Full L-06 remains open.
+
 ## Findings carried into this continuation
 
 Use the saved failure evidence for an offline reproduction before another paid
@@ -177,9 +186,9 @@ tests. These results are historical evidence, not tests run on the new device.
 
 ## Carry the spending history across devices
 
-Allocation 16 added $5 for one L-06 verification after entry 112. Across backend
-inference and GPT-Live, all $125 of the continuation from attempt 89 is reserved.
-The cumulative ledger has 113 entries and $311 reserved.
+Allocation 17 added $5 for the two-turn L-06-visitor run after entry 113. Across
+backend inference and GPT-Live, all $130 of the continuation from attempt 89 is
+reserved. The cumulative ledger has 114 entries and $316 reserved.
 Obtain fresh owner authorization before increasing it. Invoices are unavailable.
 
 Restore historical reservations before any paid selection. The helper verifies the
@@ -249,7 +258,7 @@ python -B tests/gptlive/run_acceptance.py --database-properties target/hand-inte
 ```
 
 An explicitly selected paid journey, after ledger/audio/config preflight and an
-offline repair, uses `--hand-interaction L-06 --paid-core hand-live` with the same
+offline repair, uses `--hand-interaction L-06-visitor --paid-core hand-live` with the same
 explicit database-properties argument. Do not mix it with offline Java/browser
 options. L-09 requires a separate `--hand-interaction L-09 --hand-comparison
 --paid-core hand-live` run first on the new device; its baseline pointer/recording

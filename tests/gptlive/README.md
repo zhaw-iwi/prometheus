@@ -7,11 +7,13 @@ which local credentials, audio and database prerequisites must be recreated.
 
 ## Current hand acceptance allocation
 
-Allocation 17 authorizes one $5 `--hand-interaction L-06-visitor --paid-core hand-live`
-run after attempt 113. The continuation ceiling is $130 and the cumulative ceiling
-is 114 attempts/$316. This selection starts Live with Visitor already selected,
+Attempt 114 used allocation 17’s $5 reservation. The $130 continuation is fully
+reserved at 114 attempts/$316 cumulatively. The focused selection
+`--hand-interaction L-06-visitor --paid-core hand-live` starts Live with Visitor selected,
 then checks a direct point and a repeat after removal. A passing focused run
-covers only those two turns of L-06. See the hand interaction handoff for the ledger.
+covers only those two turns of L-06. The driver observes eight seconds after the
+repeat’s exact clarification ACK and waits for native output to go quiet before
+ending the session. See the hand interaction handoff for the ledger.
 The report records command delivery and individual native caption/audio
 observations under each direct turn's `commandTiming`. On a quiet timeout it
 can recover the source from a receipt matching the admitted visitor stimulus.

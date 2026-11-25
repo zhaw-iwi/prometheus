@@ -9,6 +9,18 @@ export function interruptedCommandSource(turn,history,receipt) {
   return intended&&words(source.payload)===intended?{id:source.id,position}:null;
 }
 
+// A provisional reply can finish before the target decision even reaches Live.
+export async function observeClarificationReply(sourceId,{until,readContext,wait,quiet}) {
+  const ack=await until('clarification delivery for '+sourceId,async()=>{
+    const trace=await readContext();
+    return trace.find(e=>e.sourceId===sourceId&&e.phase==='command_clarify_ack');
+  },15000);
+  const minimumAfterAckMs=8000;
+  await wait(minimumAfterAckMs);
+  await quiet();
+  return {sourceId,ackServerMs:ack.serverMs,minimumAfterAckMs,finishedAt:new Date().toISOString()};
+}
+
 // The browser and backend sample different clocks. Keep a bracket, including
 // drift, and report receipt of evidence rather than the model's decision time.
 export function commandTiming(turn, traces, diagnostics) {
