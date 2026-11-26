@@ -53,7 +53,7 @@ def main():
     parser.add_argument('--database-properties', default='src/main/resources/application-test.properties',
                         help='Local MySQL administration properties; only loopback hosts are accepted')
     parser.add_argument('--paid-core', choices=['hand-live', 'live', 'face', 'social', 'space', 'task', 'space-task', 'rps', 'user-guess', 'agent-guess', 'care-guess', 'coordination', 'coordination-text', 'repair-baseline', 'repair-live', 'repair-continuous', 'repair-text', *commanding_preflight.MODES], help='Explicitly paid real OpenAI core journey; local disposable database only')
-    parser.add_argument('--coordination-scenario', choices=['baseline', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
+    parser.add_argument('--coordination-scenario', choices=['baseline', 'forum', 'lifecycle', 'recognition', 'revision', 'capture', 'delivery', 'multimodal', 'dialogue', 'interaction', 'escalation-recovery', 'escalation-dialogue', 'escalation-social'], default='baseline')
     commanding_authorization = parser.add_mutually_exclusive_group()
     commanding_authorization.add_argument('--commanding-retests', action='store_true', help='Use the separately authorized two-attempt/$10 envelope for HP-02 and HP-03')
     commanding_authorization.add_argument('--commanding-hp3-retest', action='store_true', help='Use the separately authorized one-attempt/$5 HP-03 follow-up envelope')
@@ -66,6 +66,7 @@ def main():
     repair = bool(args.paid_core and args.paid_core.startswith('repair-'))
     commanding = args.paid_core in commanding_preflight.MODES
     hand = args.paid_core == 'hand-live'
+    forum = args.coordination_scenario == 'forum'
     hand_mode = 'L-09-comparison' if args.hand_comparison else args.hand_interaction
     if args.hand_consent_repair and (not hand or hand_mode != 'L-03'):
         parser.error('--hand-consent-repair requires the paid L-03 hand journey')
@@ -126,13 +127,19 @@ def main():
                         or baseline.get('acceptanceRevision') != plan['acceptanceRevision']):
                     raise SystemExit('The hand conversation baseline is not passing; no provider access permitted.')
             hand_paid.available_models(key,plan)
+        if forum:
+            plan = json.loads(hand_paid.PLAN.read_text(encoding='utf-8'))
+            hand_paid.validate_model_pricing(plan, model)
+            if args.paid_core == 'coordination':
+                hand_paid.validate_audio(forum=True)
+            hand_paid.available_models(key, plan)
         if commanding:
             plan=json.loads((root/commanding_plan).read_text(encoding='utf-8'))
             commanding_preflight.validate(plan,model)
             commanding_preflight.validate_audio(root)
             commanding_preflight.validate_ledger(root/commanding_ledger,plan,args.paid_core)
             commanding_preflight.available(key,plan)
-    if args.paid_core == 'coordination':
+    if args.paid_core == 'coordination' and not forum:
         raise SystemExit('The committed-Speech Coordination harness is retired; use --paid-core repair-live.')
     props = {}
     local = root / args.database_properties
@@ -277,7 +284,7 @@ def main():
                     env['OPENAI_ROUTES_' + purpose + '_MODEL'] = model
                     env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
                     env['OPENAI_ROUTES_' + purpose + '_TIMEOUT_MS'] = '30000'
-            if hand:
+            if hand or forum:
                 env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS=str(plan['limits']['backendRequests']), PROMETHEUS_PROVIDER_MAX_TOKENS='250000',
                     PROMETHEUS_HAND_CONSENT_REPAIR='true' if args.hand_consent_repair else 'false',
                     PROMETHEUS_PROVIDER_MAX_SESSIONS='1', PROMETHEUS_LIVE_SESSION_LIFETIME_SECONDS='360',
@@ -290,6 +297,12 @@ def main():
                     env['OPENAI_ROUTES_' + purpose + '_REASONING_EFFORT'] = plan['backendReasoningEffort']
                     env['OPENAI_ROUTES_' + purpose + '_MAX_COMPLETION_TOKENS'] = '2048'
                     env['OPENAI_ROUTES_' + purpose + '_TIMEOUT_MS'] = '30000'
+            if forum:
+                # At the checked hand rates, the input, framing and output ceilings plus seven
+                # Live minutes cost at most (750000 + 20*2048)*5e-6 + 20*2048*10e-6 + .35 < $5.
+                env.update(PROMETHEUS_PROVIDER_MAX_REQUESTS='20', PROMETHEUS_PROVIDER_MAX_INPUT_BYTES='750000',
+                    PROMETHEUS_PROVIDER_MAX_SESSIONS='1' if args.paid_core == 'coordination' else '0',
+                    PROMETHEUS_SKIP_WEBSERVER='true', PROMETHEUS_FORUM_PROVIDER_MODE=args.paid_core)
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
                 '-Dmdep.outputFile=' + str(artifacts / 'classpath.txt')], 'compile')
             fixture_root = artifacts / 'provider-classes'
@@ -340,8 +353,16 @@ def main():
                     journey = 'hand_journey.mjs'
                 if args.embodiment:
                     env['PROMETHEUS_EMBODIMENT_SMOKE'] = 'true'
-                run(['node', 'tests/gptlive/' + journey, '--allow-paid-provider', str(artifacts / 'journey.json'),
-                    '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
+                if forum:
+                    envelope = json.loads((root/'tests/gptlive/forum-provider-plan.json').read_text(encoding='utf-8'))
+                    reservation = reserve(root/'target/forum-provider-budget.json', envelope, args.paid_core, artifacts)
+                    print(f"Forum provider allowance reserved: ${reservation['reservedUsd']:.2f} of ${envelope['maximumReservedUsd']}", flush=True)
+                    mode = 'GPT-Live' if args.paid_core == 'coordination' else 'Text'
+                    run([npm, 'playwright', 'test', 'tests/playwright/valerian-forum.spec.mjs', '--grep',
+                        'Forum playbook / ' + mode, '--retries=0', '--output=' + str(artifacts/'forum')], 'paid-journey')
+                else:
+                    run(['node', 'tests/gptlive/' + journey, '--allow-paid-provider', str(artifacts / 'journey.json'),
+                        '--agent=' + args.paid_core, '--scenario=' + args.coordination_scenario], 'paid-journey')
                 stop()
         if args.browser:
             run([*maven, '-q', '-DskipTests', 'test-compile', 'dependency:build-classpath',
@@ -386,6 +407,7 @@ def main():
                         specs.append('tests/playwright/valerian-detected-targets.spec.mjs')
                         specs.append('tests/playwright/valerian-input-sequence.spec.mjs')
                         specs.append('tests/playwright/valerian-output-sequence.spec.mjs')
+                        specs.append('tests/playwright/valerian-forum.spec.mjs')
                         specs.append('tests/playwright/valerian-hand-silence.spec.mjs')
                         specs.append('tests/playwright/valerian-finger-pose.spec.mjs')
                         specs += ['tests/playwright/valerian-hand-report.spec.mjs', 'tests/playwright/valerian-embodiment.spec.mjs']

@@ -80,6 +80,27 @@ Each independent capture pump includes HTTP time in its 500 ms interval and
 permits only one in-flight request per sensor kind.
 HI-12 remains incomplete. See [the evidence ledger](../../.agents/HAND_INTERACTION_RESULTS.md).
 
+## Forum playbook baseline
+
+The [forum playbook](../../.doc/posters/human-robot-coordination/PLAYBOOK.md) has two browser smoke tests alongside the original Coordination journey. Both use a fresh agent and the same visitor prompts, test perception with a supplied scissors observation, render a right thumbs-up, rehearse the index cue, accept, count once, reflect, and return to Conversation. They check all three rendered finger poses and the archived action count.
+
+In Live, the smoke also checks whether the answer denies the displayed gesture and whether the admitted visitor words support starting the task. These checks record a failure while allowing the rest of the journey to run. [First real-provider results](../../.agents/COORDINATION_RESULTS.md#forum-playbook-baseline-2026-11-25)
+
+```powershell
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests none --browser --browser-mode enabled --browser-grep "Forum playbook" --live-only
+```
+
+To run the forum tests together with the existing Coordination state and playback baselines, use `--browser-grep "Forum playbook|Coordination Text and Continuous preserve|native Coordination final contribution reaches Reflection"`.
+
+This routine run uses disposable MySQL and fixture providers. The paid runner runs the same journey with real interpretation. The [November 25 allowance](forum-provider-plan.json) accounts for $8.49 of $10 against a $5 ceiling per launch. A further paid run requires a new allocation. Keep `target/forum-provider-budget.json` and the provider receipts with the run artifacts. Locally generated visitor audio uses Windows SAPI. The Live run saves received audio, captions and state transitions alongside `forum.json`. Review the replies for meaning, including the preparation request, consent invitation and fresh-cue instruction. Hand inputs in both runs are controlled observations.
+
+```powershell
+$env:OPENAI_MODEL = 'gpt-6.2-sol'
+python tests/gptlive/prepare_hand_audio.py --forum
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests none --paid-core coordination-text --coordination-scenario forum
+python tests/gptlive/run_acceptance.py --database-properties src/main/resources/application-test.properties --java-tests none --paid-core coordination --coordination-scenario forum
+```
+
 ## Native conversation independence (GLF-02)
 
 ```powershell

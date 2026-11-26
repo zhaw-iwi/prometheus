@@ -1,0 +1,12 @@
+{
+  "identity": "Who are you?",
+  "abilities": "What are you able to do?",
+  "vision": "What can you see right now?",
+  "scissors": "What hand sign do you see now?",
+  "sign": "Make a thumbs-up sign with your right hand.",
+  "propose": "When I raise only my right index finger, count to three on your right hand. Start with your thumb, then add index and middle. Half a second per number, one count sequence in total. Let me demonstrate first, then ask before starting. I’ll judge the result.",
+  "accept": "I accept the current proposal.",
+  "repair": "Start now.",
+  "reflect": "I saw all three numbers. What did you record?",
+  "back": "Return to conversation."
+}

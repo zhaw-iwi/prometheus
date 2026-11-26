@@ -39,20 +39,24 @@ def validate(plan, model):
             or plan.get('maximumReservedUsd') != 356 or plan.get('reserveUsdPerAttempt') != 5
             or plan.get('allocationRevision') != 18 or plan.get('extensionAuthorization') != ROADMAP):
         raise ValueError('Unreviewed hand authorization')
-    if plan.get('models') != {'backend': 'gpt-6.2-sol', 'live': 'gpt-live-1.1'} or model != 'gpt-6.2-sol' or plan.get('backendReasoningEffort') != 'low':
-        raise ValueError('Unpriced hand model')
     if plan.get('limits') != LIMITS:
         raise ValueError('Missing or unreviewed hand bounds')
-    if plan.get('pricingChecked') != '2026-11-24' or plan.get('pricing') != dict(
-            backendInputUsdPerMillion=2, backendOutputUsdPerMillion=10, cacheWriteMultiplier=2.5,
-            liveUsdPerMinute=.05, liveBilling='session_duration', liveCostedSeconds=420):
-        raise ValueError('Unreviewed hand prices')
+    validate_model_pricing(plan, model)
     # One token per UTF-8 input byte plus framing; longest listed cache-write rate.
     # GPT-Live bills elapsed session seconds, covering concurrent input/output audio/text.
     worst = 10 * ((80000 + 2048) * 2 * 2.5 + 2048 * 10) / 1e6 + 7 * .05
     if worst >= 5:
         raise ValueError('Attempt exceeds reservation')
     return worst
+
+
+def validate_model_pricing(plan, model):
+    if plan.get('models') != {'backend': 'gpt-6.2-sol', 'live': 'gpt-live-1.1'} or model != 'gpt-6.2-sol' or plan.get('backendReasoningEffort') != 'low':
+        raise ValueError('Unpriced hand model')
+    if plan.get('pricingChecked') != '2026-11-24' or plan.get('pricing') != dict(
+            backendInputUsdPerMillion=2, backendOutputUsdPerMillion=10, cacheWriteMultiplier=2.5,
+            liveUsdPerMinute=.05, liveBilling='session_duration', liveCostedSeconds=420):
+        raise ValueError('Unreviewed hand prices')
 
 
 def _allocation_for(index):
@@ -177,10 +181,11 @@ def available_models(key, plan):
         raise ValueError('Configured hand models are unavailable for this account')
 
 
-def validate_audio(root=ROOT):
-    directory = Path(root) / 'target/hand-interaction-audio'
+def validate_audio(root=ROOT, *, forum=False):
+    directory = Path(root) / ('target/forum-audio' if forum else 'target/hand-interaction-audio')
     data = json.loads((directory / 'manifest.json').read_text(encoding='utf-8'))
-    texts = json.loads((Path(root) / 'tests/gptlive/hand-cases.json').read_text(encoding='utf-8'))
+    cases = 'forum-cases.json' if forum else 'hand-cases.json'
+    texts = json.loads((Path(root) / 'tests/gptlive' / cases).read_text(encoding='utf-8'))
     if data.get('providerCalls') != 0 or data.get('sampleRate') != 24000 or {
             name: clip['text'] for name, clip in data['clips'].items()} != texts:
         raise ValueError('Unreviewed hand stimulus')

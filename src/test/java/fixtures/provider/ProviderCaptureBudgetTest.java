@@ -35,6 +35,16 @@ class ProviderCaptureBudgetTest {
         gateway.create(null); assertThrows(IllegalStateException.class, () -> gateway.create(null));
         verify(real, times(1)).create(null);
     }
+    @Test void accumulatedInputBytesAreLimitedBeforeProviderAccess() {
+        var request = new InferenceRequest(InferencePurpose.EXTRACTION, List.of(), InferenceRequest.Output.JSON_OBJECT);
+        int bytes = new com.google.gson.Gson().toJson(new Object[]{request}).getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        var recorder = ProviderCaptureApplication.Capture.recorder(directory.resolve("forum.jsonl"), 20, 250000, 0, 0, bytes);
+        var real = mock(LanguageModelGateway.class);
+        var gateway = (LanguageModelGateway) recorder.postProcessAfterInitialization(real, "gateway");
+        gateway.infer(request);
+        assertThrows(IllegalStateException.class, () -> gateway.infer(request));
+        verify(real, times(1)).infer(request);
+    }
     @Test void oversizedUtf8InputIsRejectedBeforeAnyProviderAccess() {
         var recorder = ProviderCaptureApplication.Capture.recorder(directory.resolve("bytes.jsonl"), 36, 250000, 1, 0);
         var real = mock(LanguageModelGateway.class);

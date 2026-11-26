@@ -12,6 +12,14 @@ def reserve(ledger: Path, plan: dict, mode: str, artifact: Path):
     try:
         history = json.loads(ledger.read_text(encoding='utf-8')) if ledger.exists() else {'attempts': []}
         attempts = history['attempts']
+        if plan.get('accountedAttempts'):
+            recorded = {str(a['artifact']).replace('\\', '/').rsplit('/', 1)[-1]: a for a in attempts}
+            for prior in plan['accountedAttempts']:
+                local = recorded.get(prior['artifact'])
+                if local is None:
+                    attempts.append(prior.copy())
+                elif local['mode'] != prior['mode'] or local['reservedUsd'] < prior['reservedUsd']:
+                    raise ValueError('Local paid history conflicts with the recorded allowance')
         by_mode = plan.get('maximumAttemptsByMode')
         if by_mode is not None and (mode not in by_mode or sum(a['mode'] == mode for a in attempts) >= by_mode[mode]):
             raise ValueError('Paid mode attempt budget exhausted; no provider call is permitted')

@@ -1,0 +1,13 @@
+{
+  "authorization": "forum-playbook-2026-11-25",
+  "maximumReservedUsd": 10,
+  "reserveUsdPerAttempt": 5,
+  "maximumAttempts": 4,
+  "maximumAttemptsByMode": {"coordination-text": 1, "coordination": 3},
+  "accountedAttempts": [
+    {"artifact": "gptlive-acceptance-1ebe5a3c11", "mode": "coordination-text", "reservedUsd": 1.12},
+    {"artifact": "gptlive-acceptance-c54b47afba", "mode": "coordination", "reservedUsd": 1.08},
+    {"artifact": "gptlive-acceptance-304bb3f486", "mode": "coordination", "reservedUsd": 1.29},
+    {"artifact": "gptlive-acceptance-d0de811c7e", "mode": "coordination", "reservedUsd": 5}
+  ]
+}

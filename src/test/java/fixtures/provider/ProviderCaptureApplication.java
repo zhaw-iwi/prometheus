@@ -24,12 +24,17 @@ public final class ProviderCaptureApplication {
             long maxTokens = Long.parseLong(System.getenv().getOrDefault("PROMETHEUS_PROVIDER_MAX_TOKENS", "1000000"));
             int maxSessions = Integer.parseInt(System.getenv().getOrDefault("PROMETHEUS_PROVIDER_MAX_SESSIONS", "1"));
             return recorder(Path.of(System.getenv("PROMETHEUS_PROVIDER_ARTIFACT")), maxRequests, maxTokens, maxSessions,
-                    Integer.parseInt(System.getenv().getOrDefault("PROMETHEUS_PROVIDER_MAX_SPEECH_CALLS", "12")));
+                    Integer.parseInt(System.getenv().getOrDefault("PROMETHEUS_PROVIDER_MAX_SPEECH_CALLS", "12")),
+                    Long.parseLong(System.getenv().getOrDefault("PROMETHEUS_PROVIDER_MAX_INPUT_BYTES", Long.toString(Long.MAX_VALUE))));
         }
         static BeanPostProcessor recorder(Path output, int maxRequests, long maxTokens, int maxSessions) {
             return recorder(output, maxRequests, maxTokens, maxSessions, 12);
         }
         static BeanPostProcessor recorder(Path output, int maxRequests, long maxTokens, int maxSessions, int maxSpeechCalls) {
+            return recorder(output, maxRequests, maxTokens, maxSessions, maxSpeechCalls, Long.MAX_VALUE);
+        }
+        static BeanPostProcessor recorder(Path output, int maxRequests, long maxTokens, int maxSessions, int maxSpeechCalls, long maxInputBytes) {
+            var inputBytes = new AtomicLong();
             var count = new AtomicInteger();
             var sessions = new AtomicInteger(); var tokens = new AtomicLong();
             var speechCalls = new AtomicInteger(); var speechCharacters = new AtomicInteger();
@@ -69,8 +74,11 @@ public final class ProviderCaptureApplication {
                         boolean inference = java.util.Set.of("infer", "complete", "decide", "extract", "summarise", "summariseOffline").contains(method.getName());
                         if (inference && (count.incrementAndGet() > maxRequests || tokens.get() >= maxTokens))
                             throw new IllegalStateException("Provider journey request/token budget exhausted");
-                        if (inference && new Gson().toJson(args).getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 80000)
-                            throw new IllegalStateException("Provider request input budget exhausted");
+                        if (inference) {
+                            int bytes = new Gson().toJson(args).getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+                            if (bytes > 80000 || inputBytes.addAndGet(bytes) > maxInputBytes)
+                                throw new IllegalStateException("Provider request input budget exhausted");
+                        }
                         var record = new JsonObject();
                         try (var trace = inference ? new LatencyTrace(null, ignored -> {}) : null) {
                             try {

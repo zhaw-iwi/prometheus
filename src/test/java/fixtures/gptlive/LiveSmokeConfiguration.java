@@ -44,7 +44,8 @@ public class LiveSmokeConfiguration {
                     for (var field : List.of("responseId", "revision", "segmentId")) result.add(field, data.get(field));
                     String captured = data.get("capturedSpeech").getAsString();
                     boolean armed = data.has("responsePurpose") && "ARMING".equals(data.get("responsePurpose").getAsString())
-                            && captured.equals("The task is armed. I am waiting for a fresh one-two-three sequence.");
+                            && List.of("The task is armed. I am waiting for a fresh one-two-three sequence.",
+                                    "I am waiting for a fresh right index cue before I count.").contains(captured);
                     boolean acknowledged = data.has("responsePurpose") && "CONTRIBUTION".equals(data.get("responsePurpose").getAsString())
                             && !data.has("exactRequiredSpeech") && List.of("Got it.", "I saw all three.").contains(captured);
                     result.addProperty("verdict", armed || acknowledged || captured.equals("First fixture observation.") ? "MATCH"

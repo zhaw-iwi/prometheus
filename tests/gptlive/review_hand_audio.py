@@ -25,7 +25,10 @@ def main():
                for p in (ROOT / 'target/hand-audio-models').rglob('model.bin')}
     versions = {name: importlib.metadata.version(name) for name in ('faster-whisper', 'ctranslate2', 'av')}
     for directory in args.artifacts:
-        report = json.loads((directory / 'journey.json').read_text(encoding='utf-8'))
+        report_path = directory / 'journey.json'
+        if not report_path.exists():
+            report_path = directory / 'forum.json'
+        report = json.loads(report_path.read_text(encoding='utf-8'))
         files = []
         for name in report.get('audioFiles', []):
             if Path(name).name != name:

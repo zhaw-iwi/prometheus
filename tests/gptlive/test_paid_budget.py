@@ -36,6 +36,18 @@ class PaidBudgetTest(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 reserve(ledger, {}, 'live', Path(directory))
 
+    def test_fresh_checkout_preserves_the_forum_allowance(self):
+        prior = {'artifact': 'first-run', 'mode': 'coordination', 'reservedUsd': 6}
+        plan = {'maximumReservedUsd': 10, 'reserveUsdPerAttempt': 5, 'maximumAttempts': 4,
+                'accountedAttempts': [prior]}
+        with tempfile.TemporaryDirectory() as directory:
+            ledger = Path(directory) / 'budget.json'
+            with self.assertRaisesRegex(ValueError, 'budget exhausted'):
+                reserve(ledger, plan, 'coordination', Path(directory) / 'another-run')
+            ledger.write_text(json.dumps({'attempts': [{**prior, 'artifact': str(Path(directory)/'first-run')}]}))
+            result = reserve(ledger, {**plan, 'maximumReservedUsd': 12}, 'coordination', Path(directory)/'another-run')
+            self.assertEqual(11, result['reservedUsd'])
+
 
 if __name__ == '__main__':
     unittest.main()

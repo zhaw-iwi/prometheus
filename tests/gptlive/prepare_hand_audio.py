@@ -1,13 +1,17 @@
 """Local hand-acceptance stimuli; no OpenAI call, credential or bill."""
 import hashlib
+import argparse
 import json
 import wave
 from pathlib import Path
 from win32com.client import constants, gencache
 
 root = Path(__file__).resolve().parents[2]
-output = root / 'target/hand-interaction-audio'
-cases = root / 'tests/gptlive/hand-cases.json'
+parser = argparse.ArgumentParser()
+parser.add_argument('--forum', action='store_true', help='Prepare the separate forum playbook clips')
+forum = parser.parse_args().forum
+output = root / ('target/forum-audio' if forum else 'target/hand-interaction-audio')
+cases = root / ('tests/gptlive/forum-cases.json' if forum else 'tests/gptlive/hand-cases.json')
 texts = json.loads(cases.read_text(encoding='utf-8'))
 output.mkdir(parents=True, exist_ok=True)
 voice = gencache.EnsureDispatch('SAPI.SpVoice')

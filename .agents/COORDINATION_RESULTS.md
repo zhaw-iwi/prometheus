@@ -1057,3 +1057,16 @@ agents-specific catalog/persona/embodiments and receives separate local checks.
 
 Shared packaging passed with `mvnw.cmd -q -DskipTests package`; local log:
 `target/coordination-refinement-package.log`. Whitespace verification passed.
+
+## Forum playbook baseline, 2026-11-25
+
+The [forum playbook](../.doc/posters/human-robot-coordination/PLAYBOOK.md) now has [paired Text and GPT-Live browser regressions](../tests/gptlive/README.md#forum-playbook-baseline). They use disposable local MySQL, controlled observations and the digital renderer. They exercise the main journey. Optional variations and physical webcam accuracy are outside this smoke.
+
+| Evidence | Result |
+| --- | --- |
+| Offline alongside the existing Coordination baselines, `f847290b04` | All four browser checks passed with the final speech and consent assertions. The forum journey rejected a wrong cue, spent zero actions during rehearsal and arming, rendered three right-hand poses on one fresh cue, and retained one action after a repeat and return to Conversation. |
+| Real Text, `1ebe5a3c11` | Passed end to end. The agent reviewed and armed the proposal, the renderer completed the count, and the reflection distinguished recorded playback from the visitor’s own observation. |
+| Real GPT-Live, `c54b47afba` and `304bb3f486` | The first visitor driver timed out during a second accurate scissors explanation. The second waited for a backend notification flag after the received recording already contained a complete proposal and invitation. Both recordings were retained. The driver now allows time for the reply and uses the received invitation together with the saved inactive state. |
+| Real GPT-Live, `d0de811c7e` | The workflow reached Reflection after one rendered count and returned to Conversation. **Failed the visitor-facing baseline.** The digital right hand showed thumbs-up while Live said it could only describe or plan the gesture. The visitor spoke the explicit acceptance and then the scripted “Start now” repair. The backend recorded an unfinished “I accept the current” followed by “Now” and armed the task. Replaying the saved evidence against the final assertions flags both discrepancies. No competing backend speech requests were observed. |
+
+The separate $10 forum allowance funded one Text and three Live attempts. The first three closed attempts were reconciled to conservative ceilings of $1.12, $1.08 and $1.29 using complete provider request logs. The final Live reservation was $5, for a combined ceiling of $8.49. This is a cost bound. Actual invoiced charges were unavailable. Preserve `target/forum-provider-budget.json` and the four artifact directories when moving the tests.
