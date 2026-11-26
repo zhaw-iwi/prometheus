@@ -12,11 +12,18 @@ class LivePlaybackCueUnitTest {
     private final Instant expires = Instant.parse("2026-11-05T14:09:13Z");
 
     @Test void receiptSelectionIsOptionalAndImmutable() {
+        assertFalse(new LivePlaybackCue(id, null, expires).completeOnCapture());
         assertTrue(new LivePlaybackCue(id, null, expires).receiptIds().isEmpty());
         var source = new ArrayList<>(List.of("one", "two"));
         var cue = new LivePlaybackCue(id, "speech", expires, source); source.clear();
         assertEquals(List.of("one", "two"), cue.receiptIds());
         assertThrows(UnsupportedOperationException.class, () -> cue.receiptIds().clear());
+    }
+
+    @Test void captureCompletionCannotAlsoWaitForAcknowledgementClassification() {
+        assertTrue(new LivePlaybackCue(id, null, expires, List.of(), false, List.of(), true).completeOnCapture());
+        assertThrows(IllegalArgumentException.class,
+                () -> new LivePlaybackCue(id, null, expires, List.of(), true, List.of(), true));
     }
 
     @Test void invalidSelectionsCannotAuthorizePlayback() {

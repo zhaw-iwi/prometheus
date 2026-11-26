@@ -17,13 +17,13 @@ import ch.zhaw.prometheus.repositories.AgentRepository;
 /** Explicit maintenance upgrade; exact historical fingerprints, never semantic prompt rewriting. */
 @Service
 public class GenericPolicyUpgradeService {
-    // Built-in versions introduced in 202/208/209. Legacy text exists only in a regression fixture.
+    // Built-in versions introduced in 202/208/209 and before the gesture collection update. Legacy text exists only in a regression fixture.
     private static final Map<String, Set<String>> LEGACY = Map.of(
             "voice", Set.of("582df03f37fc317bd45776e9d00a77519614000b25be2d57f6d721e9d6971419"),
-            "configure", Set.of("877460f0afd425f241751a156a848955130d80b75cff1bb8b3c19e241cc43812",
+            "configure", Set.of("1fdf7e9f17da9b1cc1c5c5b43692e84c5d97c103f46ecfb1d37968c3de1d30c8", "877460f0afd425f241751a156a848955130d80b75cff1bb8b3c19e241cc43812",
                     "f4805d99ded026111a8807148652b57956883d46d0fc81c19f9791d38a69a9d5",
                     "e0ad0673142872b741e5ec43bdb80060f1aa242cb4547b601de3eee821192d1f"),
-            "cue", Set.of("f80a5dadff1454d78302232a28becf11609a72205911fd43d1f476af55d97c33"));
+            "cue", Set.of("65cff0647098841b74469864a7747177472a203a3869ac18c0834909d15e34ac", "f80a5dadff1454d78302232a28becf11609a72205911fd43d1f476af55d97c33"));
     public record Target(UUID policyId, String role, String status, String before, String after) {}
     public record Preview(UUID agentId, String fingerprint, List<Target> targets, boolean ruleReview,
             boolean pauseRequired, boolean liveSessionOpen) {}

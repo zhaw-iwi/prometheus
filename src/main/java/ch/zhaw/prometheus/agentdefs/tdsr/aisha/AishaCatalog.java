@@ -27,7 +27,7 @@ public final class AishaCatalog {
     private static final Pattern COMBINING_MARKS = Pattern.compile("\\p{M}+");
     private static final Pattern NON_TOKEN = Pattern.compile("[^\\p{L}\\p{N}]+");
     private static final Set<String> ALLOWED_GESTURES = Set.of(
-            "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE", "NONE");
+            "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "RIGHT_HAND_UP", "NONE");
     private static final Set<String> ARABIC_STOP_WORDS = Set.of(
             "ما", "ماذا", "من", "هي", "هو", "هل", "كيف", "عن", "في", "على", "الى", "ان",
             "يمكن", "يمكنني", "لديكم", "لدينا", "هذه", "هذا", "التي", "الذي", "مع", "قطر");

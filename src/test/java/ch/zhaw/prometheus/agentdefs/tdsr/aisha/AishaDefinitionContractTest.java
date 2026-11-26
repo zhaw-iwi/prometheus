@@ -58,7 +58,7 @@ class AishaDefinitionContractTest {
         assertEquals(Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN, result.starterEvent().getType());
         BehaviourPlan plan = BehaviourPlan.fromJson(result.starterEvent().getPayload());
         assertEquals(AishaCatalogPolicy.GREETING, plan.getSpeech());
-        assertEquals("POLITE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals("RIGHT_HAND_UP", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
         assertEquals(1, result.agent().getEventHistory().toList().size());
     }
 

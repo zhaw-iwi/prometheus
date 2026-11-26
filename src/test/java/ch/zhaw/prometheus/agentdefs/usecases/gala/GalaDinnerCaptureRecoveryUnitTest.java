@@ -103,6 +103,23 @@ class GalaDinnerCaptureRecoveryUnitTest {
         assertNotNull(f.group(1)); assertFalse(f.storage.containsKey(ABSENT_SINCE));
     }
 
+    @Test void completeCountdownDuringDepartureGraceReleasesOnceWhenPresenceReturns() {
+        var f = new Fixture("gala"); f.prepare(); f.group(0);
+        var policy = (GalaDinnerPolicy) f.agent.getCurrentState().ownPolicy();
+        var owner = f.runtime.externalSpeech();
+        var speech = f.agent.recordExternalSpeech("Schere, Stein, Papier.",
+                new ch.zhaw.prometheus.model.event.SpeechProvenance(
+                        ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
+                        "captured-while-absent", ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, List.of(), true));
+        assertTrue(policy.liveSpeechCaptured(speech, owner, Instant.now(), Instant.now()));
+        assertNull(policy.liveSpeechCaptureCompletion(owner));
+        var recovered = plan(f.group(1));
+        assertNotNull(recovered.getMotion());
+        assertEquals("WAITING", text(f.storage, GalaDinnerRps.PHASE, ""));
+        assertNull(f.group(1));
+        verify(f.gateway, times(1)).infer(any());
+    }
+
     @Test void aGameRequestAfterDepartureGraceCannotCreateAnUnannouncedCapture() {
         var f = new Fixture("gala"); f.group(0);
         put(f.storage, ABSENT_SINCE, Instant.now().minusMillis(DEPARTURE_GRACE_MS + 1).toString());

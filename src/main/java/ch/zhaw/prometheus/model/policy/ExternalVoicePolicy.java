@@ -49,6 +49,12 @@ public interface ExternalVoicePolicy {
     }
     default boolean liveSpeechCaptured(ch.zhaw.prometheus.model.event.Event speech, ExternalSpeech owner,
             java.time.Instant started, java.time.Instant now, java.util.List<LiveSpeechPart> parts) { return false; }
+    /** Optional trusted completion after accepted native capture, in the same ordinary state-machine transaction.
+     * Playback-dependent activities leave this null. No inference or I/O is allowed here.
+     */
+    default ch.zhaw.prometheus.model.event.Event liveSpeechCaptureCompletion(ExternalSpeech owner) { return null; }
+    /** Ignore input received in an application-owned non-interruptible window, including delayed transcripts. */
+    default boolean liveIgnoresInput(ExternalSpeech owner, java.time.Instant receivedAt) { return false; }
     /** Internal event admitted only after a current application cue receives a scoped playback acknowledgement. */
     default String livePlaybackCompletionEventType() { return null; }
     /** Encounter boundary for dialogue/person sensing; selected fresh weather retains its own source expiry. */

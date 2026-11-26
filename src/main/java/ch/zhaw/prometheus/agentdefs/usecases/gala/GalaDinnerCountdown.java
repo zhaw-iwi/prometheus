@@ -43,7 +43,7 @@ final class GalaDinnerCountdown {
             combined.set(at, new Part(segmentId, new LiveSpeechPart(" " + part.speech().text(),
                     part.speech().receivedAt(), part.speech().receiptId())));
         }
-        if (bounded(combined) && GalaDinnerRps.countdown(join(combined), true)) return List.copyOf(combined);
+        if (bounded(combined) && GalaDinnerRps.countdown(join(combined), true, GalaDinnerRps.automatic(storage))) return List.copyOf(combined);
         if (!prefix(join(combined))) {
             combined.clear(); combined.addAll(fresh.stream().map(part -> new Part(segmentId, part)).toList());
         }

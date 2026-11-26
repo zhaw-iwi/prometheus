@@ -681,66 +681,50 @@ offers and configuration guidance, and task-start operations are rejected before
 mutation. Allow the new key for the access code and create a fresh instance.
 Existing definitions and saved instances remain available.
 
-Every tutorial-variant round has a new identity and a private selected sign. Live
-uses the countdown words "Schere, Stein, Papier."; matching complete native speech
-and the shared client playback acknowledgement release one gesture and a fresh
-camera capture. Tutorial observations and old-round results cannot decide the new
-round. The playback cue selects the native caption receipts containing the recognized
-countdown, so earlier captions in a mixed response need not survive an input reset.
-Countdown words may span up to three consecutive complete native speech segments,
-with at most five seconds between their received fragments and 32 selected receipts.
-Only recognised countdown prefixes are retained; unrelated, incomplete, stale or
-interrupted speech cannot bridge them. The active round and its original deadline
-still apply. Each selected segment needs matching observed audio and quiet;
-input interruption still invalidates a known cue. Reload the cockpit after updating
-the backend to use this receipt selection; no database schema migration is needed.
-Missing playback expires after 30 seconds, including when scheduled ticks
-are disabled. This is software coordination evidence, not physical audibility or
-robot execution confirmation. The original and reception-only definitions remain
-separately available, with the original's existing countdown flow.
+Every tutorial-variant round has a new identity and a private selected sign.
+Tutorial observations and old-round results cannot decide the new round. The
+original **Gala Dinner Reception with RPS preparation** retains its captured
+countdown plus scoped browser playback acknowledgement, with a 30-second deadline.
+Its receipt selection and playback checks are described in the GPT-Live contract
+below.
 
-A clear game choice already gives consent. Live may say one brief pending status,
-then waits for backend-confirmed starting facts before introducing the game.
-Proposal acceptance remains specific to co-created tasks.
+The Gala, Swiss Robotics Day and Open-i **multi-state games** variants use a short,
+non-interruptible countdown. Live is instructed to say only
+"Schere … Stein … Papier" in German or "Rock … Paper … Scissors" in English,
+on three steady beats roughly one second apart, without a lead-in, confirmation
+question or extra "Shoot". Exact pacing remains voice guidance.
 
-The Gala and Swiss Robotics Day **multi-state games** variants first say
-"Mach dich bereit.", pause briefly, then automatically count
-"Schere … Stein … Papier" on three slower, steady beats (roughly one second per
-word). This lead-in requires no reply. Pacing is voice guidance; exact spoken
-pauses are not guaranteed.
-In English, the corresponding wording is "Get ready." followed by
-"Rock … Paper … Scissors", without an extra "Shoot". The shared recognizer
-accepts either complete sequence with the existing ownership, freshness and
-playback checks; changing the spoken language does not require a different
-game graph.
-After "Papier", Live is instructed to stay silent, without a hand invitation or
-"Ich schaue auf Ihre Hand" commentary. A complete, fresh native countdown may
-contain the observed harmless status tails "Okay, ich schaue" or "Ich schaue auf
-Ihre/deine/eure Hand" without losing its receipt selection. Follow-up questions,
-commands and incomplete audio remain ineligible for playback completion.
-A short "Ja", "Yes", "Yeah", "Yep" or "Okay" preserves the round, countdown identity and speech
-freshness boundary without another inference or countdown. Stop/wait requests
-and mixed replies such as "Ja, stopp" retain interruption semantics.
-Other complete positive replies, such as "Wunderbar", "Das klingt prima" or
-"That sounds wonderful", use the existing control inference in the context of
-the active countdown. Only an explicit `COUNTDOWN_ACK` result preserves its
-freshness boundary, pending speech fragments and original deadline. This is
-whole-utterance classification, not a fixed positive-word list. Questions,
-negation, stop/wait requests, mixed or uncertain replies cannot authorize playback.
-The accepted input is bound to its exact history position and current round;
-ingress rechecks the same cue, deadline and speech owner before recording
-`countdown_acknowledgement`. Restart the updated backend; saved instances need
-no graph or schema migration for this change.
+Complete, fresh native capture of the current round's sequence releases the
+selected `motion.handSign` and opens a new camera capture **once, in the same
+backend transaction**. No model call or browser playback acknowledgement is
+required after capture. Browser sampling gaps cannot strand a recognized
+countdown. Completion uses the existing internal transition, so saved game graphs
+need no migration. This provides approximate timing; physical speaker/robot
+synchronization is not established.
 
-These variants opt into `playbackCue.allowAcknowledgements`. The browser holds
-completion while input receipts are pending; only a complete, backend-classified
-`countdown_acknowledgement` transcript allows it to use the retained playback
-evidence. Complete whitespace-only user transcripts are durably classified
-`IGNORED`/`empty_transcript`, without a user event, and resolve pending playback
-input without cancelling the cue. Incomplete, late or otherwise unconfirmed input
-still cannot release the gesture.
-Default cues keep immediate input interruption. Update the backend and cockpit,
-hard-refresh and restart Live; no saved graph or schema migration is required.
+During this countdown, all visitor speech—including "stop" and "wait"—is ignored.
+The browser temporarily disables the microphone track independently of manual
+mute; UI Stop, disconnect and presence/session shutdown remain available.
+Backend ingress retains received captions as `IGNORED`/`countdown_input` without
+admitting a user event or invoking control inference. A bounded, session/epoch-bound
+history of countdown input windows also rejects delayed transcripts after reveal,
+round completion or replay. Input resumes on the move, timeout or session cleanup;
+a manual mute remains in effect. Fresh canonical countdown/move behaviours update
+the microphone immediately, while ordinary status polling supports other clients.
+
+Countdown words may span up to three complete native segments, with at most five
+seconds between received fragments and 32 selected receipts. Only valid countdown
+prefixes bridge segments. Old, quoted, foreign-session or incomplete speech cannot
+release the move. Additional commentary in a complete automatic-countdown segment
+does not erase its recognized sequence. If capture completes during a brief camera
+dropout, returning presence releases the pending move once without another countdown.
+
+A 15-second watchdog, including delivery of the starting instructions, ends an
+unfinished countdown without a result or gesture. The microphone has the same
+bounded deadline. A new explicit request is needed to retry. A clear game choice
+already gives consent; no extra visitor confirmation is needed. Restart the
+backend, hard-refresh the cockpit and start a new Live conversation after updating.
+No database schema change or agent recreation is required.
 
 The optional backup is `GalaDinnerReceptionSingleState`, catalog key
 `usecases.gala_dinner_reception_single_state`, displayed as **GIGI - Gala Dinner
@@ -960,7 +944,7 @@ In reception, unambiguous named game selections such as `Personenraten bitte`
 even if control inference returns wait/chat. Questions, alternatives, negation and
 quoted examples are not covered by this narrow rule.
 
-- RPS selects its sign on entry and exposes `display.agentSign` for cockpit preview,
+- The original Gala RPS flow selects its sign on entry and exposes `display.agentSign` for cockpit preview,
   without `motion` or a capture ID. Live invites the visitor and counts one, two,
   three. A completed, current-round native countdown plus the cockpit's scoped
   playback-settling acknowledgement releases `motion.handSign` and opens capture
@@ -981,7 +965,9 @@ quoted examples are not covered by this narrow rule.
   recovery retains the existing capture ID and timestamp boundary. Results carry
   the accepted ID and close capture. Create a fresh Gala instance and refresh
   both cockpits for the new countdown contract; old clients cannot release a new
-  countdown. External clients must acknowledge playback and echo capture IDs.
+  countdown. External clients using this original flow must acknowledge playback and echo capture IDs.
+  The multi-state games variants instead use the capture-completed countdown
+  described above; they release the move without browser acknowledgement.
   Spoken signs do not finish the round. Live must wait for the backend result.
 - Guessing persists a person from four maintained fact cards and supplies the selected
   name/card to Live as quiet activity data. Live answers yes/no questions, distinguishes
@@ -1124,6 +1110,12 @@ A confirmed introduction asks for one visible hand held briefly steady, without
 claiming speaker-to-hand identity. A held sign after completion cannot replay it.
 The last display plan remains a historical request; the activity state controls
 readiness. No camera sampling or per-frame persistence was added.
+
+The selectable semantic gesture collection includes `RIGHT_HAND_UP` (robot command
+`right_hand_up`) and excludes `POLITE` / `polite_apology_gesture`. Stale apology
+labels normalize to `NONE`; direct apology commands are rejected. Update Valerian
+alongside PROMETHEUS, restart both servers and hard-refresh the cockpit. Recreate
+agents with older persisted gesture prompts to offer the new label.
 
 Gala decorative gestures reuse the core semantic meanings and receive the last
 five published gesture requests in the existing selector prompt. Guidance encourages
@@ -2398,6 +2390,20 @@ A nonempty selection contains at most 32 distinct native receipt identities in
 contiguous order across the selected complete segments. Every selected segment
 must contribute receipts and observed voice; the client rejects invalid or foreign
 selections. Gala countdowns persist this selection with their round.
+`playbackCue.completeOnCapture` defaults to false. The multi-state Gala/Swiss/Open-i
+RPS policies set it to true: the cue suppresses microphone input until completion
+or `expiresAt`; clients never send a playback acknowledgement for it. Fresh live
+countdown displays include `nonInterruptible`, `countdownId`,
+`countdownSessionId` and `countdownExpiresAt`; the move display repeats
+`countdownId` to restore input without waiting for polling. History/reconnect
+replay must not activate this microphone control. Manual mute and pending manual
+input requests stay independent. `ExternalVoicePolicy.liveSpeechCaptureCompletion`
+may supply a trusted ordinary event after accepted native capture; the runtime
+saves the transition and publishes its canonical behaviour atomically with that
+capture. Other policies leave this hook null and retain playback confirmation.
+`liveIgnoresInput` checks application-owned receipt-time windows locally, without
+inference. Ignored countdown input is retained as `IGNORED`/`countdown_input`.
+
 Policies may opt into `playbackCue.allowAcknowledgements` (default false).
 The client holds completion until every input receipt has a durable backend
 classification: `COMPLETE`/`countdown_acknowledgement` or
@@ -2414,7 +2420,9 @@ inference or I/O. Both defaults are false; no main-catalog policy currently enab
 acknowledgement cues.
 Each new unreconciled user caption records one content-free `input_boundary`
 browser diagnostic: `playback_evidence_retained` while an acknowledgement-capable
-cue awaits classification, otherwise `playback_evidence_reset`.
+cue awaits classification, `countdown_input_ignored` during a capture-completed
+countdown, otherwise `playback_evidence_reset`. Countdown microphone changes emit
+content-free `countdown_input` diagnostics with `suppressed`/`resumed` outcomes.
 
 The shared Live client begins observing the received track on attachment,
 without rerouting or recording audio. It retains at most 65 seconds of content-free
@@ -3093,7 +3101,7 @@ Coordination, Live Multimodal and both Generic Multimodal variants share an opt-
 one-shot command validator, derived from their existing persisted profiles.
 Their existing inference interprets capability questions, single demonstrations,
 ambiguity and unsupported requests. The validator accepts rock/scissor/paper and
-OPEN_QUESTION/EXPLAIN/UNCERTAIN/ACKNOWLEDGE/POLITE only when the instance declares
+OPEN_QUESTION/EXPLAIN/UNCERTAIN/ACKNOWLEDGE/RIGHT_HAND_UP only when the instance declares
 the relevant output. Explicit silence omits backend speech. Pending task output
 blocks a separate demonstration without changing the agreement or its budget.
 Handled user-history positions and the latest bounded result survive reload;

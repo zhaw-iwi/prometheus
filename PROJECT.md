@@ -17,6 +17,11 @@ code.
 
 ## Current implementation status
 
+The gesture collection now selects `RIGHT_HAND_UP` instead of `POLITE`. Update
+Valerian alongside this backend; old apology labels are no longer executable.
+Agents with older persisted gesture prompts need recreation or an explicit
+saved-policy upgrade to offer the new label.
+
 ### Product and architecture
 
 - PROMETHEUS is a Java 21/Spring Boot framework for mapping multimodal `Event`
@@ -81,6 +86,20 @@ behaviour generation. Soft/hard interrupts, task arbitration, safety precedence,
 and regulation diagnostics remain future work.
 
 ### Current milestone state
+
+- RPS countdown reliability (2026-11-26, `feature/rps-countdown-reliability`):
+  the Gala/Swiss/Open-i multi-state games ignore all speech during their countdown,
+  suppress the browser microphone independently of manual mute, and release one
+  canonical move/capture in the transaction accepting the complete native countdown.
+  Browser playback sampling no longer gates these rounds. Scoped receipt-time
+  windows reject delayed countdown input after reveal/result/replay; a 15-second
+  watchdog restores input and ends incomplete countdowns. Saved graphs reuse the
+  existing completion transition; legacy Gala/tutorial, Core RPS and task playback
+  rules remain. Restart the backend, reload the cockpit and start a fresh Live
+  conversation; no schema change or agent recreation. Verification passed 362
+  Java unit/controller/static cases, 37 disposable-MySQL integration cases and 141
+  standalone JavaScript cases (zero skips). The isolated schema/account were
+  removed. Real-provider, physical audio and robot timing were not tested.
 
 - Open-i clone (2026-11-23): added `usecases.open_i_reception_multi_state_games`
   and its `_en` English-default entry, cloning the Swiss Robotics Day pair for
@@ -12613,3 +12632,25 @@ and state-graph functional checks passed on both snapshots. Source/test snapshot
 match their final branch content. All disposable schemas/accounts were removed;
 the owned temporary loopback MySQL server was stopped. Private application
 configuration is unchanged. No push or deployment was performed.
+
+
+## Replace apology gesture with right hand up (2026-11-26)
+
+Replace `POLITE` with `RIGHT_HAND_UP` in selection prompts, direct commands,
+behaviour validation, task output, decorative cadence and the Aisha catalog.
+Right-hand raising is described as a greeting or explicit request; the fixed
+Gala closing and Aisha contact reply use acknowledgement. The embedded cockpit
+renders the new label and raises only the digital robot's right arm. The paired
+Valerian change maps it to the existing `right_hand_up` robot action and removes
+the apology from advertised capabilities. Stale apology labels become `NONE`
+or are rejected by direct-command validation. Previous Generic prompt
+fingerprints remain recognized by the explicit policy-upgrade service.
+
+Restart the backend and robot-server, hard-refresh the cockpit, and recreate
+agents with older persisted prompts (or use the existing explicit policy upgrade
+where supported). Custom robot configurations must remove the retired command.
+All 1,158 Java unit/prompt-contract tests and 210 JavaScript checks passed.
+Model/rig tests cover right-arm movement and the retired-label fallback. Live
+instructions retain the existing 16,000-byte ceiling. Database persistence and
+physical robot execution are outside this verification. Review and commit the
+two repositories together; no commit, deployment or provider call was performed.

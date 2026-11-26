@@ -52,7 +52,7 @@ public class AishaCatalogPolicy extends Policy {
     @Override
     public BehaviourPlan onStart(State state, EventHistory events, PromptMessageAssembler assembler,
             LanguageModelGateway languageModelGateway) {
-        return plan(GREETING, "POLITE");
+        return plan(GREETING, "RIGHT_HAND_UP");
     }
 
     @Override

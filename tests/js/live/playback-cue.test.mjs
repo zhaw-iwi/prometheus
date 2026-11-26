@@ -269,3 +269,10 @@ test('observer input reports retained evidence only for acknowledgement-capable 
   assert.equal(observer.input('bad id with spaces'), false);
   observer.close();
 });
+
+test('capture-only countdowns never require or emit browser playback completion', () => {
+  const f = fixture();
+  f.gate.update({...f.cue, segmentId: 'speech', completeOnCapture: true}, ledger());
+  f.speak(); f.sample(false, true, 300); f.quiet();
+  assert.equal(f.gate.cue, null); assert.deepEqual(f.seen, []);
+});

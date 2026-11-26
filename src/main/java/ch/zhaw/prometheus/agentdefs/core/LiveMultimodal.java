@@ -61,7 +61,7 @@ public class LiveMultimodal implements AgentDefinition {
             Return this canonical JSON shape, with no speech:
             {
               "nonVerbal": {
-                "gesture":"OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|NONE",
+                "gesture":"OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|RIGHT_HAND_UP|NONE",
                 "facialExpression":{"type":"warmNeutral|gentleSmile|attentive|thoughtful|concernedCalm|playfulCurious","intensity":0.0-1.0},
                 "gaze":{"direction":"toward_user|briefly_aside|soft_down|toward_group|forward","focus":"person|group|shared_space|none"},
                 "motion":{"stillness":0.0-1.0,"energy":0.0-1.0}

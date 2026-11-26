@@ -24,6 +24,8 @@ export class PlaybackSettlingGate {
     if (this.receipts.size > 1024) this.receipts.delete(this.receipts.keys().next().value);
   }
   update(cue, segments) {
+    // These cues complete atomically in the backend. Sampling is diagnostic only.
+    if (cue?.completeOnCapture === true) cue = null;
     if (this.pendingInputs.size && (!cue || cue.id !== this.cue?.id || !cue.allowAcknowledgements)) this.interrupt();
     // Keep identities only, never transcript text. Ledger polls can precede the cue.
     for (const segment of (segments || []).slice(-64)) {

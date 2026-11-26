@@ -222,7 +222,7 @@ const GESTURE_UI = {
   EXPLAIN: { icon: "bi-hand-index-thumb", label: "Explanatory Sweep", hint: "Supporting explanation" },
   UNCERTAIN: { icon: "bi-question-circle", label: "Uncertainty", hint: "Low certainty" },
   ACKNOWLEDGE: { icon: "bi-check2-circle", label: "Acknowledgement", hint: "Closing acknowledgement" },
-  POLITE: { icon: "bi-heart", label: "Polite", hint: "Softening social tone" },
+  RIGHT_HAND_UP: { icon: "bi-hand-index", label: "Right Hand Up", hint: "Raising the right hand" },
   ROCK: { icon: "bi-circle-fill", label: "Rock", hint: "Playing rock" },
   SCISSOR: { icon: "bi-scissors", label: "Scissor", hint: "Playing scissor" },
   PAPER: { icon: "bi-file-earmark", label: "Paper", hint: "Playing paper" },
@@ -2289,7 +2289,7 @@ function handleBehaviourEnvelope(event, options = {}) {
     return;
   }
   if (options.delivery === "live") globalThis.PrometheusTimings?.event(state.agentId, options.eventId, "sse_received");
-  liveVoice.ui?.event({ ...event, id: event.id || options.eventId });
+  liveVoice.ui?.event({ ...event, id: event.id || options.eventId }, options);
   if (!liveVoice.ui?.busy && !event.provenance) queueBehaviourSpeech(plan, options);
   const keys = behaviourEventKeys(event, options.eventId);
   if (keys.some((key) => state.seenBehaviourKeys.has(key))

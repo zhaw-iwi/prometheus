@@ -12,7 +12,7 @@ public final class DirectCommands {
     public static final String HISTORY = "command.handledTurns", LAST = "command.lastResult";
     private static final Set<String> TAGS = Set.of("demo.valerian.coordination", "demo.valerian.generic_multimodal_behaviour", "demo.valerian.live_multimodal");
     private static final Set<String> SIGNS = Set.of("rock", "scissor", "paper");
-    private static final Set<String> GESTURES = Set.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE");
+    private static final Set<String> GESTURES = Set.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "RIGHT_HAND_UP");
     public enum Intent { ACTION, CAPABILITY, CLARIFY, UNSUPPORTED }
     public record Request(Intent intent, String kind, String value, boolean silent) {}
     public record Result(BehaviourPlan plan, String status) {}
@@ -41,7 +41,7 @@ public final class DirectCommands {
                 "value":"canonical value" or null,"silent":true or false}. This metadata is NOT a behaviour channel.
                 ACTION means one immediate demonstration: 'make rock', 'can you show rock?', 'show a question gesture'.
                 'Can you do a hand sign?' requests any one supported sign; choose one. Question gesture = OPEN_QUESTION.
-                Signs: rock, scissor (also called scissors), paper. Gestures: OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, POLITE.
+                Signs: rock, scissor (scissors), paper. Gestures: OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, RIGHT_HAND_UP.
                 CAPABILITY means a question such as 'which signs can you make?', without a demonstration.
                 'Show that gesture again' on a new turn means one ACTION when the prior gesture is clear, not an indefinite repetition.
                 CLARIFY means an unresolved referent, multiple-action sequence or indefinite repetition; UNSUPPORTED means an unavailable action.
@@ -140,7 +140,7 @@ public final class DirectCommands {
         boolean signs = profile != null && profile.getSupportedBehaviourModalities().contains("motion.handSign");
         boolean gestures = profile != null && profile.getSupportedBehaviourModalities().contains("nonVerbal.gesture");
         return "I can " + (signs ? "show rock, paper and scissors" : "") + (signs && gestures ? ", and " : "")
-                + (gestures ? "make question, explanation, uncertainty, acknowledgement and polite gestures" : "")
+                + (gestures ? "make question, explanation, uncertainty, acknowledgement gestures and raise my right hand" : "")
                 + (signs || gestures ? "." : "only use the outputs enabled for this instance; no hand signs or gestures are declared.");
     }
     private static boolean allows(AgentInteractionProfile profile, Request request) {
@@ -158,7 +158,8 @@ public final class DirectCommands {
             case "EXPLAIN" -> "an explanation gesture";
             case "UNCERTAIN" -> "an uncertainty gesture";
             case "ACKNOWLEDGE" -> "an acknowledgement gesture";
-            default -> "a polite gesture";
+            case "RIGHT_HAND_UP" -> "a raised right hand";
+            default -> throw new IllegalArgumentException("Unsupported gesture");
         };
     }
     private static String string(JsonElement value) {

@@ -116,6 +116,7 @@ class GalaDinnerMultiStateGamesUnitTest {
         say("Noch einmal bitte");
         assertEquals("Gala rock-scissor-paper countdown", agent.getCurrentState().getName());
         assertEquals("2", text(memory, GalaDinnerRounds.RPS_COUNT, ""));
+        assertNotNull(GalaRpsTestFixture.countdownPlayed(agent, runtime));
         say("Stopp");
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_GUESS", ""));
         say("Personenraten bitte");
@@ -129,7 +130,7 @@ class GalaDinnerMultiStateGamesUnitTest {
     }
 
     @ParameterizedTest @ValueSource(strings = {"gala", "swiss-de", "swiss-en", "openi-de", "openi-en"})
-    void readyLeadInAndSlowCountdownSurviveYesWithoutRestartingOrMovingFreshness(String variant) {
+    void countdownIgnoresEveryUtteranceAndReleasesOneMoveFromCompleteCapture(String variant) {
         var selected = switch (variant) {
             case "swiss-de" -> new ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGames();
             case "swiss-en" -> new ch.zhaw.prometheus.agentdefs.usecases.SwissRoboticsDayReceptionMultiStateGamesEnglish();
@@ -139,48 +140,42 @@ class GalaDinnerMultiStateGamesUnitTest {
         };
         var playing = selected.createAgent();
         var storage = ((GalaDinnerPolicy) playing.getCurrentState().ownPolicy()).storage();
-        put(storage, COUNT, "1"); put(storage, SEEN, Instant.now().toString());
-        put(storage, RPS_PREPARED, "true");
+        put(storage, COUNT, "1"); put(storage, SEEN, Instant.now().toString()); put(storage, RPS_PREPARED, "true");
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_RPS", ""));
-        playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER,
-                variant.endsWith("-en") ? "Let's play Rock, Paper, Scissors" : "Schere Stein Papier bitte"), runtime);
+        playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Schere Stein Papier bitte"), runtime);
         var policy = (GalaDinnerPolicy) playing.getCurrentState().ownPolicy();
-        String intro = text(storage, GalaDinnerRps.INTRO, ""), round = text(storage, GalaDinnerRounds.ID, "");
-        String lastInput = text(storage, LAST_INPUT, "");
-        Instant speechStarted = Instant.now();
-        for (String guidance : List.of(text(storage, CONTINUATION_FACTS, ""), policy.liveActivityContext().facts())) {
-            assertTrue(guidance.contains("Say \"Mach dich bereit.\" once"));
-            assertTrue(guidance.contains("say \"Get ready.\" once"));
-            assertTrue(guidance.contains("roughly one second per word"));
-            assertTrue(guidance.contains("Continue automatically"));
-        }
+        var owner = runtime.externalSpeech();
+        var cue = policy.liveActivityContext().playbackCue();
+        String round = text(storage, GalaDinnerRounds.ID, ""), lastInput = text(storage, LAST_INPUT, "");
+        assertTrue(cue.completeOnCapture()); assertFalse(cue.allowAcknowledgements());
+        assertFalse(policy.liveContextualAcknowledgements());
+        assertTrue(policy.liveActivityContext().facts().contains("No lead-in or readiness question"));
+        Instant during = Instant.now();
         clearInvocations(gateway);
-        for (String yes : List.of("Ja!", "Yes", "Yeah", "Yep!", "Ja, gerne", "Okay")) {
-            assertTrue(policy.liveNonMutatingAcknowledgement(yes));
-            playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, yes), runtime);
-            assertEquals(intro, text(storage, GalaDinnerRps.INTRO, ""));
+        for (String reply : List.of("Ja", "Wunderbar", "Ich bestätige", "Hast du's?", "Stopp", "Ja, stopp", "Wait", "[noise]")) {
+            playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, reply), runtime);
             assertEquals(round, text(storage, GalaDinnerRounds.ID, ""));
             assertEquals(lastInput, text(storage, LAST_INPUT, ""));
-            assertFalse(storage.containsKey(CAPTURE_ID));
+            assertEquals(cue, policy.liveActivityContext().playbackCue());
+            assertFalse(storage.containsKey(EXIT_REQUEST)); assertFalse(storage.containsKey(CAPTURE_ID));
         }
-        var owner = runtime.externalSpeech();
-        var speech = playing.recordExternalSpeech(variant.endsWith("-en") ? "Get ready. Rock … Paper … Scissors." : "Mach dich bereit. Schere … Stein … Papier.",
+        var speech = playing.recordExternalSpeech(variant.endsWith("-en") ? "Rock … Paper … Scissors." : "Schere … Stein … Papier.",
                 new ch.zhaw.prometheus.model.event.SpeechProvenance(
                         ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
-                        "slow-countdown", ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, List.of(), true));
-        assertTrue(policy.liveSpeechCaptured(speech, owner, speechStarted, Instant.now()));
-        assertTrue(policy.liveActivityContext().playbackCue().allowAcknowledgements());
-        playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Ja"), runtime);
-        assertEquals("slow-countdown", policy.liveActivityContext().playbackCue().segmentId());
-        var playback = new Event(GalaDinnerPolicy.COUNTDOWN_PLAYED, "system", Event.KIND_SYSTEM, intro);
-        assertNotNull(playing.acknowledge(playback, runtime));
-        assertNull(playing.acknowledge(playback, runtime));
-        assertFalse(policy.liveNonMutatingAcknowledgement("Ja, stopp"));
-        assertFalse(policy.liveNonMutatingAcknowledgement("Yeah, stop"));
-        assertFalse(policy.liveNonMutatingAcknowledgement("Yep, wait"));
-        assertFalse(policy.liveNonMutatingAcknowledgement("Ja, wann ist Mittagessen?"));
-        put(storage, EXIT_REQUEST, "Andere Frage");
-        assertFalse(policy.liveNonMutatingAcknowledgement("Ja"));
+                        "countdown", ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, List.of(), true));
+        assertTrue(policy.liveSpeechCaptured(speech, owner, during, Instant.now()));
+        var completion = policy.liveSpeechCaptureCompletion(owner);
+        assertNotNull(completion);
+        var move = playing.acknowledge(completion, runtime);
+        assertNotNull(move); assertNotNull(BehaviourPlan.fromJson(move.getPayload()).getMotion());
+        assertEquals("WAITING", text(storage, GalaDinnerRps.PHASE, ""));
+        assertNull(policy.liveActivityContext().playbackCue());
+        assertNull(policy.liveSpeechCaptureCompletion(owner));
+        assertNull(playing.acknowledge(completion, runtime));
+        assertTrue(policy.liveIgnoresInput(owner, during), "Delayed countdown speech remains ignored");
+        assertFalse(policy.liveIgnoresInput(owner, Instant.now()));
+        playing.acknowledge(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, "Stopp"), runtime);
+        assertEquals("RECEPTION", mode(storage));
         verifyNoInteractions(gateway);
     }
 
@@ -190,92 +185,66 @@ class GalaDinnerMultiStateGamesUnitTest {
         assertTrue(memory.toMap().keySet().stream().noneMatch(key -> key.startsWith("task.")));
         assertInstanceOf(GalaDinnerGamesPolicy.class, agent.getCurrentState().ownPolicy());
     }
-    @ParameterizedTest @ValueSource(strings = {"Wunderbar", "Das klingt prima", "That sounds lovely"})
-    void contextualPositiveAcknowledgementPreservesPendingCountdownAndBindsExactInput(String positive) {
-        var policy = startCountdown();
-        var owner = runtime.externalSpeech();
-        var cue = policy.liveActivityContext().playbackCue();
-        String lastInput = text(memory, LAST_INPUT, "");
+    @Test void splitCountdownSurvivesIgnoredQuestionsAndFreshnessChanges() {
+        var policy = startCountdown(); var owner = runtime.externalSpeech();
         Instant received = Instant.now();
-        var prefix = agent.recordExternalSpeech("Schere. Stein.", new ch.zhaw.prometheus.model.event.SpeechProvenance(
-                ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
-                "prefix", ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, List.of(), true));
+        var prefix = agent.recordExternalSpeech("Schere. Stein.", provenance("prefix", true));
         assertFalse(policy.liveSpeechCaptured(prefix, owner, received, Instant.now(), List.of(
                 new ch.zhaw.prometheus.model.policy.LiveSpeechPart("Schere. Stein.", received, "prefix-receipt"))));
         var pending = memory.get(GalaDinnerCountdown.PENDING).deepCopy();
-        when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("COUNTDOWN_ACK", ""));
-        assertFalse(policy.liveNonMutatingAcknowledgement(positive));
-        say(positive);
-        var input = agent.getEventHistory().toList().getLast();
-        assertEquals(Event.TYPE_USER_UTTERANCE, input.getType());
-        assertTrue(policy.liveNonMutatingAcknowledgement(input, owner));
-        assertFalse(policy.liveNonMutatingAcknowledgement(input, new ExternalSpeech(UUID.randomUUID(), owner.epoch())));
-        assertFalse(policy.liveNonMutatingAcknowledgement(Event.observation(Event.TYPE_USER_UTTERANCE, Event.ACTOR_USER, positive), owner));
-        assertEquals(cue, policy.liveActivityContext().playbackCue());
-        assertEquals(lastInput, text(memory, LAST_INPUT, ""));
+        say("Hast du's?"); say("Ja, stopp");
         assertEquals(pending, memory.get(GalaDinnerCountdown.PENDING));
-        assertFalse(memory.containsKey(CAPTURE_ID));
-        verify(gateway, times(1)).infer(any());
-        var request = ArgumentCaptor.forClass(InferenceRequest.class);
-        verify(gateway).infer(request.capture());
-        assertTrue(request.getValue().messages().stream().anyMatch(message -> message.getContent().contains("COUNTDOWN_ACK")));
-        // The last word arrived before the positive input was admitted, as in the retained trial.
-        var last = agent.recordExternalSpeech("Papier.", new ch.zhaw.prometheus.model.event.SpeechProvenance(
-                ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
-                "last", ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, List.of(), true));
+        // Reproduce the old race: a later input timestamp cannot erase this round's words.
+        put(memory, LAST_INPUT, received.plusSeconds(2).toString());
+        var last = agent.recordExternalSpeech("Papier. Jetzt zeig deine Hand.", provenance("last", true));
         assertTrue(policy.liveSpeechCaptured(last, owner, received, Instant.now(), List.of(
-                new ch.zhaw.prometheus.model.policy.LiveSpeechPart("Papier.", received.plusNanos(1), "last-receipt"))));
-        assertEquals(List.of("prefix", "last"), policy.liveActivityContext().playbackCue().segmentIds());
+                new ch.zhaw.prometheus.model.policy.LiveSpeechPart("Papier. Jetzt zeig deine Hand.", received.plusNanos(1), "last-receipt"))));
+        assertNotNull(agent.acknowledge(policy.liveSpeechCaptureCompletion(owner), runtime));
+        assertEquals("WAITING", text(memory, GalaDinnerRps.PHASE, ""));
+        verifyNoInteractions(gateway);
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"incomplete", "quoted", "wrong_order", "stale", "foreign", "expired"})
+    void invalidCaptureNeverReleasesTheMoveAndTimeoutLeavesCountdown(String failure) {
+        var policy = startCountdown(); var owner = runtime.externalSpeech();
+        Instant started = Instant.now();
+        String words = switch (failure) { case "quoted" -> "\"Schere, Stein, Papier\"";
+            case "wrong_order" -> "Schere, Papier, Stein"; default -> "Schere, Stein, Papier"; };
+        if (failure.equals("stale")) started = time(memory, GalaDinnerRps.INTRO_AT).minusNanos(1);
+        if (failure.equals("expired")) put(memory, GalaDinnerRps.DEADLINE, Instant.now().minusSeconds(1).toString());
+        var speech = agent.recordExternalSpeech(words, provenance("invalid", !failure.equals("incomplete")));
+        assertFalse(policy.liveSpeechCaptured(speech, failure.equals("foreign")
+                ? new ExternalSpeech(UUID.randomUUID(), owner.epoch()) : owner, started, Instant.now()));
+        assertNull(policy.liveSpeechCaptureCompletion(owner)); assertFalse(memory.containsKey(CAPTURE_ID));
         put(memory, GalaDinnerRps.DEADLINE, Instant.now().minusSeconds(1).toString());
-        assertFalse(policy.liveNonMutatingAcknowledgement(input, owner));
+        agent.acknowledge(new Event(Event.TYPE_SYSTEM_TICK, "system", Event.KIND_SYSTEM, "tick"), runtime);
+        assertReceptionWithoutTask();
+        assertFalse(policy.liveIgnoresInput(owner, Instant.now()));
+        verifyNoInteractions(gateway);
     }
 
-    @ParameterizedTest @ValueSource(strings = {"Wunderbar, aber warte", "Yeah, stop", "Great, wait", "Wunderbar?", "Nicht wunderbar"})
-    void positiveWordsCannotAuthorizeMixedRequestsEvenWhenTheModelSelectsAcknowledgement(String mixed) {
-        var policy = startCountdown();
-        put(memory, LAST_INPUT, Instant.now().minusSeconds(2).toString());
-        String before = text(memory, LAST_INPUT, "");
-        when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("COUNTDOWN_ACK", ""));
-        say(mixed);
-        assertFalse(policy.liveNonMutatingAcknowledgement(agent.getEventHistory().toList().stream()
-                .filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType())).toList().getLast(), runtime.externalSpeech()));
-        assertNotEquals(before, text(memory, LAST_INPUT, ""));
-        assertFalse(memory.containsKey(GalaDinnerRps.ACK_INPUT));
-        assertFalse(memory.containsKey(CAPTURE_ID));
-    }
-
-    @ParameterizedTest @ValueSource(strings = {"WAIT", "invalid-json"})
-    void uncertainOrFailedClassificationDoesNotPreservePlayback(String result) {
-        var policy = startCountdown();
-        when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("COUNTDOWN_ACK", ""));
-        say("Wunderbar");
-        var prior = agent.getEventHistory().toList().getLast();
-        assertTrue(policy.liveNonMutatingAcknowledgement(prior, runtime.externalSpeech()));
-        put(memory, LAST_INPUT, Instant.now().minusSeconds(2).toString());
-        String before = text(memory, LAST_INPUT, "");
-        when(gateway.infer(any())).thenReturn(result.equals("WAIT") ? GalaDinnerReceptionUnitTest.answer("WAIT", "") : result);
-        say("Das sieht interessant aus");
-        assertNotEquals(before, text(memory, LAST_INPUT, ""));
-        assertFalse(memory.containsKey(GalaDinnerRps.ACK_INPUT));
-        assertFalse(policy.liveNonMutatingAcknowledgement(prior, runtime.externalSpeech()));
-        assertFalse(policy.liveNonMutatingAcknowledgement(agent.getEventHistory().toList().stream()
-                .filter(event -> Event.TYPE_USER_UTTERANCE.equals(event.getType())).toList().getLast(), runtime.externalSpeech()));
-    }
-
-    @Test void contextualAcknowledgementIsRejectedOutsideAnActiveRoundOrAfterItsDeadline() {
-        when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("COUNTDOWN_ACK", ""));
-        say("Wunderbar");
+    @Test void inputWindowsStayScopedAfterRoundCompletionAndResetClearsThem() {
+        var policy = startCountdown(); var owner = runtime.externalSpeech();
+        Instant during = Instant.now();
+        assertNotNull(GalaRpsTestFixture.countdownPlayed(agent, runtime));
+        assertNotNull(hand("paper"));
         assertEquals("RECEPTION", mode(memory));
-        assertFalse(memory.containsKey(GalaDinnerRps.ACK_INPUT));
-        var policy = startCountdown();
-        when(gateway.infer(any())).thenAnswer(call -> {
-            put(memory, GalaDinnerRps.DEADLINE, Instant.now().minusSeconds(1).toString());
-            return GalaDinnerReceptionUnitTest.answer("COUNTDOWN_ACK", "");
-        });
-        say("Wunderbar");
-        assertFalse(memory.containsKey(GalaDinnerRps.ACK_INPUT));
-        assertFalse(policy.liveNonMutatingAcknowledgement(agent.getEventHistory().toList().getLast(), runtime.externalSpeech()));
+        assertTrue(policy.liveIgnoresInput(owner, during));
+        assertFalse(policy.liveIgnoresInput(new ExternalSpeech(UUID.randomUUID(), owner.epoch()), during));
+        assertFalse(policy.liveIgnoresInput(new ExternalSpeech(owner.sessionId(), UUID.randomUUID()), during));
+        assertFalse(policy.liveIgnoresInput(owner, during.plusSeconds(16)));
+        agent.reset();
+        assertFalse(policy.liveIgnoresInput(owner, during));
+        verifyNoInteractions(gateway);
     }
+
+    private ch.zhaw.prometheus.model.event.SpeechProvenance provenance(String segment, boolean complete) {
+        var owner = runtime.externalSpeech();
+        return new ch.zhaw.prometheus.model.event.SpeechProvenance(
+                ch.zhaw.prometheus.model.event.SpeechProvenance.Origin.NATIVE, owner.sessionId(), owner.epoch(),
+                segment, ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, List.of(), complete);
+    }
+
     private GalaDinnerPolicy startCountdown() {
         put(memory, RPS_PREPARED, "true");
         when(gateway.infer(any())).thenReturn(GalaDinnerReceptionUnitTest.answer("START_RPS", ""));

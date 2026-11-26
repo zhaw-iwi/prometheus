@@ -100,7 +100,7 @@ class GalaDinnerReceptionIntegrationTest {
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.MethodSource("tutorialVariants")
-    void tutorialProgressPlaybackAndFreshCaptureSurvivePersistence(String key, String embodiment) {
+    void tutorialCountdownCompletionAndFreshCaptureSurvivePersistence(String key, String embodiment) {
         boolean english = english(key);
         String setting = setting(key);
         String code = UUID.randomUUID().toString().substring(0, 5);
@@ -133,7 +133,8 @@ class GalaDinnerReceptionIntegrationTest {
             if (leadIn) {
                 var beforeInput = prepared.getStorage().get("gala.last_input").deepCopy();
                 var beforeCue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
-                assertTrue(beforeCue.allowAcknowledgements());
+                assertTrue(beforeCue.completeOnCapture());
+                assertFalse(beforeCue.allowAcknowledgements());
                 var yes = new LiveTranscriptSegmenter.Fragment("ready-yes", LiveTranscriptSegmenter.Speaker.USER,
                         100L, 300L, Instant.now().toEpochMilli(), 0, english ? "Yeah" : "Ja");
                 assertTrue(ingress.receipt(id, owner, yes));
@@ -141,25 +142,24 @@ class GalaDinnerReceptionIntegrationTest {
                 var acknowledged = ingress.commit(id, owner, new LiveTranscriptSegmenter.Segment(UUID.randomUUID(),
                         LiveTranscriptSegmenter.Speaker.USER, List.of(yes), LiveTranscriptSegmenter.Closure.COMPLETE,
                         "observed_silence", yes.receivedMs(), yes.receivedMs()), prepared.getCurrentState().getActiveStatePath()).orElseThrow();
-                assertEquals("COMPLETE", acknowledged.status());
-                assertEquals("countdown_acknowledgement", acknowledged.reason());
+                assertEquals("IGNORED", acknowledged.status());
+                assertEquals("countdown_input", acknowledged.reason());
                 assertEquals(List.of("ready-yes"), acknowledged.receiptIds());
                 assertEquals(beforeCue, contexts.snapshot(code, id).orElseThrow().activity().playbackCue());
                 assertEquals(beforeInput, agents.findById(id).orElseThrow().getStorage().get("gala.last_input"));
                 verifyNoInteractions(language);
-                when(language.infer(any())).thenReturn(answer("COUNTDOWN_ACK", ""));
                 var positive = new LiveTranscriptSegmenter.Fragment("positive-ready", LiveTranscriptSegmenter.Speaker.USER,
                         400L, 600L, Instant.now().toEpochMilli(), 1, english ? "That sounds wonderful" : "Wunderbar");
                 assertTrue(ingress.receipt(id, owner, positive));
                 var contextual = ingress.commit(id, owner, new LiveTranscriptSegmenter.Segment(UUID.randomUUID(),
                         LiveTranscriptSegmenter.Speaker.USER, List.of(positive), LiveTranscriptSegmenter.Closure.COMPLETE,
                         "observed_silence", positive.receivedMs(), positive.receivedMs()), prepared.getCurrentState().getActiveStatePath()).orElseThrow();
-                assertEquals("COMPLETE", contextual.status());
-                assertEquals("countdown_acknowledgement", contextual.reason());
-                assertNotNull(contextual.eventId());
+                assertEquals("IGNORED", contextual.status());
+                assertEquals("countdown_input", contextual.reason());
+                assertNull(contextual.eventId());
                 assertEquals(beforeCue, contexts.snapshot(code, id).orElseThrow().activity().playbackCue());
                 assertEquals(beforeInput, agents.findById(id).orElseThrow().getStorage().get("gala.last_input"));
-                verify(language, times(1)).infer(any());
+                verifyNoInteractions(language);
                 when(language.infer(any())).thenReturn(answer("START_RPS", ""));
             }
             String segment = UUID.randomUUID().toString();
@@ -167,9 +167,19 @@ class GalaDinnerReceptionIntegrationTest {
                     : leadIn ? "Bereit? Schere … Stein … Papier. Ich schaue auf Ihre Hand." : "Schere, Stein, Papier.", List.of(),
                     ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, true, Instant.now()).isPresent());
             var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
-            assertEquals(segment, cue.segmentId());
-            assertTrue(contexts.playbackSettled(code, id, owner, cue.id(), segment));
-            assertFalse(contexts.playbackSettled(code, id, owner, cue.id(), segment));
+            if (leadIn) {
+                assertNull(cue, "Complete capture releases the move without a browser callback");
+                assertEquals("WAITING", agents.findById(id).orElseThrow().getStorage().get("gala.rps_phase").getAsString());
+                long moves = moveCount(id);
+                assertTrue(recording.record(id, owner, segment, "Schere, Stein, Papier.", List.of(),
+                        ch.zhaw.prometheus.model.event.SpeechProvenance.Association.NONE, true, Instant.now()).isPresent());
+                assertEquals(moves, moveCount(id), "Duplicate capture must not repeat the move");
+            } else {
+                assertEquals(segment, cue.segmentId());
+                assertFalse(cue.completeOnCapture());
+                assertTrue(contexts.playbackSettled(code, id, owner, cue.id(), segment));
+                assertFalse(contexts.playbackSettled(code, id, owner, cue.id(), segment));
+            }
             String capture = agents.findById(id).orElseThrow().getStorage().get("gala.rps_capture_id").getAsString();
             assertNotEquals(preparationCapture, capture);
             hand(code, id, "paper", preparationCapture);
@@ -196,7 +206,7 @@ class GalaDinnerReceptionIntegrationTest {
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
-    void mixedCountdownReceiptSelectionSurvivesDurableIngressReloadAndOnePlaybackAcknowledgement(boolean split) {
+    void completeCountdownSurvivesDurableIngressAndReleasesOneMoveWithoutPlayback(boolean split) {
         String key = GalaDinnerReceptionMultiStateGames.KEY;
         String code = UUID.randomUUID().toString().substring(0, 5);
         var access = admin.createAccessCode(code, true);
@@ -231,14 +241,14 @@ class GalaDinnerReceptionIntegrationTest {
                 assertNull(contexts.snapshot(code, id).orElseThrow().activity().playbackCue().segmentId());
                 var beforeInput = agents.findById(id).orElseThrow().getStorage().get("gala.last_input").deepCopy();
                 var pending = agents.findById(id).orElseThrow().getStorage().get("gala.rps_countdown_pending").deepCopy();
-                when(language.infer(any())).thenReturn(answer("COUNTDOWN_ACK", ""));
                 var positive = new LiveTranscriptSegmenter.Fragment("split-positive", LiveTranscriptSegmenter.Speaker.USER,
                         1400L, 1600L, Instant.now().toEpochMilli(), words.length, "Wunderbar");
                 assertTrue(ingress.receipt(id, owner, positive));
                 var positiveSegment = new LiveTranscriptSegmenter.Segment(UUID.randomUUID(), LiveTranscriptSegmenter.Speaker.USER,
                         List.of(positive), LiveTranscriptSegmenter.Closure.COMPLETE, "observed_silence", positive.receivedMs(), positive.receivedMs());
                 var acknowledged = ingress.commit(id, owner, positiveSegment, waiting.getCurrentState().getActiveStatePath()).orElseThrow();
-                assertEquals("countdown_acknowledgement", acknowledged.reason());
+                assertEquals("IGNORED", acknowledged.status());
+                assertEquals("countdown_input", acknowledged.reason());
                 assertEquals(acknowledged, ingress.commit(id, owner, positiveSegment, List.of()).orElseThrow());
                 assertEquals(beforeInput, agents.findById(id).orElseThrow().getStorage().get("gala.last_input"));
                 assertEquals(pending, agents.findById(id).orElseThrow().getStorage().get("gala.rps_countdown_pending"));
@@ -250,17 +260,20 @@ class GalaDinnerReceptionIntegrationTest {
             var committed = ingress.commit(id, owner, segment, waiting.getCurrentState().getActiveStatePath()).orElseThrow();
             assertEquals("COMPLETE", committed.status());
             assertEquals(split ? List.of("stein", "papier", "punctuation") : List.of(ids), committed.receiptIds());
-            var cue = contexts.snapshot(code, id).orElseThrow().activity().playbackCue();
-            assertEquals(segmentId.toString(), cue.segmentId());
-            assertEquals(List.of("schere", "stein", "papier"), cue.receiptIds());
-            assertEquals(split ? List.of(firstSegment.toString(), segmentId.toString()) : List.of(segmentId.toString()), cue.segmentIds());
-            assertTrue(cue.allowAcknowledgements());
+            assertNull(contexts.snapshot(code, id).orElseThrow().activity().playbackCue());
             assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_countdown_pending"));
-            assertFalse(agents.findById(id).orElseThrow().getStorage().containsKey("gala.rps_capture_id"));
+            long moves = moveCount(id);
+            assertEquals(1, moves);
             assertEquals(committed.eventId(), ingress.commit(id, owner, segment, List.of()).orElseThrow().eventId());
-            assertEquals(cue, contexts.snapshot(code, id).orElseThrow().activity().playbackCue());
-            assertTrue(contexts.playbackSettled(code, id, owner, cue.id(), cue.segmentId()));
-            assertFalse(contexts.playbackSettled(code, id, owner, cue.id(), cue.segmentId()));
+            assertEquals(moves, moveCount(id));
+            var late = new LiveTranscriptSegmenter.Fragment("late-question", LiveTranscriptSegmenter.Speaker.USER,
+                    1800L, 2000L, freshAt, 20, "Hast du's? Stopp");
+            assertTrue(ingress.receipt(id, owner, late));
+            var ignored = ingress.commit(id, owner, new LiveTranscriptSegmenter.Segment(UUID.randomUUID(),
+                    LiveTranscriptSegmenter.Speaker.USER, List.of(late), LiveTranscriptSegmenter.Closure.COMPLETE,
+                    "observed_silence", freshAt, freshAt), waiting.getCurrentState().getActiveStatePath()).orElseThrow();
+            assertEquals("IGNORED", ignored.status()); assertEquals("countdown_input", ignored.reason());
+            assertNull(ignored.eventId()); assertEquals(moves, moveCount(id));
             var playing = agents.findById(id).orElseThrow();
             assertFalse(playing.getStorage().containsKey("gala.rps_countdown_receipts"));
             hand(code, id, "paper", playing.getStorage().get("gala.rps_capture_id").getAsString());
@@ -328,6 +341,13 @@ class GalaDinnerReceptionIntegrationTest {
             } finally { ownership.release(id, session); }
             demo.reset(code, id);
         }
+    }
+
+    private long moveCount(UUID id) {
+        return agents.findById(id).orElseThrow().getEventHistory().toList().stream()
+                .filter(event -> Event.TYPE_ASSISTANT_BEHAVIOUR_PLAN.equals(event.getType()))
+                .map(event -> ch.zhaw.prometheus.model.behaviour.BehaviourPlan.fromJson(event.getPayload()))
+                .filter(plan -> plan.getMotion() != null && plan.getMotion().getAsJsonObject().has("handSign")).count();
     }
 
     private static boolean english(String key) {

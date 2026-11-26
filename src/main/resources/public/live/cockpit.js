@@ -93,11 +93,12 @@ export class LiveCockpit {
     }
     if (value.detail !== undefined) $("gptlive_detail").textContent = value.detail;
     this.muted = value.muted ?? this.muted;
+    this.inputSuppressed = value.state !== 'Active' ? false : value.inputSuppressed ?? this.inputSuppressed;
     $("gptlive_mute").textContent = this.muted ? "Unmute microphone" : "Mute microphone";
     $("gptlive_mute").setAttribute("aria-pressed", String(!!this.muted));
     if (value.state !== "Active") { $("gptlive_input_activity").textContent = "Microphone idle"; }
-    else $("gptlive_input_activity").textContent = this.muted ? "Microphone muted" : "Microphone on";
-    interactionActivity.listening = value.state === "Active" && !this.muted;
+    else $("gptlive_input_activity").textContent = this.inputSuppressed ? "Countdown; microphone paused" : this.muted ? "Microphone muted" : "Microphone on";
+    interactionActivity.listening = value.state === "Active" && !this.muted && !this.inputSuppressed;
     interactionActivity.set("live_connection", ({ Starting: "connecting", Connecting: "connecting", Stopping: "stopping", Error: "failed", Disconnected: "failed" })[value.state] || null,
       { ttl: ["Error", "Disconnected"].includes(value.state) ? 10000 : null });
     if (value.state && value.state !== "Active") interactionActivity.set("live_output", null);
@@ -118,8 +119,11 @@ export class LiveCockpit {
     $("gptlive_assistant_caption").textContent = values.ASSISTANT || "The assistant’s speech will appear here.";
   }
   setHistory(history) { this.history = Array.isArray(history) ? history : []; this.renderHistory(); }
-  event(event) {
+  event(event, options = {}) {
     if (!event?.id) return;
+    if (!options.fromHistory && ['live', 'acknowledgement'].includes(options.delivery)) {
+      try { this.client.observeBehaviour(JSON.parse(event.payload)); } catch (_) { /* Invalid plans remain non-executable. */ }
+    }
     const index = this.history.findIndex(value => value.id === event.id);
     if (index >= 0) this.history[index] = event; else this.history.push(event);
     this.renderHistory();

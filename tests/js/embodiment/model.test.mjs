@@ -61,6 +61,12 @@ test('switching views, reducing motion and hiding cannot replay a received gestu
 test('native speech preserves embodiment, supersession replaces it, reset clears it',()=>{
   const s=new EmbodimentState();s.visibility(true);s.receive(plan,{delivery:'live'},0);
   s.receive({speech:'Native words'},{preserveNonSpeech:true},100);assert.equal(s.pose.sign,'rock');
-  s.receive({nonVerbal:{gesture:'POLITE'}},{delivery:'live'},200);assert.equal(s.pose.sign,'');
+  s.receive({nonVerbal:{gesture:'RIGHT_HAND_UP'}},{delivery:'live'},200);assert.equal(s.pose.sign,'');
   s.settle();assert.equal(s.sample(300).active,false);s.clear();assert.equal(s.sample(400).pose,null);
+});
+
+test('right hand up is available and retired apology labels normalize to NONE',()=>{
+  assert.equal(normalizePlan({nonVerbal:{gesture:'RIGHT_HAND_UP'}}).gesture,'RIGHT_HAND_UP');
+  for(const gesture of ['POLITE','POLITE_APOLOGY','polite_apology_gesture'])
+    assert.equal(normalizePlan({nonVerbal:{gesture}}).gesture,'NONE');
 });

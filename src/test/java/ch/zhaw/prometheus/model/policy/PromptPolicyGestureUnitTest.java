@@ -99,9 +99,9 @@ class PromptPolicyGestureUnitTest {
 
     @Test void starterAndOuterInstructionsComposeWithStoredCustomGesturePrompt() {
         var inner = new PromptPolicy("inner instruction", "starter instruction", "summary");
-        inner.setNonVerbalGesturePrompt("Custom gesture instruction: choose POLITE.");
+        inner.setNonVerbalGesturePrompt("Custom gesture instruction: choose RIGHT_HAND_UP.");
         var composed = (PromptPolicy) inner.withOuterPolicy(new PromptPolicy("outer instruction", null, "summary"));
-        var gateway = new Gateway("{\"speech\":\"Hello.\",\"nonVerbal\":{\"gesture\":\"POLITE\"},\"display\":{\"mode\":\"banner\"}}");
+        var gateway = new Gateway("{\"speech\":\"Hello.\",\"nonVerbal\":{\"gesture\":\"RIGHT_HAND_UP\"},\"display\":{\"mode\":\"banner\"}}");
         var plan = composed.onStart(new State("s", composed, List.of()), new EventHistory(), new PromptMessageAssembler(), gateway);
         String prompt = gateway.request.messages().stream().map(PromptMessage::getContent).reduce("", (a,b) -> a + b);
         for (String fragment : List.of("outer instruction", "inner instruction", "starter instruction", "Custom gesture instruction")) assertTrue(prompt.contains(fragment));

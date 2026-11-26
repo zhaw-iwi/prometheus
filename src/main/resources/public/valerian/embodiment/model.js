@@ -5,7 +5,7 @@ const lookup = (map, key) => Object.hasOwn(map, key) ? map[key] : undefined;
 export const unit = (value, fallback = 0) => typeof value === 'number' && Number.isFinite(value)
   ? Math.max(0, Math.min(1, value)) : fallback;
 const signs = new Set(['rock', 'paper', 'scissor']);
-const gestures = new Set(['OPEN_QUESTION', 'EXPLAIN', 'UNCERTAIN', 'ACKNOWLEDGE', 'POLITE', 'NONE']);
+const gestures = new Set(['OPEN_QUESTION', 'EXPLAIN', 'UNCERTAIN', 'ACKNOWLEDGE', 'RIGHT_HAND_UP', 'NONE']);
 const faces = {
   neutral: 'neutral', warm_neutral: 'neutral', attentive: 'attentive', focused: 'attentive', curious: 'curious',
   happy: 'happy', smile: 'happy', smiling: 'happy', warm_smile: 'happy', friendly: 'happy',

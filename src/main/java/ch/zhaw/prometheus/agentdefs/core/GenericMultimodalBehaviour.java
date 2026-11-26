@@ -27,7 +27,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
     static final String OUTPUT = """
             A reply is a canonical JSON BehaviourPlan with optional speech (at most 1000 characters),
             nonVerbal and motion. No display. Use only supported channels. For nonVerbal use:
-            {"gesture":"NONE|ACKNOWLEDGE|OPEN_QUESTION|EXPLAIN|UNCERTAIN|POLITE",
+            {"gesture":"NONE|ACKNOWLEDGE|OPEN_QUESTION|EXPLAIN|UNCERTAIN|RIGHT_HAND_UP",
              "facialExpression":{"type":"warmNeutral|gentleSmile|attentive|thoughtful|concernedCalm|playfulCurious","intensity":0.0},
              "gaze":{"direction":"toward_user|briefly_aside|soft_down|toward_group|forward","focus":"person|group|shared_space|none"},
              "motion":{"stillness":0.8,"energy":0.2}}.
@@ -112,7 +112,7 @@ public class GenericMultimodalBehaviour implements AgentDefinition {
     @Override public Agent createAgent() {
         return applyDefinitionMetadata(createTaskAgent("Valerian Core - Generic Multimodal Behaviour",
                 "English core agent for collaboratively configuring persistent tasks and reacting to supported multimodal observations.",
-                // Keep VOICE/CONFIGURE unchanged for recognition of saved task prompts.
+                // Previous built-ins remain recognizable through GenericPolicyUpgradeService.
                 VOICE + ValerianPersona.context() + ConversationalHumour.GUIDANCE,
                 List.of("demo.valerian.core", "demo.valerian.sira_lab", "demo.valerian.generic_multimodal_behaviour"), true));
     }

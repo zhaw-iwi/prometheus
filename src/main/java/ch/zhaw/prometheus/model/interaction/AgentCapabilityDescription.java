@@ -23,7 +23,7 @@ public final class AgentCapabilityDescription {
             Map.entry("obs.weather.current", "Supplied weather for its stated place and time; no independent fetching or GPS."),
             Map.entry("obs.weather.forecast", "Supplied forecast for its stated place and time; not current observed weather."),
             Map.entry("speech", "Speech content; actual voice availability depends on the agent policy and active client mode."),
-            Map.entry("nonVerbal.gesture", "Digital gestures: question, explanation, uncertainty, acknowledgement and polite."),
+            Map.entry("nonVerbal.gesture", "Gestures: ask, explain, shrug, acknowledge, raise the right hand."),
             Map.entry("nonVerbal.facialExpression", "A facial-expression plan, not a claim of experienced emotion."),
             Map.entry("nonVerbal.gaze", "A gaze-intent plan, not eye tracking or proof of seeing an object."),
             Map.entry("nonVerbal.motion", "Expressive stillness and energy, not locomotion or physical contact."),

@@ -88,10 +88,10 @@ test('embodiment animates fresh events once and preserves native, replay, reset 
   await expect(page.locator('#embodiment_display')).toContainText('<img');expect(await page.locator('#embodiment_display img').count()).toBe(0);
   await page.getByRole('button',{name:'Details',exact:true}).click();await robot(page);
   await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-animating','false');
-  await publish(page,{nonVerbal:{gesture:'POLITE'}},3,'replay');
+  await publish(page,{nonVerbal:{gesture:'RIGHT_HAND_UP'}},3,'replay');
   await expect(page.getByTestId('embodiment-stage')).toHaveAttribute('data-animating','false');
   await page.evaluate(e=>handleBehaviourEnvelope({...e,provenance:{origin:'NATIVE'}},{eventId:e.id,delivery:'live'}),event({speech:'Native speech'},4));
-  await expect(page.locator('#embodiment_summary')).toContainText('polite');
+  await expect(page.locator('#embodiment_summary')).toContainText('right hand up');
   await publish(page,{motion:{handSign:'Schere'},display:{agentSign:'unknown'}},5);
   await expect(page.locator('#embodiment_summary')).toContainText('right hand: scissor');
   await expect(page.getByTestId('agent-sign-label')).toHaveText('Schere');

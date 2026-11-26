@@ -52,7 +52,7 @@ final class GalaDinnerMemory {
     }
     static void endEncounter(Storage storage, int historySize) {
         reception(storage); GalaDinnerSensing.clear(storage);
-        for (String key : List.of(ABSENT_SINCE, LAST_INPUT, QUIET, FACE, FACE_AT, FACE_REACTED,
+        for (String key : List.of(ABSENT_SINCE, LAST_INPUT, QUIET, FACE, FACE_AT, FACE_REACTED, GalaDinnerRps.INPUT_WINDOWS,
                 GalaDinnerGestures.HISTORY, REPLY, GalaDinnerGestures.REQUIRED, GalaDinnerDialogue.FACE_TOPIC_AT)) remove(storage, key);
         put(storage, SESSION, Integer.toString(historySize));
     }

@@ -16,12 +16,12 @@ class DecorativeGesturesUnitTest {
 
     @Test void spacingAndSameLabelBoundariesPreserveOtherChannelsAndOriginalPlan() {
         DecorativeGestures.publish(storage, plan("EXPLAIN"), false, now);
-        var original = plan("POLITE");
+        var original = plan("RIGHT_HAND_UP");
         var filtered = DecorativeGestures.publish(storage, original, false, now.plusSeconds(11));
-        assertEquals("NONE", label(filtered)); assertEquals("POLITE", label(original));
+        assertEquals("NONE", label(filtered)); assertEquals("RIGHT_HAND_UP", label(original));
         var expected = original.toJsonObject(); expected.getAsJsonObject("nonVerbal").addProperty("gesture", "NONE");
         assertEquals(expected, filtered.toJsonObject());
-        assertEquals("POLITE", label(DecorativeGestures.publish(storage, original, false, now.plusSeconds(12))));
+        assertEquals("RIGHT_HAND_UP", label(DecorativeGestures.publish(storage, original, false, now.plusSeconds(12))));
         assertEquals("NONE", label(DecorativeGestures.publish(storage, plan("EXPLAIN"), false, now.plusSeconds(59))));
         assertEquals("EXPLAIN", label(DecorativeGestures.publish(storage, plan("EXPLAIN"), false, now.plusSeconds(60))));
     }
@@ -37,7 +37,7 @@ class DecorativeGesturesUnitTest {
     }
 
     @Test void boundedSerializableHistoryExpiresAndIgnoresInvalidOrFutureEntries() {
-        storage.put(DecorativeGestures.HISTORY, JsonParser.parseString("[{\"label\":\"EXPLAIN\",\"at\":\"broken\"},{\"label\":\"POLITE\",\"at\":\"2099-01-01T00:00:00Z\"}]"));
+        storage.put(DecorativeGestures.HISTORY, JsonParser.parseString("[{\"label\":\"EXPLAIN\",\"at\":\"broken\"},{\"label\":\"RIGHT_HAND_UP\",\"at\":\"2099-01-01T00:00:00Z\"}]"));
         for (int i = 0; i < 20; i++) DecorativeGestures.publish(storage, plan("EXPLAIN"), true, now.plusSeconds(i));
         assertEquals(5, storage.get(DecorativeGestures.HISTORY).getAsJsonArray().size());
         var reloaded = new Storage(); reloaded.put(DecorativeGestures.HISTORY, JsonParser.parseString(storage.get(DecorativeGestures.HISTORY).toString()));

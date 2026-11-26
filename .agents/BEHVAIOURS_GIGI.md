@@ -57,7 +57,7 @@ These labels are safe for `nonVerbal.gesture`:
 | `EXPLAIN` | explaining, instructing, describing context, presenting information | `explanatory_sweep_gesture` |
 | `UNCERTAIN` | uncertain, hedging, saying the answer is unknown | `uncertainty_shrug_gesture` |
 | `ACKNOWLEDGE` | confirming, accepting input, closing a step, saying OK | `acknowledgement_close_hands_gesture` |
-| `POLITE` | apologies, polite refusals, soft corrections, socially careful responses | `polite_apology_gesture` |
+| `RIGHT_HAND_UP` | raising the right hand for a greeting or an explicit request | `right_hand_up` |
 | `ROCK` | playing rock in rock-scissor-paper | `rock` |
 | `SCISSOR` | playing scissor in rock-scissor-paper | `scissor` |
 | `PAPER` | playing paper in rock-scissor-paper | `paper` |
@@ -65,7 +65,7 @@ These labels are safe for `nonVerbal.gesture`:
 
 Do not emit robot-server IDs such as `open_question_gesture`,
 `explanatory_sweep_gesture`, `uncertainty_shrug_gesture`,
-`acknowledgement_close_hands_gesture`, or `polite_apology_gesture` directly in
+`acknowledgement_close_hands_gesture`, or `right_hand_up` directly in
 `nonVerbal.gesture`.
 
 ## Facial Expression, Gaze, and Nonverbal Motion
@@ -152,7 +152,6 @@ These robot-server command IDs are available on fake robot-server and G1:
 - `explanatory_sweep_gesture`
 - `uncertainty_shrug_gesture`
 - `acknowledgement_close_hands_gesture`
-- `polite_apology_gesture`
 - `right_hand_up`
 - `face_wave`
 - `left_kiss`
@@ -170,7 +169,6 @@ PROMETHEUS agents should not emit these snake_case IDs directly in
 
 If Valerian is extended later, these semantic mappings are recommended:
 
-- `RIGHT_HAND_UP` -> `right_hand_up`
 - `FACE_WAVE` -> `face_wave`
 - `LEFT_KISS` -> `left_kiss`
 - `HANDS_UP` -> `hands_up`

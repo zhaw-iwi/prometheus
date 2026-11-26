@@ -10,7 +10,7 @@ import ch.zhaw.prometheus.model.behaviour.BehaviourPlan;
 /** Encounter-local published requests, never claims of physical execution. */
 final class GalaDinnerGestures {
     static final String HISTORY = "gala.gestures", REQUIRED = "gala.gesture_required";
-    private static final java.util.Set<String> LABELS = java.util.Set.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE");
+    private static final java.util.Set<String> LABELS = java.util.Set.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "RIGHT_HAND_UP");
     private GalaDinnerGestures() {}
 
     static String guidance(Storage storage, Instant now) {

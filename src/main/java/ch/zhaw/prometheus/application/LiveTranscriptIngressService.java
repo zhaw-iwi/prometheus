@@ -118,7 +118,14 @@ public class LiveTranscriptIngressService {
                 segments.save(persisted); ledgerChanged(id, owner.sessionId()); return Optional.of(view(persisted));
             }
             String text = persisted.getTranscript();
-            if (segment.speaker() == Speaker.USER && text.isBlank() && segment.closure() == Closure.COMPLETE) {
+            var leafPolicy = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast().ownPolicy();
+            boolean ignoredInput = segment.speaker() == Speaker.USER
+                    && leafPolicy instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy external
+                    && (external.liveIgnoresInput(owner, Instant.now()) || segment.fragments().stream()
+                            .anyMatch(part -> external.liveIgnoresInput(owner, Instant.ofEpochMilli(part.receivedMs()))));
+            if (ignoredInput) {
+                persisted.finish("IGNORED", "countdown_input", null);
+            } else if (segment.speaker() == Speaker.USER && text.isBlank() && segment.closure() == Closure.COMPLETE) {
                 // A whitespace-only provider delta is not a spoken interruption. Keep
                 // its durable identity so opted-in playback can resolve pending input.
                 persisted.finish("IGNORED", "empty_transcript", null);

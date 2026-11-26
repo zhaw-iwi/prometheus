@@ -48,8 +48,12 @@ public class LiveContextBridgeService {
                 if (session.lastCurrentCommand != null && !Objects.equals(previous.id(), event.narrationId())) session.urgent.set(true);
             }
             if (!session.owner.epoch().equals(event.epoch())) session.fail("agent_epoch_changed");
-            else if (event.narrationId() != null) session.announcement(event.narrationId());
-            else session.request();
+            else {
+                // Release the temporary input gate promptly after capture, cancellation or timeout.
+                if (session.playbackCue != null && session.playbackCue.completeOnCapture()) session.urgent.set(true);
+                if (event.narrationId() != null) session.announcement(event.narrationId());
+                else session.request();
+            }
         });
     }
     @EventListener public void playbackReady(ExternalSpeechRecordingService.PlaybackReady event) {

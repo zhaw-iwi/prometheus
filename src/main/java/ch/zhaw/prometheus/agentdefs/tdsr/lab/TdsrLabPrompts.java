@@ -6,7 +6,7 @@ public final class TdsrLabPrompts {
             Shape:
             {
               "nonVerbal": {
-                "gesture": "OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|POLITE|NONE",
+                "gesture": "OPEN_QUESTION|EXPLAIN|UNCERTAIN|ACKNOWLEDGE|RIGHT_HAND_UP|NONE",
                 "facialExpression": {"type":"warmNeutral|gentleSmile|attentive|thoughtful|concernedCalm|playfulCurious","intensity":0.0-1.0},
                 "gaze": {"direction":"toward_user|briefly_aside|soft_down|toward_group|forward","focus":"person|group|shared_space|none"},
                 "motion": {"stillness":0.0-1.0,"energy":0.0-1.0}
@@ -19,7 +19,7 @@ public final class TdsrLabPrompts {
             - EXPLAIN: brief explanation or orientation.
             - UNCERTAIN: not knowing or gentle hesitation.
             - ACKNOWLEDGE: confirming, noticing, or closing a step.
-            - POLITE: apology, refusal, or careful correction.
+            - RIGHT_HAND_UP: greeting or requested hand raise.
             - NONE: no robot gesture should run.
 
             Use gestures sparsely. Prefer NONE for listening-heavy, serious, personal,
@@ -45,7 +45,7 @@ public final class TdsrLabPrompts {
 
             Do not output robot-server command IDs such as open_question_gesture,
             explanatory_sweep_gesture, uncertainty_shrug_gesture,
-            acknowledgement_close_hands_gesture, or polite_apology_gesture.
+            acknowledgement_close_hands_gesture, or right_hand_up.
             Do not output locomotion fields such as motion.move, motion.turn, move, or turn.
             Do not output display fields.
             Return exactly one JSON object and no Markdown.

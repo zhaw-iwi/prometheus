@@ -65,7 +65,7 @@ class OpenAILanguageModelGatewayHttpUnitTest {
         route.setModel("gpt-5.6-luna"); route.setReasoningEffort("none");
         properties.getRoutes().put(InferencePurpose.BEHAVIOUR, route);
         response.set(envelope("""
-                {"speech":"A private synthetic reply.","nv":{"g":"POLITE","f":["gentleSmile",0.3],
+                {"speech":"A private synthetic reply.","nv":{"g":"RIGHT_HAND_UP","f":["gentleSmile",0.3],
                  "z":["toward_user","person"],"m":[0.9,0.1]},"motion":{"handSign":"paper"}}
                 """));
         var policy = new PromptPolicy("task instructions", "starter instructions", "summary");

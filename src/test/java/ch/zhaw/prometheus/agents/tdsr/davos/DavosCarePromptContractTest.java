@@ -350,7 +350,7 @@ class DavosCarePromptContractTest {
         assertContains(prompt, "\"handSign\"");
         assertContains(prompt, "stillness");
         assertContains(prompt, "energy");
-        for (String safeGesture : List.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE", "NONE")) {
+        for (String safeGesture : List.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "RIGHT_HAND_UP", "NONE")) {
             assertContains(prompt, safeGesture);
         }
         for (String handSign : List.of("rock", "scissor", "paper")) {
@@ -361,7 +361,7 @@ class DavosCarePromptContractTest {
                 "explanatory_sweep_gesture",
                 "uncertainty_shrug_gesture",
                 "acknowledgement_close_hands_gesture",
-                "polite_apology_gesture")) {
+                "right_hand_up")) {
             assertContains(prompt, robotServerId);
         }
         assertContains(prompt, "Do not output robot-server command IDs");

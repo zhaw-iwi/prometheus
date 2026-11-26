@@ -25,7 +25,7 @@ public class GuessingGameWithGestures implements AgentDefinition {
             Return exactly one JSON object. No markdown, no code fences, no explanations.
 
             Required key:
-            - "gesture": one of OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, POLITE, NONE
+            - "gesture": one of OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, RIGHT_HAND_UP, NONE
 
             Optional keys:
             - "facialExpression": {"type":"string","intensity":0.0-1.0}
@@ -36,12 +36,12 @@ public class GuessingGameWithGestures implements AgentDefinition {
 
             Do not output robot-server command IDs such as open_question_gesture,
             explanatory_sweep_gesture, uncertainty_shrug_gesture,
-            acknowledgement_close_hands_gesture, polite_apology_gesture,
+            acknowledgement_close_hands_gesture,
             right_hand_up, face_wave, left_kiss, hands_up, release_arm, or idle_pose.
             Do not output top-level motion, motion.move, motion.turn, or locomotion fields.
 
             Gesture mapping:
-            - greeting or invitation to start the game -> POLITE
+            - greeting or invitation to start the game -> RIGHT_HAND_UP
             - start invitation, play-again invitation, or an important clarifying question -> OPEN_QUESTION
             - a clue summary or final guess -> EXPLAIN
             - uncertainty, thinking aloud, or playful robot self-correction -> UNCERTAIN

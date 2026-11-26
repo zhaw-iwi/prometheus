@@ -160,8 +160,8 @@ export function createRobot() {
           a.wrist.rotation.z=-a.side*0.55*g;
         } else if(gesture==='EXPLAIN'&&a.side===-1) {
           a.shoulder.rotation.z=-0.12-0.45*g;a.elbow.rotation.x=-0.18-1.45*g;
-        } else if(gesture==='POLITE') {
-          a.shoulder.rotation.x=-0.08-0.25*g;a.elbow.rotation.x=-0.18-0.55*g;
+        } else if(gesture==='RIGHT_HAND_UP'&&a.side===-1) {
+          a.shoulder.rotation.z=-0.12-0.85*g;a.elbow.rotation.x=-0.18-1.9*g;
         }
       }
       a.fingers.forEach(({finger,joints},i)=>{

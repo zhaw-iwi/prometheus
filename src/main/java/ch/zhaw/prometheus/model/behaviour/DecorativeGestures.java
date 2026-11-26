@@ -13,7 +13,7 @@ import ch.zhaw.prometheus.model.event.EventHistory;
 public final class DecorativeGestures {
     public static final String ENABLED = "behaviour.gestureCadence", HISTORY = "behaviour.recentGestures",
             REQUIRED = "behaviour.requiredGesture";
-    private static final Set<String> LABELS = Set.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE");
+    private static final Set<String> LABELS = Set.of("OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "RIGHT_HAND_UP");
     private DecorativeGestures() {}
 
     public static boolean enabled(Storage storage) {

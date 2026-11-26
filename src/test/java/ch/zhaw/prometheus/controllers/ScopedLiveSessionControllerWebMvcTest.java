@@ -67,6 +67,16 @@ class ScopedLiveSessionControllerWebMvcTest {
                 .andExpect(jsonPath("$.playbackCue.receiptIds.length()").value(3))
                 .andExpect(jsonPath("$.playbackCue.receiptIds[0]").value("schere"));
     }
+    @Test void combinedUpdatesExposeCaptureCompletionWithoutEnablingAcknowledgements() throws Exception {
+        var cue = new ch.zhaw.prometheus.model.policy.LivePlaybackCue(UUID.randomUUID(), null,
+                java.time.Instant.now().plusSeconds(15), java.util.List.of(), false, java.util.List.of(), true);
+        when(service.updates("ABCDE", agent, handle, 7)).thenReturn(Optional.of(
+                new ScopedLiveSessionService.UpdatesView(null, 7, null, cue)));
+        mvc.perform(get(path() + "/" + handle + "/updates").param("transcriptRevision", "7")
+                .header(ScopedDemoController.ACCESS_CODE_HEADER, "ABCDE"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.playbackCue.completeOnCapture").value(true))
+                .andExpect(jsonPath("$.playbackCue.allowAcknowledgements").value(false));
+    }
     @Test void typedSessionHidesProviderIdentityAndRejectsArbitraryConfiguration() throws Exception {
         when(service.create(eq("ABCDE"), eq(agent), any())).thenReturn(Optional.of(
                 new ScopedLiveSessionService.SessionView(handle, "v=0 answer", "gpt-live-1", "marin", true)));

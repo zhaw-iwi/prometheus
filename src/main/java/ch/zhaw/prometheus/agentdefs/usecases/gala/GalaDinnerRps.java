@@ -14,22 +14,24 @@ import ch.zhaw.prometheus.model.event.SpeechProvenance;
 import ch.zhaw.prometheus.model.policy.ExternalSpeech;
 import ch.zhaw.prometheus.model.policy.LivePlaybackCue;
 
-/** Select -> captured countdown -> client-observed playback -> reveal/capture. */
+/** Select -> complete native countdown -> reveal/capture; legacy policies retain playback completion. */
 final class GalaDinnerRps {
     static final String PHASE = PREFIX + "rps_phase", INTRO = PREFIX + "rps_intro",
             INTRO_AT = PREFIX + "rps_intro_at", DEADLINE = PREFIX + "rps_intro_deadline",
             SESSION_ID = PREFIX + "rps_session", EPOCH = PREFIX + "rps_epoch", SEGMENT = PREFIX + "rps_countdown_segment",
             RECEIPTS = PREFIX + "rps_countdown_receipts", SEGMENTS = PREFIX + "rps_countdown_segments",
-            LEAD_IN = PREFIX + "rps_ready_lead_in", ACK_INPUT = PREFIX + "rps_acknowledged_input";
+            LEAD_IN = PREFIX + "rps_ready_lead_in", CAPTURE_COMPLETION = PREFIX + "rps_capture_completion",
+            INPUT_WINDOWS = PREFIX + "rps_input_windows";
+    private static final long COUNTDOWN_TIMEOUT_SECONDS = 15;
     private GalaDinnerRps() {}
 
     static String countdownInstructions(boolean leadIn) {
         return leadIn
-                ? "Use the current conversation language. German: Say \"Mach dich bereit.\" once as a short lead-in, pause briefly, then say Schere, Stein, Papier. "
-                    + "English: say \"Get ready.\" once, pause briefly, then say Rock, Paper, Scissors (no Shoot). "
+                ? "Use the current conversation language. German: say only Schere, Stein, Papier. "
+                    + "English: say only Rock, Paper, Scissors (no Shoot). No lead-in or readiness question. "
                     + "Use three steady, unhurried beats, roughly one second per word, with audible pauses. "
-                    + "Continue automatically; a brief Ja/Yes/Okay is an acknowledgement, not an interruption or a new start. "
-                    + "Do not answer it or restart counting. Stop/wait requests still interrupt. "
+                    + "This short countdown is non-interruptible: ignore all visitor speech until the move is released. "
+                    + "Do not answer, request confirmation or restart counting. "
                     + "After Papier or Scissors, stay silent. Never add Ich schaue auf Ihre Hand, Okay ich schaue, I'm looking at your hand, "
                     + "a hand invitation or other post-countdown commentary."
                 : "Say exactly: Schere, Stein, Papier. Only this countdown, including on replay; then listen. "
@@ -41,10 +43,12 @@ final class GalaDinnerRps {
     }
     static BehaviourPlan introduce(Storage storage, ExternalSpeech owner, Instant now, boolean leadIn) {
         put(storage, PHASE, "INTRO"); put(storage, INTRO, UUID.randomUUID().toString());
-        put(storage, INTRO_AT, now.toString()); put(storage, DEADLINE, now.plusSeconds(30).toString());
+        put(storage, INTRO_AT, now.toString());
+        put(storage, DEADLINE, now.plusSeconds(leadIn ? COUNTDOWN_TIMEOUT_SECONDS : 30).toString());
+        put(storage, CAPTURE_COMPLETION, Boolean.toString(leadIn));
         put(storage, SESSION_ID, owner.sessionId().toString()); put(storage, EPOCH, owner.epoch().toString());
         remove(storage, SEGMENT); remove(storage, RECEIPTS); remove(storage, SEGMENTS);
-        remove(storage, ACK_INPUT);
+        if (leadIn) beginInputWindow(storage, owner, now);
         remove(storage, GalaDinnerCountdown.PENDING); remove(storage, CAPTURE_ID);
         boolean preparation = GalaDinnerRpsPreparation.enabled(storage);
         continueRequest(storage, preparation
@@ -58,6 +62,12 @@ final class GalaDinnerRps {
         var display = new JsonObject(); display.addProperty("mode", "game_countdown");
         display.addProperty("title", GalaDinnerLanguage.rpsTitle(storage)); display.addProperty("phase", "spoken_countdown");
         display.addProperty("awaitingUserSign", false);
+        if (leadIn) {
+            display.addProperty("countdownId", text(storage, INTRO, ""));
+            display.addProperty("countdownSessionId", owner.sessionId().toString());
+            display.addProperty("countdownExpiresAt", text(storage, DEADLINE, ""));
+            display.addProperty("nonInterruptible", true);
+        }
         if (preparation) display.addProperty("roundId", text(storage, GalaDinnerRounds.ID, ""));
         else display.addProperty("agentSign", text(storage, SIGN, ""));
         response.setDisplay(display);
@@ -76,16 +86,16 @@ final class GalaDinnerRps {
         if (!provenance.complete()) { remove(storage, GalaDinnerCountdown.PENDING); return false; }
         String text = BehaviourPlan.fromJson(speech.getPayload()).getSpeech();
         if (text == null || text.matches(".*[\"“”„«»].*")) { remove(storage, GalaDinnerCountdown.PENDING); return false; }
-        Instant boundary = time(storage, INTRO_AT).isAfter(time(storage, LAST_INPUT))
+        Instant boundary = automatic(storage) || time(storage, INTRO_AT).isAfter(time(storage, LAST_INPUT))
                 ? time(storage, INTRO_AT) : time(storage, LAST_INPUT);
         var freshParts = parts.stream().filter(part -> part.receivedAt() != null && !part.receivedAt().isBefore(boundary)).toList();
         if (!parts.isEmpty()) text = join(freshParts);
         else if (started.isBefore(boundary)) return false;
-        // Live may add a sentence after counting. The completed segment and client
-        // settling still gate motion; the countdown need not be its final words.
+        // A complete automatic countdown stays complete if Live appends commentary.
+        // Legacy policies retain their existing, playback-dependent recognizer.
         boolean preparation = GalaDinnerRpsPreparation.enabled(storage);
         List<String> segmentIds = List.of(provenance.segmentId());
-        if (!countdown(text, preparation)) {
+        if (!countdown(text, preparation, automatic(storage))) {
             if (!preparation) return false;
             var combined = GalaDinnerCountdown.append(storage, provenance.segmentId(), freshParts, boundary);
             if (combined.isEmpty()) return false;
@@ -93,7 +103,7 @@ final class GalaDinnerRps {
             segmentIds = combined.stream().map(GalaDinnerCountdown.Part::segmentId).distinct().toList();
         }
         remove(storage, GalaDinnerCountdown.PENDING);
-        var selected = countdownReceipts(freshParts, preparation);
+        var selected = countdownReceipts(freshParts, preparation, automatic(storage));
         if (segmentIds.size() > 1 && selected.isEmpty()) return false;
         remove(storage, RECEIPTS);
         if (!selected.isEmpty()) {
@@ -111,19 +121,24 @@ final class GalaDinnerRps {
                 .collect(java.util.stream.Collectors.joining());
     }
     static boolean countdown(String text, boolean preparation) {
+        return countdown(text, preparation, false);
+    }
+    static boolean countdown(String text, boolean preparation, boolean captureCompletion) {
         String words = text.toLowerCase(Locale.ROOT).replaceAll("[\\p{P}\\p{S}]+", " ").replaceAll("\\s+", " ").trim();
+        if (preparation && captureCompletion)
+            return words.matches("(?:.*\\s)?(?:schere stein papier|rock paper scissors)(?:\\s.*)?");
         // Live can append a looking-at-the-hand status despite the silence rule.
         // Accept only these harmless observed tails; questions/commands still reject.
         return preparation ? words.matches("(?:.*\\s)?(?:schere stein papier"
                     + "(?:\\s+(?:(?:okay|ok)\\s+)?ich schaue(?:\\s+auf (?:ihre|deine|eure) hand)?)?|rock paper scissors)")
                 : words.matches(".*\\b(?:eins|one|1)\\s+(?:zwei|two|2)(?:\\s+(?:und|and))?\\s+(?:drei|three|3)\\b.*");
     }
-    private static List<String> countdownReceipts(List<ch.zhaw.prometheus.model.policy.LiveSpeechPart> parts, boolean preparation) {
+    private static List<String> countdownReceipts(List<ch.zhaw.prometheus.model.policy.LiveSpeechPart> parts, boolean preparation, boolean captureCompletion) {
         // Find the smallest contiguous fragment span that still contains a complete countdown.
         // Fragment boundaries can split words; keep the existing language/freshness rules.
         int from = 0, to = parts.size();
-        while (from + 1 < to && countdown(join(parts.subList(from + 1, to)), preparation)) from++;
-        while (from + 1 < to && countdown(join(parts.subList(from, to - 1)), preparation)) to--;
+        while (from + 1 < to && countdown(join(parts.subList(from + 1, to)), preparation, captureCompletion)) from++;
+        while (from + 1 < to && countdown(join(parts.subList(from, to - 1)), preparation, captureCompletion)) to--;
         var ids = parts.subList(from, to).stream().map(ch.zhaw.prometheus.model.policy.LiveSpeechPart::receiptId).toList();
         // Older recording callers have no receipt identity and retain whole-segment evidence.
         if (ids.size() > LivePlaybackCue.MAX_RECEIPT_IDS || ids.stream().anyMatch(java.util.Objects::isNull)
@@ -139,18 +154,19 @@ final class GalaDinnerRps {
                         .map(com.google.gson.JsonElement::getAsString).toList() : List.of(), false,
                 storage.containsKey(SEGMENTS) ? storage.get(SEGMENTS).getAsJsonArray().asList().stream()
                         .map(com.google.gson.JsonElement::getAsString).toList()
-                        : storage.containsKey(SEGMENT) ? List.of(text(storage, SEGMENT, "")) : List.of());
+                        : storage.containsKey(SEGMENT) ? List.of(text(storage, SEGMENT, "")) : List.of(), automatic(storage));
     }
     static BehaviourPlan reveal(Storage storage, ExternalSpeech owner, String intro, Instant now) {
         var cue = cue(storage, now);
         if (cue == null || cue.expired(now) || cue.segmentId() == null || !cue.id().toString().equals(intro) || !owned(storage, owner)) return null;
+        finishInputWindow(storage, now);
         put(storage, PHASE, "WAITING"); remove(storage, SEGMENT); remove(storage, RECEIPTS); remove(storage, SEGMENTS);
-        remove(storage, ACK_INPUT);
         GalaDinnerAction.openCapture(storage, now);
         // Same speaking occasion already counted. No second invitation or repeated countdown.
         for (String key : List.of(CONTINUATION_ID, CONTINUATION_FACTS, CONTINUATION_EXPIRES, CONTINUATION_OCCASION)) remove(storage, key);
         var response = GalaDinnerAction.plan(null, "NONE", "attentive", "toward_user");
         response.setDisplay(GalaDinnerAction.captureDisplay(storage));
+        if (automatic(storage)) response.getDisplay().getAsJsonObject().addProperty("countdownId", intro);
         var motion = new JsonObject(); motion.addProperty("handSign", text(storage, SIGN, "")); response.setMotion(motion);
         ch.zhaw.prometheus.logging.ActivityTrace.cue("rps_waiting_for_sign", null, Event.TYPE_HAND_SIGN);
         return response;
@@ -163,26 +179,45 @@ final class GalaDinnerRps {
         return owner != null && owner.sessionId().toString().equals(text(storage, SESSION_ID, ""))
                 && owner.epoch().toString().equals(text(storage, EPOCH, ""));
     }
-    static boolean acknowledging(Storage storage, ExternalSpeech owner, Instant now) {
-        return "RPS".equals(mode(storage)) && List.of("INTRO", "SPOKEN").contains(text(storage, PHASE, ""))
-                && !storage.containsKey(EXIT_REQUEST) && owned(storage, owner) && !expired(storage, now) && present(storage, now);
+    static boolean automatic(Storage storage) { return "true".equals(text(storage, CAPTURE_COMPLETION, "")); }
+    private static void beginInputWindow(Storage storage, ExternalSpeech owner, Instant now) {
+        var windows = new JsonArray();
+        if (storage.containsKey(INPUT_WINDOWS)) for (var entry : storage.get(INPUT_WINDOWS).getAsJsonArray()) {
+            var window = entry.getAsJsonObject();
+            if (Instant.parse(window.get("until").getAsString()).isAfter(now.minusSeconds(60))) windows.add(window.deepCopy());
+        }
+        while (windows.size() >= 8) windows.remove(0);
+        var window = new JsonObject();
+        window.addProperty("id", text(storage, INTRO, "")); window.addProperty("session", owner.sessionId().toString());
+        window.addProperty("epoch", owner.epoch().toString()); window.addProperty("from", now.toString());
+        window.addProperty("until", text(storage, DEADLINE, "")); windows.add(window);
+        storage.put(INPUT_WINDOWS, windows);
     }
-    static void acknowledgeInput(Storage storage, Event input) {
-        if (input.sourcePosition() == null) return;
-        var evidence = new JsonObject();
-        evidence.addProperty("round", text(storage, INTRO, ""));
-        evidence.addProperty("position", input.sourcePosition());
-        storage.put(ACK_INPUT, evidence);
+    private static void finishInputWindow(Storage storage, Instant now) {
+        if (!storage.containsKey(INPUT_WINDOWS)) return;
+        var windows = storage.get(INPUT_WINDOWS).getAsJsonArray().deepCopy();
+        for (var entry : windows) {
+            var window = entry.getAsJsonObject();
+            if (text(storage, INTRO, "").equals(window.get("id").getAsString())
+                    && now.isBefore(Instant.parse(window.get("until").getAsString())))
+                window.addProperty("until", now.toString());
+        }
+        storage.put(INPUT_WINDOWS, windows);
     }
-    static boolean acknowledgedInput(Storage storage, Event input, ExternalSpeech owner, Instant now) {
-        if (!acknowledging(storage, owner, now) || !storage.containsKey(ACK_INPUT) || input.sourcePosition() == null
-                || !Event.TYPE_USER_UTTERANCE.equals(input.getType()) || !Event.ACTOR_USER.equals(input.getActor())) return false;
-        var evidence = storage.get(ACK_INPUT).getAsJsonObject();
-        return text(storage, INTRO, "").equals(evidence.get("round").getAsString())
-                && input.sourcePosition() == evidence.get("position").getAsLong();
+    static boolean ignoresInput(Storage storage, ExternalSpeech owner, Instant receivedAt) {
+        if (owner == null || receivedAt == null || !storage.containsKey(INPUT_WINDOWS)) return false;
+        for (var entry : storage.get(INPUT_WINDOWS).getAsJsonArray()) {
+            var window = entry.getAsJsonObject();
+            if (owner.sessionId().toString().equals(window.get("session").getAsString())
+                    && owner.epoch().toString().equals(window.get("epoch").getAsString())
+                    && !receivedAt.isBefore(Instant.parse(window.get("from").getAsString()))
+                    && receivedAt.isBefore(Instant.parse(window.get("until").getAsString()))) return true;
+        }
+        return false;
     }
     static void clear(Storage storage) {
+        finishInputWindow(storage, Instant.now());
         for (String key : List.of(PHASE, INTRO, INTRO_AT, DEADLINE, SESSION_ID, EPOCH, SEGMENT, RECEIPTS, SEGMENTS,
-                GalaDinnerCountdown.PENDING, LEAD_IN, ACK_INPUT)) remove(storage, key);
+                GalaDinnerCountdown.PENDING, LEAD_IN, CAPTURE_COMPLETION, PREFIX + "rps_acknowledged_input")) remove(storage, key);
     }
 }

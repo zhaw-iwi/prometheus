@@ -53,6 +53,7 @@ public class ExternalSpeechRecordingService {
         return turns.serialized(id, () -> {
             boolean[] created = {false};
             boolean[] playbackReady = {false};
+            Event[] completionBehaviour = {null};
             Optional<Event> result = transaction.execute(status -> {
                 var agent = agents.findById(id).orElse(null);
                 if (agent == null || !owner.equals(ownership.current(agent))) return Optional.empty();
@@ -74,9 +75,23 @@ public class ExternalSpeechRecordingService {
                         segmentId, association, sources, complete));
                 if (taskResponses != null) taskResponses.prepare(agent, owner, nativeSpeech, started, parts);
                 var leaf = ch.zhaw.prometheus.application.live.LiveVoicePolicyAdapter.chain(agent.getCurrentState()).getLast();
-                if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy)
+                if (leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy) {
                     playbackReady[0] = policy.liveSpeechCaptured(nativeSpeech, owner, started, java.time.Instant.now(), parts);
+                    if (playbackReady[0] && ownership.taskWorkAllowed(id, owner)) {
+                        var completion = policy.liveSpeechCaptureCompletion(owner);
+                        if (completion != null) {
+                            completionBehaviour[0] = agent.acknowledge(completion, turns.runtime().withExternalSpeech(owner)
+                                    .withTaskContinuation(() -> ownership.taskWorkAllowed(id, owner)));
+                            playbackReady[0] = false;
+                        }
+                    }
+                }
                 var saved = agents.saveAndFlush(agent); created[0] = true;
+                if (completionBehaviour[0] != null) {
+                    var position = completionBehaviour[0].sourcePosition();
+                    completionBehaviour[0] = saved.getEventHistory().toList().stream()
+                            .filter(event -> position.equals(event.sourcePosition())).findFirst().orElseThrow();
+                }
                 // Cascade merge may replace a newly appended event; return/publish its persisted identity.
                 return saved.getEventHistory().toList().stream().filter(event -> event.speechProvenance() != null
                         && owner.sessionId().equals(event.speechProvenance().sessionId())
@@ -87,6 +102,7 @@ public class ExternalSpeechRecordingService {
                     if (events != null) events.publishEvent(new AgentCommitted(id, owner.epoch()));
                     if (events != null && playbackReady[0]) events.publishEvent(new PlaybackReady(id, owner));
                     result.ifPresent(event -> behaviour.publish(id, event));
+                    if (completionBehaviour[0] != null) behaviour.publish(id, completionBehaviour[0]);
                     agents.findById(id).ifPresent(monitor::publish);
                 });
             }

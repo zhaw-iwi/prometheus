@@ -81,6 +81,13 @@ inside that string so event history stays inspectable.
 
 ## Current Capabilities
 
+The `feature/rps-countdown-reliability` worktree changes Gala/Swiss/Open-i
+multi-state games to a non-interruptible countdown with input-track suppression,
+receipt-time input quarantine and one atomic native-capture-to-move transition.
+Its 15-second watchdog is independent of browser audio sampling. Other policies
+retain their playback contract. See the RPS section in README and the current
+PROJECT entry; physical timing is still unverified.
+
 Current work is `.agents/PLAN_TOWARDSCOMMANDING.md`: TWC-01–05 acceptance
 is complete (current task narration, shared one-shot commands and voice/mode
 alignment). Commands derive from persisted profile tags and declared outputs,
@@ -470,10 +477,13 @@ game starts and RPS results use one identified continuation. Fresh facial estima
 support tentative expression/apparent-mood comments and visitor corrections.
 The configurable task engine retains its existing confirmed-speech/action contract.
 
-Gala RPS commits and previews its sign at start; GI-31 defers robot motion and
-capture until the current countdown is captured and the cockpit acknowledges
-playback settling. Approximate timing is sufficient; this is not a physical
-speaker/robot synchronization guarantee. Preparation expires after 30 seconds.
+The original Gala RPS flow commits and previews its sign at start; GI-31 defers
+robot motion and capture until the current countdown is captured and the cockpit
+acknowledges playback settling, with a 30-second preparation deadline. Multi-state
+Gala/Swiss/Open-i games instead release one move/capture atomically from complete
+native countdown capture, with a 15-second watchdog and ignored countdown speech.
+Approximate timing is sufficient; neither path guarantees physical speaker/robot
+synchronization.
 New/resumed rounds persist an opaque
 capture ID in the opening/result display; camera/manual observations must echo it.
 Declining exit confirmation keeps the chosen sign but opens fresh capture. Timestamp, confidence
@@ -561,15 +571,17 @@ annotations for task control. A neutral WAIT operation preserves games; original
 transcripts remain auditable. Complete neutral acknowledgements in active games
 now bypass classification and preserve their target/round unless an exit decision is pending. Explicit no-reveal
 give-up has narrow local handling; reception/task acceptance is unchanged.
-Gala/Swiss multi-state countdowns additionally use the existing control inference
-to classify complete contextual positive support, without a fixed positive-word
-vocabulary. Only explicit `COUNTDOWN_ACK` preserves pending speech, freshness and
-the original round deadline. Its post-admission evidence names the exact input
-history position and round; ingress rechecks cue, expiry and speech owner before
-publishing the durable acknowledgement reason. Questions, mixed stop/wait,
-negation, uncertain/failed inference and foreign/expired rounds cannot release
-playback. Common Ja/Yeah/Okay replies retain their local fast path. Backend restart
-is sufficient for existing multi-state graphs; no schema change is needed.
+Gala/Swiss/Open-i multi-state countdowns suppress browser microphone input and
+ignore all visitor speech, including stop/wait. Backend ingress retains those
+captions as IGNORED/countdown_input with no user event or control inference.
+Bounded session/epoch-bound receipt-time windows preserve that decision across
+late admission, result and replay. The captured countdown's ordinary completion
+transition emits one canonical move atomically; browser playback sampling is
+informational for these rounds. A 15-second deadline cancels incomplete countdowns
+and restores input. Manual mute remains independent and UI Stop remains immediate.
+Fresh live behaviours control the microphone; history/reconnect replay is passive.
+Restart/reload and begin a fresh Live conversation; saved graphs and schemas stay
+compatible. Physical/provider timing remains to be tested.
 Unrelated game requests now enter a persisted exit-confirmation phase: target/sign
 and original question remain, hand results suspend, yes exits without reveal and no
 resumes. Explicit Stop/close/idle cleanup still applies. RPS requests its committed

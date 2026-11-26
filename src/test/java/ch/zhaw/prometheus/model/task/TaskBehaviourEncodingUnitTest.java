@@ -48,7 +48,7 @@ class TaskBehaviourEncodingUnitTest {
             "{\"nv\":{\"f\":[\"gentleSmile\",2]}}",
             "{\"nv\":{\"f\":[\"unapprovedExpression\",0.3]}}",
             "{\"nv\":{\"z\":[\"toward_user\",\"unapprovedFocus\"]}}",
-            "{\"nv\":{\"g\":\"NONE\",\"x\":{\"gesture\":\"POLITE\"}}}",
+            "{\"nv\":{\"g\":\"NONE\",\"x\":{\"gesture\":\"RIGHT_HAND_UP\"}}}",
             "{\"nv\":{\"x\":{\"posture\":{}}}}",
             "{\"nv\":{},\"nonVerbal\":{}}",
             "{\"nv\":{},\"display\":{}}",

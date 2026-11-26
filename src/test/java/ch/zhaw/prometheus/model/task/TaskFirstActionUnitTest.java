@@ -14,9 +14,9 @@ import ch.zhaw.prometheus.model.policy.*;
 import ch.zhaw.prometheus.spi.LanguageModelGateway;
 
 class TaskFirstActionUnitTest {
-    @Test void extendingApplicationSchemaPreservesTheLegacyDefaultPromptByteForByte() throws Exception {
+    @Test void defaultPromptFingerprintIncludesTheCurrentGestureCollection() throws Exception {
         var bytes = GenericMultimodalBehaviour.builtInPrompts().get("configure").getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        assertEquals("1fdf7e9f17da9b1cc1c5c5b43692e84c5d97c103f46ecfb1d37968c3de1d30c8",
+        assertEquals("912f838c5c8a724b8a48f9992ba03e464e925f0dbc0aae9b3dd518ea79be4cb5",
                 java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes)));
     }
     private static final String SPEC = """

@@ -38,11 +38,11 @@ class GenericMultimodalTaskUnitTest {
     }
     private static String gesture(Event event) { return BehaviourPlan.fromJson(event.getPayload()).getNonVerbal().getAsJsonObject().get("gesture").getAsString(); }
 
-    @Test void applicationContractExtensionPreservesTheExistingGenericPromptFingerprint() throws Exception {
+    @Test void gestureCollectionHasAnExplicitDefaultPromptFingerprint() throws Exception {
         // Existing saved-policy recognition depends on the exact built-in prompt, including whitespace.
         var bytes = GenericMultimodalBehaviour.builtInPrompts().get("configure")
                 .getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        assertEquals("1fdf7e9f17da9b1cc1c5c5b43692e84c5d97c103f46ecfb1d37968c3de1d30c8",
+        assertEquals("912f838c5c8a724b8a48f9992ba03e464e925f0dbc0aae9b3dd518ea79be4cb5",
                 HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes)));
     }
 
@@ -195,7 +195,7 @@ class GenericMultimodalTaskUnitTest {
                 plan.getNonVerbal().getAsJsonObject().get("facialExpression"));
         assertEquals("PLAYFUL_CURIOUS", reply.getAsJsonObject().getAsJsonObject("nonVerbal").get("gesture").getAsString());
         verify(gateway, times(2)).infer(any()); // No extra inference just to repair an expressive label.
-        for (String label : List.of("NONE", "ACKNOWLEDGE", "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "POLITE", "rock", "scissor", "paper")) {
+        for (String label : List.of("NONE", "ACKNOWLEDGE", "OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "RIGHT_HAND_UP", "rock", "scissor", "paper")) {
             var raw = JsonParser.parseString("{\"nonVerbal\":{\"gesture\":\"" + label + "\"}}");
             assertEquals(label, TaskMemory.plan(raw).getNonVerbal().getAsJsonObject().get("gesture").getAsString());
         }

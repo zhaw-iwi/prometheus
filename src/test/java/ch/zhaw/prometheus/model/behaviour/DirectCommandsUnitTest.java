@@ -34,7 +34,7 @@ class DirectCommandsUnitTest {
         assertEquals("ACCEPTED", DirectCommands.evaluate(command, profile, storage, turn("Again, please"), false).status());
         assertFalse(storage.containsKey(TaskMemory.ACTIONS)); assertFalse(storage.containsKey(TaskMemory.DRAFT));
     }
-    @ParameterizedTest @ValueSource(strings = {"OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "POLITE"})
+    @ParameterizedTest @ValueSource(strings = {"OPEN_QUESTION", "EXPLAIN", "UNCERTAIN", "ACKNOWLEDGE", "RIGHT_HAND_UP"})
     void requestedGestureBypassesOnlyItsDecorativeCadenceAndCanBeSilent(String gesture) {
         var input = turn("Show a gesture without speaking"); var command = request("ACTION", "GESTURE", gesture, true);
         var first = DirectCommands.evaluate(command, profile, storage, input, false);
@@ -43,6 +43,10 @@ class DirectCommandsUnitTest {
         assertTrue(storage.get(DecorativeGestures.REQUIRED).getAsBoolean());
         assertEquals(gesture, DecorativeGestures.publish(storage, first.plan(), true, java.time.Instant.now())
                 .getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+    }
+    @ParameterizedTest @ValueSource(strings = {"POLITE", "POLITE_APOLOGY", "polite_apology_gesture"})
+    void retiredApologyCannotBecomeADirectCommand(String gesture) {
+        assertThrows(IllegalArgumentException.class, () -> request("ACTION", "GESTURE", gesture, false));
     }
     @ParameterizedTest @ValueSource(strings = {"CAPABILITY", "CLARIFY", "UNSUPPORTED"})
     void nonActionInterpretationsNeverPublishMotionOrChangeAgreement(String intent) {

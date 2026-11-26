@@ -60,14 +60,8 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
     @Override public boolean liveFilterIsolatedInputActivity() { return true; }
     @Override public boolean liveNonMutatingAcknowledgement(String transcript) {
         String speech = GalaDinnerInput.speech(transcript);
-        return !coCreatedTasksEnabled() && GalaDinnerInput.countdownAcknowledgement(storage, speech)
-                || GalaDinnerInput.nonMutatingAcknowledgement(storage, speech, java.time.Instant.now());
+        return GalaDinnerInput.nonMutatingAcknowledgement(storage, speech, java.time.Instant.now());
     }
-    @Override public boolean liveNonMutatingAcknowledgement(ch.zhaw.prometheus.model.event.Event input,
-            ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
-        return !coCreatedTasksEnabled() && GalaDinnerRps.acknowledgedInput(storage, input, owner, java.time.Instant.now());
-    }
-    @Override public boolean liveContextualAcknowledgements() { return !coCreatedTasksEnabled(); }
     @Override public boolean liveResolvedControlReply(String transcript, EventHistory history,
             ch.zhaw.prometheus.model.policy.ExternalSpeech owner) {
         return activitiesEnabled() && GalaDinnerRounds.replay(storage, history, owner,
@@ -110,10 +104,12 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         else if ("RPS".equals(mode)) facts += storage.containsKey(GalaDinnerMemory.EXIT_REQUEST)
                 ? "RPS paused for exit confirmation; no result computed."
                 : "WAITING".equals(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""))
-                ? "Countdown playback acknowledged; gesture requested once, physical execution unconfirmed. "
+                ? "Countdown completed; gesture requested once, physical execution unconfirmed. "
                     + "Awaiting a fresh camera hand sign; stay silent, no looking-at-the-hand commentary. No result yet."
                 : "SPOKEN".equals(GalaDinnerMemory.text(storage, GalaDinnerRps.PHASE, ""))
-                ? "Countdown captured; waiting for local playback acknowledgement. Stay silent; do not repeat the countdown. No gesture/capture yet."
+                ? GalaDinnerRps.automatic(storage)
+                        ? "Countdown captured; the backend releases the selected move once. Stay silent; do not repeat the countdown."
+                        : "Countdown captured; waiting for local playback acknowledgement. Stay silent; do not repeat the countdown. No gesture/capture yet."
                 : GalaDinnerRpsPreparation.enabled(storage)
                 ? "RPS introduction: sign selected privately, no gesture/capture yet. "
                         + GalaDinnerRps.countdownInstructions(!coCreatedTasksEnabled())
@@ -164,9 +160,6 @@ public class GalaDinnerPolicy extends Policy implements ExternalVoicePolicy {
         var topicExpiry = GalaDinnerDialogue.refreshAt(storage, java.time.Instant.now());
         if (topicExpiry != null && (refresh == null || topicExpiry.isBefore(refresh))) refresh = topicExpiry;
         var playback = activitiesEnabled() ? GalaDinnerRps.cue(storage, java.time.Instant.now()) : null;
-        if (playback != null && !coCreatedTasksEnabled())
-            playback = new ch.zhaw.prometheus.model.policy.LivePlaybackCue(playback.id(), playback.segmentId(),
-                    playback.expiresAt(), playback.receiptIds(), true, playback.segmentIds());
         if (playback != null && (refresh == null || playback.expiresAt().isBefore(refresh))) refresh = playback.expiresAt();
         return new LiveActivityContext(facts, continuation, refresh, playback);
     }

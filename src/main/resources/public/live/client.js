@@ -16,6 +16,55 @@ export class LiveClient {
   }
   get active() { return !!this.current; }
   get busy() { return this.active || !!this.closing; }
+  syncMicrophone(run) {
+    if (this.current === run) run.media?.setEnabled(!!run.inputReady && !run.muted && !run.muting && !run.inputCountdown);
+  }
+  finishCountdown(run, id = run.inputCountdown?.id) {
+    if (!id) return;
+    (run.finishedCountdowns ||= new Set()).add(id);
+    if (run.finishedCountdowns.size > 64) run.finishedCountdowns.delete(run.finishedCountdowns.values().next().value);
+    if (run.inputCountdown?.id !== id) return;
+    clearTimeout(run.countdownTimer); run.countdownTimer = null; run.inputCountdown = null;
+    this.syncMicrophone(run);
+    this.diagnostic(run, {phase: 'countdown_input', outcome: 'resumed', cueId: id});
+    this.status('Active', run.muted ? 'Microphone muted.' : 'Microphone on.', {muted: run.muted, inputSuppressed: false});
+  }
+  countdown(run, cue, fromBehaviour = false) {
+    if (cue?.completeOnCapture !== true) {
+      // A fresh behaviour can precede an older in-flight status response. Its own
+      // completion behaviour, a later observed backend completion or the bounded
+      // deadline releases that gate.
+      if (run.inputCountdown && (!run.inputCountdown.fromBehaviour || run.inputCountdown.backendObserved)) this.finishCountdown(run);
+      return;
+    }
+    const remaining = Date.parse(cue.expiresAt) - Date.now();
+    if (typeof cue.id !== 'string' || !/^[A-Za-z0-9._:-]{1,160}$/.test(cue.id) || !(remaining > 0 && remaining <= 30000)) return;
+    if (run.finishedCountdowns?.has(cue.id)) return;
+    if (!fromBehaviour && run.inputCountdown?.fromBehaviour && run.inputCountdown.id !== cue.id) return;
+    if (run.inputCountdown?.id === cue.id) {
+      run.inputCountdown.fromBehaviour ||= fromBehaviour;
+      run.inputCountdown.backendObserved ||= !fromBehaviour;
+      return;
+    }
+    clearTimeout(run.countdownTimer);
+    run.inputCountdown = {id: cue.id, fromBehaviour, backendObserved: !fromBehaviour};
+    this.syncMicrophone(run);
+    this.diagnostic(run, {phase: 'countdown_input', outcome: 'suppressed', cueId: cue.id});
+    this.status('Active', 'Countdown playing; microphone resumes after the move.', {muted: run.muted, inputSuppressed: true});
+    run.countdownTimer = setTimeout(() => {
+      if (this.current === run) this.finishCountdown(run, cue.id);
+    }, remaining);
+  }
+  /** Fresh canonical behaviour only; callers must exclude history/reconnect replay. */
+  observeBehaviour(plan) {
+    const run = this.current, display = plan?.display;
+    if (!run?.inputReady || !display) return;
+    if (display.countdownSessionId && display.countdownSessionId !== run.handle) return;
+    if (display.nonInterruptible === true && display.phase === 'spoken_countdown')
+      this.countdown(run, {id: display.countdownId, expiresAt: display.countdownExpiresAt, completeOnCapture: true}, true);
+    else if (display.phase === 'capture_user_sign' && typeof display.countdownId === 'string')
+      this.finishCountdown(run, display.countdownId);
+  }
   status(state, detail = "", extra = {}) { this.state = state; this.onState({ state, detail, ...extra }); }
   check(run) { if (this.current !== run) throw new DOMException("Session stopped", "AbortError"); }
   diagnostic(run, value) {
@@ -126,8 +175,11 @@ export class LiveClient {
           if (run.captions.receive(event)) {
             if (event.type === 'session.input_transcript.delta' && !run.captions.isReconciled(event.event_id)) {
               // Acknowledgement-capable countdown cues hold evidence until the backend classifies the complete input.
-              const retained = run.playback.input(event.event_id);
-              this.diagnostic(run, {phase: 'input_boundary', receiptId: event.event_id, outcome: retained ? 'playback_evidence_retained' : 'playback_evidence_reset'});
+              if (run.inputCountdown) this.diagnostic(run, {phase: 'input_boundary', receiptId: event.event_id, outcome: 'countdown_input_ignored'});
+              else {
+                const retained = run.playback.input(event.event_id);
+                this.diagnostic(run, {phase: 'input_boundary', receiptId: event.event_id, outcome: retained ? 'playback_evidence_retained' : 'playback_evidence_reset'});
+              }
             }
             if (event.type === 'session.output_transcript.delta') run.playback.caption(event.event_id);
             this.onCaptions(run.captions.snapshot());
@@ -154,7 +206,8 @@ export class LiveClient {
       finally { clearTimeout(timer); }
       this.check(run);
       await this.api(run, `sessions/${run.handle}/input?muted=false`, { method: "POST" }); this.check(run);
-      run.media.setEnabled(true); this.status("Active", "Speak naturally. You can interrupt while the assistant speaks.", { muted: false });
+      run.inputReady = true; this.syncMicrophone(run);
+      this.status("Active", "Speak naturally. You can interrupt while the assistant speaks.", { muted: false, inputSuppressed: false });
       if (this.pollMs) run.timer = setInterval(() => void this.poll(), this.pollMs);
       this.diagnostic(run, { phase: "started" });
     } catch (error) {
@@ -167,6 +220,7 @@ export class LiveClient {
     try {
       const update = await this.api(run, `sessions/${run.handle}/updates?transcriptRevision=${run.transcriptRevision ?? -1}`); this.check(run);
       const status = update.status;
+      this.countdown(run, update.playbackCue);
       run.playback.update(update.playbackCue || null, update.transcripts);
       this.diagnostic(run, { phase: "status", status });
       if (status.state !== "attached") {
@@ -202,10 +256,13 @@ export class LiveClient {
     try {
       const muted = !run.muted;
       await this.api(run, `sessions/${run.handle}/input?muted=${muted}`, { method: "POST" }); this.check(run);
-      run.muted = muted; run.media.setEnabled(!muted);
-      this.diagnostic(run, { phase: "input_control", outcome: muted ? "muted" : "unmuted" }); this.status("Active", muted ? "Microphone muted. You can still hear the assistant." : "Microphone on.", { muted });
+      run.muted = muted;
+      this.diagnostic(run, { phase: "input_control", outcome: muted ? "muted" : "unmuted" });
+      this.status("Active", muted ? "Microphone muted. You can still hear the assistant."
+        : run.inputCountdown ? "Countdown playing; microphone resumes after the move." : "Microphone on.",
+        { muted, inputSuppressed: !!run.inputCountdown });
     } catch (error) { if (this.current === run) await this.stop(error.message, "Error", error.liveReason || "input_control_failed"); }
-    finally { run.muting = false; }
+    finally { run.muting = false; this.syncMicrophone(run); }
   }
   stop(detail = "Voice stopped.", finalState = "Idle", reason = "operator_stop") {
     const run = this.current; if (!run) return this.closing || Promise.resolve();
@@ -215,7 +272,7 @@ export class LiveClient {
     this.diagnostic(run, { phase: "output_end", reason });
     run.audioMonitor.playback("local_stop"); run.audioMonitor.close();
     run.playback.close();
-    run.media?.release(); run.output?.release(); clearInterval(run.timer);
+    run.media?.release(); run.output?.release(); clearInterval(run.timer); clearTimeout(run.countdownTimer);
     run.channel?.close(); run.peer?.close();
     run.cancelStartup?.();
     run.cancelGathering?.();

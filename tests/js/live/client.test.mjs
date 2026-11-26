@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { LiveClient } from "../../../src/main/resources/public/live/client.js";
+import { LiveCockpit } from "../../../src/main/resources/public/live/cockpit.js";
 import { LiveCaptions } from "../../../src/main/resources/public/live/captions.js";
 import { MicrophoneLease } from "../../../src/main/resources/public/transcription/media.js";
 import { OutputLease } from "../../../src/main/resources/public/speech/playback.js";
@@ -66,7 +67,7 @@ function fixture(options = {}) {
   const fetch = async (url, request = {}) => {
     requests.push({ url, request });
     if (options.respond) { const response = await options.respond(url, request); if (response) return response; }
-    const body = url.includes("/updates?") ? { status: state.status, transcriptRevision: JSON.stringify(state.ledger).length, transcripts: state.ledger }
+    const body = url.includes("/updates?") ? { status: state.status, transcriptRevision: JSON.stringify(state.ledger).length, transcripts: state.ledger, playbackCue: state.playbackCue }
       : url.endsWith("capabilities") ? state.capability : request.method === "DELETE" ? { finalized: true }
       : url.endsWith("sessions") ? { handle: "session1", sdp: "v=0 answer" } : url.includes("transcripts?") ? state.ledger
       : url.endsWith("history") ? state.history : state.status;
@@ -276,4 +277,100 @@ test("ledger-before-caption and Stop reconcile partial speech without reviving p
   assert.equal(f.captions.at(-1).ASSISTANT, '');
   const creation = JSON.parse(f.requests.find(r => r.url.endsWith('/sessions')).request.body);
   assert.equal(creation.speechApproval, undefined);
+});
+
+const countdownPlan = (id = 'round-one', expiresAt = new Date(Date.now() + 15000).toISOString()) => ({display: {
+  phase: 'spoken_countdown', nonInterruptible: true, countdownId: id, countdownSessionId: 'session1', countdownExpiresAt: expiresAt
+}});
+const countdownMove = id => ({display: {phase: 'capture_user_sign', countdownId: id}});
+
+test('fresh countdown behaviour suppresses native microphone input and ignores replies until the move', async () => {
+  const f = fixture(); await f.start(); let interruptions = 0;
+  f.client.current.playback.input = () => { interruptions++; };
+  f.client.observeBehaviour(countdownPlan()); assert.equal(f.track.enabled, false);
+  f.emit({type: 'session.input_transcript.delta', event_id: 'stop-during-count', delta: 'Ja, stopp'});
+  assert.equal(interruptions, 0);
+  assert.equal(f.diagnostics.at(-1).outcome, 'countdown_input_ignored');
+  // An older in-flight status poll must not undo the fresh canonical behaviour.
+  await f.client.poll(); assert.equal(f.track.enabled, false);
+  f.client.observeBehaviour(countdownMove('round-one')); assert.equal(f.track.enabled, true);
+  f.client.observeBehaviour(countdownPlan()); assert.equal(f.track.enabled, true, 'Duplicate start cannot re-mute a completed countdown');
+  assert.equal(f.requests.some(value => value.url.includes('/playback-cues/')), false);
+  await f.client.stop();
+});
+
+test('countdown suppression preserves manual mute and an unmute during countdown stays suppressed', async () => {
+  for (const unmuteDuring of [false, true]) {
+    const f = fixture(); await f.start(); await f.client.mute();
+    f.client.observeBehaviour(countdownPlan()); assert.equal(f.track.enabled, false);
+    if (unmuteDuring) await f.client.mute();
+    assert.equal(f.track.enabled, false);
+    f.client.observeBehaviour(countdownMove('round-one'));
+    assert.equal(f.track.enabled, unmuteDuring); assert.equal(f.client.current.muted, !unmuteDuring);
+    await f.client.stop();
+  }
+});
+
+test('polled capture-only cues restore input on completion and cannot be revived by stale polls', async () => {
+  const f = fixture(); await f.start();
+  const cue = {id: 'polled-round', completeOnCapture: true, expiresAt: new Date(Date.now() + 15000).toISOString()};
+  f.state.playbackCue = cue; await f.client.poll(); assert.equal(f.track.enabled, false);
+  assert.equal(f.client.current.playback.gate.cue, null, 'Browser audio sampling cannot authorize or block this move');
+  f.state.playbackCue = null; await f.client.poll(); assert.equal(f.track.enabled, true);
+  f.state.playbackCue = cue; await f.client.poll(); assert.equal(f.track.enabled, true);
+  await f.client.stop();
+});
+
+test('the countdown deadline restores input and Stop cancels its timer without reviving a closed session', async t => {
+  const f = fixture(); await f.start();
+  t.mock.timers.enable({apis: ['setTimeout', 'Date']});
+  f.client.observeBehaviour(countdownPlan('expires', new Date(Date.now() + 1000).toISOString()));
+  assert.equal(f.track.enabled, false); t.mock.timers.tick(1001); assert.equal(f.track.enabled, true);
+  f.client.observeBehaviour(countdownPlan('stopped', new Date(Date.now() + 1000).toISOString()));
+  assert.equal(f.track.enabled, false); await f.client.stop();
+  const count = f.diagnostics.length; t.mock.timers.tick(2000);
+  assert.equal(f.track.enabled, false); assert.equal(f.diagnostics.length, count);
+  assert.equal(f.client.state, 'Idle');
+});
+
+test('foreign-session and expired countdown behaviours do not suppress a live microphone', async () => {
+  const f = fixture(); await f.start();
+  const foreign = countdownPlan(); foreign.display.countdownSessionId = 'old-session';
+  f.client.observeBehaviour(foreign); assert.equal(f.track.enabled, true);
+  f.client.observeBehaviour(countdownPlan('old', new Date(Date.now() - 1).toISOString()));
+  assert.equal(f.track.enabled, true); await f.client.stop();
+});
+
+test('a delayed manual unmute cannot restore input before the countdown completes', async () => {
+  const pending = deferred(); let delay = false;
+  const f = fixture({respond: async url => delay && url.endsWith('/input?muted=false') ? pending.promise : null});
+  await f.start(); await f.client.mute(); f.client.observeBehaviour(countdownPlan());
+  delay = true; const unmute = f.client.mute();
+  f.client.observeBehaviour(countdownMove('round-one')); assert.equal(f.track.enabled, false);
+  pending.resolve({ok: true, json: async () => ({state: 'attached'})}); await unmute;
+  assert.equal(f.track.enabled, true); await f.client.stop();
+});
+
+test('a later backend completion restores an SSE-started microphone gate when the move SSE is lost', async () => {
+  const f = fixture(); await f.start();
+  const plan = countdownPlan(); f.client.observeBehaviour(plan);
+  await f.client.poll(); assert.equal(f.track.enabled, false, 'An old null snapshot cannot undo the start');
+  f.state.playbackCue = {id: 'round-one', expiresAt: plan.display.countdownExpiresAt, completeOnCapture: true};
+  await f.client.poll(); assert.equal(f.track.enabled, false);
+  f.state.playbackCue = {...f.state.playbackCue, expiresAt: 'invalid'};
+  await f.client.poll(); assert.equal(f.track.enabled, false, 'Malformed optional metadata cannot release the gate');
+  f.state.playbackCue = null; await f.client.poll(); assert.equal(f.track.enabled, true);
+  await f.client.stop();
+});
+
+test('cockpit delivery forwards fresh countdown control while history and reconnect replay stay passive', async () => {
+  const f = fixture(); await f.start();
+  const cockpit = Object.assign(Object.create(LiveCockpit.prototype), {client: f.client, history: [], renderHistory() {}});
+  const event = {id: 'countdown-event', type: 'resp.behaviour_plan', payload: JSON.stringify(countdownPlan())};
+  cockpit.event(event, {delivery: 'live', fromHistory: true}); assert.equal(f.track.enabled, true);
+  cockpit.event(event, {delivery: 'replay'}); assert.equal(f.track.enabled, true);
+  cockpit.event(event, {delivery: 'live'}); assert.equal(f.track.enabled, false);
+  cockpit.event({id: 'move-event', type: 'resp.behaviour_plan', payload: JSON.stringify(countdownMove('round-one'))}, {delivery: 'live'});
+  assert.equal(f.track.enabled, true);
+  await f.client.stop();
 });

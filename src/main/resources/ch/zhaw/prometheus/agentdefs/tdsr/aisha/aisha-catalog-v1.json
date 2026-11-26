@@ -12,7 +12,7 @@
       ],
       "approvedAnswerAr": "وعليكم السلام، أهلاً وسهلاً بكم. أنا عائشة من استثمر قطر، ويسعدني مساعدتكم.",
       "protectedFacts": [],
-      "gesture": "POLITE",
+      "gesture": "RIGHT_HAND_UP",
       "sourceRows": [],
       "timeSensitive": false
     },
@@ -90,7 +90,7 @@
       ],
       "approvedAnswerAr": "يمكنكم التواصل معنا عبر قنوات استثمر قطر الرسمية المنشورة على موقعنا الإلكتروني، وسيوجهكم فريقنا إلى الدعم المناسب.",
       "protectedFacts": [],
-      "gesture": "POLITE",
+      "gesture": "ACKNOWLEDGE",
       "sourceRows": [],
       "timeSensitive": false
     }

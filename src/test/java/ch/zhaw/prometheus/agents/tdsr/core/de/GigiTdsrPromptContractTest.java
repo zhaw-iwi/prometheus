@@ -35,7 +35,7 @@ class GigiTdsrPromptContractTest {
             "EXPLAIN",
             "UNCERTAIN",
             "ACKNOWLEDGE",
-            "POLITE",
+            "RIGHT_HAND_UP",
             "NONE");
 
     @Test
@@ -440,7 +440,7 @@ class GigiTdsrPromptContractTest {
     void configuredPolicyEmitsStructuredNonverbalPlanOnStart() {
         Agent agent = new ch.zhaw.prometheus.agentdefs.tdsr.core.de.GuessingGameWithGestures().createAgent();
         EventSequencedGateway gateway = new EventSequencedGateway(List.of(
-                "{\"speech\":\"Hallo, ich bin GIGI. Denk an etwas Vertrautes.\",\"nonVerbal\":{\"gesture\":\"POLITE\",\"facialExpression\":{\"type\":\"welcoming\",\"intensity\":0.7}}}"));
+                "{\"speech\":\"Hallo, ich bin GIGI. Denk an etwas Vertrautes.\",\"nonVerbal\":{\"gesture\":\"RIGHT_HAND_UP\",\"facialExpression\":{\"type\":\"welcoming\",\"intensity\":0.7}}}"));
 
         ch.zhaw.prometheus.model.event.Event event = agent.start(
                 new PolicyRuntime(new PromptMessageAssembler(), gateway));
@@ -451,7 +451,7 @@ class GigiTdsrPromptContractTest {
         assertNotNull(plan);
         assertNotNull(plan.getNonVerbal());
         assertTrue(plan.getNonVerbal().getAsJsonObject().has("facialExpression"));
-        assertEquals("POLITE", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
+        assertEquals("RIGHT_HAND_UP", plan.getNonVerbal().getAsJsonObject().get("gesture").getAsString());
         assertKnownGestureOnly(plan);
         assertNoUnsupportedLocomotion(plan);
         assertTrue(plan.getMotion() == null);

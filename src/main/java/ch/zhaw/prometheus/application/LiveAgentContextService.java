@@ -108,7 +108,7 @@ public class LiveAgentContextService {
                 if (!(leaf.ownPolicy() instanceof ch.zhaw.prometheus.model.policy.ExternalVoicePolicy policy)) return null;
                 var activity = policy.liveActivityContext();
                 var cue = activity == null ? null : activity.playbackCue();
-                return cue != null && cue.segmentId() != null && cue.id().equals(cueId) && cue.segmentId().equals(segmentId)
+                return cue != null && !cue.completeOnCapture() && cue.segmentId() != null && cue.id().equals(cueId) && cue.segmentId().equals(segmentId)
                         && !cue.expired(java.time.Instant.now()) ? policy.livePlaybackCompletionEventType() : null;
             });
             if (eventType == null) return false;

@@ -50,3 +50,13 @@ test('plan intensity blends all mouth shapes from baseline while preserving expr
   assert.ok(shapes.surprised.opening>rest.opening*4);
   assert.ok(Math.abs(shapes.surprised.lift)<1e-7);
 });
+
+test('right hand up raises only the robot right arm',()=>{
+  const robot=createRobot(),pose=normalizePlan({nonVerbal:{gesture:'RIGHT_HAND_UP'}});
+  robot.apply({pose,gesture:0,ambient:0});
+  const left=robot.root.getObjectByName('left.shoulder').rotation.toArray();
+  const right=robot.root.getObjectByName('right.shoulder').rotation.toArray();
+  robot.apply({pose,gesture:1,ambient:0});
+  assert.deepEqual(robot.root.getObjectByName('left.shoulder').rotation.toArray(),left);
+  assert.notDeepEqual(robot.root.getObjectByName('right.shoulder').rotation.toArray(),right);
+});

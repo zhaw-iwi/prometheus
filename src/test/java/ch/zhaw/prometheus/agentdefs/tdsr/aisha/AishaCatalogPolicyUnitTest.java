@@ -33,7 +33,7 @@ class AishaCatalogPolicyUnitTest {
         BehaviourPlan plan = policy.onStart(state(policy), new EventHistory(), this.assembler, gateway);
 
         assertEquals(AishaCatalogPolicy.GREETING, plan.getSpeech());
-        assertEquals("POLITE", gesture(plan));
+        assertEquals("RIGHT_HAND_UP", gesture(plan));
         assertEquals(0, gateway.extractCalls);
     }
 

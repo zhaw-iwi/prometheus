@@ -34,7 +34,7 @@ public class PromptPolicy extends Policy {
             EXPLAIN
             UNCERTAIN
             ACKNOWLEDGE
-            POLITE
+            RIGHT_HAND_UP
             rock
             scissor
             paper
@@ -46,7 +46,7 @@ public class PromptPolicy extends Policy {
             Output STRICT JSON only. No markdown, no code fences.
 
             Required top-level key:
-            - "gesture": one of OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, POLITE, rock, scissor, paper, NONE
+            - "gesture": one of OPEN_QUESTION, EXPLAIN, UNCERTAIN, ACKNOWLEDGE, RIGHT_HAND_UP, rock, scissor, paper, NONE
 
             Optional keys:
             - "facialExpression": {"type":"string","intensity":0.0-1.0}

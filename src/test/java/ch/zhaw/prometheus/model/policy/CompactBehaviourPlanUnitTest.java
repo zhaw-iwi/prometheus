@@ -36,11 +36,11 @@ class CompactBehaviourPlanUnitTest {
                  "prosody":{"rate":"slow","pitch":"warm","volume":"soft"},
                  "proxemics":{"distance":"social"},"custom":{"f":["literal",2],"g":true}}
                 """;
-        String compact = "{\"speech\":\"Hello.\",\"nv\":{\"g\":\"POLITE\",\"x\":" + extras
+        String compact = "{\"speech\":\"Hello.\",\"nv\":{\"g\":\"RIGHT_HAND_UP\",\"x\":" + extras
                 + "},\"motion\":{\"handSign\":\"scissors\",\"energy\":0.2,\"move\":\"forward\"},\"display\":{\"mode\":\"banner\",\"text\":\"Hello\"}}";
         var expected = JsonParser.parseString(compact).getAsJsonObject();
         var expectedNonverbal = JsonParser.parseString(extras).getAsJsonObject();
-        expectedNonverbal.addProperty("gesture", "POLITE");
+        expectedNonverbal.addProperty("gesture", "RIGHT_HAND_UP");
         expected.remove("nv");
         expected.add("nonVerbal", expectedNonverbal);
         assertEquals(BehaviourPlanInference.parse(expected.toString()).toJsonObject(),
@@ -92,7 +92,7 @@ class CompactBehaviourPlanUnitTest {
             "{\"f\":[\"warm\",-0.1]}", "{\"f\":[\"warm\",1.1]}", "{\"f\":[\"warm\",1e999]}",
             "{\"z\":[\"forward\",2]}", "{\"z\":[null,\"user\"]}", "{\"m\":[\"1\",0]}",
             "{\"m\":[1,-0.1]}", "{\"g\":[]}",
-            "{\"g\":\"POLITE\",\"x\":{\"gesture\":\"NONE\"}}",
+            "{\"g\":\"RIGHT_HAND_UP\",\"x\":{\"gesture\":\"NONE\"}}",
             "{\"f\":[\"warm\",0.5],\"x\":{\"facialExpression\":null}}",
             "{\"z\":[\"forward\",\"user\"],\"x\":{\"gaze\":{}}}",
             "{\"m\":[1,0],\"x\":{\"motion\":{}}}"

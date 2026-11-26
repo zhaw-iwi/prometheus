@@ -14,11 +14,11 @@ class GalaDinnerGesturesUnitTest {
 
     @Test void cadenceSuppressesRepeatedAndNearbyBeatsWithoutChangingOtherChannels() {
         assertEquals("EXPLAIN", label(GalaDinnerGestures.publish(storage, beat("EXPLAIN"), false, now)));
-        var original = beat("POLITE");
+        var original = beat("RIGHT_HAND_UP");
         var suppressed = GalaDinnerGestures.publish(storage, original, false, now.plusSeconds(11));
-        assertEquals("NONE", label(suppressed)); assertEquals("POLITE", label(original));
+        assertEquals("NONE", label(suppressed)); assertEquals("RIGHT_HAND_UP", label(original));
         assertEquals(original.getNonVerbal().getAsJsonObject().get("gaze"), suppressed.getNonVerbal().getAsJsonObject().get("gaze"));
-        assertEquals("POLITE", label(GalaDinnerGestures.publish(storage, original, false, now.plusSeconds(12))));
+        assertEquals("RIGHT_HAND_UP", label(GalaDinnerGestures.publish(storage, original, false, now.plusSeconds(12))));
         assertEquals("NONE", label(GalaDinnerGestures.publish(storage, beat("EXPLAIN"), false, now.plusSeconds(59))));
         assertEquals("EXPLAIN", label(GalaDinnerGestures.publish(storage, beat("EXPLAIN"), false, now.plusSeconds(60))));
     }
